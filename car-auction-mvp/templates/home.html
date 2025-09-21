@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+
+{% block title %}Welcome - Mekina Auction{% endblock %}
+
+{% block content %}
+    <h1>Welcome to Mekina Auction!</h1>
+    <p>The premier place for car auctions in Ethiopia.</p>
+    
+    <h2>Active Auctions</h2>
+    <div class="auction-grid">
+        {% for auction in auctions %}
+            <div class="auction-card">
+                <img src="{{ auction.car.image_url or url_for('static', filename='img/default_car.png') }}" alt="Car Image">
+                <h3>{{ auction.car.year }} {{ auction.car.make }} {{ auction.car.model }}</h3>
+                <p>Current Bid: {{ auction.current_price:,.2f }} ETB</p>
+                <a href="{{ url_for('auctions.auction_detail', auction_id=auction.id) }}">View Auction</a>
+            </div>
+        {% else %}
+            <p>No active auctions at the moment. Check back soon!</p>
+        {% endfor %}
+    </div>
+{% endblock %}
