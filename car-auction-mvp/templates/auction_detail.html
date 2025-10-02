@@ -8,10 +8,10 @@
     
     <h2>Auction Details</h2>
     <p>{{ auction.car.description }}</p>
-    <p><strong>Auction ends:</strong> {{ auction.end_time.strftime('%Y-%m-%d %H:%M') }}</p>
-    <p><strong>Starting Price:</strong> {{ auction.start_price:,.2f }} ETB</p>
+    <p><strong>Auction ends:</strong> {{ auction.end_time.strftime('%Y-%m-%d %H:%M') }} UTC</p>
+    <p><strong>Starting Price:</strong> {{ '{:,.2f}'.format(auction.start_price) }} ETB</p>
     <hr>
-    <h3>Current Price: {{ auction.current_price:,.2f }} ETB</h3>
+    <h3>Current Price: {{ '{:,.2f}'.format(auction.current_price) }} ETB</h3>
     {% if highest_bid %}
         <p>Highest bid by: {{ highest_bid.bidder.username }}</p>
     {% else %}

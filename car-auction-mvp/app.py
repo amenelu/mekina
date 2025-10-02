@@ -24,9 +24,11 @@ def create_app(config_class=Config):
     from routes.auth import auth_bp
     from routes.main import main_bp
     from routes.auctions import auctions_bp
+    from routes.admin import admin_bp
 
     app.register_blueprint(auth_bp, url_prefix='/auth')
     app.register_blueprint(main_bp)
+    app.register_blueprint(admin_bp, url_prefix='/admin')
     app.register_blueprint(auctions_bp, url_prefix='/auctions')
 
     # Define user loader function for Flask-Login
@@ -34,6 +36,20 @@ def create_app(config_class=Config):
     @login_manager.user_loader
     def load_user(user_id):
         return User.query.get(int(user_id))
+
+    # CLI command to create an admin user
+    @app.cli.command("create-admin")
+    def create_admin():
+        """Creates a new admin user."""
+        from models.user import User
+        username = input("Enter admin username: ")
+        email = input("Enter admin email: ")
+        password = input("Enter admin password: ")
+        user = User(username=username, email=email, is_admin=True)
+        user.set_password(password)
+        db.session.add(user)
+        db.session.commit()
+        print(f"Admin user {username} created successfully.")
 
     with app.app_context():
         # You can create all tables here if not using migrations
