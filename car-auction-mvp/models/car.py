@@ -8,6 +8,8 @@ class Car(db.Model):
     description = db.Column(db.Text, nullable=True)
     image_url = db.Column(db.String(200), nullable=True)
     owner_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    service_history_url = db.Column(db.String(200), nullable=True)
+    inspection_report_url = db.Column(db.String(200), nullable=True)
     is_approved = db.Column(db.Boolean, default=False, nullable=False)
 
     # Relationship

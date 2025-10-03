@@ -4,7 +4,7 @@
 
 {% block content %}
     <h1>{{ title }}</h1>
-    <form method="POST" action="">
+    <form method="POST" action="" enctype="multipart/form-data">
         {{ form.hidden_tag() }}
         <p>
             {{ form.make.label }}<br>
@@ -41,6 +41,16 @@
             {{ form.end_time.label }}<br>
             {{ form.end_time() }}
             {% for error in form.end_time.errors %}<span style="color: red;">[{{ error }}]</span>{% endfor %}
+        </p>
+        <p>
+            {{ form.service_history_doc.label }}<br>
+            {{ form.service_history_doc() }}
+            {% for error in form.service_history_doc.errors %}<span style="color: red;">[{{ error }}]</span>{% endfor %}
+        </p>
+        <p>
+            {{ form.inspection_report_doc.label }}<br>
+            {{ form.inspection_report_doc() }}
+            {% for error in form.inspection_report_doc.errors %}<span style="color: red;">[{{ error }}]</span>{% endfor %}
         </p>
         <p>
             {{ form.submit() }}
