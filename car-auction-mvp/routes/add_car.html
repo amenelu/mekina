@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block content %}
+    <h1>{{ title }}</h1>
+    <form method="POST" action="">
+        {{ form.hidden_tag() }}
+        <p>
+            {{ form.make.label }}<br>
+            {{ form.make(size=32) }}
+            {% for error in form.make.errors %}<span style="color: red;">[{{ error }}]</span>{% endfor %}
+        </p>
+        <p>
+            {{ form.model.label }}<br>
+            {{ form.model(size=32) }}
+            {% for error in form.model.errors %}<span style="color: red;">[{{ error }}]</span>{% endfor %}
+        </p>
+        <p>
+            {{ form.year.label }}<br>
+            {{ form.year(size=10) }}
+            {% for error in form.year.errors %}<span style="color: red;">[{{ error }}]</span>{% endfor %}
+        </p>
+        <p>
+            {{ form.description.label }}<br>
+            {{ form.description(rows=4, cols=50) }}
+            {% for error in form.description.errors %}<span style="color: red;">[{{ error }}]</span>{% endfor %}
+        </p>
+        <p>
+            {{ form.image_url.label }} (Optional)<br>
+            {{ form.image_url(size=50) }}
+            {% for error in form.image_url.errors %}<span style="color: red;">[{{ error }}]</span>{% endfor %}
+        </p>
+        <hr>
+        <p>
+            {{ form.start_price.label }}<br>
+            {{ form.start_price(size=20) }}
+            {% for error in form.start_price.errors %}<span style="color: red;">[{{ error }}]</span>{% endfor %}
+        </p>
+        <p>
+            {{ form.end_time.label }}<br>
+            {{ form.end_time() }}
+            {% for error in form.end_time.errors %}<span style="color: red;">[{{ error }}]</span>{% endfor %}
+        </p>
+        <p>
+            {{ form.submit() }}
+        </p>
+    </form>
+    <a href="{{ url_for('admin.dashboard') }}">Cancel</a>
+{% endblock %}

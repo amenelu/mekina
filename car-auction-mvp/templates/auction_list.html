@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+
+{% block title %}All Auctions{% endblock %}
+
+{% block content %}
+    <h1>All Active Auctions</h1>
+
+    <div class="auction-grid">
+        {% for auction in auctions.items %}
+            <div class="auction-card">
+                <img src="{{ auction.car.image_url or url_for('static', filename='img/default_car.png') }}" alt="Car Image">
+                <h3>{{ auction.car.year }} {{ auction.car.make }} {{ auction.car.model }}</h3>
+                <p>Current Bid: {{ '{:,.2f}'.format(auction.current_price) }} ETB</p>
+                <a href="{{ url_for('auctions.auction_detail', auction_id=auction.id) }}">View Auction</a>
+            </div>
+        {% else %}
+            <p>No active auctions at the moment. Check back soon!</p>
+        {% endfor %}
+    </div>
+
+    <div class="pagination">
+        {% if auctions.has_prev %}<a href="{{ url_for('auctions.list_auctions', page=auctions.prev_num) }}">&laquo; Previous</a>{% endif %}
+        <span>Page {{ auctions.page }} of {{ auctions.pages }}</span>
+        {% if auctions.has_next %}<a href="{{ url_for('auctions.list_auctions', page=auctions.next_num) }}">Next &raquo;</a>{% endif %}
+    </div>
+{% endblock %}

@@ -4,6 +4,26 @@
 
 {% block content %}
     <h1>Admin Dashboard</h1>
+    <div style="margin-bottom: 20px;">
+        <a href="{{ url_for('admin.add_car') }}" style="text-decoration: none; background-color: #28a745; color: white; padding: 10px 15px; border-radius: 5px;">+ Add New Car for Auction</a>
+    </div>
+
+    <h2>At a Glance</h2>
+    <div class="stat-grid" style="display: flex; gap: 20px; margin-bottom: 40px;">
+        <div class="stat-card" style="border: 1px solid #ddd; padding: 20px; text-align: center; flex-grow: 1; border-radius: 5px;">
+            <h3>{{ stats.user_count }}</h3>
+            <p>Total Users</p>
+        </div>
+        <div class="stat-card" style="border: 1px solid #ddd; padding: 20px; text-align: center; flex-grow: 1; border-radius: 5px;">
+            <h3>{{ stats.active_auction_count }}</h3>
+            <p>Active Auctions</p>
+        </div>
+        <div class="stat-card" style="border: 1px solid #ddd; padding: 20px; text-align: center; flex-grow: 1; border-radius: 5px;">
+            <h3>{{ stats.pending_approval_count }}</h3>
+            <p>Cars Pending Approval</p>
+        </div>
+    </div>
+
     <h2>Cars Pending Approval</h2>
 
     {% if cars %}
