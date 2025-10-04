@@ -106,3 +106,49 @@ def add_car():
         flash(f'Successfully added {new_car.year} {new_car.make} {new_car.model} for auction.', 'success')
         return redirect(url_for('admin.dashboard'))
     return render_template('add_car.html', title='Add New Car', form=form)
+
+@admin_bp.route('/edit_auction/<int:auction_id>', methods=['GET', 'POST'])
+@login_required
+@admin_required
+def edit_auction(auction_id):
+    auction = Auction.query.get_or_404(auction_id)
+    car = auction.car
+    form = AddCarForm(obj=car)
+    
+    # Pre-populate auction-specific fields
+    if request.method == 'GET':
+        form.start_price.data = auction.start_price
+        form.end_time.data = auction.end_time
+
+    if form.validate_on_submit():
+        # Update Car details
+        car.make = form.make.data
+        car.model = form.model.data
+        car.year = form.year.data
+        car.description = form.description.data
+        car.image_url = form.image_url.data
+
+        # Update Auction details
+        auction.start_price = form.start_price.data
+        auction.end_time = form.end_time.data
+        # Optional: Reset current price if start price changes
+        if auction.current_price < auction.start_price:
+            auction.current_price = auction.start_price
+
+        db.session.commit()
+        flash(f'Successfully updated auction for {car.year} {car.make} {car.model}.', 'success')
+        return redirect(url_for('auctions.list_auctions'))
+
+    return render_template('add_car.html', title=f'Edit Auction: {car.year} {car.make}', form=form)
+
+@admin_bp.route('/delete_auction/<int:auction_id>', methods=['POST'])
+@login_required
+@admin_required
+def delete_auction(auction_id):
+    auction = Auction.query.get_or_404(auction_id)
+    car = auction.car
+    db.session.delete(auction) # Deleting auction will cascade and delete bids
+    db.session.delete(car)
+    db.session.commit()
+    flash(f'Successfully deleted auction and car: {car.year} {car.make} {car.model}.', 'danger')
+    return redirect(url_for('auctions.list_auctions'))

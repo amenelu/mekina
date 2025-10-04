@@ -25,12 +25,19 @@ class BidForm(FlaskForm):
 @auctions_bp.route('/')
 def list_auctions():
     page = request.args.get('page', 1, type=int)
-    # Only show auctions for approved cars
-    auctions = Auction.query.join(Car).filter(
-        Car.is_approved == True,
-        Auction.end_time > datetime.utcnow()
-    ).paginate(page=page, per_page=10)
-    return render_template('auction_list.html', auctions=auctions)
+
+    if current_user.is_authenticated and current_user.is_admin:
+        # Admin view: show all auctions, ordered by end time
+        auctions = Auction.query.join(Car).order_by(Auction.end_time.desc()).paginate(page=page, per_page=10)
+        return render_template('auction_management.html', auctions=auctions, now=datetime.utcnow())
+    else:
+        # Public view: Only show auctions for approved cars that haven't ended
+        auctions = Auction.query.join(Car).filter(
+            Car.is_approved == True,
+            Auction.end_time > datetime.utcnow()
+        ).order_by(Auction.end_time.asc()).paginate(page=page, per_page=10)
+        return render_template('auction_list.html', auctions=auctions)
+
 
 @auctions_bp.route('/<int:auction_id>', methods=['GET', 'POST'])
 def auction_detail(auction_id):
