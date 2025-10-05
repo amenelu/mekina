@@ -35,4 +35,28 @@
     {% else %}
         <p><a href="{{ url_for('auth.login', next=request.path) }}">Log in to place a bid.</a></p>
     {% endif %}
+
+    <hr>
+
+    <h3>Bid History</h3>
+    {% if all_bids %}
+        <table border="1" style="width:100%; border-collapse: collapse; margin-top: 10px;">
+            <thead>
+                <tr style="background-color: #f2f2f2;">
+                    <th style="padding: 8px; text-align: left;">Bidder</th>
+                    <th style="padding: 8px; text-align: left;">Amount (ETB)</th>
+                    <th style="padding: 8px; text-align: left;">Time</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for bid in all_bids %}
+                <tr>
+                    <td style="padding: 8px;">{{ bid.bidder.username }}</td>
+                    <td style="padding: 8px;">{{ '{:,.2f}'.format(bid.amount) }}</td>
+                    <td style="padding: 8px;">{{ bid.timestamp.strftime('%Y-%m-%d %H:%M:%S') }} UTC</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% endif %}
 {% endblock %}

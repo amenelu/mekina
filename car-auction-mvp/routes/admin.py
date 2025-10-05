@@ -1,6 +1,6 @@
 import os
 from functools import wraps
-from flask import Blueprint, render_template, flash, redirect, url_for, abort, current_app
+from flask import Blueprint, render_template, flash, redirect, request, url_for, abort, current_app
 from flask_login import login_required, current_user
 from models.car import Car
 from models.user import User
@@ -11,7 +11,7 @@ from werkzeug.utils import secure_filename
 
 from flask_wtf import FlaskForm
 from flask_wtf.file import FileField, FileAllowed
-from wtforms import StringField, IntegerField, TextAreaField, FloatField, DateTimeLocalField, SubmitField
+from wtforms import StringField, IntegerField, TextAreaField, FloatField, DateTimeLocalField, SubmitField, BooleanField, PasswordField
 from wtforms.validators import DataRequired, NumberRange
 
 admin_bp = Blueprint('admin', __name__)
@@ -36,6 +36,12 @@ class AddCarForm(FlaskForm):
     service_history_doc = FileField('Service History Document (PDF, JPG, PNG)', validators=[FileAllowed(['pdf', 'jpg', 'jpeg', 'png'], 'Images and PDFs only!')])
     inspection_report_doc = FileField('Last Inspection Report (PDF, JPG, PNG)', validators=[FileAllowed(['pdf', 'jpg', 'jpeg', 'png'], 'Images and PDFs only!')])
     submit = SubmitField('Add Car and Create Auction')
+
+class UserEditForm(FlaskForm):
+    username = StringField('Username', validators=[DataRequired()])
+    email = StringField('Email', validators=[DataRequired()])
+    is_admin = BooleanField('Is Admin?')
+    submit = SubmitField('Update User')
 
 @admin_bp.route('/dashboard')
 @login_required
@@ -105,7 +111,7 @@ def add_car():
         db.session.commit()
         flash(f'Successfully added {new_car.year} {new_car.make} {new_car.model} for auction.', 'success')
         return redirect(url_for('admin.dashboard'))
-    return render_template('add_car.html', title='Add New Car', form=form)
+    return render_template('add_car.html', title='Add New Car', form=form, cancel_url=url_for('admin.dashboard'))
 
 @admin_bp.route('/edit_auction/<int:auction_id>', methods=['GET', 'POST'])
 @login_required
@@ -114,6 +120,9 @@ def edit_auction(auction_id):
     auction = Auction.query.get_or_404(auction_id)
     car = auction.car
     form = AddCarForm(obj=car)
+
+    # Dynamically change the submit button text for the edit view
+    form.submit.label.text = 'Update Auction'
     
     # Pre-populate auction-specific fields
     if request.method == 'GET':
@@ -139,7 +148,7 @@ def edit_auction(auction_id):
         flash(f'Successfully updated auction for {car.year} {car.make} {car.model}.', 'success')
         return redirect(url_for('auctions.list_auctions'))
 
-    return render_template('add_car.html', title=f'Edit Auction: {car.year} {car.make}', form=form)
+    return render_template('add_car.html', title=f'Edit Auction: {car.year} {car.make}', form=form, cancel_url=url_for('auctions.list_auctions'))
 
 @admin_bp.route('/delete_auction/<int:auction_id>', methods=['POST'])
 @login_required

@@ -9,18 +9,36 @@ from datetime import datetime
 # Simple form for placing a bid
 from flask_wtf import FlaskForm
 from wtforms import FloatField, SubmitField
-from wtforms.validators import DataRequired, NumberRange
+from wtforms.validators import DataRequired, NumberRange, ValidationError
 
 auctions_bp = Blueprint('auctions', __name__)
 
+def bid_increment_validator(form, field):
+    """Custom validator to enforce bid increments."""
+    auction = form.auction
+
+    # Check if user is the current highest bidder
+    highest_bid = auction.bids.order_by(Bid.amount.desc()).first()
+    if highest_bid and highest_bid.user_id == current_user.id:
+        raise ValidationError("You are already the highest bidder.")
+
+    if auction.bids.first():
+        # There are existing bids, enforce increment
+        min_bid = auction.current_price + 50000
+        if field.data < min_bid:
+            raise ValidationError(f"Your bid must be at least {min_bid:,.2f} ETB (50,000 ETB increment).")
+    else:
+        # No bids yet, bid must be at least the start price
+        if field.data < auction.start_price:
+            raise ValidationError(f"The first bid must be at least the starting price of {auction.start_price:,.2f} ETB.")
+
 class BidForm(FlaskForm):
-    amount = FloatField('Bid Amount (ETB)', validators=[DataRequired(), NumberRange(min=0)])
+    amount = FloatField('Bid Amount (ETB)', validators=[DataRequired(), bid_increment_validator])
     submit = SubmitField('Place Bid')
 
-    def __init__(self, *args, min_bid=None, **kwargs):
+    def __init__(self, *args, auction=None, **kwargs):
         super(BidForm, self).__init__(*args, **kwargs)
-        if min_bid is not None:
-            self.amount.validators.append(NumberRange(min=min_bid, message=f'Bid must be higher than {min_bid-0.01:,.2f} ETB.'))
+        self.auction = auction # Pass auction object to the form for the validator
 
 @auctions_bp.route('/')
 def list_auctions():
@@ -48,8 +66,7 @@ def auction_detail(auction_id):
         from flask import abort
         abort(404)
 
-    min_bid_amount = auction.current_price + 0.01
-    form = BidForm(min_bid=min_bid_amount)
+    form = BidForm(auction=auction)
 
     if form.validate_on_submit():
         if not current_user.is_authenticated:
@@ -65,4 +82,7 @@ def auction_detail(auction_id):
 
     highest_bid = Bid.query.filter_by(auction_id=auction.id).order_by(Bid.amount.desc()).first()
 
-    return render_template('auction_detail.html', auction=auction, form=form, highest_bid=highest_bid)
+    # Get all bids for the history, newest first
+    all_bids = auction.bids.order_by(Bid.timestamp.desc()).all()
+
+    return render_template('auction_detail.html', auction=auction, form=form, highest_bid=highest_bid, all_bids=all_bids)

@@ -56,5 +56,5 @@
             {{ form.submit() }}
         </p>
     </form>
-    <a href="{{ url_for('admin.dashboard') }}">Cancel</a>
+    <a href="{{ cancel_url or url_for('admin.dashboard') }}">Cancel</a>
 {% endblock %}
