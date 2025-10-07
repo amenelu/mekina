@@ -11,6 +11,10 @@ class Car(db.Model):
     service_history_url = db.Column(db.String(200), nullable=True)
     inspection_report_url = db.Column(db.String(200), nullable=True)
     is_approved = db.Column(db.Boolean, default=False, nullable=False)
+    transmission = db.Column(db.String(50))
+    drivetrain = db.Column(db.String(50))
+    mileage = db.Column(db.Integer)
+    fuel_type = db.Column(db.String(50))
 
     # Relationship
     auction = db.relationship('Auction', backref='car', uselist=False) # One-to-one

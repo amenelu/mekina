@@ -6,6 +6,17 @@
     <h1>Welcome to Mekina Auction!</h1>
     <p>The premier place for car auctions in Ethiopia.</p>
     
+    <div class="filter-form" style="background-color: #f8f9fa; padding: 20px; border-radius: 8px; margin-bottom: 30px;">
+        <h3>Find Your Next Car</h3>
+        <form action="{{ url_for('auctions.list_auctions') }}" method="GET">
+            <input type="text" name="make" placeholder="Make (e.g., Toyota)" style="padding: 8px; margin-right: 10px;">
+            <input type="text" name="model" placeholder="Model (e.g., Corolla)" style="padding: 8px; margin-right: 10px;">
+            <input type="number" name="max_price" placeholder="Max Price (ETB)" style="padding: 8px; margin-right: 10px;">
+            <button type="submit" style="padding: 8px 15px; background-color: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer;">Filter</button>
+        </form>
+    </div>
+
+
     <h2>Active Auctions</h2>
     <div class="auction-grid">
         {% for auction in auctions %}

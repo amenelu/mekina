@@ -25,10 +25,10 @@ with app.app_context():
 
         # --- Car and Auction Data ---
         cars_to_add = [
-            {'make': 'Toyota', 'model': 'Corolla', 'year': 2019, 'description': 'A reliable and fuel-efficient sedan.', 'owner_id': owner.id, 'is_approved': False, 'start_price': 1200000.00},
-            {'make': 'Ford', 'model': 'Ranger', 'year': 2021, 'description': 'Tough and capable pickup truck.', 'owner_id': owner.id, 'is_approved': True, 'start_price': 2500000.00},
-            {'make': 'Volkswagen', 'model': 'ID.4', 'year': 2022, 'description': 'Modern electric SUV with great range.', 'owner_id': owner.id, 'is_approved': True, 'start_price': 3500000.00},
-            {'make': 'Lifan', 'model': '530', 'year': 2018, 'description': 'An affordable compact car.', 'owner_id': owner.id, 'is_approved': True, 'start_price': 850000.00},
+            {'make': 'Toyota', 'model': 'Corolla', 'year': 2019, 'description': 'A reliable and fuel-efficient sedan.', 'owner_id': owner.id, 'is_approved': False, 'start_price': 1200000.00, 'transmission': 'Automatic', 'drivetrain': 'FWD', 'mileage': 50000, 'fuel_type': 'Gasoline'},
+            {'make': 'Ford', 'model': 'Ranger', 'year': 2021, 'description': 'Tough and capable pickup truck.', 'owner_id': owner.id, 'is_approved': True, 'start_price': 2500000.00, 'transmission': 'Automatic', 'drivetrain': '4WD', 'mileage': 30000, 'fuel_type': 'Diesel'},
+            {'make': 'Volkswagen', 'model': 'ID.4', 'year': 2022, 'description': 'Modern electric SUV with great range.', 'owner_id': owner.id, 'is_approved': True, 'start_price': 3500000.00, 'transmission': 'Automatic', 'drivetrain': 'AWD', 'mileage': 15000, 'fuel_type': 'Electric'},
+            {'make': 'Lifan', 'model': '530', 'year': 2018, 'description': 'An affordable compact car.', 'owner_id': owner.id, 'is_approved': True, 'start_price': 850000.00, 'transmission': 'Manual', 'drivetrain': 'FWD', 'mileage': 85000, 'fuel_type': 'Gasoline'},
         ]
 
         for car_data in cars_to_add:

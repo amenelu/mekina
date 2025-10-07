@@ -1,4 +1,4 @@
-from flask import Blueprint, render_template, redirect, url_for, flash, request
+from flask import Blueprint, render_template, redirect, url_for, flash, request, jsonify
 from flask_login import login_required, current_user
 from models.auction import Auction
 from models.car import Car
@@ -49,12 +49,8 @@ def list_auctions():
         auctions = Auction.query.join(Car).order_by(Auction.end_time.desc()).paginate(page=page, per_page=10)
         return render_template('auction_management.html', auctions=auctions, now=datetime.utcnow())
     else:
-        # Public view: Only show auctions for approved cars that haven't ended
-        auctions = Auction.query.join(Car).filter(
-            Car.is_approved == True,
-            Auction.end_time > datetime.utcnow()
-        ).order_by(Auction.end_time.asc()).paginate(page=page, per_page=10)
-        return render_template('auction_list.html', auctions=auctions)
+        # The initial page load will be handled by AJAX, so we just render the shell.
+        return render_template('auction_list.html')
 
 
 @auctions_bp.route('/<int:auction_id>', methods=['GET', 'POST'])
@@ -86,3 +82,45 @@ def auction_detail(auction_id):
     all_bids = auction.bids.order_by(Bid.timestamp.desc()).all()
 
     return render_template('auction_detail.html', auction=auction, form=form, highest_bid=highest_bid, all_bids=all_bids)
+
+@auctions_bp.route('/api/filter')
+def filter_auctions_api():
+    """API endpoint to return filtered auction data as JSON."""
+    query = Auction.query.join(Car).filter(
+        Car.is_approved == True,
+        Auction.end_time > datetime.utcnow()
+    )
+
+    # Apply filters from request arguments
+    if make := request.args.get('make'):
+        query = query.filter(Car.make.ilike(f"%{make}%"))
+    if model := request.args.get('model'):
+        query = query.filter(Car.model.ilike(f"%{model}%"))
+    if max_price := request.args.get('max_price', type=float):
+        query = query.filter(Auction.current_price <= max_price)
+    if transmission := request.args.get('transmission'):
+        query = query.filter(Car.transmission == transmission)
+    if drivetrain := request.args.get('drivetrain'):
+        query = query.filter(Car.drivetrain == drivetrain)
+    if max_mileage := request.args.get('max_mileage', type=int):
+        query = query.filter(Car.mileage <= max_mileage)
+    if fuel_type := request.args.get('fuel_type'):
+        query = query.filter(Car.fuel_type == fuel_type)
+
+    auctions = query.order_by(Auction.end_time.asc()).all()
+
+    # Prepare data for JSON response
+    results = [
+        {
+            'id': auction.id,
+            'year': auction.car.year,
+            'make': auction.car.make,
+            'model': auction.car.model,
+            'current_price': auction.current_price,
+            'image_url': auction.car.image_url or url_for('static', filename='img/default_car.png'),
+            'detail_url': url_for('auctions.auction_detail', auction_id=auction.id)
+        }
+        for auction in auctions
+    ]
+
+    return jsonify(results)
