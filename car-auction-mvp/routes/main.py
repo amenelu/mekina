@@ -13,5 +13,5 @@ def home():
         return redirect(url_for('admin.dashboard'))
 
     # Get active auctions to display on the home page
-    active_auctions = Auction.query.join(Car).filter(Car.is_approved == True).limit(6).all()
+    active_auctions = Auction.query.join(Car).filter(Car.is_approved == True).limit(8).all()
     return render_template('home.html', auctions=active_auctions)
