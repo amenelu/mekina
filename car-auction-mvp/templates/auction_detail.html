@@ -19,60 +19,80 @@
     </div>
     {% endif %}
 
-    <h1>{{ auction.car.year }} {{ auction.car.make }} {{ auction.car.model }}</h1>
-    <img src="{{ auction.car.image_url or url_for('static', filename='img/default_car.png') }}" alt="Car Image" style="max-width: 500px;">
-    
-    <h2>Auction Details</h2>
-    <p>{{ auction.car.description }}</p>
-    <p><strong>Auction ends:</strong> {{ auction.end_time.strftime('%Y-%m-%d %H:%M') }} UTC</p>
-    <p><strong>Starting Price:</strong> {{ '{:,.2f}'.format(auction.start_price) }} ETB</p>
-    <hr>
-    <h3>Current Price: {{ '{:,.2f}'.format(auction.current_price) }} ETB</h3>
-    {% if highest_bid %}
-        <p>Highest bid by: {{ highest_bid.bidder.username }}</p>
-    {% else %}
-        <p>No bids yet. Be the first!</p>
-    {% endif %}
+    <div class="detail-page-container">
+        <div class="main-content">
+            <h1>{{ auction.car.year }} {{ auction.car.make }} {{ auction.car.model }}</h1>
+            <img src="{{ auction.car.image_url or url_for('static', filename='img/default_car.png') }}" alt="Car Image" style="max-width: 100%; border-radius: 8px;">
+            
+            <h2>Auction Details</h2>
+            <p>{{ auction.car.description }}</p>
+            <p><strong>Auction ends:</strong> {{ auction.end_time.strftime('%Y-%m-%d %H:%M') }} UTC</p>
+            <p><strong>Starting Price:</strong> {{ '{:,.2f}'.format(auction.start_price) }} ETB</p>
+            <hr>
+            <h3>Current Price: {{ '{:,.2f}'.format(auction.current_price) }} ETB</h3>
+            {% if highest_bid %}
+                <p>Highest bid by: {{ highest_bid.bidder.username }}</p>
+            {% else %}
+                <p>No bids yet. Be the first!</p>
+            {% endif %}
 
-    <hr>
-    
-    {% if current_user.is_authenticated %}
-        <form method="POST" action="{{ url_for('auctions.auction_detail', auction_id=auction.id) }}">
-            {{ form.hidden_tag() }}
-            <p>
-                {{ form.amount.label }}<br>
-                {{ form.amount(size=20) }}
-                {% for error in form.amount.errors %}
-                <span style="color: red;">[{{ error }}]</span>
+            <hr>
+            
+            {% if current_user.is_authenticated %}
+                <form method="POST" action="{{ url_for('auctions.auction_detail', auction_id=auction.id) }}">
+                    {{ form.hidden_tag() }}
+                    <p>
+                        {{ form.amount.label }}<br>
+                        {{ form.amount(size=20) }}
+                        {% for error in form.amount.errors %}
+                        <span style="color: red;">[{{ error }}]</span>
+                        {% endfor %}
+                    </p>
+                    <p>{{ form.submit() }}</p>
+                </form>
+            {% else %}
+                <p><a href="{{ url_for('auth.login', next=request.path) }}">Log in to place a bid.</a></p>
+            {% endif %}
+
+            <hr>
+
+            <h3>Bid History</h3>
+            {% if all_bids %}
+                <table border="1" style="width:100%; border-collapse: collapse; margin-top: 10px;">
+                    <thead>
+                        <tr style="background-color: #f2f2f2;">
+                            <th style="padding: 8px; text-align: left;">Bidder</th>
+                            <th style="padding: 8px; text-align: left;">Amount (ETB)</th>
+                            <th style="padding: 8px; text-align: left;">Time</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for bid in all_bids %}
+                        <tr>
+                            <td style="padding: 8px;">{{ bid.bidder.username }}</td>
+                            <td style="padding: 8px;">{{ '{:,.2f}'.format(bid.amount) }}</td>
+                            <td style="padding: 8px;">{{ bid.timestamp.strftime('%Y-%m-%d %H:%M:%S') }} UTC</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            {% endif %}
+        </div>
+
+        <div class="sidebar">
+            <h3>Similar Listings</h3>
+            {% if similar_auctions %}
+                {% for sim_auction in similar_auctions %}
+                    <div class="auction-card" style="margin-bottom: 15px;">
+                        <img src="{{ sim_auction.car.image_url or url_for('static', filename='img/default_car.png') }}" alt="Car Image">
+                        <h4 style="margin: 5px 0;">{{ sim_auction.car.year }} {{ sim_auction.car.make }} {{ sim_auction.car.model }}</h4>
+                        <p style="margin: 5px 0;">{{ '{:,.2f}'.format(sim_auction.current_price) }} ETB</p>
+                        <a href="{{ url_for('auctions.auction_detail', auction_id=sim_auction.id) }}">View</a>
+                    </div>
                 {% endfor %}
-            </p>
-            <p>{{ form.submit() }}</p>
-        </form>
-    {% else %}
-        <p><a href="{{ url_for('auth.login', next=request.path) }}">Log in to place a bid.</a></p>
-    {% endif %}
-
-    <hr>
-
-    <h3>Bid History</h3>
-    {% if all_bids %}
-        <table border="1" style="width:100%; border-collapse: collapse; margin-top: 10px;">
-            <thead>
-                <tr style="background-color: #f2f2f2;">
-                    <th style="padding: 8px; text-align: left;">Bidder</th>
-                    <th style="padding: 8px; text-align: left;">Amount (ETB)</th>
-                    <th style="padding: 8px; text-align: left;">Time</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for bid in all_bids %}
-                <tr>
-                    <td style="padding: 8px;">{{ bid.bidder.username }}</td>
-                    <td style="padding: 8px;">{{ '{:,.2f}'.format(bid.amount) }}</td>
-                    <td style="padding: 8px;">{{ bid.timestamp.strftime('%Y-%m-%d %H:%M:%S') }} UTC</td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-    {% endif %}
+            {% else %}
+                <p>No other similar cars found.</p>
+            {% endif %}
+        </div>
+    </div>
 {% endblock %}

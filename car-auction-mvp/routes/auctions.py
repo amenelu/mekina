@@ -81,7 +81,16 @@ def auction_detail(auction_id):
     # Get all bids for the history, newest first
     all_bids = auction.bids.order_by(Bid.timestamp.desc()).all()
 
-    return render_template('auction_detail.html', auction=auction, form=form, highest_bid=highest_bid, all_bids=all_bids)
+    # Get similar auctions (same make, active, approved, not the current one)
+    similar_auctions = Auction.query.join(Car).filter(
+        Car.make == auction.car.make,
+        Auction.id != auction_id,
+        Car.is_approved == True,
+        Auction.end_time > datetime.utcnow()
+    ).limit(4).all()
+
+
+    return render_template('auction_detail.html', auction=auction, form=form, highest_bid=highest_bid, all_bids=all_bids, similar_auctions=similar_auctions)
 
 @auctions_bp.route('/api/filter')
 def filter_auctions_api():

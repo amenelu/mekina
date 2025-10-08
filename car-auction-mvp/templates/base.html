@@ -6,6 +6,20 @@
     <title>{% block title %}Mekina Auction{% endblock %}</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
     <style>
+        /* Two-column layout for detail pages */
+        .detail-page-container {
+            display: flex;
+            gap: 30px;
+        }
+        .main-content {
+            flex: 3; /* Takes up ~75% of the space */
+        }
+        .sidebar {
+            flex: 1; /* Takes up ~25% of the space */
+            border-left: 1px solid #eee;
+            padding-left: 30px;
+        }
+
         /* Grid layout for auction cards */
         .auction-grid {
             display: grid;
