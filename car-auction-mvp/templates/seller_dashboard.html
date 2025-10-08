@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+
+{% block title %}Seller Dashboard{% endblock %}
+
+{% block content %}
+    <h1>Seller Dashboard</h1>
+    <div style="margin-bottom: 20px;">
+        <a href="{{ url_for('seller.submit_car') }}" style="text-decoration: none; background-color: #28a745; color: white; padding: 10px 15px; border-radius: 5px;">+ Submit New Car for Auction</a>
+    </div>
+
+    <h2>My Submitted Cars</h2>
+
+    {% if my_cars %}
+        <table border="1" style="width:100%; border-collapse: collapse;">
+            <thead>
+                <tr>
+                    <th>Car</th>
+                    <th>Status</th>
+                    <th>Auction Status</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for car in my_cars %}
+                <tr>
+                    <td>{{ car.year }} {{ car.make }} {{ car.model }}</td>
+                    <td>
+                        {% if car.is_approved %}
+                            <span style="color: green; font-weight: bold;">Approved</span>
+                        {% else %}
+                            <span style="color: orange; font-weight: bold;">Pending Approval</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if car.auction and car.auction.end_time > now %}
+                            Active (Ends: {{ car.auction.end_time.strftime('%Y-%m-%d %H:%M') }})
+                        {% elif car.auction and car.auction.end_time <= now %}
+                            Expired
+                        {% else %}
+                            No Auction Yet
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if not car.is_approved %}<a href="{{ url_for('seller.edit_car', car_id=car.id) }}">Edit</a>{% endif %}
+                        <!-- Add delete functionality later if needed -->
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% else %}
+        <p>You have not submitted any cars yet.</p>
+    {% endif %}
+{% endblock %}

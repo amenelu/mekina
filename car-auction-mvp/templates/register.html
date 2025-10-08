@@ -21,6 +21,13 @@
             {% endfor %}
         </p>
         <p>
+            {{ form.phone_number.label }}<br>
+            {{ form.phone_number(size=32) }}<br>
+            {% for error in form.phone_number.errors %}
+            <span style="color: red;">[{{ error }}]</span>
+            {% endfor %}
+        </p>
+        <p>
             {{ form.password.label }}<br>
             {{ form.password(size=32) }}<br>
             {% for error in form.password.errors %}

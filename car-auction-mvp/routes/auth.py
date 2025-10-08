@@ -14,6 +14,7 @@ auth_bp = Blueprint('auth', __name__)
 class RegistrationForm(FlaskForm):
     username = StringField('Username', validators=[DataRequired()])
     email = StringField('Email', validators=[DataRequired(), Email()])
+    phone_number = StringField('Phone Number', validators=[DataRequired()])
     password = PasswordField('Password', validators=[DataRequired()])
     confirm_password = PasswordField('Confirm Password', validators=[DataRequired(), EqualTo('password')])
     submit = SubmitField('Sign Up')
@@ -38,7 +39,7 @@ class LoginForm(FlaskForm):
 def register():
     form = RegistrationForm()
     if form.validate_on_submit():
-        user = User(username=form.username.data, email=form.email.data)
+        user = User(username=form.username.data, email=form.email.data, phone_number=form.phone_number.data)
         user.set_password(form.password.data)
         db.session.add(user)
         db.session.commit()

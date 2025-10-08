@@ -37,6 +37,9 @@
             {% if current_user.is_authenticated and current_user.is_admin %}
                 <li><a href="{{ url_for('admin.dashboard') }}">Dashboard</a></li>
                 <li><a href="{{ url_for('auctions.list_auctions') }}">Manage Auctions</a></li>
+            {% elif current_user.is_authenticated %}
+                <li><a href="{{ url_for('auctions.list_auctions') }}">All Auctions</a></li>
+                <li><a href="{{ url_for('seller.dashboard') }}">Seller Dashboard</a></li>
             {% else %}
                 <li><a href="{{ url_for('auctions.list_auctions') }}">All Auctions</a></li>
             {% endif %}

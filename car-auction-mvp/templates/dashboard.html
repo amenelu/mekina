@@ -33,7 +33,7 @@
                     <th>Year</th>
                     <th>Make</th>
                     <th>Model</th>
-                    <th>Owner</th>
+                    <th>Seller</th>
                     <th>Action</th>
                 </tr>
             </thead>
@@ -43,11 +43,12 @@
                     <td>{{ car.year }}</td>
                     <td>{{ car.make }}</td>
                     <td>{{ car.model }}</td>
-                    <td>{{ car.owner.username }}</td>
+                    <td>{{ car.owner.username }} ({{ car.owner.phone_number or 'No Phone' }})</td>
                     <td>
                         <form action="{{ url_for('admin.approve_car', car_id=car.id) }}" method="post" style="display:inline;">
                             <button type="submit">Approve</button>
                         </form>
+                        <a href="{{ url_for('auctions.auction_detail', auction_id=car.auction.id) }}" style="margin-left: 10px;">View Details</a>
                     </td>
                 </tr>
                 {% endfor %}

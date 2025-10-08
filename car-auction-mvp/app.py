@@ -25,11 +25,13 @@ def create_app(config_class=Config):
     from routes.main import main_bp
     from routes.auctions import auctions_bp
     from routes.admin import admin_bp
+    from routes.seller import seller_bp
 
     app.register_blueprint(auth_bp, url_prefix='/auth')
     app.register_blueprint(main_bp)
     app.register_blueprint(admin_bp, url_prefix='/admin')
     app.register_blueprint(auctions_bp, url_prefix='/auctions')
+    app.register_blueprint(seller_bp, url_prefix='/seller')
 
     # Define user loader function for Flask-Login
     from models.user import User
@@ -50,11 +52,6 @@ def create_app(config_class=Config):
         db.session.add(user)
         db.session.commit()
         print(f"Admin user {username} created successfully.")
-
-    with app.app_context():
-        # You can create all tables here if not using migrations
-        # db.create_all()
-        pass
 
     return app
 
