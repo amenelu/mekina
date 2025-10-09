@@ -4,7 +4,9 @@
 
 {% block content %}
     <h1>{{ title }}</h1>
-    <form method="POST" action="" enctype="multipart/form-data">
+    <p>Please fill out the details below. An administrator will review your submission before it goes live.</p>
+
+    <form method="POST" action="" novalidate>
         {{ form.hidden_tag() }}
         <p>
             {{ form.make.label }}<br>
@@ -27,7 +29,7 @@
             {% for error in form.description.errors %}<span style="color: red;">[{{ error }}]</span>{% endfor %}
         </p>
         <p>
-            {{ form.image_url.label }}<br>
+            {{ form.image_url.label }} (Optional)<br>
             {{ form.image_url(size=50) }}
             {% for error in form.image_url.errors %}<span style="color: red;">[{{ error }}]</span>{% endfor %}
         </p>
@@ -52,6 +54,7 @@
             {% for error in form.fuel_type.errors %}<span style="color: red;">[{{ error }}]</span>{% endfor %}
         </p>
         <hr>
+        <h3>Auction Details</h3>
         <p>
             {{ form.start_price.label }}<br>
             {{ form.start_price(size=20) }}
@@ -63,18 +66,8 @@
             {% for error in form.end_time.errors %}<span style="color: red;">[{{ error }}]</span>{% endfor %}
         </p>
         <p>
-            {{ form.service_history_doc.label }}<br>
-            {{ form.service_history_doc() }}
-            {% for error in form.service_history_doc.errors %}<span style="color: red;">[{{ error }}]</span>{% endfor %}
-        </p>
-        <p>
-            {{ form.inspection_report_doc.label }}<br>
-            {{ form.inspection_report_doc() }}
-            {% for error in form.inspection_report_doc.errors %}<span style="color: red;">[{{ error }}]</span>{% endfor %}
-        </p>
-        <p>
             {{ form.submit() }}
         </p>
     </form>
-    <a href="{{ cancel_url or url_for('seller.dashboard') }}">Cancel</a>
+    <a href="{{ url_for('seller.dashboard') }}">Cancel</a>
 {% endblock %}

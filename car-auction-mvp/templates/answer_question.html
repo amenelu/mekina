@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+
+{% block title %}Answer Question{% endblock %}
+
+{% block content %}
+    <h1>Answer Question</h1>
+
+    <div class="question-context" style="background-color: #f8f9fa; padding: 15px; border-radius: 5px; margin-bottom: 20px;">
+        <p><strong>Car:</strong> <a href="{{ url_for('auctions.auction_detail', auction_id=auction.id) }}">{{ auction.car.year }} {{ auction.car.make }} {{ auction.car.model }}</a></p>
+        <p><strong>Question from {{ question.asker.username }}:</strong></p>
+        <blockquote style="margin-left: 20px; font-style: italic;">"{{ question.question_text }}"</blockquote>
+    </div>
+
+    <form id="answer-form" method="POST" action="{{ url_for('seller.answer_question', question_id=question.id) }}">
+        {{ form.hidden_tag() }}
+        <p>
+            {{ form.answer_text.label }}<br>
+            {{ form.answer_text(rows=6, style="width: 100%;") }}
+            {% for error in form.answer_text.errors %}
+            <span style="color: red;">[{{ error }}]</span>
+            {% endfor %}
+        </p>
+        <p>{{ form.submit() }}</p>
+    </form>
+    <div id="success-message" style="display: none; color: green; font-weight: bold; margin-top: 20px;"></div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const answerForm = document.getElementById('answer-form');
+
+    answerForm.addEventListener('submit', function(e) {
+        e.preventDefault();
+        const formData = new FormData(this);
+
+        fetch(this.action, {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                // Hide the form and show a success message
+                answerForm.style.display = 'none';
+                const successDiv = document.getElementById('success-message');
+                successDiv.innerHTML = `${data.message} You will be redirected shortly. <br><br> <a href="{{ url_for('auctions.auction_detail', auction_id=auction.id) }}">Click here if you are not redirected.</a>`;
+                successDiv.style.display = 'block';
+
+                // Redirect back to the auction detail page after a short delay
+                setTimeout(() => {
+                    window.location.href = "{{ url_for('auctions.auction_detail', auction_id=auction.id) }}";
+                }, 3000);
+            }
+        }).catch(error => console.error('Error:', error));
+    });
+});
+</script>
+{% endblock %}

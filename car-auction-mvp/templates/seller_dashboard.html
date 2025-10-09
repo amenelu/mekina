@@ -51,4 +51,30 @@
     {% else %}
         <p>You have not submitted any cars yet.</p>
     {% endif %}
+
+    <h2 style="margin-top: 40px;">My Unanswered Questions</h2>
+    {% if unanswered_questions %}
+        <table border="1" style="width:100%; border-collapse: collapse;">
+             <thead>
+                <tr>
+                    <th>Car</th>
+                    <th>Question</th>
+                    <th>Asked By</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for q in unanswered_questions %}
+                <tr>
+                    <td>{{ q.auction.car.year }} {{ q.auction.car.make }} {{ q.auction.car.model }}</td>
+                    <td>{{ q.question_text }}</td>
+                    <td>{{ q.asker.username }}</td>
+                    <td><a href="{{ url_for('seller.answer_question', question_id=q.id) }}">Answer</a></td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% else %}
+        <p>You have no unanswered questions.</p>
+    {% endif %}
 {% endblock %}

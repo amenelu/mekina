@@ -39,16 +39,16 @@
             <hr>
             
             {% if current_user.is_authenticated %}
-                <form method="POST" action="{{ url_for('auctions.auction_detail', auction_id=auction.id) }}">
-                    {{ form.hidden_tag() }}
+                <form method="POST" action="{{ url_for('auctions.auction_detail', auction_id=auction.id) }}" style="margin-bottom: 20px;">
+                    {{ bid_form.hidden_tag() }}
                     <p>
-                        {{ form.amount.label }}<br>
-                        {{ form.amount(size=20) }}
-                        {% for error in form.amount.errors %}
+                        {{ bid_form.amount.label }}<br>
+                        {{ bid_form.amount(size=20) }}
+                        {% for error in bid_form.amount.errors %}
                         <span style="color: red;">[{{ error }}]</span>
                         {% endfor %}
                     </p>
-                    <p>{{ form.submit() }}</p>
+                    <p>{{ bid_form.submit() }}</p>
                 </form>
             {% else %}
                 <p><a href="{{ url_for('auth.login', next=request.path) }}">Log in to place a bid.</a></p>
@@ -56,31 +56,70 @@
 
             <hr>
 
-            <h3>Bid History</h3>
-            {% if all_bids %}
-                <table border="1" style="width:100%; border-collapse: collapse; margin-top: 10px;">
-                    <thead>
-                        <tr style="background-color: #f2f2f2;">
-                            <th style="padding: 8px; text-align: left;">Bidder</th>
-                            <th style="padding: 8px; text-align: left;">Amount (ETB)</th>
-                            <th style="padding: 8px; text-align: left;">Time</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for bid in all_bids %}
-                        <tr>
-                            <td style="padding: 8px;">{{ bid.bidder.username }}</td>
-                            <td style="padding: 8px;">{{ '{:,.2f}'.format(bid.amount) }}</td>
-                            <td style="padding: 8px;">{{ bid.timestamp.strftime('%Y-%m-%d %H:%M:%S') }} UTC</td>
-                        </tr>
+            <div class="info-columns" style="display: flex; gap: 30px;">
+                <div class="bid-history-column" style="flex: 1;">
+                    <h3>Bid History</h3>
+                    {% if all_bids %}
+                        <table border="1" style="width:100%; border-collapse: collapse; margin-top: 10px;">
+                            <thead>
+                                <tr style="background-color: #f2f2f2;">
+                                    <th style="padding: 8px; text-align: left;">Bidder</th>
+                                    <th style="padding: 8px; text-align: left;">Amount (ETB)</th>
+                                    <th style="padding: 8px; text-align: left;">Time</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for bid in all_bids %}
+                                <tr>
+                                    <td style="padding: 8px;">{{ bid.bidder.username }}</td>
+                                    <td style="padding: 8px;">{{ '{:,.2f}'.format(bid.amount) }}</td>
+                                    <td style="padding: 8px;">{{ bid.timestamp.strftime('%Y-%m-%d %H:%M:%S') }} UTC</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    {% else %}
+                        <p>No bid history available.</p>
+                    {% endif %}
+                </div>
+
+                <div class="qna-column" style="flex: 1;">
+                    <h3>Questions & Answers</h3>
+                    <div class="qna-section">
+                        {% for q in questions %}
+                            {% include '_question_item.html' %}
+                        {% else %}
+                            <p id="no-questions-message">No questions have been asked yet. Be the first!</p>
                         {% endfor %}
-                    </tbody>
-                </table>
-            {% endif %}
+                    </div>
+
+                    {% if current_user.is_authenticated and current_user.id != auction.car.owner_id %}
+                        <div class="ask-question-container" style="margin-top: 20px;">
+                            <button id="ask-question-btn">Ask the Seller a Question</button>
+                            <div id="ask-question-form-div" style="display: none; margin-top: 10px;">
+                                <form id="question-form" method="POST" action="{{ url_for('auctions.auction_detail', auction_id=auction.id) }}">
+                                    {{ question_form.hidden_tag() }}
+                                    <p>
+                                        {{ question_form.question_text.label }}<br>
+                                        {{ question_form.question_text(rows=4, style="width: 100%;") }}<br>
+                                        <span id="question-error" style="color: red;"></span>
+                                    </p>
+                                    <p>
+                                        {{ question_form.submit_question() }}
+                                        <span id="question-success" style="color: green; margin-left: 10px;"></span>
+                                    </p>
+                                </form>
+                            </div>
+                        </div>
+                    {% elif not current_user.is_authenticated %}
+                        <p><a href="{{ url_for('auth.login', next=request.path) }}">Log in to ask a question.</a></p>
+                    {% endif %}
+                </div>
+            </div>
         </div>
 
         <div class="sidebar">
-            <h3>Similar Listings</h3>
+            <h3>{{ similarity_reason or 'Similar Listings' }}</h3>
             {% if similar_auctions %}
                 {% for sim_auction in similar_auctions %}
                     <div class="auction-card" style="margin-bottom: 15px;">
@@ -95,4 +134,64 @@
             {% endif %}
         </div>
     </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const askBtn = document.getElementById('ask-question-btn');
+    const formDiv = document.getElementById('ask-question-form-div');
+    const questionForm = document.getElementById('question-form');
+
+    if (askBtn) {
+        askBtn.addEventListener('click', function() {
+            formDiv.style.display = 'block';
+            this.style.display = 'none';
+        });
+    }
+
+    // Add a click listener to the whole document to hide the form when clicking away
+    document.addEventListener('click', function(event) {
+        // Check if the form is visible and if the click was outside the form container and not on the button that opens it
+        if (formDiv && formDiv.style.display === 'block' && !formDiv.contains(event.target) && event.target !== askBtn) {
+            formDiv.style.display = 'none';
+            askBtn.style.display = 'block';
+        }
+    });
+
+
+    if (questionForm) {
+        questionForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            const formData = new FormData(this);
+            const successMsg = document.getElementById('question-success');
+            const errorMsg = document.getElementById('question-error');
+
+            fetch(this.action, {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    const qnaSection = document.querySelector('.qna-section');
+                    const noQuestionsMsg = document.getElementById('no-questions-message');
+                    if (noQuestionsMsg) {
+                        noQuestionsMsg.remove();
+                    }
+                    qnaSection.insertAdjacentHTML('beforeend', data.question_html);
+                    questionForm.reset();
+                    errorMsg.textContent = '';
+                    successMsg.textContent = data.message;
+                    setTimeout(() => { successMsg.textContent = ''; }, 3000);
+                } else {
+                    errorMsg.textContent = data.error || 'An unknown error occurred.';
+                }
+            })
+            .catch(error => console.error('Error:', error));
+        });
+    }
+});
+</script>
 {% endblock %}

@@ -1,5 +1,6 @@
 from datetime import datetime
 from app import db
+from .question import Question
 
 class Auction(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -13,6 +14,8 @@ class Auction(db.Model):
 
     # Relationships
     bids = db.relationship('Bid', backref='auction', lazy='dynamic', cascade="all, delete-orphan")
+    questions = db.relationship('Question', back_populates='auction', lazy='dynamic', cascade="all, delete-orphan")
+
 
     def __repr__(self):
         return f'<Auction for Car ID {self.car_id}>'

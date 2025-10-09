@@ -1,8 +1,10 @@
 from flask import Blueprint, render_template, redirect, url_for, flash, request, jsonify
 from flask_login import login_required, current_user
+from sqlalchemy import or_
 from models.auction import Auction
 from models.car import Car
 from models.bid import Bid
+from models.question import Question
 from app import db
 from datetime import datetime
 
@@ -10,7 +12,7 @@ from datetime import datetime
 from flask_wtf import FlaskForm
 from wtforms import FloatField, SubmitField
 from wtforms.validators import DataRequired, NumberRange, ValidationError
-
+from wtforms import TextAreaField, validators
 auctions_bp = Blueprint('auctions', __name__)
 
 def bid_increment_validator(form, field):
@@ -40,6 +42,10 @@ class BidForm(FlaskForm):
         super(BidForm, self).__init__(*args, **kwargs)
         self.auction = auction # Pass auction object to the form for the validator
 
+class QuestionForm(FlaskForm):
+    question_text = TextAreaField('Ask a Question', validators=[DataRequired(), validators.Length(min=10, max=500)])
+    submit_question = SubmitField('Submit Question')
+
 @auctions_bp.route('/')
 def list_auctions():
     page = request.args.get('page', 1, type=int)
@@ -62,18 +68,38 @@ def auction_detail(auction_id):
         from flask import abort
         abort(404)
 
-    form = BidForm(auction=auction)
+    bid_form = BidForm(auction=auction)
+    question_form = QuestionForm()
 
-    if form.validate_on_submit():
+    # Separate logic for two different forms on the page
+    if bid_form.validate_on_submit() and bid_form.submit.data:
         if not current_user.is_authenticated:
             flash('You must be logged in to place a bid.')
             return redirect(url_for('auth.login'))
 
-        new_bid = Bid(amount=form.amount.data, user_id=current_user.id, auction_id=auction.id)
-        auction.current_price = form.amount.data
+        new_bid = Bid(amount=bid_form.amount.data, user_id=current_user.id, auction_id=auction.id)
+        auction.current_price = bid_form.amount.data
         db.session.add(new_bid)
         db.session.commit()
         flash('Your bid has been placed successfully!')
+        return redirect(url_for('auctions.auction_detail', auction_id=auction.id))
+
+    if question_form.validate_on_submit() and question_form.submit_question.data:
+        if not current_user.is_authenticated:
+            return jsonify({'error': 'You must be logged in to ask a question.'}), 401
+
+        new_question = Question(question_text=question_form.question_text.data, user_id=current_user.id, auction_id=auction.id)
+        db.session.add(new_question)
+        db.session.commit()
+
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return jsonify({
+                'status': 'success',
+                'message': 'Your question has been submitted.',
+                'question_html': render_template('_question_item.html', q=new_question, auction=auction)
+            })
+
+        flash('Your question has been submitted successfully!')
         return redirect(url_for('auctions.auction_detail', auction_id=auction.id))
 
     highest_bid = Bid.query.filter_by(auction_id=auction.id).order_by(Bid.amount.desc()).first()
@@ -81,16 +107,44 @@ def auction_detail(auction_id):
     # Get all bids for the history, newest first
     all_bids = auction.bids.order_by(Bid.timestamp.desc()).all()
 
-    # Get similar auctions (same make, active, approved, not the current one)
-    similar_auctions = Auction.query.join(Car).filter(
-        Car.make == auction.car.make,
+    # --- Enhanced Similar Auctions Logic ---
+    similar_auctions = []
+    similarity_reason = ""
+    base_query = Auction.query.join(Car).filter(
         Auction.id != auction_id,
         Car.is_approved == True,
         Auction.end_time > datetime.utcnow()
-    ).limit(4).all()
+    )
 
+    # 1. Try same Make and Model
+    similar_auctions = base_query.filter(Car.make == auction.car.make, Car.model == auction.car.model).limit(4).all()
+    if similar_auctions:
+        similarity_reason = f"More {auction.car.make} {auction.car.model} models"
 
-    return render_template('auction_detail.html', auction=auction, form=form, highest_bid=highest_bid, all_bids=all_bids, similar_auctions=similar_auctions)
+    # 2. If not enough, try same Make
+    if not similar_auctions:
+        similar_auctions = base_query.filter(Car.make == auction.car.make).limit(4).all()
+        if similar_auctions:
+            similarity_reason = f"More from {auction.car.make}"
+
+    # 3. If still none, try a broader search (same fuel type or similar year)
+    if not similar_auctions:
+        similar_auctions = base_query.filter(or_(
+            Car.fuel_type == auction.car.fuel_type,
+            Car.year.between(auction.car.year - 2, auction.car.year + 2)
+        )).limit(4).all()
+        if similar_auctions:
+            similarity_reason = "Similar Models"
+
+    # 4. As a last resort, show any other active auctions
+    if not similar_auctions:
+        similar_auctions = base_query.limit(4).all()
+        similarity_reason = "Other Active Auctions"
+
+    # Get all questions and answers for this auction
+    questions = auction.questions.order_by(Question.timestamp.asc()).all()
+
+    return render_template('auction_detail.html', auction=auction, bid_form=bid_form, question_form=question_form, highest_bid=highest_bid, all_bids=all_bids, similar_auctions=similar_auctions, questions=questions, similarity_reason=similarity_reason)
 
 @auctions_bp.route('/api/filter')
 def filter_auctions_api():
