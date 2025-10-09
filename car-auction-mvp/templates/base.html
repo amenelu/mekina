@@ -11,8 +11,8 @@
 </head>
 <body>
     <nav>
+        <a href="{{ url_for('main.home') }}" class="nav-brand">Mekina</a>
         <ul>
-            <li><a href="{{ url_for('main.home') }}">Home</a></li>
             {% if current_user.is_authenticated and current_user.is_admin %}
                 <li><a href="{{ url_for('admin.dashboard') }}">Dashboard</a></li>
                 <li><a href="{{ url_for('auctions.list_auctions') }}">Manage Auctions</a></li>

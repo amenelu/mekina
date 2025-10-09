@@ -2,34 +2,35 @@
 
 /* 1. Variables & Base Styles */
 /* Light Theme (Default) */
+/* Dark Theme Activated */
 :root {
-    --background: 0 0% 100%;
-    --foreground: 220 15% 15%;
-    --card: 0 0% 100%;
-    --card-foreground: 220 15% 15%;
-    --popover: 0 0% 100%;
-    --popover-foreground: 220 15% 15%;
-    --primary: 220 70% 12%;
-    --primary-foreground: 0 0% 100%;
-    --secondary: 210 15% 94%;
-    --secondary-foreground: 220 70% 12%;
-    --muted: 210 15% 96%;
-    --muted-foreground: 220 10% 45%;
-    --accent: 25 95% 53%;
-    --accent-foreground: 0 0% 100%;
-    --destructive: 0 84.2% 60.2%;
+    --background: 220 25% 8%;
+    --foreground: 0 0% 95%;
+    --card: 220 20% 12%;
+    --card-foreground: 0 0% 95%;
+    --popover: 220 20% 12%;
+    --popover-foreground: 0 0% 95%;
+    --primary: 38 92% 50%; /* Using accent as primary for dark mode */
+    --primary-foreground: 220 70% 12%;
+    --secondary: 220 20% 18%;
+    --secondary-foreground: 0 0% 95%;
+    --muted: 220 20% 16%;
+    --muted-foreground: 220 10% 60%;
+    --accent: 38 92% 50%; /* Yellowish Orange */
+    --accent-foreground: 220 70% 12%;
+    --destructive: 0 62.8% 30.6%;
     --destructive-foreground: 0 0% 100%;
-    --border: 220 13% 91%;
-    --input: 220 13% 91%;
-    --ring: 220 70% 12%;
+    --border: 220 20% 18%;
+    --input: 220 20% 18%;
+    --ring: 38 92% 50%;
     --radius: 0.75rem;
     --success: 142 76% 36%;
-    --warning: 38 92% 50%;
+    --warning: 38 92% 50%; /* This is our new accent color */
     --info: 217 91% 60%;
-    --gradient-primary: linear-gradient(135deg, hsl(220 70% 12%), hsl(220 70% 22%));
-    --gradient-accent: linear-gradient(135deg, hsl(25 95% 53%), hsl(15 90% 48%));
-    --shadow-card: 0 4px 6px -1px hsl(220 15% 15% / 0.1), 0 2px 4px -1px hsl(220 15% 15% / 0.06);
-    --shadow-elevated: 0 10px 15px -3px hsl(220 15% 15% / 0.1), 0 4px 6px -2px hsl(220 15% 15% / 0.05);
+    --gradient-primary: linear-gradient(135deg, hsl(220 20% 12%), hsl(220 20% 18%));
+    --gradient-accent: linear-gradient(135deg, hsl(38 92% 50%), hsl(25 95% 53%));
+    --shadow-card: 0 4px 6px -1px hsl(0 0% 0% / 0.3), 0 2px 4px -1px hsl(0 0% 0% / 0.2);
+    --shadow-elevated: 0 10px 15px -3px hsl(0 0% 0% / 0.3), 0 4px 6px -2px hsl(0 0% 0% / 0.2);
 }
 
 body {
@@ -91,6 +92,12 @@ nav {
     justify-content: space-between;
     align-items: center;
 }
+.nav-brand {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: hsl(var(--foreground));
+    text-decoration: none;
+}
 nav ul {
     list-style: none;
     margin: 0;
@@ -103,7 +110,7 @@ nav a {
     font-weight: 500;
 }
 nav a:hover {
-    color: hsl(var(--info));
+    color: hsl(var(--accent));
     text-decoration: none;
 }
 .nav-right {
@@ -112,14 +119,14 @@ nav a:hover {
     gap: 15px;
 }
 .nav-button {
-    background-color: hsl(var(--info));
-    color: hsl(var(--primary-foreground));
+    background-color: hsl(var(--accent));
+    color: hsl(var(--accent-foreground));
     padding: 8px 15px;
     border-radius: var(--radius);
     font-weight: 500;
 }
 .nav-button:hover {
-    background-color: hsl(var(--info) / 0.9);
+    background-color: hsl(var(--accent) / 0.9);
     text-decoration: none;
 }
 
@@ -228,11 +235,13 @@ input[type="email"],
 select,
 textarea {
     padding: 10px;
-    margin: 0; /* Remove default margin */
-    border: 1px solid hsl(var(--border));
+    margin: 0;
+    border: 1px solid hsl(var(--muted-foreground) / 0.5);
     border-radius: var(--radius);
     font-family: 'Inter', sans-serif;
     font-size: 1rem;
+    background-color: hsl(var(--input));
+    color: hsl(var(--foreground));
 }
 
 table {
@@ -335,7 +344,7 @@ tbody tr:hover {
     color: hsl(var(--muted-foreground));
 }
 .footer-links a:hover {
-    color: hsl(var(--info));
+    color: hsl(var(--accent));
     text-decoration: none;
 }
 .footer-bottom {
@@ -448,7 +457,7 @@ tbody tr:hover {
     transition: border-color 0.2s;
 }
 .thumbnails img.active {
-    border-color: hsl(var(--info));
+    border-color: hsl(var(--accent));
 }
 
 /* 12. Q&A Section */
@@ -477,4 +486,3 @@ tbody tr:hover {
 #ask-question-form-div { display: none; margin-top: 10px; }
 #question-success { color: hsl(var(--success)); margin-left: 10px; }
 #question-error { color: hsl(var(--destructive)); }
-

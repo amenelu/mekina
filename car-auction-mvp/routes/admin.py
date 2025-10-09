@@ -12,7 +12,7 @@ from werkzeug.utils import secure_filename
 
 from flask_wtf import FlaskForm
 from flask_wtf.file import FileField, FileAllowed
-from wtforms import StringField, IntegerField, TextAreaField, FloatField, DateTimeLocalField, SubmitField, BooleanField, PasswordField
+from wtforms import StringField, IntegerField, TextAreaField, FloatField, DateTimeLocalField, SubmitField, BooleanField, PasswordField, MultipleFileField
 from wtforms.validators import DataRequired, NumberRange
 
 admin_bp = Blueprint('admin', __name__)
@@ -31,6 +31,7 @@ class AddCarForm(FlaskForm):
     model = StringField('Model', validators=[DataRequired()])
     year = IntegerField('Year', validators=[DataRequired(), NumberRange(min=1900, max=2100)])
     description = TextAreaField('Description')
+    images = MultipleFileField('Car Photos (select multiple)', validators=[FileAllowed(['jpg', 'jpeg', 'png'], 'Images only!')])
     start_price = FloatField('Starting Price (ETB)', validators=[DataRequired(), NumberRange(min=0)])
     end_time = DateTimeLocalField('Auction End Time', format='%Y-%m-%dT%H:%M', validators=[DataRequired()])
     service_history_doc = FileField('Service History Document (PDF, JPG, PNG)', validators=[FileAllowed(['pdf', 'jpg', 'jpeg', 'png'], 'Images and PDFs only!')])
@@ -148,6 +149,13 @@ def edit_auction(auction_id):
         # Optional: Reset current price if start price changes
         if auction.current_price < auction.start_price:
             auction.current_price = auction.start_price
+
+        # Add new images if any were uploaded during the edit
+        for image_file in form.images.data:
+            image_url = save_document(image_file)
+            if image_url:
+                new_image = CarImage(image_url=image_url, car_id=car.id)
+                db.session.add(new_image)
 
         db.session.commit()
         flash(f'Successfully updated auction for {car.year} {car.make} {car.model}.', 'success')
