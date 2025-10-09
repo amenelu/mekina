@@ -23,13 +23,17 @@
         <div class="main-content">
             <h1>{{ auction.car.year }} {{ auction.car.make }} {{ auction.car.model }}</h1>
             <div class="image-gallery">
-                <div class="main-image">
-                    <img id="main-car-image" src="{{ auction.car.primary_image_url or url_for('static', filename='img/default_car.png') }}" alt="Car Image" style="max-width: 100%; border-radius: 8px;">
+                <div class="main-image-container" style="position: relative; max-width: 100%;">
+                    <img id="main-car-image" src="{{ auction.car.primary_image_url or url_for('static', filename='img/default_car.png') }}" alt="Car Image" style="width: 100%; max-height: 500px; object-fit: cover; border-radius: 8px;">
+                    {% if auction.car.images|length > 1 %}
+                        <button id="prev-image-btn" style="position: absolute; top: 50%; left: 10px; transform: translateY(-50%); background-color: rgba(0,0,0,0.5); color: white; border: none; font-size: 24px; cursor: pointer; padding: 5px 10px; border-radius: 50%;">&lt;</button>
+                        <button id="next-image-btn" style="position: absolute; top: 50%; right: 10px; transform: translateY(-50%); background-color: rgba(0,0,0,0.5); color: white; border: none; font-size: 24px; cursor: pointer; padding: 5px 10px; border-radius: 50%;">&gt;</button>
+                    {% endif %}
                 </div>
                 {% if auction.car.images|length > 1 %}
                 <div class="thumbnails" style="display: flex; gap: 10px; margin-top: 10px;">
                     {% for image in auction.car.images %}
-                    <img src="{{ image.image_url }}" class="thumbnail-img" alt="Thumbnail" style="width: 100px; height: 75px; object-fit: cover; cursor: pointer; border-radius: 4px;">
+                    <img src="{{ image.image_url }}" class="thumbnail-img" alt="Thumbnail" style="width: 100px; height: 75px; object-fit: cover; cursor: pointer; border-radius: 4px; border: 2px solid transparent;">
                     {% endfor %}
                 </div>
                 {% endif %}
@@ -150,15 +154,50 @@
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     // Image gallery logic
-    const mainImage = document.getElementById('main-car-image');
-    const thumbnails = document.querySelectorAll('.thumbnail-img');
+    const imageGallery = document.querySelector('.image-gallery');
+    if (imageGallery) {
+        const mainImage = document.getElementById('main-car-image');
+        const thumbnails = document.querySelectorAll('.thumbnail-img');
+        const prevBtn = document.getElementById('prev-image-btn');
+        const nextBtn = document.getElementById('next-image-btn');
 
-    thumbnails.forEach(thumb => {
-        thumb.addEventListener('click', function() {
-            mainImage.src = this.src;
+        let imageUrls = Array.from(thumbnails).map(thumb => thumb.src);
+        let currentIndex = 0;
+
+        function updateMainImage(index) {
+            mainImage.src = imageUrls[index];
+            currentIndex = index;
+            // Highlight the active thumbnail
+            thumbnails.forEach((thumb, i) => {
+                thumb.style.borderColor = (i === index) ? '#007bff' : 'transparent';
+            });
+        }
+
+        thumbnails.forEach((thumb, index) => {
+            thumb.addEventListener('click', function() {
+                updateMainImage(index);
+            });
         });
-    });
 
+        if (prevBtn) {
+            prevBtn.addEventListener('click', function() {
+                let newIndex = (currentIndex - 1 + imageUrls.length) % imageUrls.length;
+                updateMainImage(newIndex);
+            });
+        }
+
+        if (nextBtn) {
+            nextBtn.addEventListener('click', function() {
+                let newIndex = (currentIndex + 1) % imageUrls.length;
+                updateMainImage(newIndex);
+            });
+        }
+
+        // Set initial active thumbnail
+        if (thumbnails.length > 0) {
+            thumbnails[0].style.borderColor = '#007bff';
+        }
+    }
 
     // Q&A Logic
     const askBtn = document.getElementById('ask-question-btn');
