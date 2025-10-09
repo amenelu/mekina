@@ -1,0 +1,480 @@
+/* --- C&B Inspired Redesign --- */
+
+/* 1. Variables & Base Styles */
+/* Light Theme (Default) */
+:root {
+    --background: 0 0% 100%;
+    --foreground: 220 15% 15%;
+    --card: 0 0% 100%;
+    --card-foreground: 220 15% 15%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 220 15% 15%;
+    --primary: 220 70% 12%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 210 15% 94%;
+    --secondary-foreground: 220 70% 12%;
+    --muted: 210 15% 96%;
+    --muted-foreground: 220 10% 45%;
+    --accent: 25 95% 53%;
+    --accent-foreground: 0 0% 100%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 220 13% 91%;
+    --input: 220 13% 91%;
+    --ring: 220 70% 12%;
+    --radius: 0.75rem;
+    --success: 142 76% 36%;
+    --warning: 38 92% 50%;
+    --info: 217 91% 60%;
+    --gradient-primary: linear-gradient(135deg, hsl(220 70% 12%), hsl(220 70% 22%));
+    --gradient-accent: linear-gradient(135deg, hsl(25 95% 53%), hsl(15 90% 48%));
+    --shadow-card: 0 4px 6px -1px hsl(220 15% 15% / 0.1), 0 2px 4px -1px hsl(220 15% 15% / 0.06);
+    --shadow-elevated: 0 10px 15px -3px hsl(220 15% 15% / 0.1), 0 4px 6px -2px hsl(220 15% 15% / 0.05);
+}
+
+body {
+    font-family: 'Inter', sans-serif;
+    background-color: hsl(var(--background));
+    color: hsl(var(--foreground));
+    margin: 0;
+    line-height: 1.6;
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+}
+
+main {
+    flex-grow: 1;
+}
+
+/* Homepage Hero Section */
+.hero {
+    background-color: hsl(var(--secondary));
+    border: 1px solid hsl(var(--border));
+    padding: 40px;
+    text-align: center;
+    border-radius: var(--radius);
+    margin-bottom: 40px;
+}
+
+.container, .main-content, .sidebar {
+    max-width: 1200px;
+    margin: 20px auto;
+    padding: 0 20px;
+}
+
+h1, h2, h3, h4, h5, h6 {
+    font-weight: 600;
+}
+
+a {
+    color: hsl(var(--info));
+    text-decoration: none;
+}
+
+a:hover {
+    text-decoration: underline;
+}
+
+hr {
+    border: none;
+    border-top: 1px solid hsl(var(--border));
+    margin: 2rem 0;
+}
+
+/* 2. Navigation Bar */
+nav {
+    background-color: hsl(var(--background));
+    border-bottom: 1px solid hsl(var(--border));
+    padding: 10px 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+nav ul {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    gap: 20px;
+}
+nav a {
+    color: hsl(var(--foreground));
+    font-weight: 500;
+}
+nav a:hover {
+    color: hsl(var(--info));
+    text-decoration: none;
+}
+.nav-right {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+.nav-button {
+    background-color: hsl(var(--info));
+    color: hsl(var(--primary-foreground));
+    padding: 8px 15px;
+    border-radius: var(--radius);
+    font-weight: 500;
+}
+.nav-button:hover {
+    background-color: hsl(var(--info) / 0.9);
+    text-decoration: none;
+}
+
+/* 3. Layouts */
+.detail-page-container {
+    display: flex;
+    gap: 30px;
+}
+.main-content {
+    flex: 3; /* Takes up 3/4 of the space */
+}
+.sidebar {
+    flex: 1; /* Takes up 1/4 of the space */
+    border-left: 1px solid hsl(var(--border));
+    padding-left: 30px;
+}
+
+/* 4. Auction Cards */
+.auction-grid {
+    display: grid;
+    grid-template-columns: 1fr; /* 1 column on small screens */
+    gap: 20px; /* Adds space between the cards */
+    margin-top: 20px;
+}
+.auction-card {
+    border: 1px solid hsl(var(--border));
+    border-radius: var(--radius);
+    overflow: hidden; /* Ensures image corners are rounded */
+    box-shadow: var(--shadow-card);
+    transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+    background-color: hsl(var(--card));
+    display: flex;
+    flex-direction: column;
+}
+.auction-card-link:hover .auction-card {
+    transform: translateY(-5px);
+    box-shadow: var(--shadow-elevated);
+}
+.auction-card img {
+    width: 100%;
+    height: 180px;
+    object-fit: cover;
+}
+.auction-card .card-content {
+    padding: 15px;
+    text-align: left;
+}
+.auction-card .card-content h3 {
+    font-size: 1.1em;
+    margin: 0 0 10px 0;
+    line-height: 1.3;
+}
+.auction-card .card-content p {
+    margin: 0;
+    font-size: 1em;
+    font-weight: 600;
+    color: hsl(var(--foreground));
+}
+.auction-card h3 {
+    font-size: 1.1em;
+    margin: 0 0 10px 0;
+}
+.auction-card .time-left {
+    font-size: 0.9em;
+    font-weight: 500;
+    color: hsl(var(--accent));
+    margin-top: 8px;
+}
+.auction-card-link {
+    text-decoration: none; /* Remove underline from links */
+    color: inherit; /* Make the link text color the same as normal text */
+    display: block; /* Make the link a block-level element */
+}
+
+/* 5. Forms & Tables */
+.filter-container {
+    background-color: hsl(var(--secondary));
+    padding: 20px;
+    border-radius: var(--radius);
+    margin-bottom: 30px;
+    border: 1px solid hsl(var(--border));
+}
+
+.form-group {
+    margin-bottom: 1.5rem;
+}
+.form-group label {
+    display: block;
+    font-weight: 500;
+    margin-bottom: 0.5rem;
+}
+.form-group input, .form-group select, .form-group textarea {
+    width: 100%;
+    box-sizing: border-box; /* Ensures padding doesn't affect width */
+}
+.form-error {
+    color: hsl(var(--destructive));
+    font-size: 0.875rem;
+    margin-top: 0.25rem;
+}
+
+input[type="text"],
+input[type="number"],
+input[type="password"],
+input[type="email"],
+select,
+textarea {
+    padding: 10px;
+    margin: 0; /* Remove default margin */
+    border: 1px solid hsl(var(--border));
+    border-radius: var(--radius);
+    font-family: 'Inter', sans-serif;
+    font-size: 1rem;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 20px;
+}
+
+th, td {
+    padding: 12px 15px;
+    text-align: left;
+    border-bottom: 1px solid hsl(var(--border));
+}
+
+thead th {
+    background-color: hsl(var(--secondary));
+    font-weight: 600;
+}
+
+tbody tr:hover {
+    background-color: hsl(var(--secondary));
+}
+
+/* 6. Sections */
+.section {
+    padding: 4rem 0;
+}
+.section-header {
+    margin-bottom: 2.5rem;
+    text-align: center;
+}
+.section-header h2 {
+    font-size: 2rem;
+    font-weight: 700;
+    margin-bottom: 0.5rem;
+}
+.section-header p {
+    color: hsl(var(--muted-foreground));
+    max-width: 600px;
+    margin: 0 auto;
+}
+.section-light {
+    background-color: hsl(var(--secondary));
+    border-top: 1px solid hsl(var(--border));
+    border-bottom: 1px solid hsl(var(--border));
+}
+
+/* 7. Trust Section */
+.trust-section {
+    background: var(--gradient-primary);
+    color: hsl(var(--primary-foreground));
+}
+.trust-section .section-header p {
+    color: rgba(255, 255, 255, 0.8);
+}
+.trust-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 2rem;
+    max-width: 900px;
+    margin: 0 auto;
+    text-align: center;
+}
+.trust-grid .stat .value {
+    font-size: 2.5rem;
+    font-weight: 700;
+    color: hsl(var(--accent));
+}
+.trust-grid .stat .label {
+    font-size: 1rem;
+}
+
+/* 8. Footer */
+.site-footer {
+    background-color: hsl(var(--secondary));
+    border-top: 1px solid hsl(var(--border));
+    padding: 3rem 0;
+    font-size: 0.9rem;
+}
+.footer-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 2rem;
+}
+.footer-brand p {
+    color: hsl(var(--muted-foreground));
+    margin-top: 1rem;
+}
+.footer-links h4 {
+    margin-bottom: 1rem;
+    font-weight: 600;
+}
+.footer-links ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    space-y: 0.5rem;
+}
+.footer-links a {
+    color: hsl(var(--muted-foreground));
+}
+.footer-links a:hover {
+    color: hsl(var(--info));
+    text-decoration: none;
+}
+.footer-bottom {
+    margin-top: 3rem;
+    padding-top: 2rem;
+    border-top: 1px solid hsl(var(--border));
+    text-align: center;
+    color: hsl(var(--muted-foreground));
+}
+
+/* 9. Responsive Adjustments */
+@media (min-width: 768px) {
+    .auction-grid {
+        grid-template-columns: repeat(2, 1fr); /* 2 columns on medium screens */
+    }
+}
+
+@media (min-width: 1024px) {
+    .auction-grid {
+        grid-template-columns: repeat(3, 1fr); /* 3 columns on large screens */
+    }
+}
+
+
+/* 10. Admin & Seller Dashboard Specifics */
+.admin-actions, .question-context {
+    background-color: hsl(var(--secondary));
+    border: 1px solid hsl(var(--border));
+    padding: 20px;
+    margin-bottom: 20px;
+    border-radius: var(--radius);
+}
+.admin-actions h3, .question-context h3 {
+    margin-top: 0;
+}
+.admin-actions.pending {
+    background-color: hsl(var(--warning) / 0.1);
+    border-color: hsl(var(--warning));
+}
+.admin-actions .button-group {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+.btn, .button-group button, .button-group a {
+    border: none;
+    padding: 8px 12px;
+    border-radius: var(--radius);
+    cursor: pointer;
+    font-weight: 500;
+    text-decoration: none;
+    display: inline-block;
+    text-align: center;
+}
+.btn.approve, .button-group .approve { background-color: hsl(var(--success)); color: hsl(var(--success-foreground)); }
+.btn.edit, .button-group .edit { background-color: hsl(var(--info)); color: hsl(var(--info-foreground)); }
+.btn.delete, .button-group .delete { background-color: hsl(var(--destructive)); color: hsl(var(--destructive-foreground)); }
+
+.stat-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 20px;
+    margin-bottom: 40px;
+}
+.stat-card {
+    border: 1px solid hsl(var(--border));
+    padding: 20px;
+    text-align: center;
+    border-radius: var(--radius);
+    background-color: hsl(var(--secondary));
+}
+
+/* 11. Image Gallery */
+.main-image-container {
+    position: relative;
+    max-width: 100%;
+}
+.main-image-container img {
+    width: 100%;
+    max-height: 500px;
+    object-fit: cover;
+    border-radius: var(--radius);
+}
+.gallery-nav {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    background-color: hsla(0, 0%, 0%, 0.5);
+    color: white;
+    border: none;
+    font-size: 24px;
+    cursor: pointer;
+    padding: 5px 10px;
+    border-radius: 50%;
+}
+.gallery-nav.prev { left: 10px; }
+.gallery-nav.next { right: 10px; }
+.thumbnails {
+    display: flex;
+    gap: 10px;
+    margin-top: 10px;
+}
+.thumbnails img {
+    width: 100px;
+    height: 75px;
+    object-fit: cover;
+    cursor: pointer;
+    border-radius: calc(var(--radius) / 2);
+    border: 2px solid transparent;
+    transition: border-color 0.2s;
+}
+.thumbnails img.active {
+    border-color: hsl(var(--info));
+}
+
+/* 12. Q&A Section */
+.qna-section .question-item {
+    border: 1px solid hsl(var(--border));
+    padding: 15px;
+    border-radius: var(--radius);
+    margin-bottom: 15px;
+}
+.qna-section .question-item p { margin: 0.25rem 0; }
+.qna-section .question-item .meta {
+    font-size: 0.9em;
+    color: hsl(var(--muted-foreground));
+}
+.qna-section .answer-item {
+    border-left: 3px solid hsl(var(--success));
+    margin-top: 10px;
+    padding-left: 15px;
+    background-color: hsl(var(--success) / 0.05);
+}
+.qna-section .awaiting-answer {
+    font-style: italic;
+    color: hsl(var(--muted-foreground));
+}
+.ask-question-container { margin-top: 20px; }
+#ask-question-form-div { display: none; margin-top: 10px; }
+#question-success { color: hsl(var(--success)); margin-left: 10px; }
+#question-error { color: hsl(var(--destructive)); }
+

@@ -1,31 +1,35 @@
 {% extends "base.html" %}
 
 {% block title %}Welcome - Mekina Auction{% endblock %}
-
-{% block content %}
-    <h1>Welcome to Mekina Auction!</h1>
-    <p>The premier place for car auctions in Ethiopia.</p>
+{% block content %} {# The .container class is now on the main block in base.html #}
+    <div class="hero">
+        <h1>Welcome to Mekina Auction!</h1>
+        <p>The premier place for car auctions in Ethiopia. Find your next car today.</p>
+    </div>
     
-    <div class="filter-container" style="background-color: #f8f9fa; padding: 20px; border-radius: 8px; margin-bottom: 30px;">
+{% endblock %}
+
+{% block after_content %} {# New block for full-width sections #}
+    <div class="filter-container">
         <h3>Find Your Next Car</h3>
         <form id="filter-form">
-            <input type="text" name="make" placeholder="Make" style="padding: 8px; margin: 5px;">
-            <input type="text" name="model" placeholder="Model" style="padding: 8px; margin: 5px;">
-            <input type="number" name="max_price" placeholder="Max Price" style="padding: 8px; margin: 5px;">
-            <select name="transmission" style="padding: 8px; margin: 5px;">
+            <input type="text" name="make" placeholder="Make">
+            <input type="text" name="model" placeholder="Model">
+            <input type="number" name="max_price" placeholder="Max Price">
+            <select name="transmission">
                 <option value="">Any Transmission</option>
                 <option value="Automatic">Automatic</option>
                 <option value="Manual">Manual</option>
             </select>
-            <select name="drivetrain" style="padding: 8px; margin: 5px;">
+            <select name="drivetrain">
                 <option value="">Any Drivetrain</option>
                 <option value="FWD">FWD</option>
                 <option value="RWD">RWD</option>
                 <option value="AWD">AWD</option>
                 <option value="4WD">4WD</option>
             </select>
-            <input type="number" name="max_mileage" placeholder="Max Mileage" style="padding: 8px; margin: 5px;">
-            <select name="fuel_type" style="padding: 8px; margin: 5px;">
+            <input type="number" name="max_mileage" placeholder="Max Mileage">
+            <select name="fuel_type">
                 <option value="">Any Fuel Type</option>
                 <option value="Gasoline">Gasoline</option>
                 <option value="Diesel">Diesel</option>
@@ -34,40 +38,71 @@
         </form>
     </div>
 
+    <!-- Live Auctions Section -->
+    <section id="auctions" class="section section-light">
+        <div class="container">
+            <div class="section-header">
+                <h2>Live Auctions</h2>
+                <p>
+                    Active auctions ending soon. All vehicles are reviewed before listing.
+                </p>
+            </div>
+            <div id="auction-grid-container" class="auction-grid">
+                {% for auction in auctions %}
+                    <a href="{{ url_for('auctions.auction_detail', auction_id=auction.id) }}" class="auction-card-link">
+                        <div class="auction-card">
+                            <img src="{{ auction.car.primary_image_url or url_for('static', filename='img/default_car.png') }}" alt="Car Image">
+                            <div class="card-content">
+                                <h3>{{ auction.car.year }} {{ auction.car.make }} {{ auction.car.model }}</h3>
+                                <p>{{ '{:,.2f}'.format(auction.current_price) }} ETB</p>
+                            </div>
+                        </div>
+                    </a>
+                {% else %}
+                    <p>No active auctions at the moment. Check back soon!</p>
+                {% endfor %}
+            </div>
+            <p id="no-results-message" style="display: none;">No auctions match your filter criteria.</p>
+        </div>
+    </section>
 
-    <h2>Active Auctions</h2>
-    <div id="auction-grid-container" class="auction-grid">
-        {% for auction in auctions %}
-            <a href="{{ url_for('auctions.auction_detail', auction_id=auction.id) }}" class="auction-card-link">
-                <div class="auction-card">
-                    <img src="{{ auction.car.primary_image_url or url_for('static', filename='img/default_car.png') }}" alt="Car Image">
-                    <h3>{{ auction.car.year }} {{ auction.car.make }} {{ auction.car.model }}</h3>
-                    <p>Current Bid: {{ '{:,.2f}'.format(auction.current_price) }} ETB</p>
+    <!-- Trust Section -->
+    <section class="section trust-section">
+        <div class="container">
+            <div class="section-header">
+                <h2>Built on Trust & Transparency</h2>
+            </div>
+            <div class="trust-grid">
+                <div class="stat">
+                    <div class="value">100%</div>
+                    <div class="label">Admin Reviewed Listings</div>
                 </div>
-            </a>
-        {% else %}
-            <p>No active auctions at the moment. Check back soon!</p>
-        {% endfor %}
-    </div>
-    <p id="no-results-message" style="display: none;">No auctions match your filter criteria.</p>
+                <div class="stat">
+                    <div class="value">Direct</div>
+                    <div class="label">Seller Communication</div>
+                </div>
+                <div class="stat">
+                    <div class="value">Verified</div>
+                    <div class="label">User Accounts</div>
+                </div>
+            </div>
+        </div>
+    </section>
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     const form = document.getElementById('filter-form');
     const gridContainer = document.getElementById('auction-grid-container');
     const noResultsMessage = document.getElementById('no-results-message');
-
     function fetchAuctions() {
         const formData = new FormData(form);
         const params = new URLSearchParams(formData);
-
         // Remove empty values
         for (let p of params) {
             if (!p[1]) {
                 params.delete(p[0]);
             }
         }
-
         fetch(`{{ url_for('auctions.filter_auctions_api') }}?${params.toString()}`)
             .then(response => response.json())
             .then(data => {
@@ -83,8 +118,11 @@ document.addEventListener('DOMContentLoaded', function() {
                         cardLink.innerHTML = `
                             <div class="auction-card">
                                 <img src="${auction.image_url}" alt="Car Image">
-                                <h3>${auction.year} ${auction.make} ${auction.model}</h3>
-                                <p>Current Bid: ${auction.current_price.toLocaleString('en-US', { style: 'currency', currency: 'ETB', minimumFractionDigits: 2 })}</p>
+                                <div class="card-content">
+                                    <h3>${auction.year} ${auction.make} ${auction.model}</h3>
+                                    <p>${auction.current_price.toLocaleString('en-US', { style: 'currency', currency: 'ETB', minimumFractionDigits: 2 })}</p>
+                                    <p class="time-left">${auction.time_left}</p>
+                                </div>
                             </div>`;
                         gridContainer.appendChild(cardLink);
                     });
@@ -92,7 +130,6 @@ document.addEventListener('DOMContentLoaded', function() {
             })
             .catch(error => console.error('Error fetching auctions:', error));
     }
-
     // Add event listeners to all form inputs to refetch on change
     form.querySelectorAll('input, select').forEach(input => {
         input.addEventListener('input', fetchAuctions);

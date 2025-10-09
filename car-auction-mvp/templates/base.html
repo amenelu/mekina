@@ -4,62 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}Mekina Auction{% endblock %}</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
-    <style>
-        /* Two-column layout for detail pages */
-        .detail-page-container {
-            display: flex;
-            gap: 30px;
-        }
-        .main-content {
-            flex: 3; /* Takes up ~75% of the space */
-        }
-        .sidebar {
-            flex: 1; /* Takes up ~25% of the space */
-            border-left: 1px solid #eee;
-            padding-left: 30px;
-        }
-
-        /* Grid layout for auction cards */
-        .auction-grid {
-            display: grid;
-            grid-template-columns: repeat(4, 1fr); /* Creates 4 equal columns */
-            gap: 20px; /* Adds space between the cards */
-            margin-top: 20px;
-        }
-
-        .auction-card {
-            border: 1px solid #ddd;
-            border-radius: 8px;
-            padding: 22px; /* Increased padding by ~20% */
-            text-align: center;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-            display: flex;
-            flex-direction: column;
-        }
-
-        .auction-card img {
-            max-width: 100%;
-            height: auto;
-            border-radius: 5px;
-            margin-bottom: 10px;
-        }
-
-        .auction-card h3 {
-            font-size: 1.1em; /* Slightly larger font for the title */
-            margin: 10px 0;
-        }
-
-        .auction-card p {
-            margin: 5px 0;
-        }
-
-        .auction-card-link {
-            text-decoration: none; /* Remove underline from links */
-            color: inherit; /* Make the link text color the same as normal text */
-            display: block; /* Make the link a block-level element */
-        }
-    </style>
 </head>
 <body>
     <nav>
@@ -85,7 +33,7 @@
             {% endif %}
         </div>
     </nav>
-    <main>
+    <main class="container">
         {% with messages = get_flashed_messages() %}
         {% if messages %}
             <ul class=flashes>
@@ -97,5 +45,44 @@
         {% endwith %}
         {% block content %}{% endblock %}
     </main>
+
+    <footer class="site-footer">
+        <div class="container">
+            <div class="footer-grid">
+                <div class="footer-brand">
+                    <h4>Mekina Auction</h4>
+                    <p>
+                        The premier automotive marketplace for modern classics and enthusiast vehicles in Ethiopia.
+                    </p>
+                </div>
+                <div class="footer-links">
+                    <h4>Buying</h4>
+                    <ul>
+                        <li><a href="{{ url_for('auctions.list_auctions') }}">Live Auctions</a></li>
+                        <li><a href="#">How It Works</a></li>
+                        <li><a href="#">FAQ</a></li>
+                    </ul>
+                </div>
+                <div class="footer-links">
+                    <h4>Selling</h4>
+                    <ul>
+                        <li><a href="{{ url_for('seller.submit_car') }}">List Your Car</a></li>
+                        <li><a href="#">Seller Guide</a></li>
+                    </ul>
+                </div>
+                <div class="footer-links">
+                    <h4>Support</h4>
+                    <ul>
+                        <li><a href="#">Contact Us</a></li>
+                        <li><a href="#">Terms & Conditions</a></li>
+                        <li><a href="#">Privacy Policy</a></li>
+                    </ul>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; {{ now.year }} Mekina Auction. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
 </body>
 </html>

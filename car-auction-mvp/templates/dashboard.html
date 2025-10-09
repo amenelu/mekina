@@ -5,20 +5,20 @@
 {% block content %}
     <h1>Admin Dashboard</h1>
     <div style="margin-bottom: 20px;">
-        <a href="{{ url_for('admin.add_car') }}" style="text-decoration: none; background-color: #28a745; color: white; padding: 10px 15px; border-radius: 5px;">+ Add New Car for Auction</a>
+        <a href="{{ url_for('admin.add_car') }}" class="nav-button" style="background-color: hsl(var(--success)); text-decoration: none;">+ Add New Car</a>
     </div>
 
     <h2>At a Glance</h2>
-    <div class="stat-grid" style="display: flex; gap: 20px; margin-bottom: 40px;">
-        <div class="stat-card" style="border: 1px solid #ddd; padding: 20px; text-align: center; flex-grow: 1; border-radius: 5px;">
+    <div class="stat-grid">
+        <div class="stat-card">
             <h3>{{ stats.user_count }}</h3>
             <p>Total Users</p>
         </div>
-        <div class="stat-card" style="border: 1px solid #ddd; padding: 20px; text-align: center; flex-grow: 1; border-radius: 5px;">
+        <div class="stat-card">
             <h3>{{ stats.active_auction_count }}</h3>
             <p>Active Auctions</p>
         </div>
-        <div class="stat-card" style="border: 1px solid #ddd; padding: 20px; text-align: center; flex-grow: 1; border-radius: 5px;">
+        <div class="stat-card">
             <h3>{{ stats.pending_approval_count }}</h3>
             <p>Cars Pending Approval</p>
         </div>
@@ -27,7 +27,7 @@
     <h2>Cars Pending Approval</h2>
 
     {% if cars %}
-        <table border="1" style="width:100%; border-collapse: collapse;">
+        <table>
             <thead>
                 <tr>
                     <th>Year</th>
@@ -44,11 +44,11 @@
                     <td>{{ car.make }}</td>
                     <td>{{ car.model }}</td>
                     <td>{{ car.owner.username }} ({{ car.owner.phone_number or 'No Phone' }})</td>
-                    <td>
-                        <form action="{{ url_for('admin.approve_car', car_id=car.id) }}" method="post" style="display:inline;">
-                            <button type="submit">Approve</button>
+                    <td class="button-group">
+                        <form action="{{ url_for('admin.approve_car', car_id=car.id) }}" method="post">
+                            <button type="submit" class="btn approve">Approve</button>
                         </form>
-                        <a href="{{ url_for('auctions.auction_detail', auction_id=car.auction.id) }}" style="margin-left: 10px;">View Details</a>
+                        <a href="{{ url_for('auctions.auction_detail', auction_id=car.auction.id) }}" class="btn edit">View</a>
                     </td>
                 </tr>
                 {% endfor %}

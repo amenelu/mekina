@@ -1,14 +1,14 @@
-<div class="question-item" style="border: 1px solid #eee; padding: 15px; border-radius: 5px; margin-bottom: 15px;">
+<div class="question-item">
     <p><strong>Q: {{ q.question_text }}</strong></p>
-    <p style="font-size: 0.9em; color: #666;">Asked by {{ q.asker.username }} on {{ q.timestamp.strftime('%Y-%m-%d') }}</p>
+    <p class="meta">Asked by {{ q.asker.username }} on {{ q.timestamp.strftime('%Y-%m-%d') }}</p>
     {% if q.answer_text %}
-        <div class="answer-item" style="border-left: 3px solid #28a745; margin-top: 10px; padding-left: 15px;">
+        <div class="answer-item">
             <p><strong>A:</strong> {{ q.answer_text }}</p>
-            <p style="font-size: 0.9em; color: #666;">Answered by seller on {{ q.answer_timestamp.strftime('%Y-%m-%d') }}</p>
+            <p class="meta">Answered by seller on {{ q.answer_timestamp.strftime('%Y-%m-%d') }}</p>
         </div>
     {% elif current_user.is_authenticated and current_user.id == auction.car.owner_id %}
         <a href="{{ url_for('seller.answer_question', question_id=q.id) }}">Post an Answer</a>
     {% else %}
-        <p style="font-style: italic; color: #888;">Awaiting answer from seller...</p>
+        <p class="awaiting-answer">Awaiting answer from seller...</p>
     {% endif %}
 </div>

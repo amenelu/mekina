@@ -172,6 +172,19 @@ def filter_auctions_api():
 
     auctions = query.order_by(Auction.end_time.asc()).all()
 
+    def format_timedelta(td):
+        """Helper to format time left in a human-readable way."""
+        days = td.days
+        hours, remainder = divmod(td.seconds, 3600)
+        minutes, _ = divmod(remainder, 60)
+        if days > 0:
+            return f"{days} day{'s' if days > 1 else ''} left"
+        elif hours > 0:
+            return f"{hours} hour{'s' if hours > 1 else ''} left"
+        elif minutes > 0:
+            return f"{minutes} minute{'s' if minutes > 1 else ''} left"
+        return "Ending soon"
+
     # Prepare data for JSON response
     results = [
         {
@@ -181,7 +194,8 @@ def filter_auctions_api():
             'model': auction.car.model,
             'current_price': auction.current_price,
             'image_url': auction.car.primary_image_url or url_for('static', filename='img/default_car.png'),
-            'detail_url': url_for('auctions.auction_detail', auction_id=auction.id)
+            'detail_url': url_for('auctions.auction_detail', auction_id=auction.id),
+            'time_left': format_timedelta(auction.end_time - datetime.utcnow())
         }
         for auction in auctions
     ]

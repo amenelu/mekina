@@ -39,6 +39,12 @@ def create_app(config_class=Config):
     def load_user(user_id):
         return User.query.get(int(user_id))
 
+    # Make 'now' available to all templates
+    @app.context_processor
+    def inject_now():
+        from datetime import datetime
+        return {'now': datetime.utcnow()}
+
     # CLI command to create an admin user
     @app.cli.command("create-admin")
     def create_admin():

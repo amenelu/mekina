@@ -8,65 +8,65 @@
 
     <form method="POST" action="" novalidate enctype="multipart/form-data">
         {{ form.hidden_tag() }}
-        <p>
+        <div class="form-group">
             {{ form.make.label }}<br>
-            {{ form.make(size=32) }}
+            {{ form.make() }}
             {% for error in form.make.errors %}<span style="color: red;">[{{ error }}]</span>{% endfor %}
-        </p>
-        <p>
+        </div>
+        <div class="form-group">
             {{ form.model.label }}<br>
-            {{ form.model(size=32) }}
+            {{ form.model() }}
             {% for error in form.model.errors %}<span style="color: red;">[{{ error }}]</span>{% endfor %}
-        </p>
-        <p>
+        </div>
+        <div class="form-group">
             {{ form.year.label }}<br>
-            {{ form.year(size=10) }}
+            {{ form.year() }}
             {% for error in form.year.errors %}<span style="color: red;">[{{ error }}]</span>{% endfor %}
-        </p>
-        <p>
+        </div>
+        <div class="form-group">
             {{ form.description.label }}<br>
-            {{ form.description(rows=4, cols=50) }}
+            {{ form.description(rows=4) }}
             {% for error in form.description.errors %}<span style="color: red;">[{{ error }}]</span>{% endfor %}
-        </p>
-        <p>
+        </div>
+        <div class="form-group">
             {{ form.images.label }}<br>
             {{ form.images() }}
             {% for error in form.images.errors %}<span style="color: red;">[{{ error }}]</span>{% endfor %}
-        </p>
-        <p>
+        </div>
+        <div class="form-group">
             {{ form.mileage.label }}<br>
-            {{ form.mileage(size=20) }}
+            {{ form.mileage() }}
             {% for error in form.mileage.errors %}<span style="color: red;">[{{ error }}]</span>{% endfor %}
-        </p>
-        <p>
+        </div>
+        <div class="form-group">
             {{ form.transmission.label }}<br>
             {{ form.transmission() }}
             {% for error in form.transmission.errors %}<span style="color: red;">[{{ error }}]</span>{% endfor %}
-        </p>
-        <p>
+        </div>
+        <div class="form-group">
             {{ form.drivetrain.label }}<br>
             {{ form.drivetrain() }}
             {% for error in form.drivetrain.errors %}<span style="color: red;">[{{ error }}]</span>{% endfor %}
-        </p>
-        <p>
+        </div>
+        <div class="form-group">
             {{ form.fuel_type.label }}<br>
             {{ form.fuel_type() }}
             {% for error in form.fuel_type.errors %}<span style="color: red;">[{{ error }}]</span>{% endfor %}
-        </p>
+        </div>
         <hr>
         <h3>Auction Details</h3>
-        <p>
+        <div class="form-group">
             {{ form.start_price.label }}<br>
-            {{ form.start_price(size=20) }}
+            {{ form.start_price() }}
             {% for error in form.start_price.errors %}<span style="color: red;">[{{ error }}]</span>{% endfor %}
-        </p>
-        <p>
+        </div>
+        <div class="form-group">
             {{ form.end_time.label }}<br>
             {{ form.end_time() }}
             {% for error in form.end_time.errors %}<span style="color: red;">[{{ error }}]</span>{% endfor %}
-        </p>
+        </div>
         <p>
-            {{ form.submit() }}
+            {{ form.submit(class='btn approve') }}
         </p>
     </form>
     <a href="{{ url_for('seller.dashboard') }}">Cancel</a>

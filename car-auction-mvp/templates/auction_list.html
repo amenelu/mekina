@@ -5,26 +5,26 @@
 {% block content %}
     <h1>All Active Auctions</h1>
 
-    <div class="filter-container" style="background-color: #f8f9fa; padding: 20px; border-radius: 8px; margin-bottom: 30px;">
+    <div class="filter-container">
         <h3>Filter Results</h3>
         <form id="filter-form">
-            <input type="text" name="make" placeholder="Make" style="padding: 8px; margin: 5px;">
-            <input type="text" name="model" placeholder="Model" style="padding: 8px; margin: 5px;">
-            <input type="number" name="max_price" placeholder="Max Price" style="padding: 8px; margin: 5px;">
-            <select name="transmission" style="padding: 8px; margin: 5px;">
+            <input type="text" name="make" placeholder="Make">
+            <input type="text" name="model" placeholder="Model">
+            <input type="number" name="max_price" placeholder="Max Price">
+            <select name="transmission">
                 <option value="">Any Transmission</option>
                 <option value="Automatic">Automatic</option>
                 <option value="Manual">Manual</option>
             </select>
-            <select name="drivetrain" style="padding: 8px; margin: 5px;">
+            <select name="drivetrain">
                 <option value="">Any Drivetrain</option>
                 <option value="FWD">FWD</option>
                 <option value="RWD">RWD</option>
                 <option value="AWD">AWD</option>
                 <option value="4WD">4WD</option>
             </select>
-            <input type="number" name="max_mileage" placeholder="Max Mileage" style="padding: 8px; margin: 5px;">
-            <select name="fuel_type" style="padding: 8px; margin: 5px;">
+            <input type="number" name="max_mileage" placeholder="Max Mileage">
+            <select name="fuel_type">
                 <option value="">Any Fuel Type</option>
                 <option value="Gasoline">Gasoline</option>
                 <option value="Diesel">Diesel</option>
@@ -70,8 +70,10 @@ document.addEventListener('DOMContentLoaded', function() {
                         cardLink.innerHTML = `
                             <div class="auction-card">
                                 <img src="${auction.image_url}" alt="Car Image">
-                                <h3>${auction.year} ${auction.make} ${auction.model}</h3>
-                                <p>Current Bid: ${auction.current_price.toLocaleString('en-US', { style: 'currency', currency: 'ETB', minimumFractionDigits: 2 })}</p>
+                                <div class="card-content">
+                                    <h3>${auction.year} ${auction.make} ${auction.model}</h3>
+                                    <p>Current Bid: ${auction.current_price.toLocaleString('en-US', { style: 'currency', currency: 'ETB', minimumFractionDigits: 2 })}</p>
+                                </div>
                             </div>`;
                         gridContainer.appendChild(cardLink);
                     });

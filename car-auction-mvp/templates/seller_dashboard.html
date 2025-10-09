@@ -5,13 +5,13 @@
 {% block content %}
     <h1>Seller Dashboard</h1>
     <div style="margin-bottom: 20px;">
-        <a href="{{ url_for('seller.submit_car') }}" style="text-decoration: none; background-color: #28a745; color: white; padding: 10px 15px; border-radius: 5px;">+ Submit New Car for Auction</a>
+        <a href="{{ url_for('seller.submit_car') }}" class="nav-button" style="background-color: hsl(var(--success)); text-decoration: none;">+ Submit New Car</a>
     </div>
 
     <h2>My Submitted Cars</h2>
 
     {% if my_cars %}
-        <table border="1" style="width:100%; border-collapse: collapse;">
+        <table>
             <thead>
                 <tr>
                     <th>Car</th>
@@ -26,9 +26,9 @@
                     <td>{{ car.year }} {{ car.make }} {{ car.model }}</td>
                     <td>
                         {% if car.is_approved %}
-                            <span style="color: green; font-weight: bold;">Approved</span>
+                            <span style="color: hsl(var(--success)); font-weight: bold;">Approved</span>
                         {% else %}
-                            <span style="color: orange; font-weight: bold;">Pending Approval</span>
+                            <span style="color: hsl(var(--warning)); font-weight: bold;">Pending Approval</span>
                         {% endif %}
                     </td>
                     <td>
@@ -54,7 +54,7 @@
 
     <h2 style="margin-top: 40px;">My Unanswered Questions</h2>
     {% if unanswered_questions %}
-        <table border="1" style="width:100%; border-collapse: collapse;">
+        <table>
              <thead>
                 <tr>
                     <th>Car</th>
