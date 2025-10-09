@@ -180,7 +180,7 @@ def filter_auctions_api():
             'make': auction.car.make,
             'model': auction.car.model,
             'current_price': auction.current_price,
-            'image_url': auction.car.image_url or url_for('static', filename='img/default_car.png'),
+            'image_url': auction.car.primary_image_url or url_for('static', filename='img/default_car.png'),
             'detail_url': url_for('auctions.auction_detail', auction_id=auction.id)
         }
         for auction in auctions

@@ -5,6 +5,7 @@ from flask_login import login_required, current_user
 from models.car import Car
 from models.user import User
 from models.auction import Auction
+from models.car_image import CarImage
 from app import db
 from datetime import datetime
 from werkzeug.utils import secure_filename
@@ -30,7 +31,6 @@ class AddCarForm(FlaskForm):
     model = StringField('Model', validators=[DataRequired()])
     year = IntegerField('Year', validators=[DataRequired(), NumberRange(min=1900, max=2100)])
     description = TextAreaField('Description')
-    image_url = StringField('Image URL')
     start_price = FloatField('Starting Price (ETB)', validators=[DataRequired(), NumberRange(min=0)])
     end_time = DateTimeLocalField('Auction End Time', format='%Y-%m-%dT%H:%M', validators=[DataRequired()])
     service_history_doc = FileField('Service History Document (PDF, JPG, PNG)', validators=[FileAllowed(['pdf', 'jpg', 'jpeg', 'png'], 'Images and PDFs only!')])
@@ -96,14 +96,20 @@ def add_car():
             model=form.model.data,
             year=form.year.data,
             description=form.description.data,
-            image_url=form.image_url.data,
             owner_id=current_user.id, # Admin is the owner
             is_approved=True,
             service_history_url=service_history_url,
             inspection_report_url=inspection_report_url
         )
         db.session.add(new_car)
-        db.session.commit() # Commit to get the new_car.id
+        db.session.flush() # Flush to get the new_car.id
+
+        # Save multiple images
+        for image_file in form.images.data:
+            image_url = save_document(image_file)
+            if image_url:
+                new_image = CarImage(image_url=image_url, car_id=new_car.id)
+                db.session.add(new_image)
 
         # Create new Auction for the car
         new_auction = Auction(start_time=datetime.utcnow(), end_time=form.end_time.data, start_price=form.start_price.data, current_price=form.start_price.data, car_id=new_car.id)
@@ -135,7 +141,6 @@ def edit_auction(auction_id):
         car.model = form.model.data
         car.year = form.year.data
         car.description = form.description.data
-        car.image_url = form.image_url.data
 
         # Update Auction details
         auction.start_price = form.start_price.data

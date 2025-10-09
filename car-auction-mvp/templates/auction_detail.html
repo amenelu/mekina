@@ -22,8 +22,19 @@
     <div class="detail-page-container">
         <div class="main-content">
             <h1>{{ auction.car.year }} {{ auction.car.make }} {{ auction.car.model }}</h1>
-            <img src="{{ auction.car.image_url or url_for('static', filename='img/default_car.png') }}" alt="Car Image" style="max-width: 100%; border-radius: 8px;">
-            
+            <div class="image-gallery">
+                <div class="main-image">
+                    <img id="main-car-image" src="{{ auction.car.primary_image_url or url_for('static', filename='img/default_car.png') }}" alt="Car Image" style="max-width: 100%; border-radius: 8px;">
+                </div>
+                {% if auction.car.images|length > 1 %}
+                <div class="thumbnails" style="display: flex; gap: 10px; margin-top: 10px;">
+                    {% for image in auction.car.images %}
+                    <img src="{{ image.image_url }}" class="thumbnail-img" alt="Thumbnail" style="width: 100px; height: 75px; object-fit: cover; cursor: pointer; border-radius: 4px;">
+                    {% endfor %}
+                </div>
+                {% endif %}
+            </div>
+
             <h2>Auction Details</h2>
             <p>{{ auction.car.description }}</p>
             <p><strong>Auction ends:</strong> {{ auction.end_time.strftime('%Y-%m-%d %H:%M') }} UTC</p>
@@ -123,7 +134,7 @@
             {% if similar_auctions %}
                 {% for sim_auction in similar_auctions %}
                     <div class="auction-card" style="margin-bottom: 15px;">
-                        <img src="{{ sim_auction.car.image_url or url_for('static', filename='img/default_car.png') }}" alt="Car Image">
+                        <img src="{{ sim_auction.car.primary_image_url or url_for('static', filename='img/default_car.png') }}" alt="Car Image">
                         <h4 style="margin: 5px 0;">{{ sim_auction.car.year }} {{ sim_auction.car.make }} {{ sim_auction.car.model }}</h4>
                         <p style="margin: 5px 0;">{{ '{:,.2f}'.format(sim_auction.current_price) }} ETB</p>
                         <a href="{{ url_for('auctions.auction_detail', auction_id=sim_auction.id) }}">View</a>
@@ -137,6 +148,18 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+    // Image gallery logic
+    const mainImage = document.getElementById('main-car-image');
+    const thumbnails = document.querySelectorAll('.thumbnail-img');
+
+    thumbnails.forEach(thumb => {
+        thumb.addEventListener('click', function() {
+            mainImage.src = this.src;
+        });
+    });
+
+
+    // Q&A Logic
     const askBtn = document.getElementById('ask-question-btn');
     const formDiv = document.getElementById('ask-question-form-div');
     const questionForm = document.getElementById('question-form');

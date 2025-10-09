@@ -1,14 +1,17 @@
-from flask import Blueprint, render_template, redirect, url_for, flash, request
+import os
+from flask import Blueprint, render_template, redirect, url_for, flash, request, current_app
 from flask_login import login_required, current_user
 from models.car import Car
 from models.question import Question
 from models.auction import Auction
+from models.car_image import CarImage
 from app import db
 from datetime import datetime
+from werkzeug.utils import secure_filename
 
 from flask_wtf import FlaskForm
 from wtforms import StringField, IntegerField, TextAreaField, SubmitField, FloatField, SelectField
-from wtforms.fields import DateTimeLocalField
+from wtforms.fields import DateTimeLocalField, MultipleFileField
 from wtforms.validators import DataRequired, Length, NumberRange
 
 seller_bp = Blueprint('seller', __name__, url_prefix='/seller')
@@ -18,7 +21,7 @@ class CarSubmissionForm(FlaskForm):
     model = StringField('Model', validators=[DataRequired()])
     year = IntegerField('Year', validators=[DataRequired(), NumberRange(min=1900, max=datetime.now().year + 1)])
     description = TextAreaField('Description', validators=[DataRequired()])
-    image_url = StringField('Image URL (Optional)')
+    images = MultipleFileField('Car Photos (select multiple)')
     mileage = IntegerField('Mileage', validators=[DataRequired(), NumberRange(min=0)])
     transmission = SelectField('Transmission', choices=[('Automatic', 'Automatic'), ('Manual', 'Manual')], validators=[DataRequired()])
     drivetrain = SelectField('Drivetrain', choices=[('FWD', 'FWD'), ('RWD', 'RWD'), ('AWD', 'AWD'), ('4WD', '4WD')], validators=[DataRequired()])
@@ -33,6 +36,18 @@ class CarSubmissionForm(FlaskForm):
 class AnswerForm(FlaskForm):
     answer_text = TextAreaField('Your Answer', validators=[DataRequired(), Length(min=5)])
     submit = SubmitField('Post Answer')
+
+def save_seller_document(form_file_data):
+    """Helper function to save an uploaded document for sellers."""
+    if not form_file_data or not form_file_data.filename:
+        return None
+    filename = secure_filename(form_file_data.filename)
+    upload_path = os.path.join(current_app.root_path, 'static/uploads')
+    os.makedirs(upload_path, exist_ok=True)
+    file_path = os.path.join(upload_path, filename)
+    form_file_data.save(file_path)
+    return url_for('static', filename=f'uploads/{filename}')
+
 
 @seller_bp.route('/dashboard')
 @login_required
@@ -92,7 +107,6 @@ def submit_car():
             model=form.model.data,
             year=form.year.data,
             description=form.description.data,
-            image_url=form.image_url.data,
             mileage=form.mileage.data,
             transmission=form.transmission.data,
             drivetrain=form.drivetrain.data,
@@ -102,6 +116,13 @@ def submit_car():
         )
         db.session.add(new_car)
         db.session.flush() # Use flush to get the new_car.id before committing
+
+        # Save multiple images
+        for image_file in form.images.data:
+            image_url = save_seller_document(image_file)
+            if image_url:
+                new_image = CarImage(image_url=image_url, car_id=new_car.id)
+                db.session.add(new_image)
 
         # Now create the associated Auction
         new_auction = Auction(
@@ -146,7 +167,6 @@ def edit_car(car_id):
         car.model = form.model.data
         car.year = form.year.data
         car.description = form.description.data
-        car.image_url = form.image_url.data
         car.mileage = form.mileage.data
         car.transmission = form.transmission.data
         car.drivetrain = form.drivetrain.data
@@ -156,6 +176,13 @@ def edit_car(car_id):
         auction.start_price = form.start_price.data
         auction.current_price = form.start_price.data # Reset current price to new start price
         auction.end_time = form.end_time.data
+
+        # Add new images if any were uploaded
+        for image_file in form.images.data:
+            image_url = save_seller_document(image_file)
+            if image_url:
+                new_image = CarImage(image_url=image_url, car_id=car.id)
+                db.session.add(new_image)
 
         db.session.commit()
         flash('Your submission has been updated.', 'success')

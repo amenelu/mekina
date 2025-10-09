@@ -6,7 +6,7 @@
     <h1>{{ title }}</h1>
     <p>Please fill out the details below. An administrator will review your submission before it goes live.</p>
 
-    <form method="POST" action="" novalidate>
+    <form method="POST" action="" novalidate enctype="multipart/form-data">
         {{ form.hidden_tag() }}
         <p>
             {{ form.make.label }}<br>
@@ -29,9 +29,9 @@
             {% for error in form.description.errors %}<span style="color: red;">[{{ error }}]</span>{% endfor %}
         </p>
         <p>
-            {{ form.image_url.label }} (Optional)<br>
-            {{ form.image_url(size=50) }}
-            {% for error in form.image_url.errors %}<span style="color: red;">[{{ error }}]</span>{% endfor %}
+            {{ form.images.label }}<br>
+            {{ form.images() }}
+            {% for error in form.images.errors %}<span style="color: red;">[{{ error }}]</span>{% endfor %}
         </p>
         <p>
             {{ form.mileage.label }}<br>
