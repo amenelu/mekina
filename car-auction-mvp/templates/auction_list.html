@@ -64,15 +64,16 @@ document.addEventListener('DOMContentLoaded', function() {
                 } else {
                     noResultsMessage.style.display = 'none';
                     data.forEach(auction => {
-                        const card = document.createElement('div');
-                        card.className = 'auction-card';
-                        card.innerHTML = `
-                            <img src="${auction.image_url}" alt="Car Image">
-                            <h3>${auction.year} ${auction.make} ${auction.model}</h3>
-                            <p>Current Bid: ${auction.current_price.toLocaleString('en-US', { style: 'currency', currency: 'ETB', minimumFractionDigits: 2 })}</p>
-                            <a href="${auction.detail_url}">View Auction</a>
-                        `;
-                        gridContainer.appendChild(card);
+                        const cardLink = document.createElement('a');
+                        cardLink.href = auction.detail_url;
+                        cardLink.className = 'auction-card-link';
+                        cardLink.innerHTML = `
+                            <div class="auction-card">
+                                <img src="${auction.image_url}" alt="Car Image">
+                                <h3>${auction.year} ${auction.make} ${auction.model}</h3>
+                                <p>Current Bid: ${auction.current_price.toLocaleString('en-US', { style: 'currency', currency: 'ETB', minimumFractionDigits: 2 })}</p>
+                            </div>`;
+                        gridContainer.appendChild(cardLink);
                     });
                 }
             })

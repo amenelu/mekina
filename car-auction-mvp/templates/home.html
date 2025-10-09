@@ -38,12 +38,13 @@
     <h2>Active Auctions</h2>
     <div id="auction-grid-container" class="auction-grid">
         {% for auction in auctions %}
-            <div class="auction-card">
-                <img src="{{ auction.car.primary_image_url or url_for('static', filename='img/default_car.png') }}" alt="Car Image">
-                <h3>{{ auction.car.year }} {{ auction.car.make }} {{ auction.car.model }}</h3>
-                <p>Current Bid: {{ '{:,.2f}'.format(auction.current_price) }} ETB</p>
-                <a href="{{ url_for('auctions.auction_detail', auction_id=auction.id) }}">View Auction</a>
-            </div>
+            <a href="{{ url_for('auctions.auction_detail', auction_id=auction.id) }}" class="auction-card-link">
+                <div class="auction-card">
+                    <img src="{{ auction.car.primary_image_url or url_for('static', filename='img/default_car.png') }}" alt="Car Image">
+                    <h3>{{ auction.car.year }} {{ auction.car.make }} {{ auction.car.model }}</h3>
+                    <p>Current Bid: {{ '{:,.2f}'.format(auction.current_price) }} ETB</p>
+                </div>
+            </a>
         {% else %}
             <p>No active auctions at the moment. Check back soon!</p>
         {% endfor %}
@@ -76,15 +77,16 @@ document.addEventListener('DOMContentLoaded', function() {
                 } else {
                     noResultsMessage.style.display = 'none';
                     data.forEach(auction => {
-                        const card = document.createElement('div');
-                        card.className = 'auction-card';
-                        card.innerHTML = `
-                            <img src="${auction.image_url}" alt="Car Image">
-                            <h3>${auction.year} ${auction.make} ${auction.model}</h3>
-                            <p>Current Bid: ${auction.current_price.toLocaleString('en-US', { style: 'currency', currency: 'ETB', minimumFractionDigits: 2 })}</p>
-                            <a href="${auction.detail_url}">View Auction</a>
-                        `;
-                        gridContainer.appendChild(card);
+                        const cardLink = document.createElement('a');
+                        cardLink.href = auction.detail_url;
+                        cardLink.className = 'auction-card-link';
+                        cardLink.innerHTML = `
+                            <div class="auction-card">
+                                <img src="${auction.image_url}" alt="Car Image">
+                                <h3>${auction.year} ${auction.make} ${auction.model}</h3>
+                                <p>Current Bid: ${auction.current_price.toLocaleString('en-US', { style: 'currency', currency: 'ETB', minimumFractionDigits: 2 })}</p>
+                            </div>`;
+                        gridContainer.appendChild(cardLink);
                     });
                 }
             })

@@ -133,12 +133,13 @@
             <h3>{{ similarity_reason or 'Similar Listings' }}</h3>
             {% if similar_auctions %}
                 {% for sim_auction in similar_auctions %}
-                    <div class="auction-card" style="margin-bottom: 15px;">
-                        <img src="{{ sim_auction.car.primary_image_url or url_for('static', filename='img/default_car.png') }}" alt="Car Image">
-                        <h4 style="margin: 5px 0;">{{ sim_auction.car.year }} {{ sim_auction.car.make }} {{ sim_auction.car.model }}</h4>
-                        <p style="margin: 5px 0;">{{ '{:,.2f}'.format(sim_auction.current_price) }} ETB</p>
-                        <a href="{{ url_for('auctions.auction_detail', auction_id=sim_auction.id) }}">View</a>
-                    </div>
+                    <a href="{{ url_for('auctions.auction_detail', auction_id=sim_auction.id) }}" class="auction-card-link">
+                        <div class="auction-card" style="margin-bottom: 15px;">
+                            <img src="{{ sim_auction.car.primary_image_url or url_for('static', filename='img/default_car.png') }}" alt="Car Image">
+                            <h4 style="margin: 5px 0;">{{ sim_auction.car.year }} {{ sim_auction.car.make }} {{ sim_auction.car.model }}</h4>
+                            <p style="margin: 5px 0;">{{ '{:,.2f}'.format(sim_auction.current_price) }} ETB</p>
+                        </div>
+                    </a>
                 {% endfor %}
             {% else %}
                 <p>No other similar cars found.</p>
