@@ -1,4 +1,4 @@
-from app import db
+from . import db
 
 from .car_image import CarImage # Import the CarImage model
 class Car(db.Model):
@@ -16,6 +16,7 @@ class Car(db.Model):
     drivetrain = db.Column(db.String(50))
     mileage = db.Column(db.Integer)
     fuel_type = db.Column(db.String(50))
+    condition = db.Column(db.String(50)) # New, Used
 
     # Relationship
     auction = db.relationship('Auction', backref='car', uselist=False) # One-to-one relationship with Auction

@@ -5,6 +5,7 @@ from flask_login import login_required, current_user
 from models.car import Car
 from models.user import User
 from models.auction import Auction
+from models.car_request import CarRequest
 from models.car_image import CarImage
 from app import db
 from datetime import datetime
@@ -23,6 +24,14 @@ def admin_required(f):
     def decorated_function(*args, **kwargs):
         if not current_user.is_authenticated or not current_user.is_admin:
             abort(403) # Forbidden
+        return f(*args, **kwargs)
+    return decorated_function
+
+def dealer_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if not current_user.is_authenticated or not (current_user.is_dealer or current_user.is_admin):
+            abort(403) # Forbidden for non-dealers
         return f(*args, **kwargs)
     return decorated_function
 
@@ -174,3 +183,11 @@ def delete_auction(auction_id):
     db.session.commit()
     flash(f'Successfully deleted auction and car: {car.year} {car.make} {car.model}.', 'danger')
     return redirect(url_for('auctions.list_auctions'))
+
+@admin_bp.route('/dealer_dashboard')
+@login_required
+@dealer_required
+def dealer_dashboard():
+    # Fetch all active car requests
+    active_requests = CarRequest.query.filter_by(status='active').order_by(CarRequest.created_at.desc()).all()
+    return render_template('dealer_dashboard.html', requests=active_requests)

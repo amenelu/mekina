@@ -22,6 +22,7 @@ class CarSubmissionForm(FlaskForm):
     year = IntegerField('Year', validators=[DataRequired(), NumberRange(min=1900, max=datetime.now().year + 1)])
     description = TextAreaField('Description', validators=[DataRequired()])
     images = MultipleFileField('Car Photos (select multiple)')
+    condition = SelectField('Condition', choices=[('Used', 'Used'), ('New', 'New')], validators=[DataRequired()])
     mileage = IntegerField('Mileage', validators=[DataRequired(), NumberRange(min=0)])
     transmission = SelectField('Transmission', choices=[('Automatic', 'Automatic'), ('Manual', 'Manual')], validators=[DataRequired()])
     drivetrain = SelectField('Drivetrain', choices=[('FWD', 'FWD'), ('RWD', 'RWD'), ('AWD', 'AWD'), ('4WD', '4WD')], validators=[DataRequired()])
@@ -107,6 +108,7 @@ def submit_car():
             model=form.model.data,
             year=form.year.data,
             description=form.description.data,
+            condition=form.condition.data,
             mileage=form.mileage.data,
             transmission=form.transmission.data,
             drivetrain=form.drivetrain.data,
@@ -167,6 +169,7 @@ def edit_car(car_id):
         car.model = form.model.data
         car.year = form.year.data
         car.description = form.description.data
+        car.condition = form.condition.data
         car.mileage = form.mileage.data
         car.transmission = form.transmission.data
         car.drivetrain = form.drivetrain.data

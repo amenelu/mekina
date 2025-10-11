@@ -72,7 +72,13 @@ document.addEventListener('DOMContentLoaded', function() {
                                 <img src="${auction.image_url}" alt="Car Image">
                                 <div class="card-content">
                                     <h3>${auction.year} ${auction.make} ${auction.model}</h3>
-                                    <p>Current Bid: ${auction.current_price.toLocaleString('en-US', { style: 'currency', currency: 'ETB', minimumFractionDigits: 2 })}</p>
+                                    <div class="card-details">
+                                        <div>
+                                            <p>${auction.current_price.toLocaleString('en-US', { style: 'currency', currency: 'ETB', minimumFractionDigits: 2 })}</p>
+                                            <span class="bid-count">${auction.bid_count} bids</span>
+                                        </div>
+                                        <span class="time-left">${auction.time_left}</span>
+                                    </div>
                                 </div>
                             </div>`;
                         gridContainer.appendChild(cardLink);

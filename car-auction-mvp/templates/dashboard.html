@@ -30,7 +30,6 @@
         <table>
             <thead>
                 <tr>
-                    <th>Year</th>
                     <th>Make</th>
                     <th>Model</th>
                     <th>Seller</th>
@@ -40,7 +39,6 @@
             <tbody>
                 {% for car in cars %}
                 <tr>
-                    <td>{{ car.year }}</td>
                     <td>{{ car.make }}</td>
                     <td>{{ car.model }}</td>
                     <td>{{ car.owner.username }} ({{ car.owner.phone_number or 'No Phone' }})</td>

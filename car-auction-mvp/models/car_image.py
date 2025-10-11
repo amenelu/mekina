@@ -1,4 +1,4 @@
-from app import db
+from . import db
 
 class CarImage(db.Model):
     """Model for storing multiple images for a car."""

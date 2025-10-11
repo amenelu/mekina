@@ -26,7 +26,7 @@
     --radius: 0.75rem;
     --success: 142 76% 36%;
     --warning: 38 92% 50%; /* This is our new accent color */
-    --info: 217 91% 60%;
+    --info: 220 20% 18%; /* A neutral dark gray for info buttons */
     --gradient-primary: linear-gradient(135deg, hsl(220 20% 12%), hsl(220 20% 18%));
     --gradient-accent: linear-gradient(135deg, hsl(38 92% 50%), hsl(25 95% 53%));
     --shadow-card: 0 4px 6px -1px hsl(0 0% 0% / 0.3), 0 2px 4px -1px hsl(0 0% 0% / 0.2);
@@ -48,16 +48,6 @@ main {
     flex-grow: 1;
 }
 
-/* Homepage Hero Section */
-.hero {
-    background-color: hsl(var(--secondary));
-    border: 1px solid hsl(var(--border));
-    padding: 40px;
-    text-align: center;
-    border-radius: var(--radius);
-    margin-bottom: 40px;
-}
-
 .container, .main-content, .sidebar {
     max-width: 1200px;
     margin: 20px auto;
@@ -69,7 +59,7 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 a {
-    color: hsl(var(--info));
+    color: hsl(var(--accent));
     text-decoration: none;
 }
 
@@ -119,14 +109,14 @@ nav a:hover {
     gap: 15px;
 }
 .nav-button {
-    background-color: hsl(var(--accent));
-    color: hsl(var(--accent-foreground));
+    background-color: hsl(var(--info));
+    color: hsl(var(--foreground)); /* Light text for dark button */
     padding: 8px 15px;
     border-radius: var(--radius);
     font-weight: 500;
 }
 .nav-button:hover {
-    background-color: hsl(var(--accent) / 0.9);
+    background-color: hsl(var(--info) / 0.9);
     text-decoration: none;
 }
 
@@ -185,6 +175,18 @@ nav a:hover {
     font-weight: 600;
     color: hsl(var(--foreground));
 }
+.auction-card .bid-count {
+    font-size: 0.9em;
+    font-weight: 500;
+    color: hsl(var(--muted-foreground));
+    margin-left: 10px;
+}
+.auction-card .card-details {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 10px;
+}
 .auction-card h3 {
     font-size: 1.1em;
     margin: 0 0 10px 0;
@@ -202,13 +204,85 @@ nav a:hover {
 }
 
 /* 5. Forms & Tables */
-.filter-container {
+.search-hero {
+    background: var(--gradient-primary);
+    padding: 4rem 0;
+    text-align: center;
+}
+.search-hero h1 {
+    color: hsl(var(--foreground));
+    font-size: 2.5rem;
+    margin-bottom: 0.5rem;
+}
+.search-hero p {
+    color: hsl(var(--muted-foreground));
+    font-size: 1.1rem;
+    margin-bottom: 2rem;
+}
+.search-bar {
+    display: flex;
+    max-width: 600px;
+    margin: 0 auto;
+}
+.search-bar input {
+    flex-grow: 1;
+    border-radius: var(--radius) 0 0 var(--radius);
+    border-right: none;
+}
+.search-bar button {
+    border-radius: 0 var(--radius) var(--radius) 0;
+    background-color: hsl(var(--accent));
+    color: hsl(var(--accent-foreground));
+    border: none;
+    padding: 0 25px;
+    cursor: pointer;
+    font-weight: 600;
+}
+.quick-filters {
+    margin-top: 1.5rem;
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+.filter-btn {
+    background-color: hsl(var(--secondary) / 0.2);
+    color: hsl(var(--secondary-foreground));
+    border: 1px solid hsl(var(--border));
+    padding: 8px 15px;
+    border-radius: 20px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+.filter-btn:hover {
+    background-color: hsl(var(--secondary) / 0.4);
+}
+.filter-btn.active {
+    background-color: hsl(var(--accent));
+    color: hsl(var(--accent-foreground));
+    border-color: hsl(var(--accent));
+}
+.find-car-link {
+    margin-top: 2rem;
+    color: hsl(var(--muted-foreground));
+}
+.find-car-link a {
+    color: hsl(var(--accent));
+    font-weight: 500;
+    text-decoration: none;
+}
+.find-car-link a:hover {
+    text-decoration: underline;
+}
+
+/* DEPRECATED */
+/* .filter-container {
     background-color: hsl(var(--secondary));
     padding: 20px;
     border-radius: var(--radius);
     margin-bottom: 30px;
     border: 1px solid hsl(var(--border));
-}
+} */
 
 .form-group {
     margin-bottom: 1.5rem;
@@ -292,7 +366,10 @@ tbody tr:hover {
 /* 7. Trust Section */
 .trust-section {
     background: var(--gradient-primary);
-    color: hsl(var(--primary-foreground));
+    color: hsl(var(--foreground));
+}
+.trust-section h2 {
+    color: hsl(var(--foreground));
 }
 .trust-section .section-header p {
     color: rgba(255, 255, 255, 0.8);
@@ -399,8 +476,8 @@ tbody tr:hover {
     display: inline-block;
     text-align: center;
 }
-.btn.approve, .button-group .approve { background-color: hsl(var(--success)); color: hsl(var(--success-foreground)); }
-.btn.edit, .button-group .edit { background-color: hsl(var(--info)); color: hsl(var(--info-foreground)); }
+.btn.approve, .button-group .approve { background-color: hsl(var(--accent)); color: hsl(var(--accent-foreground)); }
+.btn.edit, .button-group .edit { background-color: hsl(var(--info)); color: hsl(var(--foreground)); }
 .btn.delete, .button-group .delete { background-color: hsl(var(--destructive)); color: hsl(var(--destructive-foreground)); }
 
 .stat-grid {
@@ -486,3 +563,8 @@ tbody tr:hover {
 #ask-question-form-div { display: none; margin-top: 10px; }
 #question-success { color: hsl(var(--success)); margin-left: 10px; }
 #question-error { color: hsl(var(--destructive)); }
+
+#no-results-message {
+    text-align: center;
+    padding: 2rem;
+}

@@ -1,11 +1,10 @@
 from flask import Flask
-from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager
 from flask_migrate import Migrate
 from config import Config
 
 # Initialize extensions
-db = SQLAlchemy()
+from models import db
 login_manager = LoginManager()
 login_manager.login_view = 'auth.login' # Redirect to login page if user is not authenticated
 migrate = Migrate()
@@ -26,12 +25,14 @@ def create_app(config_class=Config):
     from routes.auctions import auctions_bp
     from routes.admin import admin_bp
     from routes.seller import seller_bp
+    from routes.request import request_bp
 
     app.register_blueprint(auth_bp, url_prefix='/auth')
     app.register_blueprint(main_bp)
     app.register_blueprint(admin_bp, url_prefix='/admin')
     app.register_blueprint(auctions_bp, url_prefix='/auctions')
     app.register_blueprint(seller_bp, url_prefix='/seller')
+    app.register_blueprint(request_bp)
 
     # Define user loader function for Flask-Login
     from models.user import User

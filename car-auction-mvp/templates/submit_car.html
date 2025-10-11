@@ -34,6 +34,11 @@
             {% for error in form.images.errors %}<span style="color: red;">[{{ error }}]</span>{% endfor %}
         </div>
         <div class="form-group">
+            {{ form.condition.label }}<br>
+            {{ form.condition() }}
+            {% for error in form.condition.errors %}<span style="color: red;">[{{ error }}]</span>{% endfor %}
+        </div>
+        <div class="form-group">
             {{ form.mileage.label }}<br>
             {{ form.mileage() }}
             {% for error in form.mileage.errors %}<span style="color: red;">[{{ error }}]</span>{% endfor %}

@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+
+{% block title %}Dealer Dashboard{% endblock %}
+
+{% block content %}
+    <h1>Active Customer Requests</h1>
+    <p>Review the requests below and place your best offer.</p>
+
+    {% if requests %}
+        <table>
+            <thead>
+                <tr>
+                    <th>Make</th>
+                    <th>Model</th>
+                    <th>Min. Year</th>
+                    <th>Notes</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for req in requests %}
+                <tr>
+                    <td>{{ req.make }}</td>
+                    <td>{{ req.model }}</td>
+                    <td>{{ req.min_year or 'Any' }}</td>
+                    <td>{{ req.notes or 'None' }}</td>
+                    <td><a href="#" class="btn edit">Place Bid</a></td> {# Placeholder for bidding functionality #}
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% else %}
+        <p>There are no active customer requests at the moment.</p>
+    {% endif %}
+{% endblock %}

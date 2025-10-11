@@ -1,6 +1,6 @@
 from flask import Blueprint, render_template, redirect, url_for, flash, request, jsonify
 from flask_login import login_required, current_user
-from sqlalchemy import or_
+from sqlalchemy import or_, func
 from models.auction import Auction
 from models.car import Car
 from models.bid import Bid
@@ -155,10 +155,16 @@ def filter_auctions_api():
     )
 
     # Apply filters from request arguments
-    if make := request.args.get('make'):
-        query = query.filter(Car.make.ilike(f"%{make}%"))
-    if model := request.args.get('model'):
-        query = query.filter(Car.model.ilike(f"%{model}%"))
+    if q := request.args.get('q'):
+        search_term = f"%{q}%"
+        query = query.filter(or_(
+            Car.make.ilike(search_term),
+            Car.model.ilike(search_term),
+            Car.year.like(search_term)
+        ))
+
+    if condition := request.args.get('condition'):
+        query = query.filter(Car.condition == condition)
     if max_price := request.args.get('max_price', type=float):
         query = query.filter(Auction.current_price <= max_price)
     if transmission := request.args.get('transmission'):
@@ -169,8 +175,20 @@ def filter_auctions_api():
         query = query.filter(Car.mileage <= max_mileage)
     if fuel_type := request.args.get('fuel_type'):
         query = query.filter(Car.fuel_type == fuel_type)
+    # The body_type filter is a placeholder for now as the model doesn't have this field.
+    # To implement it fully, you would add a `body_type` column to the `Car` model.
+    if body_type := request.args.get('body_type'):
+        pass # query = query.filter(Car.body_type == body_type)
 
-    auctions = query.order_by(Auction.end_time.asc()).all()
+    if request.args.get('random') == 'true':
+        query = query.order_by(func.random())
+    else:
+        query = query.order_by(Auction.end_time.asc())
+
+    if limit := request.args.get('limit', type=int):
+        query = query.limit(limit)
+
+    auctions = query.all()
 
     def format_timedelta(td):
         """Helper to format time left in a human-readable way."""
@@ -195,7 +213,8 @@ def filter_auctions_api():
             'current_price': auction.current_price,
             'image_url': auction.car.primary_image_url or url_for('static', filename='img/default_car.png'),
             'detail_url': url_for('auctions.auction_detail', auction_id=auction.id),
-            'time_left': format_timedelta(auction.end_time - datetime.utcnow())
+            'time_left': format_timedelta(auction.end_time - datetime.utcnow()),
+            'bid_count': auction.bids.count()
         }
         for auction in auctions
     ]
