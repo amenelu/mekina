@@ -302,6 +302,46 @@ nav a:hover {
     margin-top: 0.25rem;
 }
 
+.radio-button-group, .checkbox-group {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+}
+.radio-button-input, .checkbox-input {
+    display: none; /* Hide the actual radio/checkbox input */
+}
+.radio-button-label, .checkbox-label {
+    display: block;
+    padding: 1rem;
+    border: 2px solid hsl(var(--border));
+    border-radius: var(--radius);
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s ease-in-out;
+    font-weight: 500;
+}
+.radio-button-label:hover, .checkbox-label:hover {
+    border-color: hsl(var(--accent));
+    background-color: hsl(var(--accent) / 0.1);
+}
+.radio-button-input:checked + .radio-button-label,
+.checkbox-input:checked + .checkbox-label {
+    background-color: hsl(var(--accent));
+    color: hsl(var(--accent-foreground));
+    border-color: hsl(var(--accent));
+}
+.radio-button-input:checked + .radio-button-label {
+    cursor: wait;
+}
+
+/* For single column layout on smaller screens */
+@media (max-width: 768px) {
+    .radio-button-group, .checkbox-group {
+        grid-template-columns: 1fr;
+    }
+}
+
+
 input[type="text"],
 input[type="number"],
 input[type="password"],

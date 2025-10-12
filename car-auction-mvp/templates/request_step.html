@@ -6,14 +6,65 @@
     <h1>{{ title }}</h1>
 
     <form method="POST" action="">
+        {# Check if the form contains only a RadioField and the CSRF token for auto-submit #}
+        {% set field_count = form|rejectattr('type', 'in', ['CSRFTokenField', 'SubmitField'])|list|length %}
+        {% set has_radio = form|selectattr('type', 'equalto', 'RadioField')|list|length > 0 %}
+        {% set is_auto_submit = has_radio and field_count == 1 %}
         {{ form.hidden_tag() }}
-        {% for field in form if field.widget.input_type != 'hidden' and field.widget.input_type != 'submit' %}
+        {% for field in form if field.type not in ['CSRFTokenField', 'SubmitField'] %}
+            {% if field.type == 'RadioField' %}
+            <div class="form-group">
+                <label>{{ field.label.text }}</label>
+                <div class="radio-button-group">
+                    {% for subfield in field %}
+                        {{ subfield(class="radio-button-input") }}
+                        {{ subfield.label(class="radio-button-label") }}
+                    {% endfor %}
+                </div>
+                {% for error in field.errors %}<div class="form-error">{{ error }}</div>{% endfor %}
+            </div>
+            {% elif field.type == 'SelectMultipleField' %}
+            <div class="form-group">
+                <label>{{ field.label.text }}</label>
+                <div class="checkbox-group">
+                    {% for subfield in field %}
+                        {{ subfield(class="checkbox-input") }}
+                        {{ subfield.label(class="checkbox-label") }}
+                    {% endfor %}
+                </div>
+                {% for error in field.errors %}<div class="form-error">{{ error }}</div>{% endfor %}
+            </div>
+            {% else %}
             <div class="form-group">
                 {{ field.label }}
                 {{ field() }}
                 {% for error in field.errors %}<div class="form-error">{{ error }}</div>{% endfor %}
             </div>
+            {% endif %}
         {% endfor %}
-        {{ form.submit(class='btn approve') }}
+        {% if not is_auto_submit %}
+            {{ form.submit(class='btn approve') }}
+        {% endif %}
     </form>
+
+{% if is_auto_submit %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.querySelector('form');
+    const radioInputs = document.querySelectorAll('.radio-button-input');
+
+    // Add a change event listener to the radio inputs
+    radioInputs.forEach(input => {
+        input.addEventListener('change', function() {
+            if (this.checked) {
+                // A short delay can provide better visual feedback that the choice was registered
+                setTimeout(() => {
+                    form.submit();
+                }, 100);
+            }
+        });
+    });
+});
+</script>
+{% endif %}
 {% endblock %}

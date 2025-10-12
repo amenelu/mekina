@@ -7,8 +7,8 @@ class CarRequest(db.Model):
     __tablename__ = 'car_requests'
 
     id = db.Column(db.Integer, primary_key=True)
-    make = db.Column(db.String(64), nullable=False)
-    model = db.Column(db.String(64), nullable=False)
+    make = db.Column(db.String(64), nullable=True)
+    model = db.Column(db.String(64), nullable=True)
     min_year = db.Column(db.Integer, nullable=True)
     max_mileage = db.Column(db.Integer, nullable=True)
     notes = db.Column(db.Text, nullable=True)
