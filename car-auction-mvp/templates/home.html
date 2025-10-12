@@ -92,7 +92,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
         // For the homepage, we only want 8 random cars if no filters are active
         if (Object.keys(activeFilters).length === 0 && !searchInput.value) {
-            params.append('limit', '8');
+            params.append('limit', '6');
             params.append('random', 'true');
         }
 

@@ -4,13 +4,14 @@ from flask_login import login_required, current_user
 from models.car import Car
 from models.question import Question
 from models.auction import Auction
+from models.equipment import Equipment
 from models.car_image import CarImage
 from app import db
 from datetime import datetime
 from werkzeug.utils import secure_filename
 
 from flask_wtf import FlaskForm
-from wtforms import StringField, IntegerField, TextAreaField, SubmitField, FloatField, SelectField
+from wtforms import StringField, IntegerField, TextAreaField, SubmitField, FloatField, SelectField, SelectMultipleField, widgets
 from wtforms.fields import DateTimeLocalField, MultipleFileField
 from wtforms.validators import DataRequired, Length, NumberRange
 
@@ -23,10 +24,15 @@ class CarSubmissionForm(FlaskForm):
     description = TextAreaField('Description', validators=[DataRequired()])
     images = MultipleFileField('Car Photos (select multiple)')
     condition = SelectField('Condition', choices=[('Used', 'Used'), ('New', 'New')], validators=[DataRequired()])
+    body_type = SelectField('Body Type', choices=[('SUV', 'SUV'), ('Sedan', 'Sedan'), ('Hatchback', 'Hatchback'), ('Pickup', 'Pickup Truck')], validators=[DataRequired()])
     mileage = IntegerField('Mileage', validators=[DataRequired(), NumberRange(min=0)])
     transmission = SelectField('Transmission', choices=[('Automatic', 'Automatic'), ('Manual', 'Manual')], validators=[DataRequired()])
     drivetrain = SelectField('Drivetrain', choices=[('FWD', 'FWD'), ('RWD', 'RWD'), ('AWD', 'AWD'), ('4WD', '4WD')], validators=[DataRequired()])
     fuel_type = SelectField('Fuel Type', choices=[('Gasoline', 'Gasoline'), ('Diesel', 'Diesel'), ('Electric', 'Electric')], validators=[DataRequired()])
+    equipment = SelectMultipleField('Features', choices=[
+        ('sunroof', 'Sunroof'), ('leather_seats', 'Leather Seats'),
+        ('apple_carplay', 'Apple CarPlay / Android Auto'), ('awd', 'All-Wheel Drive')
+    ], widget=widgets.ListWidget(prefix_label=False), option_widget=widgets.CheckboxInput())
     
     # Auction Details
     start_price = FloatField('Starting Price (ETB)', validators=[DataRequired(), NumberRange(min=1)])
@@ -109,6 +115,7 @@ def submit_car():
             year=form.year.data,
             description=form.description.data,
             condition=form.condition.data,
+            body_type=form.body_type.data,
             mileage=form.mileage.data,
             transmission=form.transmission.data,
             drivetrain=form.drivetrain.data,
@@ -118,6 +125,12 @@ def submit_car():
         )
         db.session.add(new_car)
         db.session.flush() # Use flush to get the new_car.id before committing
+
+        # Add equipment
+        for item_name in form.equipment.data:
+            equipment_item = Equipment.query.filter_by(name=item_name).first()
+            if equipment_item:
+                new_car.equipment.append(equipment_item)
 
         # Save multiple images
         for image_file in form.images.data:
@@ -170,6 +183,7 @@ def edit_car(car_id):
         car.year = form.year.data
         car.description = form.description.data
         car.condition = form.condition.data
+        car.body_type = form.body_type.data
         car.mileage = form.mileage.data
         car.transmission = form.transmission.data
         car.drivetrain = form.drivetrain.data
@@ -179,6 +193,13 @@ def edit_car(car_id):
         auction.start_price = form.start_price.data
         auction.current_price = form.start_price.data # Reset current price to new start price
         auction.end_time = form.end_time.data
+
+        # Update equipment
+        car.equipment.clear()
+        for item_name in form.equipment.data:
+            equipment_item = Equipment.query.filter_by(name=item_name).first()
+            if equipment_item:
+                car.equipment.append(equipment_item)
 
         # Add new images if any were uploaded
         for image_file in form.images.data:

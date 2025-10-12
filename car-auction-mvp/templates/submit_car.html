@@ -39,6 +39,11 @@
             {% for error in form.condition.errors %}<span style="color: red;">[{{ error }}]</span>{% endfor %}
         </div>
         <div class="form-group">
+            {{ form.body_type.label }}<br>
+            {{ form.body_type() }}
+            {% for error in form.body_type.errors %}<span style="color: red;">[{{ error }}]</span>{% endfor %}
+        </div>
+        <div class="form-group">
             {{ form.mileage.label }}<br>
             {{ form.mileage() }}
             {% for error in form.mileage.errors %}<span style="color: red;">[{{ error }}]</span>{% endfor %}
@@ -57,6 +62,16 @@
             {{ form.fuel_type.label }}<br>
             {{ form.fuel_type() }}
             {% for error in form.fuel_type.errors %}<span style="color: red;">[{{ error }}]</span>{% endfor %}
+        </div>
+        <div class="form-group">
+            {{ form.equipment.label }}<br>
+            <div class="checkbox-group">
+                {% for subfield in form.equipment %}
+                    {{ subfield(class="checkbox-input") }}
+                    {{ subfield.label(class="checkbox-label") }}
+                {% endfor %}
+            </div>
+            {% for error in form.equipment.errors %}<span style="color: red;">[{{ error }}]</span>{% endfor %}
         </div>
         <hr>
         <h3>Auction Details</h3>

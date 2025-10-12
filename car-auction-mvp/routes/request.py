@@ -1,4 +1,4 @@
-from flask import Blueprint, render_template, redirect, url_for, flash, session
+from flask import Blueprint, render_template, redirect, url_for, flash, session, url_for
 from flask_login import login_required, current_user
 from models.car_request import CarRequest
 from models import db
@@ -217,6 +217,9 @@ def step_guided_brand():
         db.session.add(new_req)
         db.session.commit()
         session.pop('car_request_data', None)
-        flash("Dealers will contact you with their offers. Thank you!", 'success')
-        return redirect(url_for('main.home'))
+        flash("We've found some cars that match your preferences! Dealers will also be notified of your request.", 'success')
+        
+        # Redirect to the filtered auction list
+        filter_params = {'body_type': data.get('body_type'), 'fuel_type': data.get('fuel_type'), 'make': form.brand.data}
+        return redirect(url_for('auctions.list_auctions', **{k: v for k, v in filter_params.items() if v}))
     return render_template('request_step.html', form=form, title="Help Us Decide (5/5)")

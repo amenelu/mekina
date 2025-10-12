@@ -1,6 +1,13 @@
 from . import db
 
 from .car_image import CarImage # Import the CarImage model
+from .equipment import Equipment
+
+car_equipment_association = db.Table('car_equipment',
+    db.Column('car_id', db.Integer, db.ForeignKey('car.id'), primary_key=True),
+    db.Column('equipment_id', db.Integer, db.ForeignKey('equipment.id'), primary_key=True)
+)
+
 class Car(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     make = db.Column(db.String(64), nullable=False)
@@ -16,11 +23,13 @@ class Car(db.Model):
     drivetrain = db.Column(db.String(50))
     mileage = db.Column(db.Integer)
     fuel_type = db.Column(db.String(50))
-    condition = db.Column(db.String(50)) # New, Used
+    condition = db.Column(db.String(50)) # e.g., New, Used
+    body_type = db.Column(db.String(50), nullable=True) # e.g., SUV, Sedan
 
     # Relationship
     auction = db.relationship('Auction', backref='car', uselist=False) # One-to-one relationship with Auction
     images = db.relationship('CarImage', backref='car', lazy=True, cascade="all, delete-orphan") # One-to-many relationship with CarImage
+    equipment = db.relationship('Equipment', secondary=car_equipment_association, lazy='subquery', backref=db.backref('cars', lazy=True))
 
     # Property to easily get the primary image for thumbnails
     @property
