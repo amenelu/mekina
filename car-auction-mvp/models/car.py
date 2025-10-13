@@ -2,6 +2,7 @@ from . import db
 
 from .car_image import CarImage # Import the CarImage model
 from .equipment import Equipment
+from .rental_listing import RentalListing
 
 car_equipment_association = db.Table('car_equipment',
     db.Column('car_id', db.Integer, db.ForeignKey('car.id'), primary_key=True),
@@ -28,6 +29,7 @@ class Car(db.Model):
 
     # Relationship
     auction = db.relationship('Auction', backref='car', uselist=False) # One-to-one relationship with Auction
+    rental_listing = db.relationship('RentalListing', backref='car', uselist=False)
     images = db.relationship('CarImage', backref='car', lazy=True, cascade="all, delete-orphan") # One-to-many relationship with CarImage
     equipment = db.relationship('Equipment', secondary=car_equipment_association, lazy='subquery', backref=db.backref('cars', lazy=True))
 

@@ -9,10 +9,14 @@ class User(UserMixin, db.Model):
     phone_number = db.Column(db.String(20), nullable=True)
     password_hash = db.Column(db.String(128))
     is_admin = db.Column(db.Boolean, default=False)
+    is_dealer = db.Column(db.Boolean, default=False)
+    is_rental_company = db.Column(db.Boolean, default=False)
 
     # Relationships
     cars = db.relationship('Car', backref='owner', lazy='dynamic')
     bids = db.relationship('Bid', backref='bidder', lazy='dynamic')
+    dealer_bids = db.relationship('DealerBid', backref='dealer', lazy='dynamic')
+    car_requests = db.relationship('CarRequest', backref='customer', lazy='dynamic')
 
     def set_password(self, password):
         self.password_hash = generate_password_hash(password)

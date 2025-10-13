@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+
+{% block title %}Place Bid on Request{% endblock %}
+
+{% block content %}
+    <h1>Place Bid on Customer Request</h1>
+
+    <div class="question-context">
+        <h3>Request Details</h3>
+        <p><strong>Make:</strong> {{ car_request.make or 'Any' }}</p>
+        <p><strong>Model:</strong> {{ car_request.model or 'Any' }}</p>
+        <p><strong>Minimum Year:</strong> {{ car_request.min_year or 'Any' }}</p>
+        <p><strong>Notes from Customer:</strong></p>
+        <blockquote>{{ car_request.notes or 'None' }}</blockquote>
+    </div>
+
+    <form method="POST" action="">
+        {{ form.hidden_tag() }}
+        <div class="form-group">
+            {{ form.price.label }}
+            {{ form.price() }}
+            {% for error in form.price.errors %}<div class="form-error">{{ error }}</div>{% endfor %}
+        </div>
+        <p>
+            {{ form.submit(class='btn approve') }}
+        </p>
+    </form>
+
+    {% if bids %}
+    <hr>
+    <h2>Current Bid History</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>Dealer</th>
+                <th>Offer Price (ETB)</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for bid in bids %}
+            <tr>
+                <td>{{ bid.dealer.username }}</td>
+                <td>{{ '{:,.2f}'.format(bid.price) }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% endif %}
+{% endblock %}

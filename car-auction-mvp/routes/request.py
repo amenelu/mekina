@@ -1,6 +1,7 @@
 from flask import Blueprint, render_template, redirect, url_for, flash, session, url_for
 from flask_login import login_required, current_user
 from models.car_request import CarRequest
+from models.dealer_bid import DealerBid
 from models import db
 
 from flask_wtf import FlaskForm
@@ -223,3 +224,23 @@ def step_guided_brand():
         filter_params = {'body_type': data.get('body_type'), 'fuel_type': data.get('fuel_type'), 'make': form.brand.data}
         return redirect(url_for('auctions.list_auctions', **{k: v for k, v in filter_params.items() if v}))
     return render_template('request_step.html', form=form, title="Help Us Decide (5/5)")
+
+@request_bp.route('/my')
+@login_required
+def my_requests():
+    requests = CarRequest.query.filter_by(customer_id=current_user.id).order_by(CarRequest.created_at.desc()).all()
+    return render_template('my_requests.html', requests=requests)
+
+@request_bp.route('/<int:request_id>')
+@login_required
+def request_detail(request_id):
+    car_request = CarRequest.query.get_or_404(request_id)
+    # Security check: only the user who made the request or an admin can view it.
+    if car_request.customer_id != current_user.id and not current_user.is_admin:
+        from flask import abort
+        abort(403)
+
+    # Get all bids for this request, lowest first
+    bids = car_request.dealer_bids.order_by(DealerBid.price.asc()).all()
+
+    return render_template('request_detail.html', car_request=car_request, bids=bids)

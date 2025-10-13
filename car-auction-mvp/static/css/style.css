@@ -16,19 +16,19 @@
     --secondary-foreground: 0 0% 95%;
     --muted: 220 20% 16%;
     --muted-foreground: 220 10% 60%;
-    --accent: 38 92% 50%; /* Yellowish Orange */
-    --accent-foreground: 220 70% 12%;
+    --accent: 260 80% 70%; /* Light Purple */
+    --accent-foreground: 0 0% 100%;
     --destructive: 0 62.8% 30.6%;
     --destructive-foreground: 0 0% 100%;
     --border: 220 20% 18%;
     --input: 220 20% 18%;
-    --ring: 38 92% 50%;
+    --ring: 260 80% 70%;
     --radius: 0.75rem;
     --success: 142 76% 36%;
     --warning: 38 92% 50%; /* This is our new accent color */
     --info: 220 20% 18%; /* A neutral dark gray for info buttons */
     --gradient-primary: linear-gradient(135deg, hsl(220 20% 12%), hsl(220 20% 18%));
-    --gradient-accent: linear-gradient(135deg, hsl(38 92% 50%), hsl(25 95% 53%));
+    --gradient-accent: linear-gradient(135deg, hsl(260 80% 70%), hsl(260 70% 60%));
     --shadow-card: 0 4px 6px -1px hsl(0 0% 0% / 0.3), 0 2px 4px -1px hsl(0 0% 0% / 0.2);
     --shadow-elevated: 0 10px 15px -3px hsl(0 0% 0% / 0.3), 0 4px 6px -2px hsl(0 0% 0% / 0.2);
 }
@@ -223,23 +223,37 @@ nav a:hover {
     display: flex;
     max-width: 600px;
     margin: 0 auto;
+    border-radius: var(--radius);
+    overflow: hidden;
+    box-shadow: var(--shadow-elevated);
+    border: 1px solid hsl(var(--border));
 }
 .search-bar input {
     flex-grow: 1;
-    border-radius: var(--radius) 0 0 var(--radius);
-    border-right: none;
+    border: none;
+    padding: 15px 20px;
+    font-size: 1.1rem;
+    transition: box-shadow 0.2s;
+}
+.search-bar input:focus {
+    outline: none;
+    box-shadow: inset 0 0 0 2px hsl(var(--accent));
 }
 .search-bar button {
-    border-radius: 0 var(--radius) var(--radius) 0;
     background-color: hsl(var(--accent));
     color: hsl(var(--accent-foreground));
     border: none;
+    border-left: 1px solid hsl(var(--border));
     padding: 0 25px;
     cursor: pointer;
     font-weight: 600;
+    transition: background-color 0.2s;
+}
+.search-bar button:hover {
+    background-color: hsl(var(--accent) / 0.9);
 }
 .quick-filters {
-    margin-top: 1.5rem;
+    margin-top: 2.5rem;
     display: flex;
     justify-content: center;
     gap: 10px;
@@ -250,7 +264,7 @@ nav a:hover {
     color: hsl(var(--secondary-foreground));
     border: 1px solid hsl(var(--border));
     padding: 8px 15px;
-    border-radius: 20px;
+    border-radius: var(--radius);
     cursor: pointer;
     transition: all 0.2s;
 }
@@ -301,6 +315,34 @@ nav a:hover {
     font-size: 0.875rem;
     margin-top: 0.25rem;
 }
+
+.form-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem 1.5rem;
+}
+
+.form-grid .form-group {
+    margin-bottom: 0.5rem;
+}
+
+.form-grid .full-width {
+    grid-column: 1 / -1; /* Span the full width */
+}
+
+
+.checkbox-style {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+.checkbox-style input {
+    width: auto;
+}
+.checkbox-style label {
+    margin-bottom: 0;
+}
+
 
 .radio-button-group, .checkbox-group {
     display: grid;
@@ -607,4 +649,17 @@ tbody tr:hover {
 #no-results-message {
     text-align: center;
     padding: 2rem;
+}
+
+.role-badge {
+    padding: 0.2em 0.6em;
+    border-radius: var(--radius);
+    font-size: 0.8em;
+    font-weight: 600;
+    color: hsl(var(--accent-foreground));
+}
+.role-badge.admin { background-color: hsl(var(--destructive)); }
+.role-badge.dealer { background-color: hsl(var(--success)); }
+.role-badge.rental { background-color: hsl(var(--info)); color: hsl(var(--primary)); }
+
 }

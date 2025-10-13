@@ -50,6 +50,8 @@ class AddCarForm(FlaskForm):
 class UserEditForm(FlaskForm):
     username = StringField('Username', validators=[DataRequired()])
     email = StringField('Email', validators=[DataRequired()])
+    is_dealer = BooleanField('Is Dealer?')
+    is_rental_company = BooleanField('Is Rental Company?')
     is_admin = BooleanField('Is Admin?')
     submit = SubmitField('Update User')
 
@@ -184,10 +186,27 @@ def delete_auction(auction_id):
     flash(f'Successfully deleted auction and car: {car.year} {car.make} {car.model}.', 'danger')
     return redirect(url_for('auctions.list_auctions'))
 
-@admin_bp.route('/dealer_dashboard')
+@admin_bp.route('/users')
 @login_required
-@dealer_required
-def dealer_dashboard():
-    # Fetch all active car requests
-    active_requests = CarRequest.query.filter_by(status='active').order_by(CarRequest.created_at.desc()).all()
-    return render_template('dealer_dashboard.html', requests=active_requests)
+@admin_required
+def user_management():
+    page = request.args.get('page', 1, type=int)
+    users = User.query.order_by(User.id.asc()).paginate(page=page, per_page=20)
+    return render_template('user_management.html', users=users)
+
+@admin_bp.route('/edit_user/<int:user_id>', methods=['GET', 'POST'])
+@login_required
+@admin_required
+def edit_user(user_id):
+    user = User.query.get_or_404(user_id)
+    form = UserEditForm(obj=user)
+    if form.validate_on_submit():
+        user.username = form.username.data
+        user.email = form.email.data
+        user.is_admin = form.is_admin.data
+        user.is_dealer = form.is_dealer.data
+        user.is_rental_company = form.is_rental_company.data
+        db.session.commit()
+        flash(f'User {user.username} has been updated.', 'success')
+        return redirect(url_for('admin.user_management'))
+    return render_template('edit_user.html', form=form, user=user)

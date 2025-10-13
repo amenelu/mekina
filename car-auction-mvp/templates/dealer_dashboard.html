@@ -24,7 +24,7 @@
                     <td>{{ req.model }}</td>
                     <td>{{ req.min_year or 'Any' }}</td>
                     <td>{{ req.notes or 'None' }}</td>
-                    <td><a href="#" class="btn edit">Place Bid</a></td> {# Placeholder for bidding functionality #}
+                    <td><a href="{{ url_for('dealer.place_bid', request_id=req.id) }}" class="btn edit">Place Bid</a></td>
                 </tr>
                 {% endfor %}
             </tbody>

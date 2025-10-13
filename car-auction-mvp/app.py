@@ -26,6 +26,8 @@ def create_app(config_class=Config):
     from routes.admin import admin_bp
     from routes.seller import seller_bp
     from routes.request import request_bp
+    from routes.dealer import dealer_bp
+    from routes.rentals import rentals_bp
 
     app.register_blueprint(auth_bp, url_prefix='/auth')
     app.register_blueprint(main_bp)
@@ -33,6 +35,8 @@ def create_app(config_class=Config):
     app.register_blueprint(auctions_bp, url_prefix='/auctions')
     app.register_blueprint(seller_bp, url_prefix='/seller')
     app.register_blueprint(request_bp)
+    app.register_blueprint(dealer_bp)
+    app.register_blueprint(rentals_bp)
 
     # Define user loader function for Flask-Login
     from models.user import User

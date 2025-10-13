@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+
+{% block title %}Edit User: {{ user.username }}{% endblock %}
+
+{% block content %}
+    <h1>Edit User: {{ user.username }}</h1>
+
+    <form method="POST" action="">
+        {{ form.hidden_tag() }}
+        <div class="form-group">
+            {{ form.username.label }}
+            {{ form.username() }}
+        </div>
+        <div class="form-group">
+            {{ form.email.label }}
+            {{ form.email() }}
+        </div>
+        <hr>
+        <h3>Roles</h3>
+        <div class="form-group checkbox-style">
+            {{ form.is_dealer() }}
+            {{ form.is_dealer.label }}
+        </div>
+        <div class="form-group checkbox-style">
+            {{ form.is_rental_company() }}
+            {{ form.is_rental_company.label }}
+        </div>
+        <div class="form-group checkbox-style">
+            {{ form.is_admin() }}
+            {{ form.is_admin.label }}
+        </div>
+        <p>{{ form.submit(class='btn approve') }}</p>
+    </form>
+{% endblock %}

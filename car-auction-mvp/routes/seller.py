@@ -4,6 +4,7 @@ from flask_login import login_required, current_user
 from models.car import Car
 from models.question import Question
 from models.auction import Auction
+from models.rental_listing import RentalListing
 from models.equipment import Equipment
 from models.car_image import CarImage
 from app import db
@@ -11,7 +12,7 @@ from datetime import datetime
 from werkzeug.utils import secure_filename
 
 from flask_wtf import FlaskForm
-from wtforms import StringField, IntegerField, TextAreaField, SubmitField, FloatField, SelectField, SelectMultipleField, widgets
+from wtforms import StringField, IntegerField, TextAreaField, SubmitField, FloatField, SelectField, SelectMultipleField, widgets, RadioField
 from wtforms.fields import DateTimeLocalField, MultipleFileField
 from wtforms.validators import DataRequired, Length, NumberRange
 
@@ -33,10 +34,13 @@ class CarSubmissionForm(FlaskForm):
         ('sunroof', 'Sunroof'), ('leather_seats', 'Leather Seats'),
         ('apple_carplay', 'Apple CarPlay / Android Auto'), ('awd', 'All-Wheel Drive')
     ], widget=widgets.ListWidget(prefix_label=False), option_widget=widgets.CheckboxInput())
+    listing_type = RadioField('Listing Type', choices=[('auction', 'Auction'), ('rental', 'Rental')], default='auction', validators=[DataRequired()])
     
     # Auction Details
-    start_price = FloatField('Starting Price (ETB)', validators=[DataRequired(), NumberRange(min=1)])
-    end_time = DateTimeLocalField('Auction End Time', format='%Y-%m-%dT%H:%M', validators=[DataRequired()])
+    start_price = FloatField('Starting Price (ETB)', validators=[NumberRange(min=1)])
+    end_time = DateTimeLocalField('Auction End Time', format='%Y-%m-%dT%H:%M')
+    # Rental Details
+    price_per_day = FloatField('Price Per Day (ETB)', validators=[NumberRange(min=1)])
 
     submit = SubmitField('Submit')
 
@@ -139,14 +143,21 @@ def submit_car():
                 new_image = CarImage(image_url=image_url, car_id=new_car.id)
                 db.session.add(new_image)
 
-        # Now create the associated Auction
-        new_auction = Auction(
-            start_price=form.start_price.data,
-            current_price=form.start_price.data,
-            end_time=form.end_time.data,
-            car_id=new_car.id
-        )
-        db.session.add(new_auction)
+        # Create either an Auction or a Rental Listing based on choice
+        if form.listing_type.data == 'auction':
+            new_auction = Auction(
+                start_price=form.start_price.data,
+                current_price=form.start_price.data,
+                end_time=form.end_time.data,
+                car_id=new_car.id
+            )
+            db.session.add(new_auction)
+        elif form.listing_type.data == 'rental':
+            new_rental = RentalListing(
+                price_per_day=form.price_per_day.data,
+                car_id=new_car.id
+            )
+            db.session.add(new_rental)
 
         db.session.commit()
         flash('Your car has been submitted for approval. Thank you!', 'success')

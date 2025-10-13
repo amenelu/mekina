@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+
+{% block title %}Cars for Rent{% endblock %}
+
+{% block content %}
+    <h1>Cars for Rent</h1>
+    <p>Browse our selection of available vehicles for daily rental.</p>
+
+    <div class="auction-grid">
+        {% for car in rentals %}
+            <a href="#" class="auction-card-link"> {# Placeholder link for rental detail page #}
+                <div class="auction-card">
+                    <img src="{{ car.primary_image_url or url_for('static', filename='img/default_car.png') }}" alt="Car Image">
+                    <div class="card-content">
+                        <h3>{{ car.year }} {{ car.make }} {{ car.model }}</h3>
+                        <div class="card-details">
+                            <p>{{ '{:,.2f}'.format(car.rental_listing.price_per_day) }} ETB / day</p>
+                        </div>
+                    </div>
+                </div>
+            </a>
+        {% else %}
+            <p>There are no cars available for rent at the moment.</p>
+        {% endfor %}
+    </div>
+{% endblock %}
