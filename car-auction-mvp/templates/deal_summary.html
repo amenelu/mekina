@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+
+{% block title %}Deal Summary{% endblock %}
+
+{% block content %}
+    <h1>Deal Summary</h1>
+    <p>This page confirms the details of the accepted offer between the customer and the dealer.</p>
+
+    <div class="deal-summary-card">
+        <div class="deal-header">
+            <h2>Final Price: {{ '{:,.2f}'.format(deal.final_price) }} ETB</h2>
+            <span>Deal confirmed on: {{ deal.deal_date.strftime('%b %d, %Y') }}</span>
+        </div>
+
+        <div class="deal-parties">
+            <div class="party">
+                <h3>Customer</h3>
+                <p><strong>Username:</strong> {{ deal.customer.username }}</p>
+                <p><strong>Email:</strong> {{ deal.customer.email }}</p>
+                <p><strong>Phone:</strong> {{ deal.customer.phone_number or 'Not provided' }}</p>
+            </div>
+            <div class="party">
+                <h3>Dealer</h3>
+                <p><strong>Username:</strong> {{ deal.dealer.username }}</p>
+                <p><strong>Email:</strong> {{ deal.dealer.email }}</p>
+                <p><strong>Phone:</strong> {{ deal.dealer.phone_number or 'Not provided' }}</p>
+            </div>
+        </div>
+
+        <div class="offer-details">
+            <h3>Accepted Offer Details</h3>
+            <div class="offer-details-grid">
+                <div><strong>Car Year:</strong> {{ deal.accepted_bid.car_year }}</div>
+                <div><strong>Condition:</strong> {{ deal.accepted_bid.condition }}</div>
+                <div><strong>Mileage:</strong> {{ '{:,}'.format(deal.accepted_bid.mileage) }} km</div>
+                <div><strong>Availability:</strong> {{ deal.accepted_bid.availability }}</div>
+            </div>
+            {% if deal.accepted_bid.extras %}
+                <p><strong>Extras:</strong> {{ deal.accepted_bid.extras }}</p>
+            {% endif %}
+        </div>
+    </div>
+
+{% endblock %}

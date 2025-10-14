@@ -8,34 +8,57 @@
         <a href="{{ url_for('seller.submit_car') }}" class="nav-button" style="background-color: hsl(var(--success)); text-decoration: none;">+ List a New Car</a>
     </div>
 
-    <h2>Active Customer Requests</h2>
-
-    {% if requests %}
-        <table>
-            <thead>
-                <tr>
-                    <th>Make</th>
-                    <th>Model</th>
-                    <th>Min. Year</th>
-                    <th>Notes</th>
-                    <th>Actions</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for req in requests %}
-                <tr>
-                    <td>{{ req.make }}</td>
-                    <td>{{ req.model }}</td>
-                    <td>{{ req.min_year or 'Any' }}</td>
-                    <td>{{ req.notes or 'None' }}</td>
-                    <td><a href="{{ url_for('dealer.place_bid', request_id=req.id) }}" class="btn edit">Place Bid</a></td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-    {% else %}
-        <p>There are no active customer requests at the moment.</p>
-    {% endif %}
+    <div class="dashboard-section">
+        <h2>Active Customer Requests</h2>
+        {% if requests %}
+            <p>The following customers are looking for a car. You can view their request and place an offer.</p>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Request Date</th>
+                        <th>Customer Request</th>
+                        <th>Bidders</th>
+                        <th>Lowest Offer</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for req in requests %}
+                    <tr>
+                        <td>{{ req.created_at.strftime('%b %d, %Y') }}</td>
+                        <td>
+                            {% if req.make and req.model %}
+                                <strong>{{ req.make }} {{ req.model }}</strong> ({{ req.min_year or 'Any' }}+)
+                            {% else %}
+                                <em>General Request</em>
+                            {% endif %}
+                            <blockquote class="compact">{{ req.notes|truncate(100) }}</blockquote>
+                        </td>
+                        <td>
+                            {% if req.bid_count > 0 %}
+                                {{ req.bid_count }} dealer(s)
+                            {% else %}
+                                <span class="text-muted">None yet</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if req.lowest_offer %}
+                                {{ '{:,.2f}'.format(req.lowest_offer) }} ETB
+                            {% else %}
+                                <span class="text-muted">N/A</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <a href="{{ url_for('dealer.place_bid', request_id=req.id) }}" class="btn">Place Offer</a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        {% else %}
+            <p>There are no active customer requests at the moment.</p>
+        {% endif %}
+    </div>
 
     <hr>
 

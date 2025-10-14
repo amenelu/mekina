@@ -6,6 +6,7 @@ from models.car import Car
 from models.question import Question
 from models.auction import Auction
 from models import db
+from sqlalchemy import func
 from functools import wraps
 from datetime import datetime
 from flask_wtf import FlaskForm
@@ -42,6 +43,13 @@ class DealerBidForm(FlaskForm):
 def dashboard():
     # --- Dealer Functionality: Fetch customer requests ---
     active_requests = CarRequest.query.filter_by(status='active').order_by(CarRequest.created_at.desc()).all()
+
+    # Augment each request with bid information to display on the dashboard
+    for req in active_requests:
+        # Efficiently count bids using the relationship backref
+        req.bid_count = req.dealer_bids.count()
+        # Efficiently find the minimum bid price using a subquery
+        req.lowest_offer = db.session.query(func.min(DealerBid.price)).filter(DealerBid.request_id == req.id).scalar()
 
     # --- Seller Functionality: Fetch dealer's own listings and questions ---
     my_cars = Car.query.filter_by(owner_id=current_user.id).order_by(Car.id.desc()).all()
