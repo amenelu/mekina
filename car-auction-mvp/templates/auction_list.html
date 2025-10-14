@@ -69,6 +69,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         cardLink.className = 'auction-card-link';
                         cardLink.innerHTML = `
                             <div class="auction-card">
+                                ${auction.owner_role ? `<span class="role-badge ${auction.owner_role.toLowerCase()}">${auction.owner_role}</span>` : ''}
                                 <img src="${auction.image_url}" alt="Car Image">
                                 <div class="card-content">
                                     <h3>${auction.year} ${auction.make} ${auction.model}</h3>

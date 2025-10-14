@@ -19,6 +19,7 @@
                 <li><a href="{{ url_for('admin.user_management') }}">Users</a></li>
                 <li><a href="{{ url_for('auctions.list_auctions') }}">Manage Auctions</a></li>
             {% elif current_user.is_authenticated %}
+                <li><a href="{{ url_for('main.all_listings') }}">All Listings</a></li>
                 <li><a href="{{ url_for('auctions.list_auctions') }}">All Auctions</a></li>
                 <li><a href="{{ url_for('rentals.list_rentals') }}">Rentals</a></li>
                 {% if current_user.is_dealer %}
@@ -27,8 +28,11 @@
                 {% if not current_user.is_dealer %}
                 <li><a href="{{ url_for('request.my_requests') }}">My Requests</a></li>
                 {% endif %}
-                <li><a href="{{ url_for('seller.dashboard') }}">Seller Dashboard</a></li>
+                {% if not current_user.is_dealer %}
+                    <li><a href="{{ url_for('seller.dashboard') }}">Seller Dashboard</a></li>
+                {% endif %}
             {% else %}
+                <li><a href="{{ url_for('main.all_listings') }}">All Listings</a></li>
                 <li><a href="{{ url_for('auctions.list_auctions') }}">All Auctions</a></li>
                 <li><a href="{{ url_for('rentals.list_rentals') }}">Rentals</a></li>
             {% endif %}

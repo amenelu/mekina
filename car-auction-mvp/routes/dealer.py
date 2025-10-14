@@ -2,9 +2,12 @@ from flask import Blueprint, render_template, redirect, url_for, flash, request
 from flask_login import login_required, current_user
 from models.car_request import CarRequest
 from models.dealer_bid import DealerBid
+from models.car import Car
+from models.question import Question
+from models.auction import Auction
 from models import db
 from functools import wraps
-
+from datetime import datetime
 from flask_wtf import FlaskForm
 from wtforms import FloatField, SubmitField
 from wtforms.validators import DataRequired, NumberRange
@@ -30,9 +33,26 @@ class DealerBidForm(FlaskForm):
 @login_required
 @dealer_required
 def dashboard():
-    # Fetch all active car requests
+    # --- Dealer Functionality: Fetch customer requests ---
     active_requests = CarRequest.query.filter_by(status='active').order_by(CarRequest.created_at.desc()).all()
-    return render_template('dealer_dashboard.html', requests=active_requests)
+
+    # --- Seller Functionality: Fetch dealer's own listings and questions ---
+    my_cars = Car.query.filter_by(owner_id=current_user.id).order_by(Car.id.desc()).all()
+    my_car_ids = [car.id for car in my_cars]
+    my_auctions = Auction.query.filter(Auction.car_id.in_(my_car_ids)).all()
+    my_auction_ids = [auction.id for auction in my_auctions]
+    unanswered_questions = Question.query.filter(
+        Question.auction_id.in_(my_auction_ids),
+        Question.answer_text == None
+    ).order_by(Question.timestamp.desc()).all()
+
+    return render_template(
+        'dealer_dashboard.html', 
+        requests=active_requests,
+        my_cars=my_cars,
+        unanswered_questions=unanswered_questions,
+        now=datetime.utcnow()
+    )
 
 @dealer_bp.route('/request/<int:request_id>/bid', methods=['GET', 'POST'])
 @login_required

@@ -3,8 +3,12 @@
 {% block title %}Dealer Dashboard{% endblock %}
 
 {% block content %}
-    <h1>Active Customer Requests</h1>
-    <p>Review the requests below and place your best offer.</p>
+    <h1>Dealer Dashboard</h1>
+    <div style="margin-bottom: 20px;">
+        <a href="{{ url_for('seller.submit_car') }}" class="nav-button" style="background-color: hsl(var(--success)); text-decoration: none;">+ List a New Car</a>
+    </div>
+
+    <h2>Active Customer Requests</h2>
 
     {% if requests %}
         <table>
@@ -31,5 +35,75 @@
         </table>
     {% else %}
         <p>There are no active customer requests at the moment.</p>
+    {% endif %}
+
+    <hr>
+
+    <h2>My Listings</h2>
+    {% if my_cars %}
+        <table>
+            <thead>
+                <tr>
+                    <th>Car</th>
+                    <th>Status</th>
+                    <th>Auction Status</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for car in my_cars %}
+                <tr>
+                    <td>{{ car.year }} {{ car.make }} {{ car.model }}</td>
+                    <td>
+                        {% if car.is_approved %}
+                            <span style="color: hsl(var(--success)); font-weight: bold;">Approved</span>
+                        {% else %}
+                            <span style="color: hsl(var(--warning)); font-weight: bold;">Pending Approval</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if car.auction and car.auction.end_time > now %}
+                            Active (Ends: {{ car.auction.end_time.strftime('%Y-%m-%d %H:%M') }})
+                        {% elif car.auction and car.auction.end_time <= now %}
+                            Expired
+                        {% else %}
+                            No Auction Yet
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if not car.is_approved %}<a href="{{ url_for('seller.edit_car', car_id=car.id) }}">Edit</a>{% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% else %}
+        <p>You have not submitted any cars yet.</p>
+    {% endif %}
+
+    <hr>
+
+    <h2>My Unanswered Questions</h2>
+    {% if unanswered_questions %}
+        <table>
+             <thead>
+                <tr>
+                    <th>Car</th>
+                    <th>Question</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for q in unanswered_questions %}
+                <tr>
+                    <td>{{ q.auction.car.year }} {{ q.auction.car.make }} {{ q.auction.car.model }}</td>
+                    <td>{{ q.question_text }}</td>
+                    <td><a href="{{ url_for('seller.answer_question', question_id=q.id) }}">Answer</a></td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% else %}
+        <p>You have no unanswered questions.</p>
     {% endif %}
 {% endblock %}

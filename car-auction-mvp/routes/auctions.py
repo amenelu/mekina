@@ -214,9 +214,76 @@ def filter_auctions_api():
             'image_url': auction.car.primary_image_url or url_for('static', filename='img/default_car.png'),
             'detail_url': url_for('auctions.auction_detail', auction_id=auction.id),
             'time_left': format_timedelta(auction.end_time - datetime.utcnow()),
-            'bid_count': auction.bids.count()
+            'bid_count': auction.bids.count(),
+            'owner_role': (
+                'Admin' if auction.car.owner.is_admin else
+                'Dealer' if auction.car.owner.is_dealer else
+                'Rental' if auction.car.owner.is_rental_company else
+                None
+            )
         }
         for auction in auctions
     ]
+
+    return jsonify(results)
+
+@auctions_bp.route('/api/all_listings')
+def all_listings_api():
+    """API endpoint to return all types of listings (auctions, rentals, etc.) as JSON."""
+    query = Car.query.filter(Car.is_approved == True)
+
+    # This is a simplified filter for the generic listings page.
+    # It can be expanded later to include more car-specific attributes.
+    if q := request.args.get('q'):
+        search_term = f"%{q}%"
+        query = query.filter(or_(
+            Car.make.ilike(search_term),
+            Car.model.ilike(search_term),
+            Car.year.like(search_term)
+        ))
+    
+    if condition := request.args.get('condition'):
+        query = query.filter(Car.condition == condition)
+    if fuel_type := request.args.get('fuel_type'):
+        query = query.filter(Car.fuel_type == fuel_type)
+    if body_type := request.args.get('body_type'):
+        query = query.filter(Car.body_type == body_type)
+    if max_price := request.args.get('max_price', type=float):
+        # This requires joining with Auction to filter by price
+        query = query.join(Auction).filter(Auction.current_price <= max_price)
+
+    cars = query.order_by(Car.id.desc()).all()
+
+    def format_timedelta(td):
+        days = td.days
+        hours, remainder = divmod(td.seconds, 3600)
+        if days > 0:
+            return f"{days} day{'s' if days > 1 else ''} left"
+        elif hours > 0:
+            return f"{hours} hour{'s' if hours > 1 else ''} left"
+        return "Ending soon"
+
+    results = []
+    for car in cars:
+        listing_data = {
+            'id': car.id,
+            'year': car.year,
+            'make': car.make,
+            'model': car.model,
+            'image_url': car.primary_image_url or url_for('static', filename='img/default_car.png'),
+            'owner_role': (
+                'Admin' if car.owner.is_admin else
+                'Dealer' if car.owner.is_dealer else
+                'Rental' if car.owner.is_rental_company else
+                None
+            )
+        }
+        if car.auction:
+            listing_data['detail_url'] = url_for('auctions.auction_detail', auction_id=car.auction.id)
+            listing_data['current_price'] = car.auction.current_price
+            listing_data['bid_count'] = car.auction.bids.count()
+            listing_data['time_left'] = format_timedelta(car.auction.end_time - datetime.utcnow()) if car.auction.end_time > datetime.utcnow() else "Ended"
+        # Add logic for rentals or other listing types here in the future
+        results.append(listing_data)
 
     return jsonify(results)

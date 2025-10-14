@@ -14,3 +14,7 @@ def home():
 
     # The homepage now loads all data via JavaScript, so we don't need to pass auctions here.
     return render_template('home.html')
+
+@main_bp.route('/listings')
+def all_listings():
+    return render_template('all_listings.html')

@@ -21,7 +21,16 @@
 
     <div class="detail-page-container">
         <div class="main-content">
-            <h1>{{ auction.car.year }} {{ auction.car.make }} {{ auction.car.model }}</h1>
+            <div class="title-with-tag">
+                <h1>{{ auction.car.year }} {{ auction.car.make }} {{ auction.car.model }}</h1>
+                {% if auction.car.owner.is_admin %}
+                    <span class="role-badge admin large">Admin Listing</span>
+                {% elif auction.car.owner.is_dealer %}
+                    <span class="role-badge dealer large">Dealer Listing</span>
+                {% elif auction.car.owner.is_rental_company %}
+                    <span class="role-badge rental large">Rental Listing</span>
+                {% endif %}
+            </div>
             <div class="image-gallery">
                 <div class="main-image-container">
                     <img id="main-car-image" src="{{ auction.car.primary_image_url or url_for('static', filename='img/default_car.png') }}" alt="Car Image">
@@ -139,6 +148,13 @@
                 {% for sim_auction in similar_auctions %}
                     <a href="{{ url_for('auctions.auction_detail', auction_id=sim_auction.id) }}" class="auction-card-link">
                         <div class="auction-card">
+                            {% if sim_auction.car.owner.is_admin %}
+                                <span class="role-badge admin">Admin</span>
+                            {% elif sim_auction.car.owner.is_dealer %}
+                                <span class="role-badge dealer">Dealer</span>
+                            {% elif sim_auction.car.owner.is_rental_company %}
+                                <span class="role-badge rental">Rental</span>
+                            {% endif %}
                             <img src="{{ sim_auction.car.primary_image_url or url_for('static', filename='img/default_car.png') }}" alt="Car Image">
                             <div class="card-content">
                                 <h4>{{ sim_auction.car.year }} {{ sim_auction.car.make }} {{ sim_auction.car.model }}</h4>
