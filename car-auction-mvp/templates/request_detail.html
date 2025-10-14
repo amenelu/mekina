@@ -2,14 +2,14 @@
 
 {% block title %}Offers for Your Request{% endblock %}
 
-{% macro offer_card(bid, is_lowest=false) %}
+{% macro offer_card(bid, loop_index, is_lowest=false) %}
 <div class="offer-card {% if is_lowest %}lowest-bid-highlight{% endif %}">
     <div class="offer-header">
         <div class="offer-price">
             {{ '{:,.2f}'.format(bid.price) }} ETB
         </div>
         <div class="offer-meta">
-            <span>From: <strong>{{ bid.dealer.username }}</strong></span>
+            <span>From: <strong>Dealer #{{ loop_index }}</strong></span>
             <span>Received: {{ bid.timestamp.strftime('%b %d, %Y') }}</span>
         </div>
     </div>
@@ -56,7 +56,7 @@
         
         <div class="offer-list">
             {% for bid in bids %}
-                {{ offer_card(bid, is_lowest=loop.first) }}
+                {{ offer_card(bid, loop.index, is_lowest=loop.first) }}
             {% endfor %}
         </div>
     {% else %}
