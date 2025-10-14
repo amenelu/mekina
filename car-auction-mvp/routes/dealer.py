@@ -9,8 +9,8 @@ from models import db
 from functools import wraps
 from datetime import datetime
 from flask_wtf import FlaskForm
-from wtforms import FloatField, SubmitField
-from wtforms.validators import DataRequired, NumberRange
+from wtforms import StringField, IntegerField, TextAreaField, SelectField, DateField, FloatField, SubmitField
+from wtforms.validators import DataRequired, NumberRange, Optional, Length
 
 dealer_bp = Blueprint('dealer', __name__, url_prefix='/dealer')
 
@@ -26,8 +26,15 @@ def dealer_required(f):
     return decorated_function
 
 class DealerBidForm(FlaskForm):
-    price = FloatField('Your Offer Price (ETB)', validators=[DataRequired(), NumberRange(min=1)])
-    submit = SubmitField('Place Bid')
+    price = FloatField('Offer Price (ETB)', validators=[DataRequired(), NumberRange(min=1)])
+    car_year = IntegerField('Car Year', validators=[DataRequired(), NumberRange(min=1900, max=datetime.now().year + 1)])
+    mileage = IntegerField('Mileage (km)', validators=[DataRequired(), NumberRange(min=0)])
+    condition = SelectField('Condition', choices=[('New', 'New'), ('Used', 'Used')], validators=[DataRequired()])
+    availability = SelectField('Availability', choices=[('In Stock', 'In Stock'), ('Available on Order', 'Available on Order')], validators=[DataRequired()])
+    valid_until = DateField('Offer Valid Until', format='%Y-%m-%d', validators=[DataRequired()])
+    extras = TextAreaField('Extras (e.g., free service, floor mats)', validators=[Optional(), Length(max=500)])
+    message = TextAreaField('Message to Customer (Optional)', validators=[Optional(), Length(max=1000)])
+    submit = SubmitField('Submit Offer')
 
 @dealer_bp.route('/dashboard')
 @login_required
@@ -67,12 +74,19 @@ def place_bid(request_id):
     if form.validate_on_submit():
         new_bid = DealerBid(
             price=form.price.data,
+            car_year=form.car_year.data,
+            mileage=form.mileage.data,
+            condition=form.condition.data,
+            availability=form.availability.data,
+            valid_until=form.valid_until.data,
+            extras=form.extras.data,
+            message=form.message.data,
             dealer_id=current_user.id,
             request_id=car_request.id
         )
         db.session.add(new_bid)
         db.session.commit()
-        flash(f'Your bid of {form.price.data:,.2f} ETB has been placed successfully!', 'success')
+        flash(f'Your offer of {form.price.data:,.2f} ETB has been sent to the customer!', 'success')
         return redirect(url_for('dealer.dashboard'))
 
     return render_template('place_dealer_bid.html', form=form, car_request=car_request, bids=existing_bids)

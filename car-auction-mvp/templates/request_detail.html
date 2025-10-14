@@ -2,46 +2,63 @@
 
 {% block title %}Offers for Your Request{% endblock %}
 
+{% macro offer_card(bid, is_lowest=false) %}
+<div class="offer-card {% if is_lowest %}lowest-bid-highlight{% endif %}">
+    <div class="offer-header">
+        <div class="offer-price">
+            {{ '{:,.2f}'.format(bid.price) }} ETB
+        </div>
+        <div class="offer-meta">
+            <span>From: <strong>{{ bid.dealer.username }}</strong></span>
+            <span>Received: {{ bid.timestamp.strftime('%b %d, %Y') }}</span>
+        </div>
+    </div>
+    <div class="offer-details-grid">
+        <div><strong>Year:</strong> {{ bid.car_year }}</div>
+        <div><strong>Condition:</strong> {{ bid.condition }}</div>
+        <div><strong>Mileage:</strong> {{ '{:,}'.format(bid.mileage) }} km</div>
+        <div><strong>Availability:</strong> {{ bid.availability }}</div>
+    </div>
+    {% if bid.extras %}
+    <div class="offer-extras">
+        <strong>Extras:</strong> {{ bid.extras }}
+    </div>
+    {% endif %}
+    {% if bid.message %}
+    <div class="offer-message">
+        <strong>Message from Dealer:</strong>
+        <blockquote>{{ bid.message }}</blockquote>
+    </div>
+    {% endif %}
+    <div class="offer-footer">
+        <span class="valid-until">Offer valid until: {{ bid.valid_until.strftime('%b %d, %Y') }}</span>
+        <a href="#" class="btn approve">Accept Offer</a> {# Placeholder #}
+    </div>
+</div>
+{% endmacro %}
+
 {% block content %}
     <h1>Offers for Your Request</h1>
 
     <div class="question-context">
         <h3>Your Request Details</h3>
-        <p><strong>Make:</strong> {{ car_request.make or 'Any' }}</p>
-        <p><strong>Model:</strong> {{ car_request.model or 'Any' }}</p>
-        <p><strong>Minimum Year:</strong> {{ car_request.min_year or 'Any' }}</p>
-        <p><strong>Notes:</strong></p>
-        <blockquote>{{ car_request.notes or 'None' }}</blockquote>
+        {% if car_request.make %}
+            <p><strong>Make:</strong> {{ car_request.make }}</p>
+            <p><strong>Model:</strong> {{ car_request.model or 'Any' }}</p>
+            <p><strong>Minimum Year:</strong> {{ car_request.min_year or 'Any' }}</p>
+        {% endif %}
+        <p><strong>Notes:</strong> {{ car_request.notes or 'None' }}</p>
     </div>
 
     <h2>Dealer Offers</h2>
     {% if bids %}
-        <div class="lowest-bid-highlight" style="background-color: hsl(var(--success)/0.1); border: 1px solid hsl(var(--success)); padding: 20px; border-radius: var(--radius); margin-bottom: 2rem;">
-            <h3 style="margin-top: 0;">Lowest Offer</h3>
-            <p style="font-size: 1.5rem; font-weight: bold; margin: 0.5rem 0;">{{ '{:,.2f}'.format(bids[0].price) }} ETB</p>
-            <p>From: {{ bids[0].dealer.username }}</p>
-            <a href="#" class="btn approve">Accept Offer</a> {# Placeholder for accept functionality #}
+        <p>You have received {{ bids|length }} offer(s). The lowest offer is highlighted.</p>
+        
+        <div class="offer-list">
+            {% for bid in bids %}
+                {{ offer_card(bid, is_lowest=loop.first) }}
+            {% endfor %}
         </div>
-
-        <h3 style="margin-top: 2rem;">All Offers</h3>
-        <table>
-            <thead>
-                <tr>
-                    <th>Dealer</th>
-                    <th>Offer Price (ETB)</th>
-                    <th>Date</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for bid in bids %}
-                <tr>
-                    <td>{{ bid.dealer.username }}</td>
-                    <td>{{ '{:,.2f}'.format(bid.price) }}</td>
-                    <td>{{ bid.timestamp.strftime('%Y-%m-%d %H:%M') }}</td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
     {% else %}
         <p>No dealers have placed an offer on your request yet. Please check back soon!</p>
     {% endif %}

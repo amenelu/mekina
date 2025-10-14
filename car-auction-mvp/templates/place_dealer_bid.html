@@ -1,45 +1,80 @@
 {% extends "base.html" %}
 
-{% block title %}Place Bid on Request{% endblock %}
+{% block title %}Place Offer on Request{% endblock %}
 
 {% block content %}
-    <h1>Place Bid on Customer Request</h1>
+    <h1>Place Offer on Customer Request</h1>
 
     <div class="question-context">
         <h3>Request Details</h3>
         <p><strong>Make:</strong> {{ car_request.make or 'Any' }}</p>
         <p><strong>Model:</strong> {{ car_request.model or 'Any' }}</p>
         <p><strong>Minimum Year:</strong> {{ car_request.min_year or 'Any' }}</p>
-        <p><strong>Notes from Customer:</strong></p>
+        <p><strong>Notes:</strong></p>
         <blockquote>{{ car_request.notes or 'None' }}</blockquote>
     </div>
 
     <form method="POST" action="">
         {{ form.hidden_tag() }}
-        <div class="form-group">
-            {{ form.price.label }}
-            {{ form.price() }}
-            {% for error in form.price.errors %}<div class="form-error">{{ error }}</div>{% endfor %}
+        <div class="form-grid two-columns">
+            <div class="form-group">
+                {{ form.price.label }}
+                {{ form.price() }}
+                {% for error in form.price.errors %}<div class="form-error">{{ error }}</div>{% endfor %}
+            </div>
+            <div class="form-group">
+                {{ form.car_year.label }}
+                {{ form.car_year() }}
+                {% for error in form.car_year.errors %}<div class="form-error">{{ error }}</div>{% endfor %}
+            </div>
+            <div class="form-group">
+                {{ form.mileage.label }}
+                {{ form.mileage() }}
+                {% for error in form.mileage.errors %}<div class="form-error">{{ error }}</div>{% endfor %}
+            </div>
+            <div class="form-group">
+                {{ form.condition.label }}
+                {{ form.condition() }}
+                {% for error in form.condition.errors %}<div class="form-error">{{ error }}</div>{% endfor %}
+            </div>
+            <div class="form-group">
+                {{ form.availability.label }}
+                {{ form.availability() }}
+                {% for error in form.availability.errors %}<div class="form-error">{{ error }}</div>{% endfor %}
+            </div>
+            <div class="form-group">
+                {{ form.valid_until.label }}
+                {{ form.valid_until(placeholder='YYYY-MM-DD') }}
+                {% for error in form.valid_until.errors %}<div class="form-error">{{ error }}</div>{% endfor %}
+            </div>
         </div>
-        <p>
-            {{ form.submit(class='btn approve') }}
-        </p>
+        <div class="form-group">
+            {{ form.extras.label }}
+            {{ form.extras(rows=3) }}
+            {% for error in form.extras.errors %}<div class="form-error">{{ error }}</div>{% endfor %}
+        </div>
+        <div class="form-group">
+            {{ form.message.label }}
+            {{ form.message(rows=4) }}
+            {% for error in form.message.errors %}<div class="form-error">{{ error }}</div>{% endfor %}
+        </div>
+        {{ form.submit(class='btn approve') }}
     </form>
 
     {% if bids %}
     <hr>
-    <h2>Current Bid History</h2>
+    <h2>Current Offer History</h2>
     <table>
         <thead>
             <tr>
                 <th>Dealer</th>
-                <th>Offer Price (ETB)</th>
+                <th>Price (ETB)</th>
             </tr>
         </thead>
         <tbody>
             {% for bid in bids %}
             <tr>
-                <td>{{ bid.dealer.username }}</td>
+                <td>{{ bid.dealer.username }} {% if bid.dealer_id == current_user.id %}(You){% endif %}</td>
                 <td>{{ '{:,.2f}'.format(bid.price) }}</td>
             </tr>
             {% endfor %}
