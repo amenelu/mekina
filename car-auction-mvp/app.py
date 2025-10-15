@@ -48,7 +48,12 @@ def create_app(config_class=Config):
     @app.context_processor
     def inject_now():
         from datetime import datetime
-        return {'now': datetime.utcnow()}
+        from models.notification import Notification
+        from flask_login import current_user
+        unread_notifications = 0
+        if current_user.is_authenticated:
+            unread_notifications = Notification.query.filter_by(user_id=current_user.id, is_read=False).count()
+        return {'now': datetime.utcnow(), 'unread_notifications': unread_notifications}
 
     # CLI command to create an admin user
     @app.cli.command("create-admin")

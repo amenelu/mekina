@@ -7,7 +7,7 @@ from models.auction import Auction
 from models.rental_listing import RentalListing
 from models.equipment import Equipment
 from models.car_image import CarImage
-from app import db
+from models import db
 from datetime import datetime
 from werkzeug.utils import secure_filename
 

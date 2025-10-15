@@ -22,5 +22,5 @@ class CarRequest(db.Model):
     dealer_bids = db.relationship('DealerBid', foreign_keys='DealerBid.request_id', backref='car_request', lazy='dynamic', cascade="all, delete-orphan")
 
     # Link to the winning bid
-    accepted_bid_id = db.Column(db.Integer, db.ForeignKey('dealer_bid.id'), nullable=True)
+    accepted_bid_id = db.Column(db.Integer, db.ForeignKey('dealer_bid.id', use_alter=True, name='fk_car_requests_accepted_bid_id'), nullable=True)
     accepted_bid = db.relationship('DealerBid', foreign_keys=[accepted_bid_id])

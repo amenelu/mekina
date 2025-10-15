@@ -2,6 +2,14 @@
 
 {% block title %}Dealer Dashboard{% endblock %}
 
+{# This block shows how you would add the notification link to your base template's navigation #}
+{% block navigation_items %}
+    <a href="{{ url_for('main.notifications') }}">
+        Notifications 
+        {% if unread_notifications > 0 %}<span class="notification-badge">{{ unread_notifications }}</span>{% endif %}
+    </a>
+{% endblock %}
+
 {% block content %}
     <h1>Dealer Dashboard</h1>
     <div style="margin-bottom: 20px;">
