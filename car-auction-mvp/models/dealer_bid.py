@@ -5,6 +5,7 @@ class DealerBid(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     price = db.Column(db.Float, nullable=False)
     timestamp = db.Column(db.DateTime, index=True, default=datetime.utcnow)
+    status = db.Column(db.String(20), nullable=False, default='pending') # e.g., pending, accepted, rejected
     
     # --- New fields for detailed offer ---
     availability = db.Column(db.String(50), nullable=False)
@@ -17,6 +18,9 @@ class DealerBid(db.Model):
 
     dealer_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     request_id = db.Column(db.Integer, db.ForeignKey('car_requests.id'), nullable=False)
+
+    # Relationship to the final deal, if this bid was accepted
+    deal = db.relationship('Deal', backref='accepted_bid', uselist=False, foreign_keys='Deal.accepted_bid_id')
 
     def __repr__(self):
         return f'<DealerBid {self.price} for Request ID {self.request_id}>'

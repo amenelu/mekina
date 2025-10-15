@@ -32,7 +32,13 @@
     {% endif %}
     <div class="offer-footer">
         <span class="valid-until">Offer valid until: {{ bid.valid_until.strftime('%b %d, %Y') }}</span>
-        <a href="#" class="btn approve">Accept Offer</a> {# Placeholder #}
+        {% if car_request.status == 'active' %}
+        <form action="{{ url_for('request.accept_offer', bid_id=bid.id) }}" method="POST" style="display: inline;">
+            <button type="submit" class="btn approve" onclick="return confirm('Are you sure you want to accept this offer? This will close the request to other offers.');">Accept Offer</button>
+        </form>
+        {% elif bid.status == 'accepted' %}
+            <span class="status-approved">Offer Accepted</span>
+        {% endif %}
     </div>
 </div>
 {% endmacro %}
@@ -48,6 +54,11 @@
             <p><strong>Minimum Year:</strong> {{ car_request.min_year or 'Any' }}</p>
         {% endif %}
         <p><strong>Notes:</strong> {{ car_request.notes or 'None' }}</p>
+        {% if car_request.status != 'active' and car_request.accepted_bid %}
+            <div class="status-closed" style="margin-top: 1rem; padding: 1rem; background-color: hsl(var(--success)/0.1); border: 1px solid hsl(var(--success)); border-radius: var(--radius);">
+                This request is now closed. <a href="{{ url_for('request.deal_summary', deal_id=car_request.accepted_bid.deal.id) }}">View the final deal.</a>
+            </div>
+        {% endif %}
     </div>
 
     <h2>Dealer Offers</h2>

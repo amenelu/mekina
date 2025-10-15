@@ -16,7 +16,11 @@ class CarRequest(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     
     # Foreign Key to the user who made the request
-    customer_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
 
     # Relationship to dealer bids
-    dealer_bids = db.relationship('DealerBid', backref='car_request', lazy='dynamic', cascade="all, delete-orphan")
+    dealer_bids = db.relationship('DealerBid', foreign_keys='DealerBid.request_id', backref='car_request', lazy='dynamic', cascade="all, delete-orphan")
+
+    # Link to the winning bid
+    accepted_bid_id = db.Column(db.Integer, db.ForeignKey('dealer_bid.id'), nullable=True)
+    accepted_bid = db.relationship('DealerBid', foreign_keys=[accepted_bid_id])

@@ -1,8 +1,10 @@
-from flask import Blueprint, render_template, redirect, url_for, flash, session, url_for
+from flask import Blueprint, render_template, redirect, url_for, flash, session, url_for, abort
 from flask_login import login_required, current_user
 from models.car_request import CarRequest
 from models.dealer_bid import DealerBid
+from models.deal import Deal
 from models import db
+from models.notification import Notification
 
 from flask_wtf import FlaskForm
 from wtforms import StringField, IntegerField, TextAreaField, SubmitField, RadioField, SelectField, SelectMultipleField, widgets
@@ -129,7 +131,7 @@ def step4_notes():
         new_req = CarRequest(
             make=data.get('make'), model=data.get('model'),
             min_year=data.get('min_year'), notes=form.notes.data,
-            customer_id=current_user.id
+            user_id=current_user.id
         )
         db.session.add(new_req)
         db.session.commit()
@@ -214,7 +216,7 @@ def step_guided_brand():
             f"- Important Features: {', '.join(data.get('equipment', [])) or 'None'}\n"
             f"- Preferred Brand(s): {form.brand.data or 'Any'}"
         )
-        new_req = CarRequest(notes=notes, customer_id=current_user.id)
+        new_req = CarRequest(notes=notes, user_id=current_user.id)
         db.session.add(new_req)
         db.session.commit()
         session.pop('car_request_data', None)
@@ -228,7 +230,7 @@ def step_guided_brand():
 @request_bp.route('/my')
 @login_required
 def my_requests():
-    requests = CarRequest.query.filter_by(customer_id=current_user.id).order_by(CarRequest.created_at.desc()).all()
+    requests = CarRequest.query.filter_by(user_id=current_user.id).order_by(CarRequest.created_at.desc()).all()
     return render_template('my_requests.html', requests=requests)
 
 @request_bp.route('/<int:request_id>')
@@ -236,11 +238,75 @@ def my_requests():
 def request_detail(request_id):
     car_request = CarRequest.query.get_or_404(request_id)
     # Security check: only the user who made the request or an admin can view it.
-    if car_request.customer_id != current_user.id and not current_user.is_admin:
-        from flask import abort
+    if car_request.user_id != current_user.id and not current_user.is_admin:
         abort(403)
 
     # Get all bids for this request, lowest first
     bids = car_request.dealer_bids.order_by(DealerBid.price.asc()).all()
 
     return render_template('request_detail.html', car_request=car_request, bids=bids)
+
+@request_bp.route('/offer/<int:bid_id>/accept', methods=['POST'])
+@login_required
+def accept_offer(bid_id):
+    """Handles the logic for a customer accepting a dealer's offer."""
+    bid_to_accept = DealerBid.query.get_or_404(bid_id)
+    car_request = bid_to_accept.car_request
+
+    # --- Security Checks ---
+    if car_request.user_id != current_user.id:
+        abort(403)  # User doesn't own the request
+    if car_request.status != 'active':
+        flash('This request is already closed.', 'warning')
+        return redirect(url_for('request.request_detail', request_id=car_request.id))
+
+    # --- Transactional Logic ---
+    try:
+        # 1. Update the accepted offer's status
+        bid_to_accept.status = 'accepted'
+
+        # 2. Reject all other bids for that request automatically
+        for other_bid in car_request.dealer_bids.filter(DealerBid.id != bid_to_accept.id):
+            other_bid.status = 'rejected'
+
+        # 3. Lock the buyer’s request
+        car_request.status = 'completed'
+        car_request.accepted_bid_id = bid_to_accept.id
+
+        # 4. Generate a “deal summary” record
+        new_deal = Deal(
+            final_price=bid_to_accept.price,
+            customer_id=car_request.user_id,
+            dealer_id=bid_to_accept.dealer_id,
+            car_request_id=car_request.id,
+            accepted_bid_id=bid_to_accept.id
+        )
+        db.session.add(new_deal)
+
+        # We need to commit here to get the new_deal.id
+        db.session.commit()
+
+        # 5. Notify the dealer that their offer was accepted
+        notification_message = f"Congratulations! Your offer for '{car_request.make} {car_request.model}' was accepted by the customer."
+        notification = Notification(user_id=bid_to_accept.dealer_id, message=notification_message, link=url_for('request.deal_summary', deal_id=new_deal.id, _external=True))
+        db.session.add(notification)
+
+        db.session.commit() # Commit the notification
+        flash('Offer accepted! The dealer has been notified and you can see the deal summary below.', 'success')
+        return redirect(url_for('request.deal_summary', deal_id=new_deal.id))
+
+    except Exception as e:
+        db.session.rollback()
+        flash(f'An error occurred while accepting the offer: {e}', 'danger')
+        return redirect(url_for('request.request_detail', request_id=car_request.id))
+
+@request_bp.route('/deal/<int:deal_id>')
+@login_required
+def deal_summary(deal_id):
+    """Displays the final summary of a completed deal."""
+    deal = Deal.query.get_or_404(deal_id)
+    # Security check: only participants or an admin can view the deal
+    if current_user.id not in [deal.customer_id, deal.dealer_id] and not current_user.is_admin:
+        abort(403)
+    
+    return render_template('deal_summary.html', deal=deal)

@@ -696,5 +696,11 @@ tbody tr:hover {
 .role-badge.admin { background-color: hsl(var(--destructive)); }
 .role-badge.dealer { background-color: hsl(var(--success)); }
 .role-badge.rental { background-color: hsl(var(--info)); color: hsl(var(--primary)); }
-
+/* Fix for role badges inside tables (like on user management page) */
+td .role-badge {
+    position: static;
+    margin-right: 5px; /* Add some space between badges */
 }
+
+
+
