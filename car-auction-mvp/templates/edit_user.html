@@ -29,6 +29,13 @@
             {{ form.is_admin() }}
             {{ form.is_admin.label }}
         </div>
+        <hr>
+        <h3>Dealer Points</h3>
+        <div class="form-group">
+            {{ form.points.label }}
+            {{ form.points(class="form-control") }}
+            <small>This only applies if the user has the 'Is Dealer' role.</small>
+        </div>
         <p>{{ form.submit(class='btn approve') }}</p>
     </form>
 {% endblock %}

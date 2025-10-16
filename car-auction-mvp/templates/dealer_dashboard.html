@@ -13,6 +13,10 @@
 {% block content %}
     <h1>Dealer Dashboard</h1>
     <div style="margin-bottom: 20px;">
+        <div class="stat-card" style="margin-bottom: 1rem; text-align: right;">
+            <strong>Your Points:</strong> {{ current_user.points }}
+            {# You can add a link here to a future "buy points" page #}
+        </div>
         <a href="{{ url_for('seller.submit_car') }}" class="nav-button" style="background-color: hsl(var(--success)); text-decoration: none;">+ List a New Car</a>
     </div>
 

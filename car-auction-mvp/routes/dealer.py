@@ -80,6 +80,13 @@ def place_bid(request_id):
     form = DealerBidForm()
 
     if form.validate_on_submit():
+        # --- Point System Logic ---
+        # Check if the dealer has enough points to place a bid.
+        if current_user.points <= 0:
+            flash('You do not have enough points to place an offer. Please purchase more points.', 'danger')
+            return redirect(url_for('dealer.dashboard'))
+
+
         new_bid = DealerBid(
             price=form.price.data,
             car_year=form.car_year.data,
@@ -93,7 +100,12 @@ def place_bid(request_id):
             request_id=car_request.id
         )
         db.session.add(new_bid)
+
+        # Deduct one point from the dealer's account
+        current_user.points -= 1
+
         db.session.commit()
+
         flash(f'Your offer of {form.price.data:,.2f} ETB has been sent to the customer!', 'success')
         return redirect(url_for('dealer.dashboard'))
 

@@ -288,6 +288,12 @@ def accept_offer(bid_id):
 
         # 5. Notify the dealer that their offer was accepted
         notification_message = f"Congratulations! Your offer for '{car_request.make} {car_request.model}' was accepted by the customer."
+        if car_request.make and car_request.model:
+            request_description = f"'{car_request.make} {car_request.model}'"
+        else:
+            request_description = f"customer request #{car_request.id}"
+
+        notification_message = f"Congratulations! Your offer for {request_description} was accepted by the customer."
         notification = Notification(user_id=bid_to_accept.dealer_id, message=notification_message, link=url_for('request.deal_summary', deal_id=new_deal.id, _external=True))
         db.session.add(notification)
 

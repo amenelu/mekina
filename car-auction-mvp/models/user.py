@@ -11,6 +11,7 @@ class User(UserMixin, db.Model):
     is_admin = db.Column(db.Boolean, default=False)
     is_dealer = db.Column(db.Boolean, default=False)
     is_rental_company = db.Column(db.Boolean, default=False)
+    points = db.Column(db.Integer, nullable=False, default=5) # Points for dealers to bid
 
     # Relationships
     cars = db.relationship('Car', backref='owner', lazy='dynamic')
