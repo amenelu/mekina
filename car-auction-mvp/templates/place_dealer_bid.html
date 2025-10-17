@@ -58,7 +58,7 @@
             {{ form.message(rows=4) }}
             {% for error in form.message.errors %}<div class="form-error">{{ error }}</div>{% endfor %}
         </div>
-        {{ form.submit(class='btn approve') }}
+        {{ form.submit(class='btn approve') }} {# The button text is now set in the route #}
     </form>
 
     {% if bids %}
@@ -76,7 +76,7 @@
             <tr>
                 <td>{{ bid.dealer.username }} {% if bid.dealer_id == current_user.id %}(You){% endif %}</td>
                 <td>{{ '{:,.2f}'.format(bid.price) }}</td>
-            </tr>
+            </>
             {% endfor %}
         </tbody>
     </table>

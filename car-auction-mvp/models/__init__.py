@@ -15,3 +15,4 @@ from .dealer_bid import DealerBid
 from .dealer_bid_image import DealerBidImage
 from .rental_listing import RentalListing
 from .equipment import Equipment
+from .request_question import RequestQuestion

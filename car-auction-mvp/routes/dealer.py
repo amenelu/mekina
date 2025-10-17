@@ -3,8 +3,10 @@ from flask_login import login_required, current_user
 from models.car_request import CarRequest
 from models.dealer_bid import DealerBid
 from models.car import Car
+from models.request_question import RequestQuestion
 from models.question import Question
 from models.auction import Auction
+from models.notification import Notification
 from models import db
 from sqlalchemy import func
 from functools import wraps
@@ -37,6 +39,10 @@ class DealerBidForm(FlaskForm):
     message = TextAreaField('Message to Customer (Optional)', validators=[Optional(), Length(max=1000)])
     submit = SubmitField('Submit Offer')
 
+class RequestAnswerForm(FlaskForm):
+    answer_text = TextAreaField('Your Answer', validators=[DataRequired(), Length(min=5)])
+    submit = SubmitField('Post Answer')
+
 @dealer_bp.route('/dashboard')
 @login_required
 @dealer_required
@@ -61,11 +67,19 @@ def dashboard():
         Question.answer_text == None
     ).order_by(Question.timestamp.desc()).all()
 
+    # --- New: Fetch unanswered questions on dealer's offers ---
+    unanswered_request_questions = RequestQuestion.query.join(DealerBid).filter(
+        DealerBid.dealer_id == current_user.id,
+        RequestQuestion.answer_text == None
+    ).order_by(RequestQuestion.timestamp.desc()).all()
+
+
     return render_template(
         'dealer_dashboard.html', 
         requests=active_requests,
         my_cars=my_cars,
         unanswered_questions=unanswered_questions,
+        unanswered_request_questions=unanswered_request_questions,
         now=datetime.utcnow()
     )
 
@@ -110,3 +124,72 @@ def place_bid(request_id):
         return redirect(url_for('dealer.dashboard'))
 
     return render_template('place_dealer_bid.html', form=form, car_request=car_request, bids=existing_bids)
+
+@dealer_bp.route('/bid/<int:bid_id>/edit', methods=['GET', 'POST'])
+@login_required
+@dealer_required
+def edit_bid(bid_id):
+    """Allows a dealer to edit their own existing bid."""
+    bid = DealerBid.query.get_or_404(bid_id)
+
+    # --- Security Checks ---
+    if bid.dealer_id != current_user.id:
+        abort(403) # Can't edit another dealer's bid
+    if bid.car_request.status != 'active':
+        flash("This request is closed and offers can no longer be edited.", "warning")
+        return redirect(url_for('dealer.dashboard'))
+
+    # Pre-populate the form with the existing bid's data
+    form = DealerBidForm(obj=bid)
+    form.submit.label.text = 'Update Offer' # Change button text
+
+    if form.validate_on_submit():
+        # Update the bid object with the new form data
+        form.populate_obj(bid)
+        db.session.commit()
+        flash('Your offer has been updated successfully!', 'success')
+        # Redirect back to the request detail page for the customer
+        return redirect(url_for('dealer.place_bid', request_id=bid.request_id))
+
+    return render_template(
+        'place_dealer_bid.html',
+        form=form,
+        car_request=bid.car_request,
+        bids=bid.car_request.dealer_bids.order_by(DealerBid.price.asc()).all()
+    )
+
+@dealer_bp.route('/request_question/<int:question_id>/answer', methods=['GET', 'POST'])
+@login_required
+@dealer_required
+def answer_request_question(question_id):
+    question = RequestQuestion.query.get_or_404(question_id)
+    bid = question.dealer_bid
+
+    # Security check: ensure the current user is the dealer who received the question
+    if bid.dealer_id != current_user.id:
+        flash("You do not have permission to answer this question.", "danger")
+        return redirect(url_for('dealer.dashboard'))
+
+    # --- Fetch all of the dealer's bids for this request to show context ---
+    my_bids_for_this_request = DealerBid.query.filter_by(
+        dealer_id=current_user.id,
+        request_id=bid.request_id
+    ).order_by(DealerBid.price.asc()).all()
+
+    form = RequestAnswerForm()
+    if form.validate_on_submit():
+        question.answer_text = form.answer_text.data
+        question.answer_timestamp = datetime.utcnow()
+
+        # Notify the buyer that their question was answered
+        notification_message = f"The dealer has answered your question regarding their offer for request #{bid.car_request.id}."
+        link = url_for('request.request_detail', request_id=bid.car_request.id, _anchor=f'qna-for-bid-{bid.id}', _external=True)
+        notification = Notification(user_id=question.user_id, message=notification_message, link=link)
+        db.session.add(notification)
+
+        db.session.commit()
+        flash("Your answer has been posted.", "success")
+        # Redirect back to the dealer dashboard, which is a more logical flow.
+        return redirect(url_for('dealer.dashboard'))
+
+    return render_template('answer_request_question.html', form=form, question=question, my_bids=my_bids_for_this_request)

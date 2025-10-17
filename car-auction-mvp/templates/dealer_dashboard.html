@@ -141,4 +141,39 @@
     {% else %}
         <p>You have no unanswered questions.</p>
     {% endif %}
+
+    <hr>
+
+    <h2>Unanswered Questions on Your Offers</h2>
+    {% if unanswered_request_questions %}
+        <table>
+             <thead>
+                <tr>
+                    <th>Customer Request</th>
+                    <th>Question</th>
+                    <th>Your Offer</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for q in unanswered_request_questions %}
+                <tr>
+                    <td>
+                        <a href="{{ url_for('dealer.place_bid', request_id=q.dealer_bid.request_id) }}"><strong>Request #{{ q.dealer_bid.request_id }}</strong></a>
+                        {% if q.dealer_bid.car_request.make and q.dealer_bid.car_request.model %}
+                            <p>{{ q.dealer_bid.car_request.make }} {{ q.dealer_bid.car_request.model }}</p>
+                        {% else %}
+                            <p class="text-muted">{{ q.dealer_bid.car_request.notes|truncate(50) }}</p>
+                        {% endif %}
+                    </td>
+                    <td>{{ q.question_text }}</td>
+                    <td><strong>{{ '{:,.2f}'.format(q.dealer_bid.price) }} ETB</strong></td>
+                    <td><a href="{{ url_for('dealer.answer_request_question', question_id=q.id) }}">Answer</a></td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% else %}
+        <p>You have no unanswered questions on your offers.</p>
+    {% endif %}
 {% endblock %}

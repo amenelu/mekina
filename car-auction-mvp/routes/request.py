@@ -1,13 +1,14 @@
-from flask import Blueprint, render_template, redirect, url_for, flash, session, url_for, abort
+from flask import Blueprint, render_template, redirect, url_for, flash, session, url_for, abort, request, jsonify
 from flask_login import login_required, current_user
 from models.car_request import CarRequest
 from models.dealer_bid import DealerBid
 from models.deal import Deal
 from models import db
 from models.notification import Notification
+from models.request_question import RequestQuestion
 
 from flask_wtf import FlaskForm
-from wtforms import StringField, IntegerField, TextAreaField, SubmitField, RadioField, SelectField, SelectMultipleField, widgets
+from wtforms import StringField, IntegerField, TextAreaField, SubmitField, RadioField, SelectField, SelectMultipleField, widgets, validators
 from wtforms.validators import DataRequired, NumberRange, Optional
 
 request_bp = Blueprint('request', __name__, url_prefix='/requests')
@@ -78,6 +79,10 @@ class RequestGuided_Equipment(FlaskForm):
         ('awd', 'All-Wheel Drive')
     ], widget=widgets.ListWidget(prefix_label=False), option_widget=widgets.CheckboxInput())
     submit = SubmitField('Next')
+
+class RequestQuestionForm(FlaskForm):
+    question_text = TextAreaField('Your Question', validators=[DataRequired(), validators.Length(min=10, max=500)])
+    submit_question = SubmitField('Ask Question')
 
 
 @request_bp.route('/start')
@@ -244,7 +249,41 @@ def request_detail(request_id):
     # Get all bids for this request, lowest first
     bids = car_request.dealer_bids.order_by(DealerBid.price.asc()).all()
 
-    return render_template('request_detail.html', car_request=car_request, bids=bids)
+    # We can pass one form instance to the template and reuse it for each bid with JS
+    question_form = RequestQuestionForm()
+
+    return render_template('request_detail.html', car_request=car_request, bids=bids, question_form=question_form)
+
+@request_bp.route('/bid/<int:bid_id>/ask', methods=['POST'])
+@login_required
+def ask_dealer_question(bid_id):
+    """Handles a buyer asking a question about a specific dealer bid."""
+    bid = DealerBid.query.get_or_404(bid_id)
+    car_request = bid.car_request
+
+    # Security check: only the user who made the request can ask a question
+    if car_request.user_id != current_user.id:
+        abort(403)
+
+    form = RequestQuestionForm()
+    if form.validate_on_submit():
+        new_question = RequestQuestion(
+            question_text=form.question_text.data,
+            user_id=current_user.id,
+            dealer_bid_id=bid.id
+        )
+        db.session.add(new_question)
+        db.session.commit()
+
+        # Notify the dealer
+        notification_message = f"A customer asked a question about your offer for request #{car_request.id}."
+        link = url_for('dealer.answer_request_question', question_id=new_question.id, _external=True)
+        notification = Notification(user_id=bid.dealer_id, message=notification_message, link=link)
+        db.session.add(notification)
+        db.session.commit()
+        return jsonify({'status': 'success', 'message': 'Your question has been sent to the dealer.'})
+    
+    return jsonify({'status': 'error', 'errors': form.errors})
 
 @request_bp.route('/offer/<int:bid_id>/accept', methods=['POST'])
 @login_required

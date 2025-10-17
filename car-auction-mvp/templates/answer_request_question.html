@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+
+{% block title %}Answer Customer Question{% endblock %}
+
+{% macro offer_summary(bid) %}
+    <div class="offer-summary-card {% if bid.id == question.dealer_bid_id %}current-question-bid{% endif %}">
+        <div class="offer-summary-header">
+            <h4>Offer: {{ '{:,.2f}'.format(bid.price) }} ETB</h4>
+            {% if bid.id == question.dealer_bid_id %}
+                <span class="tag">Question is about this offer</span>
+            {% endif %}
+        </div>
+        <div class="offer-details-grid small">
+            <div><strong>Year:</strong> {{ bid.car_year }}</div>
+            <div><strong>Condition:</strong> {{ bid.condition }}</div>
+            <div><strong>Mileage:</strong> {{ '{:,}'.format(bid.mileage) }} km</div>
+            <div><strong>Availability:</strong> {{ bid.availability }}</div>
+        </div>
+        <div class="offer-summary-actions">
+            <a href="{{ url_for('dealer.edit_bid', bid_id=bid.id) }}" class="btn small edit">Edit Offer</a>
+        </div>
+    </div>
+{% endmacro %}
+
+{% block content %}
+    <h1>Answer Customer Question</h1>
+
+    <div class="question-context">
+        <div class="request-summary-box">
+            <strong>Customer Request #{{ question.dealer_bid.request_id }}:</strong>
+            {% if question.dealer_bid.car_request.make %}
+                {{ question.dealer_bid.car_request.make }} {{ question.dealer_bid.car_request.model }}
+            {% else %} "{{ question.dealer_bid.car_request.notes|truncate(80) }}" {% endif %}
+        </div>
+        <p style="margin-top: 1rem;"><strong>Question from Customer:</strong></p>
+        <blockquote>"{{ question.question_text }}"</blockquote>
+    </div>
+
+    <div class="page-grid-two-thirds">
+        <div class="main-column">
+            <h3>Your Answer</h3>
+            <form method="POST" action="{{ url_for('dealer.answer_request_question', question_id=question.id) }}">
+                {{ form.hidden_tag() }}
+                <div class="form-group">
+                    {{ form.answer_text.label }}
+                    {{ form.answer_text(rows=6) }}
+                    {% for error in form.answer_text.errors %}<span class="form-error">{{ error }}</span>{% endfor %}
+                </div>
+                {{ form.submit(class='btn approve') }}
+            </form>
+        </div>
+        <div class="sidebar-column">
+            <h3>Your Offers for this Request</h3>
+            {% for bid in my_bids %}
+                {{ offer_summary(bid) }}
+            {% endfor %}
+            <a href="{{ url_for('dealer.place_bid', request_id=question.dealer_bid.request_id) }}" class="btn" style="width: 100%; margin-top: 1rem;">+ Place a New Offer</a>
+        </div>
+    </div>
+{% endblock %}
