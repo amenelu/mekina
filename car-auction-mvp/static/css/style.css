@@ -720,3 +720,35 @@ td .role-badge {
     position: static;
     margin-right: 5px; /* Add some space between badges */
 }
+
+/* 13. How It Works Page */
+.how-it-works-container {
+    max-width: 900px;
+    margin: 0 auto;
+}
+
+.section-title {
+    font-size: 1.8rem;
+    margin-top: 3rem;
+    margin-bottom: 1.5rem;
+    border-bottom: 2px solid hsl(var(--accent));
+    padding-bottom: 0.5rem;
+    display: inline-block;
+}
+
+.step-card {
+    display: flex;
+    align-items: flex-start;
+    gap: 2rem;
+    margin-bottom: 2rem;
+}
+
+.step-number {
+    font-size: 2rem;
+    font-weight: 700;
+    color: hsl(var(--accent));
+    line-height: 1;
+}
+
+.step-content h3 { margin-top: 0; }
+.step-content p { color: hsl(var(--muted-foreground)); margin-top: 0.5rem; }
