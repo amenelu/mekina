@@ -1,6 +1,7 @@
 from flask import Blueprint, render_template, redirect, url_for, flash, abort, request
 from flask_login import login_required, current_user
 from models import db
+from models.rental_listing import RentalListing
 from models.user import User
 from models.car import Car
 from models.auction import Auction
@@ -93,26 +94,33 @@ def add_car():
     flash('Add car functionality not implemented yet.', 'info')
     return redirect(url_for('admin.dashboard'))
 
-@admin_bp.route('/auction/edit/<int:auction_id>', methods=['GET', 'POST'])
+@admin_bp.route('/listing/edit/<int:car_id>', methods=['GET', 'POST'])
 @login_required
 @admin_required
-def edit_auction(auction_id):
-    """Allows an admin to edit a car and its auction details."""
-    auction = Auction.query.get_or_404(auction_id)
-    car = auction.car
+def edit_listing(car_id):
+    """Allows an admin to edit any car listing (auction, sale, or rental)."""
+    car = Car.query.get_or_404(car_id)
+    auction = car.auction
+    rental = car.rental_listing
 
     form = CarSubmissionForm(obj=car)
     form.submit.label.text = 'Update Listing'
 
     if request.method == 'GET':
-        # Pre-populate auction-specific fields
-        form.start_price.data = auction.start_price
-        form.end_time.data = auction.end_time
+        # Pre-populate listing-type specific fields
+        form.listing_type.data = car.listing_type
+        if car.listing_type == 'auction' and auction:
+            form.start_price.data = auction.start_price
+            form.end_time.data = auction.end_time
+        elif car.listing_type == 'sale':
+            form.fixed_price.data = car.fixed_price
+        elif car.listing_type == 'rental' and rental:
+            form.price_per_day.data = rental.price_per_day
         # Pre-populate equipment
         form.equipment.data = [e.name for e in car.equipment]
 
     if form.validate_on_submit():
-        # Update Car details
+        # Manually populate car fields to avoid errors with populate_obj
         car.make = form.make.data
         car.model = form.model.data
         car.year = form.year.data
@@ -124,12 +132,17 @@ def edit_auction(auction_id):
         car.drivetrain = form.drivetrain.data
         car.fuel_type = form.fuel_type.data
 
-        # Update Auction details
-        auction.start_price = form.start_price.data
-        # Only reset current_price if the new start_price is higher
-        if auction.start_price > auction.current_price:
-            auction.current_price = auction.start_price
-        auction.end_time = form.end_time.data
+        # Update listing-specific details
+        car.listing_type = form.listing_type.data
+        if car.listing_type == 'auction' and auction:
+            auction.start_price = form.start_price.data
+            if not auction.bids and form.start_price.data:
+                 auction.current_price = form.start_price.data
+            auction.end_time = form.end_time.data
+        elif car.listing_type == 'sale':
+            car.fixed_price = form.fixed_price.data
+        elif car.listing_type == 'rental' and rental:
+            rental.price_per_day = form.price_per_day.data
 
         # Update equipment
         car.equipment.clear()
@@ -138,18 +151,20 @@ def edit_auction(auction_id):
             if equipment_item:
                 car.equipment.append(equipment_item)
 
-        # Add new images if any were uploaded
-        for image_file in form.images.data:
-            image_url = save_seller_document(image_file)
-            if image_url:
-                new_image = CarImage(image_url=image_url, car_id=car.id)
-                db.session.add(new_image)
+        # If new images are uploaded, replace the old ones
+        if form.images.data and form.images.data[0].filename:
+            CarImage.query.filter_by(car_id=car.id).delete()
+            for image_file in form.images.data:
+                image_url = save_seller_document(image_file)
+                if image_url:
+                    new_image = CarImage(image_url=image_url, car_id=car.id)
+                    db.session.add(new_image)
 
         db.session.commit()
-        flash('The listing has been updated successfully.', 'success')
-        return redirect(url_for('admin.dashboard'))
+        flash(f'Listing for "{car.year} {car.make} {car.model}" has been updated successfully.', 'success')
+        return redirect(url_for('auctions.list_auctions'))
 
-    return render_template('submit_car.html', title=f'Admin Edit: {car.year} {car.make}', form=form)
+    return render_template('submit_car.html', title=f'Admin Edit: {car.year} {car.make} {car.model}', form=form)
 
 @admin_bp.route('/approve_car/<int:car_id>', methods=['POST'])
 @login_required
@@ -164,14 +179,15 @@ def approve_car(car_id):
 @admin_bp.route('/auction/delete/<int:auction_id>', methods=['POST'])
 @login_required
 @admin_required
-def delete_auction(auction_id):
-    """Allows an admin to delete a car and its associated auction."""
+def delete_listing(auction_id):
+    """Allows an admin to delete a car and its associated listing."""
+    # This route is kept for compatibility with existing links, but it's
+    # better to delete by car_id in the future.
     auction = Auction.query.get_or_404(auction_id)
     car = auction.car
 
-    # The Car model's relationships should have cascades to delete related items
-    # like images, auction, bids, questions, etc.
+    # The Car model's relationships have cascades to delete related items
     db.session.delete(car)
     db.session.commit()
     flash(f'The listing for "{car.year} {car.make} {car.model}" has been permanently deleted.', 'success')
-    return redirect(url_for('admin.dashboard'))
+    return redirect(url_for('auctions.list_auctions'))

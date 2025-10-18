@@ -42,7 +42,7 @@ class CarSubmissionForm(FlaskForm):
     # For Sale Details
     fixed_price = FloatField('Sale Price (ETB)', validators=[Optional(), NumberRange(min=1)])
     # Rental Details
-    price_per_day = FloatField('Price Per Day (ETB)', validators=[NumberRange(min=1)])
+    price_per_day = FloatField('Price Per Day (ETB)', validators=[Optional(), NumberRange(min=1)])
 
     submit = SubmitField('Submit')
 
@@ -231,12 +231,14 @@ def edit_car(car_id):
             if equipment_item:
                 car.equipment.append(equipment_item)
 
-        # Add new images if any were uploaded
-        for image_file in form.images.data:
-            image_url = save_seller_document(image_file)
-            if image_url:
-                new_image = CarImage(image_url=image_url, car_id=car.id)
-                db.session.add(new_image)
+        # If new images are uploaded, replace the old ones.
+        if form.images.data and form.images.data[0].filename:
+            CarImage.query.filter_by(car_id=car.id).delete()
+            for image_file in form.images.data:
+                image_url = save_seller_document(image_file)
+                if image_url:
+                    new_image = CarImage(image_url=image_url, car_id=car.id)
+                    db.session.add(new_image)
 
         db.session.commit()
         flash('Your submission has been updated.', 'success')
