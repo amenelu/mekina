@@ -226,10 +226,10 @@ def step_guided_brand():
         db.session.commit()
         session.pop('car_request_data', None)
         flash("We've found some cars that match your preferences! Dealers will also be notified of your request.", 'success')
-        
-        # Redirect to the filtered auction list
-        filter_params = {'body_type': data.get('body_type'), 'fuel_type': data.get('fuel_type'), 'make': form.brand.data}
-        return redirect(url_for('auctions.list_auctions', **{k: v for k, v in filter_params.items() if v}))
+
+        # Redirect to the filtered "All Listings" page, not just auctions
+        filter_params = {'body_type': data.get('body_type'), 'fuel_type': data.get('fuel_type'), 'make': form.brand.data or data.get('brand')}
+        return redirect(url_for('main.all_listings', **{k: v for k, v in filter_params.items() if v}))
     return render_template('request_step.html', form=form, title="Help Us Decide (5/5)")
 
 @request_bp.route('/my')

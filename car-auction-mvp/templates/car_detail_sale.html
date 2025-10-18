@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+
+{% block title %}{{ car.year }} {{ car.make }} {{ car.model }}{% endblock %}
+
+{% block content %}
+    <div class="detail-page-container">
+        <div class="main-content">
+            <div class="title-with-tag">
+                <h1>{{ car.year }} {{ car.make }} {{ car.model }}</h1>
+                <span class="listing-type-tag large">For Sale</span>
+            </div>
+            <div class="image-gallery">
+                <div class="main-image-container">
+                    <img id="main-car-image" src="{{ car.primary_image_url or url_for('static', filename='img/default_car.png') }}" alt="Car Image">
+                </div>
+                {% if car.images|length > 1 %}
+                <div class="thumbnails">
+                    {% for image in car.images %}
+                    <img src="{{ image.image_url }}" class="thumbnail-img" alt="Thumbnail">
+                    {% endfor %}
+                </div>
+                {% endif %}
+            </div>
+
+            <h2>Vehicle Details</h2>
+            <p>{{ car.description }}</p>
+            <hr>
+            <h3>Price: {{ '{:,.2f}'.format(car.fixed_price) }} ETB</h3>
+            <p>This is a fixed-price listing. Contact the seller to purchase.</p>
+
+            <div class="contact-seller-box">
+                <h4>Interested? Contact the Seller</h4>
+                <p><strong>Seller:</strong> {{ car.owner.username }}</p>
+                <p><strong>Email:</strong> {{ car.owner.email }}</p>
+                {% if car.owner.phone_number %}
+                <p><strong>Phone:</strong> {{ car.owner.phone_number }}</p>
+                {% endif %}
+            </div>
+
+            <hr>
+
+            <h3>Specifications</h3>
+            <div class="info-columns">
+                <ul>
+                    <li><strong>Condition:</strong> {{ car.condition }}</li>
+                    <li><strong>Mileage:</strong> {{ '{:,}'.format(car.mileage) }} km</li>
+                    <li><strong>Transmission:</strong> {{ car.transmission }}</li>
+                    <li><strong>Drivetrain:</strong> {{ car.drivetrain }}</li>
+                    <li><strong>Fuel Type:</strong> {{ car.fuel_type }}</li>
+                    <li><strong>Body Type:</strong> {{ car.body_type }}</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="sidebar">
+            <h3>Features</h3>
+            <ul>
+                {% for item in car.equipment %}
+                    <li>{{ item.name|replace('_', ' ')|title }}</li>
+                {% else %}
+                    <li>No special features listed.</li>
+                {% endfor %}
+            </ul>
+        </div>
+    </div>
+{% endblock %}

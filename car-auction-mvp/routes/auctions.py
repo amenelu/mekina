@@ -230,7 +230,7 @@ def filter_auctions_api():
 @auctions_bp.route('/api/all_listings')
 def all_listings_api():
     """API endpoint to return all types of listings (auctions, rentals, etc.) as JSON."""
-    query = Car.query.filter(Car.is_approved == True)
+    query = Car.query.options(db.joinedload(Car.auction), db.joinedload(Car.rental_listing)).filter(Car.is_approved == True)
 
     # This is a simplified filter for the generic listings page.
     # It can be expanded later to include more car-specific attributes.
@@ -249,8 +249,13 @@ def all_listings_api():
     if body_type := request.args.get('body_type'):
         query = query.filter(Car.body_type == body_type)
     if max_price := request.args.get('max_price', type=float):
-        # This requires joining with Auction to filter by price
-        query = query.join(Auction).filter(Auction.current_price <= max_price)
+        # Correctly filter by price across different listing types
+        query = query.outerjoin(Auction).filter(
+            or_(
+                (Car.listing_type == 'sale') & (Car.fixed_price <= max_price),
+                (Car.listing_type == 'auction') & (Auction.current_price <= max_price)
+            )
+        )
 
     cars = query.order_by(Car.id.desc()).all()
 
@@ -276,14 +281,28 @@ def all_listings_api():
                 'Dealer' if car.owner.is_dealer else
                 'Rental' if car.owner.is_rental_company else
                 None
-            )
+            ),
+            'listing_type': 'For Sale', # Default
+            'price_display': 'Contact Seller',
+            'time_left': ''
         }
         if car.auction:
+            listing_data['listing_type'] = 'Auction'
             listing_data['detail_url'] = url_for('auctions.auction_detail', auction_id=car.auction.id)
-            listing_data['current_price'] = car.auction.current_price
-            listing_data['bid_count'] = car.auction.bids.count()
-            listing_data['time_left'] = format_timedelta(car.auction.end_time - datetime.utcnow()) if car.auction.end_time > datetime.utcnow() else "Ended"
-        # Add logic for rentals or other listing types here in the future
+            listing_data['price_display'] = f"{car.auction.current_price:,.2f} ETB"
+            if car.auction.end_time > datetime.utcnow():
+                listing_data['time_left'] = format_timedelta(car.auction.end_time - datetime.utcnow())
+            else:
+                listing_data['time_left'] = "Ended"
+        elif car.rental_listing:
+            listing_data['listing_type'] = 'Rental'
+            listing_data['detail_url'] = url_for('rentals.rental_detail', listing_id=car.rental_listing.id) # Assuming this route exists
+            listing_data['price_display'] = f"{car.rental_listing.price_per_day:,.2f} ETB/day"
+        elif car.listing_type == 'sale':
+            listing_data['listing_type'] = 'For Sale'
+            listing_data['detail_url'] = url_for('main.car_detail', car_id=car.id) # We will create this route next
+            listing_data['price_display'] = f"{car.fixed_price:,.2f} ETB" if car.fixed_price else "Contact Seller"
+
         results.append(listing_data)
 
     return jsonify(results)

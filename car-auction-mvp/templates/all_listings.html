@@ -3,49 +3,53 @@
 {% block title %}All Listings{% endblock %}
 
 {% block content %}
-    <h1>All Listings</h1>
-    <p>Browse our full inventory of auctions, rentals, and other vehicles for sale.</p>
+    <h1>All Vehicle Listings</h1>
 
-    <div class="search-hero" style="padding: 2rem 0; background: none;">
-        <div class="search-bar">
-            <input type="text" id="search-input" placeholder="Search by make, model, year...">
-            <button id="search-button">Search</button>
-        </div>
-        <div class="quick-filters">
-            <button class="filter-btn" data-filter="condition" data-value="New">New</button>
-            <button class="filter-btn" data-filter="condition" data-value="Used">Used</button>
-            <button class="filter-btn" data-filter="fuel_type" data-value="Electric">EV</button>
-            <button class="filter-btn" data-filter="fuel_type" data-value="Hybrid">Hybrid</button>
-            <button class="filter-btn" data-filter="body_type" data-value="SUV">SUV</button>
-            <button class="filter-btn" data-filter="body_type" data-value="Sedan">Sedan</button>
-            <button class="filter-btn" data-filter="max_price" data-value="5000000">&lt; 5M ETB</button>
-        </div>
+    <div class="filter-container">
+        <h3>Filter Results</h3>
+        <form id="filter-form">
+            <input type="text" name="q" placeholder="Make, Model, Year...">
+            <select name="condition">
+                <option value="">Any Condition</option>
+                <option value="New">New</option>
+                <option value="Used">Used</option>
+            </select>
+            <select name="body_type">
+                <option value="">Any Body Type</option>
+                <option value="SUV">SUV</option>
+                <option value="Sedan">Sedan</option>
+                <option value="Hatchback">Hatchback</option>
+                <option value="Pickup">Pickup Truck</option>
+            </select>
+            <select name="fuel_type">
+                <option value="">Any Fuel Type</option>
+                <option value="Gasoline">Gasoline</option>
+                <option value="Diesel">Diesel</option>
+                <option value="Electric">Electric</option>
+                <option value="Hybrid">Hybrid</option>
+            </select>
+        </form>
     </div>
 
     <div id="listing-grid-container" class="auction-grid">
-        <!-- Listings will be dynamically inserted here -->
+        <!-- Listing cards will be dynamically inserted here -->
     </div>
     <p id="no-results-message" style="display: none;">No listings match your filter criteria.</p>
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+    const form = document.getElementById('filter-form');
     const gridContainer = document.getElementById('listing-grid-container');
     const noResultsMessage = document.getElementById('no-results-message');
-    const searchInput = document.getElementById('search-input');
-    const searchButton = document.getElementById('search-button');
-    const filterButtons = document.querySelectorAll('.filter-btn');
-    let activeFilters = {};
 
     function fetchListings() {
-        const params = new URLSearchParams();
-        // Add text search
-        if (searchInput.value) {
-            params.append('q', searchInput.value);
-        }
-        // Add active filters
-        for (const [key, value] of Object.entries(activeFilters)) {
-            if (value) {
-                params.append(key, value);
+        const formData = new FormData(form);
+        const params = new URLSearchParams(formData);
+
+        // Remove empty values
+        for (let p of params) {
+            if (!p[1]) {
+                params.delete(p[0]);
             }
         }
 
@@ -59,30 +63,20 @@ document.addEventListener('DOMContentLoaded', function() {
                     noResultsMessage.style.display = 'none';
                     data.forEach(listing => {
                         const cardLink = document.createElement('a');
-                        cardLink.href = listing.detail_url || '#';
+                        cardLink.href = listing.detail_url;
                         cardLink.className = 'auction-card-link';
-
-                        // Build card details conditionally
-                        let detailsHtml = '';
-                        if (listing.current_price !== undefined) {
-                            detailsHtml = `
-                                <div class="card-details">
-                                    <div>
-                                        <p>${listing.current_price.toLocaleString('en-US', { style: 'currency', currency: 'ETB', minimumFractionDigits: 2 })}</p>
-                                        <span class="bid-count">${listing.bid_count} bids</span>
-                                    </div>
-                                    <span class="time-left">${listing.time_left}</span>
-                                </div>`;
-                        }
-
+                        // This card structure can be enhanced to show different details for different listing types
                         cardLink.innerHTML = `
                             <div class="auction-card">
                                 ${listing.owner_role ? `<span class="role-badge ${listing.owner_role.toLowerCase()}">${listing.owner_role}</span>` : ''}
-                                ${listing.current_price !== undefined ? '<span class="listing-type-tag">Auction</span>' : ''}
+                                <span class="listing-type-tag ${listing.listing_type.toLowerCase().replace(' ', '-')}">${listing.listing_type}</span>
                                 <img src="${listing.image_url}" alt="Car Image">
                                 <div class="card-content">
                                     <h3>${listing.year} ${listing.make} ${listing.model}</h3>
-                                    ${detailsHtml}
+                                    <div class="card-details">
+                                        <p>${listing.price_display}</p>
+                                        <span class="time-left">${listing.time_left || ''}</span>
+                                    </div>
                                 </div>
                             </div>`;
                         gridContainer.appendChild(cardLink);
@@ -92,32 +86,15 @@ document.addEventListener('DOMContentLoaded', function() {
             .catch(error => console.error('Error fetching listings:', error));
     }
 
-    searchButton.addEventListener('click', fetchListings);
-    searchInput.addEventListener('keyup', function(event) {
-        if (event.key === 'Enter') {
-            fetchListings();
-        }
+    // Apply URL parameters from the request flow to the filter form
+    const urlParams = new URLSearchParams(window.location.search);
+    urlParams.forEach((value, key) => {
+        const input = form.querySelector(`[name="${key}"]`);
+        if (input) input.value = value;
     });
 
-    filterButtons.forEach(button => {
-        button.addEventListener('click', function() {
-            const filter = this.dataset.filter;
-            const value = this.dataset.value;
-
-            if (this.classList.contains('active')) {
-                this.classList.remove('active');
-                delete activeFilters[filter];
-            } else {
-                document.querySelectorAll(`.filter-btn[data-filter="${filter}"]`).forEach(btn => btn.classList.remove('active'));
-                this.classList.add('active');
-                activeFilters[filter] = value;
-            }
-            fetchListings();
-        });
-    });
-
-    // Initial load
-    fetchListings();
+    fetchListings(); // Initial fetch
+    form.querySelectorAll('input, select').forEach(input => input.addEventListener('input', fetchListings));
 });
 </script>
 {% endblock %}

@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+
+{% block title %}How It Works - Mekina Auction{% endblock %}
+
+{% block content %}
+    <h1>How Mekina Works</h1>
+    <p class="section-header" style="text-align: left; max-width: 800px; margin-left: 0; margin-bottom: 3rem;">Our platform is designed to be the simplest and most transparent way to buy or sell enthusiast cars in Ethiopia. Whether you're a buyer looking for your dream car or a seller ready to find a new home for your vehicle, here’s how it works.</p>
+
+    <div class="page-grid-two-thirds">
+        <div class="main-column">
+            <h2>For Buyers</h2>
+            <div class="step-card">
+                <div class="step-number">1</div>
+                <div class="step-content">
+                    <h3>Browse or Request</h3>
+                    <p>Explore live auctions, fixed-price sales, and rental listings on our <a href="{{ url_for('main.all_listings') }}">All Listings</a> page. Can't find what you're looking for? Submit a <a href="{{ url_for('request.start_request') }}">Car Request</a> and let our network of verified dealers find it for you.</p>
+                </div>
+            </div>
+            <div class="step-card">
+                <div class="step-number">2</div>
+                <div class="step-content">
+                    <h3>Ask Questions & Place Bids</h3>
+                    <p>On any listing, you can ask the seller questions directly to get all the details you need. For auctions, place your bid and stay on top. For dealer offers on your request, you can ask questions about each specific offer to make an informed decision.</p>
+                </div>
+            </div>
+            <div class="step-card">
+                <div class="step-number">3</div>
+                <div class="step-content">
+                    <h3>Win & Finalize the Deal</h3>
+                    <p>If you're the highest bidder when an auction ends, or if you accept a dealer's offer, congratulations! We connect you directly with the seller to arrange payment and vehicle handover. All listings are reviewed by our team to ensure quality and transparency.</p>
+                </div>
+            </div>
+        </div>
+        <div class="sidebar-column">
+            <h2>For Sellers</h2>
+             <div class="step-card">
+                <div class="step-number">1</div>
+                <div class="step-content">
+                    <h3>Submit Your Car</h3>
+                    <p>Use our simple <a href="{{ url_for('seller.submit_car') }}">submission form</a> to provide details and photos of your car. You can choose to list it for auction, for a fixed-price sale, or for rent.</p>
+                </div>
+            </div>
+             <div class="step-card">
+                <div class="step-number">2</div>
+                <div class="step-content">
+                    <h3>Engage with Buyers</h3>
+                    <p>Once your listing is approved and live, you can answer questions from potential buyers directly on your listing page, building trust and providing clarity.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock %}

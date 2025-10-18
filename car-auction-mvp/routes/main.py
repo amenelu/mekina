@@ -1,34 +1,37 @@
-from flask import Blueprint, render_template, redirect, url_for
-from flask_login import current_user, login_required
-from models.auction import Auction
+from flask import Blueprint, render_template, abort
+from flask_login import current_user
 from models.car import Car
 from models.notification import Notification
-from models import db
 
 main_bp = Blueprint('main', __name__)
 
 @main_bp.route('/')
-@main_bp.route('/home')
 def home():
-    # If the user is an admin, redirect them to the admin dashboard.
-    if current_user.is_authenticated and current_user.is_admin:
-        return redirect(url_for('admin.dashboard'))
-
-    # The homepage now loads all data via JavaScript, so we don't need to pass auctions here.
     return render_template('home.html')
 
-@main_bp.route('/listings')
+@main_bp.route('/notifications')
+def notifications():
+    # A placeholder for a future notifications page
+    user_notifications = Notification.query.filter_by(user_id=current_user.id).order_by(Notification.timestamp.desc()).all()
+    return render_template('notifications.html', notifications=user_notifications)
+
+@main_bp.route('/how-it-works')
+def how_it_works():
+    """Displays the 'How It Works' informational page."""
+    return render_template('how_it_works.html')
+
+@main_bp.route('/all-listings')
 def all_listings():
+    """Displays a page with all types of listings, filterable via JS."""
     return render_template('all_listings.html')
 
-@main_bp.route('/notifications')
-@login_required
-def notifications():
-    """Displays a user's notifications and marks them as read."""
-    user_notifications = Notification.query.filter_by(user_id=current_user.id).order_by(Notification.timestamp.desc()).all()
-    
-    # Mark all unread notifications as read
-    Notification.query.filter_by(user_id=current_user.id, is_read=False).update({'is_read': True})
-    db.session.commit()
-    
-    return render_template('notifications.html', notifications=user_notifications)
+@main_bp.route('/car/<int:car_id>')
+def car_detail(car_id):
+    """Displays details for a car that is for fixed-price sale."""
+    car = Car.query.get_or_404(car_id)
+
+    # Security check: Only show approved cars that are for sale
+    if not car.is_approved or car.listing_type != 'sale':
+        abort(404)
+
+    return render_template('car_detail_sale.html', car=car)

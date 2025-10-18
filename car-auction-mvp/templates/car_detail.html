@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+
+{% block title %}{{ car.year }} {{ car.make }} {{ car.model }}{% endblock %}
+
+{% block content %}
+<div class="auction-detail-container">
+    <div class="main-content">
+        <h1>{{ car.year }} {{ car.make }} {{ car.model }}</h1>
+        <div class="auction-images">
+            {% if car.images %}
+                <img src="{{ car.primary_image_url }}" alt="Primary image of {{ car.make }} {{ car.model }}" class="primary-image">
+                <div class="thumbnail-strip">
+                    {% for image in car.images %}
+                        <img src="{{ image.image_url }}" alt="Thumbnail of {{ car.make }} {{ car.model }}">
+                    {% endfor %}
+                </div>
+            {% else %}
+                <img src="{{ url_for('static', filename='img/default_car.png') }}" alt="Default car image" class="primary-image">
+            {% endif %}
+        </div>
+
+        <div class="auction-description">
+            <h2>Description</h2>
+            <p>{{ car.description|safe }}</p>
+        </div>
+    </div>
+
+    <div class="sidebar">
+        <div class="bid-box">
+            <h3>Fixed Price</h3>
+            <div class="current-price">{{ '{:,.2f}'.format(car.fixed_price) }} ETB</div>
+            <p>This vehicle is available for immediate purchase at the price shown.</p>
+            <button class="btn approve" style="width: 100%;">Contact Seller</button> {# Future feature #}
+        </div>
+
+        <div class="car-specs">
+            <h3>Vehicle Details</h3>
+            <ul>
+                <li><strong>Year:</strong> {{ car.year }}</li>
+                <li><strong>Condition:</strong> {{ car.condition }}</li>
+                <li><strong>Mileage:</strong> {{ '{:,}'.format(car.mileage) }} km</li>
+                <li><strong>Transmission:</strong> {{ car.transmission }}</li>
+                <li><strong>Drivetrain:</strong> {{ car.drivetrain }}</li>
+                <li><strong>Fuel Type:</strong> {{ car.fuel_type }}</li>
+            </ul>
+        </div>
+    </div>
+</div>
+{% endblock %}

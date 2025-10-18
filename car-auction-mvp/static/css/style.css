@@ -217,7 +217,18 @@ nav a:hover {
     z-index: 1;
 }
 
+/* Add specific styles for different listing types */
+.listing-type-tag.sale {
+    background-color: hsl(var(--success)); /* Green for sale */
+}
+
+.listing-type-tag.rental {
+    background-color: hsl(var(--info)); /* Blue/Gray for rental */
+    color: hsl(var(--foreground));
+}
+
 .title-with-tag {
+    position: relative; /* This is the fix */
     display: flex;
     align-items: center;
     gap: 15px;
@@ -701,6 +712,3 @@ td .role-badge {
     position: static;
     margin-right: 5px; /* Add some space between badges */
 }
-
-
-

@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+
+{% block title %}Rental Company Dashboard{% endblock %}
+
+{% block content %}
+    <h1>Rental Company Dashboard</h1>
+    <div style="margin-bottom: 20px;">
+        <a href="{{ url_for('seller.submit_car') }}" class="nav-button" style="background-color: hsl(var(--success)); text-decoration: none;">+ List a New Car for Rent</a>
+    </div>
+
+    <div class="dashboard-section">
+        <h2>My Rental Listings</h2>
+        {% if my_rental_cars %}
+            <table>
+                <thead>
+                    <tr>
+                        <th>Car</th>
+                        <th>Status</th>
+                        <th>Price per Day</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for car in my_rental_cars %}
+                    <tr>
+                        <td>{{ car.year }} {{ car.make }} {{ car.model }}</td>
+                        <td>
+                            {% if car.is_approved %}
+                                <span style="color: hsl(var(--success)); font-weight: bold;">Approved & Live</span>
+                            {% else %}
+                                <span style="color: hsl(var(--warning)); font-weight: bold;">Pending Approval</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ '{:,.2f}'.format(car.rental_listing.price_per_day) }} ETB</td>
+                        <td>{% if not car.is_approved %}<a href="{{ url_for('seller.edit_car', car_id=car.id) }}">Edit</a>{% endif %}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        {% else %}
+            <p>You have not listed any cars for rent yet.</p>
+        {% endif %}
+    </div>
+{% endblock %}

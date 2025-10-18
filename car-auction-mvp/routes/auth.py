@@ -1,6 +1,7 @@
 from flask import Blueprint, render_template, redirect, url_for, flash, request
 from flask_login import login_user, logout_user, current_user
 from werkzeug.urls import url_parse
+from sqlalchemy import or_
 from models import db
 from models.user import User
 
@@ -12,7 +13,7 @@ from wtforms.validators import Optional
 auth_bp = Blueprint('auth', __name__)
 
 class LoginForm(FlaskForm):
-    email = StringField('Email', validators=[DataRequired(), Email()])
+    login = StringField('Username or Email', validators=[DataRequired()])
     password = PasswordField('Password', validators=[DataRequired()])
     remember_me = BooleanField('Remember Me')
     submit = SubmitField('Sign In')
@@ -42,17 +43,21 @@ def login():
         return redirect(url_for('main.home'))
     form = LoginForm()
     if form.validate_on_submit():
-        user = User.query.filter_by(email=form.email.data).first()
+        # Check for user by either email or username
+        user = User.query.filter(
+            or_(User.username == form.login.data, User.email == form.login.data)
+        ).first()
         if user is None or not user.check_password(form.password.data):
-            flash('Invalid email or password', 'danger')
+            flash('Invalid username/email or password', 'danger')
             return redirect(url_for('auth.login'))
         login_user(user, remember=form.remember_me.data)
         
         next_page = request.args.get('next')
         if not next_page or url_parse(next_page).netloc != '':
-            # --- THIS IS THE CHANGE ---
-            # If the user is a dealer, send them to the dealer dashboard.
-            if current_user.is_dealer:
+            # Redirect users to their specific dashboards
+            if current_user.is_rental_company:
+                next_page = url_for('rentals.dashboard')
+            elif current_user.is_dealer:
                 next_page = url_for('dealer.dashboard')
             else:
                 next_page = url_for('main.home')

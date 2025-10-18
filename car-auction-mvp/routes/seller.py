@@ -14,7 +14,7 @@ from werkzeug.utils import secure_filename
 from flask_wtf import FlaskForm
 from wtforms import StringField, IntegerField, TextAreaField, SubmitField, FloatField, SelectField, SelectMultipleField, widgets, RadioField
 from wtforms.fields import DateTimeLocalField, MultipleFileField
-from wtforms.validators import DataRequired, Length, NumberRange
+from wtforms.validators import DataRequired, Length, NumberRange, Optional
 
 seller_bp = Blueprint('seller', __name__, url_prefix='/seller')
 
@@ -33,12 +33,14 @@ class CarSubmissionForm(FlaskForm):
     equipment = SelectMultipleField('Features', choices=[
         ('sunroof', 'Sunroof'), ('leather_seats', 'Leather Seats'),
         ('apple_carplay', 'Apple CarPlay / Android Auto'), ('awd', 'All-Wheel Drive')
-    ], widget=widgets.ListWidget(prefix_label=False), option_widget=widgets.CheckboxInput())
-    listing_type = RadioField('Listing Type', choices=[('auction', 'Auction'), ('rental', 'Rental')], default='auction', validators=[DataRequired()])
+    ], widget=widgets.ListWidget(prefix_label=False), option_widget=widgets.CheckboxInput(), validators=[Optional()])
+    listing_type = RadioField('How do you want to list this car?', choices=[('auction', 'Auction'), ('sale', 'For Sale (Fixed Price)'), ('rental', 'For Rent')], default='auction', validators=[DataRequired()])
     
     # Auction Details
-    start_price = FloatField('Starting Price (ETB)', validators=[NumberRange(min=1)])
-    end_time = DateTimeLocalField('Auction End Time', format='%Y-%m-%dT%H:%M')
+    start_price = FloatField('Starting Price (ETB)', validators=[Optional(), NumberRange(min=1)])
+    end_time = DateTimeLocalField('Auction End Time', format='%Y-%m-%dT%H:%M', validators=[Optional()])
+    # For Sale Details
+    fixed_price = FloatField('Sale Price (ETB)', validators=[Optional(), NumberRange(min=1)])
     # Rental Details
     price_per_day = FloatField('Price Per Day (ETB)', validators=[NumberRange(min=1)])
 
@@ -112,6 +114,19 @@ def answer_question(question_id):
 def submit_car():
     form = CarSubmissionForm()
     if form.validate_on_submit():
+        # --- Conditional Validation ---
+        listing_type = form.listing_type.data
+        if listing_type == 'auction' and (not form.start_price.data or not form.end_time.data):
+            flash('For an auction, you must provide a starting price and an end time.', 'danger')
+            return render_template('submit_car.html', title='Submit Your Car', form=form)
+        if listing_type == 'sale' and not form.fixed_price.data:
+            flash('For a fixed-price sale, you must provide a sale price.', 'danger')
+            return render_template('submit_car.html', title='Submit Your Car', form=form)
+        if listing_type == 'rental' and not form.price_per_day.data:
+            flash('For a rental, you must provide a price per day.', 'danger')
+            return render_template('submit_car.html', title='Submit Your Car', form=form)
+
+
         # Create the Car object first
         new_car = Car(
             make=form.make.data,
@@ -125,6 +140,8 @@ def submit_car():
             drivetrain=form.drivetrain.data,
             fuel_type=form.fuel_type.data,
             owner_id=current_user.id,
+            listing_type=listing_type,
+            fixed_price=form.fixed_price.data if listing_type == 'sale' else None,
             is_approved=False # All seller submissions must be approved
         )
         db.session.add(new_car)
@@ -144,7 +161,7 @@ def submit_car():
                 db.session.add(new_image)
 
         # Create either an Auction or a Rental Listing based on choice
-        if form.listing_type.data == 'auction':
+        if listing_type == 'auction':
             new_auction = Auction(
                 start_price=form.start_price.data,
                 current_price=form.start_price.data,
@@ -152,7 +169,7 @@ def submit_car():
                 car_id=new_car.id
             )
             db.session.add(new_auction)
-        elif form.listing_type.data == 'rental':
+        elif listing_type == 'rental':
             new_rental = RentalListing(
                 price_per_day=form.price_per_day.data,
                 car_id=new_car.id
@@ -184,8 +201,9 @@ def edit_car(car_id):
 
     if request.method == 'GET':
         # Pre-populate auction-specific fields
-        form.start_price.data = auction.start_price
-        form.end_time.data = auction.end_time
+        if auction:
+            form.start_price.data = auction.start_price
+            form.end_time.data = auction.end_time
 
     if form.validate_on_submit():
         # Update Car details
@@ -201,9 +219,10 @@ def edit_car(car_id):
         car.fuel_type = form.fuel_type.data
 
         # Update Auction details
-        auction.start_price = form.start_price.data
-        auction.current_price = form.start_price.data # Reset current price to new start price
-        auction.end_time = form.end_time.data
+        if auction:
+            auction.start_price = form.start_price.data
+            auction.current_price = form.start_price.data # Reset current price to new start price
+            auction.end_time = form.end_time.data
 
         # Update equipment
         car.equipment.clear()

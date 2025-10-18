@@ -26,6 +26,8 @@ class Car(db.Model):
     fuel_type = db.Column(db.String(50))
     condition = db.Column(db.String(50)) # e.g., New, Used
     body_type = db.Column(db.String(50), nullable=True) # e.g., SUV, Sedan
+    listing_type = db.Column(db.String(50), default='auction', nullable=False) # 'auction', 'sale', 'rental'
+    fixed_price = db.Column(db.Float, nullable=True) # For 'sale' listing_type
 
     # Relationship
     auction = db.relationship('Auction', backref='car', uselist=False) # One-to-one relationship with Auction
