@@ -35,35 +35,35 @@
                     </tr>
                 </thead>
                 <tbody>
-                    {% for req in requests %}
+                    {% for car_request, bid_count, lowest_offer in requests %}
                     <tr>
-                        <td>{{ req.created_at.strftime('%b %d, %Y') }}</td>
+                        <td>{{ car_request.created_at.strftime('%b %d, %Y') }}</td>
                         <td>
-                            {% if req.make and req.model %}
-                                <strong>{{ req.make }} {{ req.model }}</strong> ({{ req.min_year or 'Any' }}+)
+                            {% if car_request.make and car_request.model %}
+                                <strong>{{ car_request.make }} {{ car_request.model }}</strong> ({{ car_request.min_year or 'Any' }}+)
                             {% else %}
                                 <em>General Request</em>
                             {% endif %}
-                            <blockquote class="compact">{{ req.notes|truncate(100) }}</blockquote>
+                            <blockquote class="compact">{{ car_request.notes|truncate(100) }}</blockquote>
                         </td>
                         <td>
-                            {% if req.bid_count > 0 %}
-                                {{ req.bid_count }} dealer(s)
+                            {% if bid_count and bid_count > 0 %}
+                                {{ bid_count }} dealer(s)
                             {% else %}
                                 <span class="text-muted">None yet</span>
                             {% endif %}
                         </td>
                         <td>
-                            {% if req.lowest_offer %}
-                                {{ '{:,.2f}'.format(req.lowest_offer) }} ETB
+                            {% if lowest_offer %}
+                                {{ '{:,.2f}'.format(lowest_offer) }} ETB
                             {% else %}
                                 <span class="text-muted">N/A</span>
                             {% endif %}
                         </td>
                         <td>
-                            <a href="{{ url_for('dealer.place_bid', request_id=req.id) }}" class="btn">Place Offer</a>
+                            <a href="{{ url_for('dealer.place_bid', request_id=car_request.id) }}" class="btn">Place Offer</a>
                         </td>
-                    </tr>
+                    </>
                     {% endfor %}
                 </tbody>
             </table>

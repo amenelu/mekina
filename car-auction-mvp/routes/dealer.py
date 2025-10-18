@@ -48,14 +48,22 @@ class RequestAnswerForm(FlaskForm):
 @dealer_required
 def dashboard():
     # --- Dealer Functionality: Fetch customer requests ---
-    active_requests = CarRequest.query.filter_by(status='active').order_by(CarRequest.created_at.desc()).all()
+    # OPTIMIZATION: Use a single query with subqueries to avoid the N+1 problem.
+    # This calculates bid counts and lowest offers in the database, not in a Python loop.
+    bid_count_subquery = db.session.query(
+        DealerBid.request_id,
+        func.count(DealerBid.id).label('bid_count')
+    ).group_by(DealerBid.request_id).subquery()
 
-    # Augment each request with bid information to display on the dashboard
-    for req in active_requests:
-        # Efficiently count bids using the relationship backref
-        req.bid_count = req.dealer_bids.count()
-        # Efficiently find the minimum bid price using a subquery
-        req.lowest_offer = db.session.query(func.min(DealerBid.price)).filter(DealerBid.request_id == req.id).scalar()
+    lowest_offer_subquery = db.session.query(
+        DealerBid.request_id,
+        func.min(DealerBid.price).label('lowest_offer')
+    ).group_by(DealerBid.request_id).subquery()
+
+    active_requests = db.session.query(CarRequest, bid_count_subquery.c.bid_count, lowest_offer_subquery.c.lowest_offer).\
+        outerjoin(bid_count_subquery, CarRequest.id == bid_count_subquery.c.request_id).\
+        outerjoin(lowest_offer_subquery, CarRequest.id == lowest_offer_subquery.c.request_id).\
+        filter(CarRequest.status == 'active').order_by(CarRequest.created_at.desc()).all()
 
     # --- Seller Functionality: Fetch dealer's own listings and questions ---
     my_cars = Car.query.filter_by(owner_id=current_user.id).order_by(Car.id.desc()).all()
