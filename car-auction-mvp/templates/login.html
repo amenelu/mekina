@@ -1,25 +1,30 @@
 {% extends "base.html" %}
 
-{% block title %}Sign In{% endblock %}
+{% block title %}{{ title }}{% endblock %}
 
 {% block content %}
-    <h1>Sign In</h1>
-    <form action="" method="post" novalidate>
-        {{ form.hidden_tag() }}
-        <div class="form-group">
-            {{ form.email.label }}<br>
-            {{ form.email() }}
-            {% for error in form.email.errors %}
-            <div class="form-error">{{ error }}</div>
-            {% endfor %}
-        </div>
-        <div class="form-group">
-            {{ form.password.label }}<br>
-            {{ form.password() }}
-            {% for error in form.password.errors %}
-            <div class="form-error">{{ error }}</div>
-            {% endfor %}
-        </div>
-        <p>{{ form.submit(class='btn approve') }}</p>
-    </form>
+    <h1>{{ title }}</h1>
+    <div style="max-width: 500px; margin: auto;">
+        <form method="POST" action="">
+            {{ form.hidden_tag() }}
+            <div class="form-group">
+                {{ form.login.label }}
+                {{ form.login(class="form-control") }}
+                {% for error in form.login.errors %}
+                    <div class="form-error">{{ error }}</div>
+                {% endfor %}
+            </div>
+            <div class="form-group">
+                {{ form.password.label }}
+                {{ form.password(class="form-control") }}
+                {% for error in form.password.errors %}
+                    <div class="form-error">{{ error }}</div>
+                {% endfor %}
+            </div>
+            <div class="form-group checkbox-style">
+                {{ form.remember_me() }} {{ form.remember_me.label }}
+            </div>
+            <p>{{ form.submit(class='btn approve') }}</p>
+        </form>
+    </div>
 {% endblock %}
