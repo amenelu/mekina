@@ -262,7 +262,15 @@ def all_listings_api():
             )
         )
 
-    cars = query.order_by(Car.id.desc()).all()
+    if request.args.get('random') == 'true':
+        query = query.order_by(func.random())
+    else:
+        query = query.order_by(Car.id.desc())
+
+    if limit := request.args.get('limit', type=int):
+        query = query.limit(limit)
+
+    cars = query.all()
 
     def format_timedelta(td):
         days = td.days

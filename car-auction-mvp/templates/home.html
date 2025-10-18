@@ -8,8 +8,7 @@
             <h1>Find Your Next Car</h1>
             <p>Search Ethiopia's best selection of enthusiast cars for sale.</p>
             <div class="search-bar">
-                <input type="text" id="search-input" placeholder="Search by make, model, year...">
-                <button id="search-button">Search</button>
+                <input type="text" id="search-input" placeholder="Start typing to search by make, model, year...">
             </div>
             <div class="quick-filters">
                 <button class="filter-btn" data-filter="condition" data-value="New">New</button>
@@ -76,9 +75,17 @@ document.addEventListener('DOMContentLoaded', function() {
     const gridContainer = document.getElementById('auction-grid-container');
     const noResultsMessage = document.getElementById('no-results-message');
     const searchInput = document.getElementById('search-input');
-    const searchButton = document.getElementById('search-button');
     const filterButtons = document.querySelectorAll('.filter-btn');
     let activeFilters = {};
+
+    function debounce(func, delay) {
+        let timeout;
+        return function(...args) {
+            const context = this;
+            clearTimeout(timeout);
+            timeout = setTimeout(() => func.apply(context, args), delay);
+        };
+    }
 
     function fetchAuctions() {
         const params = new URLSearchParams();
@@ -99,7 +106,7 @@ document.addEventListener('DOMContentLoaded', function() {
             params.append('random', 'true');
         }
 
-        fetch(`{{ url_for('auctions.filter_auctions_api') }}?${params.toString()}`)
+        fetch(`{{ url_for('auctions.all_listings_api') }}?${params.toString()}`)
             .then(response => response.json())
             .then(data => {
                 gridContainer.innerHTML = ''; // Clear existing results
@@ -107,23 +114,20 @@ document.addEventListener('DOMContentLoaded', function() {
                     noResultsMessage.style.display = 'block';
                 } else {
                     noResultsMessage.style.display = 'none';
-                    data.forEach(auction => {
+                    data.forEach(listing => {
                         const cardLink = document.createElement('a');
-                        cardLink.href = auction.detail_url;
+                        cardLink.href = listing.detail_url;
                         cardLink.className = 'auction-card-link';
                         cardLink.innerHTML = `
                             <div class="auction-card">
-                                ${auction.owner_role ? `<span class="role-badge ${auction.owner_role.toLowerCase()}">${auction.owner_role}</span>` : ''}
-                                <span class="listing-type-tag">Auction</span>
-                                <img src="${auction.image_url}" alt="Car Image">
+                                ${listing.owner_role ? `<span class="role-badge ${listing.owner_role.toLowerCase()}">${listing.owner_role}</span>` : ''}
+                                <span class="listing-type-tag ${listing.listing_type.toLowerCase().replace(' ', '-')}">${listing.listing_type}</span>
+                                <img src="${listing.image_url}" alt="Car Image">
                                 <div class="card-content">
-                                    <h3>${auction.year} ${auction.make} ${auction.model}</h3>
+                                    <h3>${listing.year} ${listing.make} ${listing.model}</h3>
                                     <div class="card-details">
-                                        <div>
-                                            <p>${auction.current_price.toLocaleString('en-US', { style: 'currency', currency: 'ETB', minimumFractionDigits: 2 })}</p>
-                                            <span class="bid-count">${auction.bid_count} bids</span>
-                                        </div>
-                                        <span class="time-left">${auction.time_left}</span>
+                                        <p>${listing.price_display}</p>
+                                        <span class="time-left">${listing.time_left || ''}</span>
                                     </div>
                                 </div>
                             </div>`;
@@ -134,13 +138,8 @@ document.addEventListener('DOMContentLoaded', function() {
             .catch(error => console.error('Error fetching auctions:', error));
     }
 
-    searchButton.addEventListener('click', fetchAuctions);
-    searchInput.addEventListener('keyup', function(event) {
-        if (event.key === 'Enter') {
-            fetchAuctions();
-        }
-    });
-
+    const debouncedFetch = debounce(fetchAuctions, 300); // 300ms delay
+    searchInput.addEventListener('input', debouncedFetch);
     filterButtons.forEach(button => {
         button.addEventListener('click', function() {
             const filter = this.dataset.filter;
