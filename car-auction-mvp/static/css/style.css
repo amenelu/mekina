@@ -204,27 +204,32 @@ nav a:hover {
     display: block; /* Make the link a block-level element */
 }
 
-.listing-type-tag {
+/* This rule is now specific to tags inside an auction-card */
+.auction-card .listing-type-tag {
     position: absolute;
     top: 10px;
     right: 10px;
+    z-index: 1;
+}
+
+.listing-type-tag {
     background-color: hsl(var(--accent));
     color: hsl(var(--accent-foreground));
     padding: 4px 8px;
     border-radius: var(--radius);
     font-size: 0.8em;
     font-weight: 600;
-    z-index: 1;
 }
 
 /* Add specific styles for different listing types */
 .listing-type-tag.sale {
-    background-color: hsl(var(--success)); /* Green for sale */
+    background-color: hsl(var(--success));
+    color: hsl(var(--destructive-foreground)); /* Use a light text color */
 }
 
 .listing-type-tag.rental {
-    background-color: hsl(var(--info)); /* Blue/Gray for rental */
-    color: hsl(var(--foreground));
+    background-color: hsl(var(--info));
+    color: hsl(var(--foreground)); /* Ensure it uses the main light text color */
 }
 
 .title-with-tag {
@@ -234,7 +239,10 @@ nav a:hover {
     gap: 15px;
     flex-wrap: wrap;
 }
-.title-with-tag .role-badge.large {
+
+/* This is the fix: Override absolute positioning for any large badge in the title */
+.title-with-tag .role-badge.large,
+.title-with-tag .listing-type-tag.large {
     position: static;
     font-size: 1rem;
     padding: 6px 12px;

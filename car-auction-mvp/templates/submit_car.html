@@ -4,90 +4,116 @@
 
 {% block content %}
     <h1>{{ title }}</h1>
-    <p>Please fill out the details below. An administrator will review your submission before it goes live.</p>
 
-    <form method="POST" action="" novalidate enctype="multipart/form-data">
+    <form method="POST" enctype="multipart/form-data">
         {{ form.hidden_tag() }}
-        <div class="form-group">
-            {{ form.make.label }}<br>
-            {{ form.make() }}
-            {% for error in form.make.errors %}<span style="color: red;">[{{ error }}]</span>{% endfor %}
+
+        <div class="form-grid">
+            <div class="form-group">
+                {{ form.make.label }}
+                {{ form.make() }}
+            </div>
+            <div class="form-group">
+                {{ form.model.label }}
+                {{ form.model() }}
+            </div>
+            <div class="form-group">
+                {{ form.year.label }}
+                {{ form.year() }}
+            </div>
+            <div class="form-group">
+                {{ form.mileage.label }}
+                {{ form.mileage() }}
+            </div>
+            <div class="form-group">
+                {{ form.condition.label }}
+                {{ form.condition() }}
+            </div>
+            <div class="form-group">
+                {{ form.body_type.label }}
+                {{ form.body_type() }}
+            </div>
+            <div class="form-group">
+                {{ form.transmission.label }}
+                {{ form.transmission() }}
+            </div>
+            <div class="form-group">
+                {{ form.drivetrain.label }}
+                {{ form.drivetrain() }}
+            </div>
+            <div class="form-group">
+                {{ form.fuel_type.label }}
+                {{ form.fuel_type() }}
+            </div>
+            <div class="form-group full-width">
+                {{ form.description.label }}
+                {{ form.description(rows=5) }}
+            </div>
+            <div class="form-group full-width">
+                {{ form.images.label }}
+                {{ form.images() }}
+            </div>
+            <div class="form-group full-width">
+                {{ form.equipment.label }}
+                <div class="checkbox-group">
+                    {% for subfield in form.equipment %}
+                        <label class="checkbox-label">
+                            {{ subfield(class="checkbox-input") }} {{ subfield.label.text }}
+                        </label>
+                    {% endfor %}
+                </div>
+            </div>
         </div>
+
+        <hr>
+        <h3>Listing Details</h3>
         <div class="form-group">
-            {{ form.model.label }}<br>
-            {{ form.model() }}
-            {% for error in form.model.errors %}<span style="color: red;">[{{ error }}]</span>{% endfor %}
-        </div>
-        <div class="form-group">
-            {{ form.year.label }}<br>
-            {{ form.year() }}
-            {% for error in form.year.errors %}<span style="color: red;">[{{ error }}]</span>{% endfor %}
-        </div>
-        <div class="form-group">
-            {{ form.description.label }}<br>
-            {{ form.description(rows=4) }}
-            {% for error in form.description.errors %}<span style="color: red;">[{{ error }}]</span>{% endfor %}
-        </div>
-        <div class="form-group">
-            {{ form.images.label }}<br>
-            {{ form.images() }}
-            {% for error in form.images.errors %}<span style="color: red;">[{{ error }}]</span>{% endfor %}
-        </div>
-        <div class="form-group">
-            {{ form.condition.label }}<br>
-            {{ form.condition() }}
-            {% for error in form.condition.errors %}<span style="color: red;">[{{ error }}]</span>{% endfor %}
-        </div>
-        <div class="form-group">
-            {{ form.body_type.label }}<br>
-            {{ form.body_type() }}
-            {% for error in form.body_type.errors %}<span style="color: red;">[{{ error }}]</span>{% endfor %}
-        </div>
-        <div class="form-group">
-            {{ form.mileage.label }}<br>
-            {{ form.mileage() }}
-            {% for error in form.mileage.errors %}<span style="color: red;">[{{ error }}]</span>{% endfor %}
-        </div>
-        <div class="form-group">
-            {{ form.transmission.label }}<br>
-            {{ form.transmission() }}
-            {% for error in form.transmission.errors %}<span style="color: red;">[{{ error }}]</span>{% endfor %}
-        </div>
-        <div class="form-group">
-            {{ form.drivetrain.label }}<br>
-            {{ form.drivetrain() }}
-            {% for error in form.drivetrain.errors %}<span style="color: red;">[{{ error }}]</span>{% endfor %}
-        </div>
-        <div class="form-group">
-            {{ form.fuel_type.label }}<br>
-            {{ form.fuel_type() }}
-            {% for error in form.fuel_type.errors %}<span style="color: red;">[{{ error }}]</span>{% endfor %}
-        </div>
-        <div class="form-group">
-            {{ form.equipment.label }}<br>
-            <div class="checkbox-group">
-                {% for subfield in form.equipment %}
-                    {{ subfield(class="checkbox-input") }}
-                    {{ subfield.label(class="checkbox-label") }}
+            {{ form.listing_type.label }}
+            <div class="radio-button-group">
+                {% for subfield in form.listing_type %}
+                    <label class="radio-button-label">
+                        {{ subfield(class="radio-button-input") }} {{ subfield.label.text }}
+                    </label>
                 {% endfor %}
             </div>
-            {% for error in form.equipment.errors %}<span style="color: red;">[{{ error }}]</span>{% endfor %}
         </div>
-        <hr>
-        <h3>Auction Details</h3>
-        <div class="form-group">
-            {{ form.start_price.label }}<br>
-            {{ form.start_price() }}
-            {% for error in form.start_price.errors %}<span style="color: red;">[{{ error }}]</span>{% endfor %}
+
+        {# --- Dynamically Shown Fields --- #}
+        <div id="auction-fields" class="listing-type-fields">
+            <div class="form-group">{{ form.start_price.label }} {{ form.start_price() }}</div>
+            <div class="form-group">{{ form.end_time.label }} {{ form.end_time() }}</div>
         </div>
-        <div class="form-group">
-            {{ form.end_time.label }}<br>
-            {{ form.end_time() }}
-            {% for error in form.end_time.errors %}<span style="color: red;">[{{ error }}]</span>{% endfor %}
+        <div id="sale-fields" class="listing-type-fields">
+            <div class="form-group">{{ form.fixed_price.label }} {{ form.fixed_price() }}</div>
         </div>
-        <p>
-            {{ form.submit(class='btn approve') }}
-        </p>
+        <div id="rental-fields" class="listing-type-fields">
+            <div class="form-group">{{ form.price_per_day.label }} {{ form.price_per_day() }}</div>
+        </div>
+
+        {{ form.submit(class='btn approve') }}
     </form>
-    <a href="{{ url_for('seller.dashboard') }}">Cancel</a>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const listingTypeRadios = document.querySelectorAll('input[name="listing_type"]');
+    const auctionFields = document.getElementById('auction-fields');
+    const saleFields = document.getElementById('sale-fields');
+    const rentalFields = document.getElementById('rental-fields');
+
+    function toggleFields() {
+        const selectedType = document.querySelector('input[name="listing_type"]:checked').value;
+        auctionFields.style.display = selectedType === 'auction' ? 'block' : 'none';
+        saleFields.style.display = selectedType === 'sale' ? 'block' : 'none';
+        rentalFields.style.display = selectedType === 'rental' ? 'block' : 'none';
+    }
+
+    listingTypeRadios.forEach(radio => {
+        radio.addEventListener('change', toggleFields);
+    });
+
+    // Initial check on page load
+    toggleFields();
+});
+</script>
+
 {% endblock %}

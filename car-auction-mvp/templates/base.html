@@ -17,7 +17,7 @@
                 <li><a href="{{ url_for('admin.dashboard') }}">Dashboard</a></li>
                 <li><a href="{{ url_for('rentals.list_rentals') }}">Rentals</a></li>
                 <li><a href="{{ url_for('admin.user_management') }}">Users</a></li>
-                <li><a href="{{ url_for('auctions.list_auctions') }}">Manage Auctions</a></li>
+                <li><a href="{{ url_for('auctions.list_auctions') }}">Manage Listings</a></li>
             {% elif current_user.is_authenticated and current_user.is_rental_company %}
                 <li><a href="{{ url_for('rentals.dashboard') }}">Rental Dashboard</a></li>
             {% elif current_user.is_authenticated %}

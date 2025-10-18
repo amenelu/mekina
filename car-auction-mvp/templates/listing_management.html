@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+
+{% block title %}Listing Management{% endblock %}
+
+{% block content %}
+    <h1>Listing Management</h1>
+
+    <table>
+        <thead>
+            <tr>
+                <th>Car</th>
+                <th>Owner</th>
+                <th>Listing Type</th>
+                <th>Price / Status</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for car in cars.items %}
+            <tr>
+                <td>{{ car.year }} {{ car.make }} {{ car.model }}</td>
+                <td>{{ car.owner.username }}</td>
+                <td>
+                    <span class="listing-type-tag small {{ car.listing_type.lower() }}">{{ car.listing_type|title }}</span>
+                </td>
+                <td>
+                    {% if car.listing_type == 'auction' and car.auction %}
+                        {{ '{:,.2f}'.format(car.auction.current_price) }} ETB
+                        <br>
+                        <small>
+                        {% if car.auction.end_time > now %}
+                            Ends: {{ car.auction.end_time.strftime('%b %d, %H:%M') }}
+                        {% else %}
+                            Ended
+                        {% endif %}
+                        </small>
+                    {% elif car.listing_type == 'sale' %}
+                        {{ '{:,.2f}'.format(car.fixed_price) }} ETB
+                    {% elif car.listing_type == 'rental' and car.rental_listing %}
+                        {{ '{:,.2f}'.format(car.rental_listing.price_per_day) }} ETB/day
+                    {% endif %}
+                </td>
+                <td class="button-group">
+                    <a href="{{ url_for('admin.edit_listing', car_id=car.id) }}" class="btn edit">Edit</a>
+                    <form action="{{ url_for('admin.delete_listing', car_id=car.id) }}" method="post" onsubmit="return confirm('Are you sure you want to delete this listing? This cannot be undone.');">
+                        <button type="submit" class="btn delete">Delete</button>
+                    </form>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <div class="pagination">
+        {% if cars.has_prev %}<a href="{{ url_for('auctions.list_auctions', page=cars.prev_num) }}">&laquo; Previous</a>{% endif %}
+        <span>Page {{ cars.page }} of {{ cars.pages }}</span>
+        {% if cars.has_next %}<a href="{{ url_for('auctions.list_auctions', page=cars.next_num) }}">Next &raquo;</a>{% endif %}
+    </div>
+{% endblock %}

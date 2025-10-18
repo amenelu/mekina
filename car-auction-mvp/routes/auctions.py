@@ -52,8 +52,13 @@ def list_auctions():
 
     if current_user.is_authenticated and current_user.is_admin:
         # Admin view: show all auctions, ordered by end time
-        auctions = Auction.query.join(Car).order_by(Auction.end_time.desc()).paginate(page=page, per_page=10)
-        return render_template('auction_management.html', auctions=auctions, now=datetime.utcnow())
+        # Change: Fetch all approved cars, not just auctions.
+        cars = Car.query.filter(Car.is_approved == True).order_by(Car.id.desc()).paginate(page=page, per_page=10)
+        return render_template(
+            'listing_management.html', 
+            cars=cars, 
+            now=datetime.utcnow()
+        )
     else:
         # The initial page load will be handled by AJAX, so we just render the shell.
         return render_template('auction_list.html')

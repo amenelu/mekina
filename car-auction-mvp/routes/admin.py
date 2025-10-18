@@ -140,8 +140,12 @@ def edit_listing(car_id):
                  auction.current_price = form.start_price.data
             auction.end_time = form.end_time.data
         elif car.listing_type == 'sale':
+            # Ensure other listing types are nullified if they exist
+            if auction: auction.start_price = None
             car.fixed_price = form.fixed_price.data
         elif car.listing_type == 'rental' and rental:
+            # Ensure other listing types are nullified if they exist
+            if auction: auction.start_price = None
             rental.price_per_day = form.price_per_day.data
 
         # Update equipment
@@ -176,15 +180,12 @@ def approve_car(car_id):
     flash(f'Car {car.make} {car.model} has been approved.', 'success')
     return redirect(url_for('admin.dashboard'))
 
-@admin_bp.route('/auction/delete/<int:auction_id>', methods=['POST'])
+@admin_bp.route('/listing/delete/<int:car_id>', methods=['POST'])
 @login_required
 @admin_required
-def delete_listing(auction_id):
+def delete_listing(car_id):
     """Allows an admin to delete a car and its associated listing."""
-    # This route is kept for compatibility with existing links, but it's
-    # better to delete by car_id in the future.
-    auction = Auction.query.get_or_404(auction_id)
-    car = auction.car
+    car = Car.query.get_or_404(car_id)
 
     # The Car model's relationships have cascades to delete related items
     db.session.delete(car)
