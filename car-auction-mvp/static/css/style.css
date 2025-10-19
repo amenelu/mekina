@@ -752,3 +752,62 @@ td .role-badge {
 
 .step-content h3 { margin-top: 0; }
 .step-content p { color: hsl(var(--muted-foreground)); margin-top: 0.5rem; }
+
+/* 14. Fullscreen Image Viewer */
+.image-viewer-modal {
+    display: none; /* Hidden by default */
+    position: fixed; /* Stay in place */
+    z-index: 1000; /* Sit on top */
+    padding-top: 50px;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    overflow: auto; /* Enable scroll if needed */
+    background-color: hsl(var(--background) / 0.95); /* Dark overlay */
+    cursor: pointer;
+}
+
+.image-viewer-content {
+    margin: auto;
+    display: block;
+    width: auto;
+    height: 80vh; /* Take 80% of the viewport height */
+    max-width: 90vw;
+    object-fit: contain;
+}
+
+.close-image-viewer {
+    position: absolute;
+    top: 15px;
+    right: 35px;
+    color: hsl(var(--muted-foreground));
+    font-size: 40px;
+    font-weight: bold;
+    transition: 0.3s;
+}
+
+.close-image-viewer:hover,
+.close-image-viewer:focus {
+    color: hsl(var(--foreground));
+    text-decoration: none;
+    cursor: pointer;
+}
+
+.image-viewer-nav {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    background-color: hsl(var(--background) / 0.5);
+    color: hsl(var(--foreground));
+    border: 1px solid hsl(var(--border));
+    font-size: 2rem;
+    cursor: pointer;
+    padding: 10px 15px;
+    border-radius: var(--radius);
+    user-select: none;
+    transition: background-color 0.2s;
+}
+.image-viewer-nav:hover { background-color: hsl(var(--background) / 0.8); }
+.image-viewer-nav.prev { left: 20px; }
+.image-viewer-nav.next { right: 20px; }

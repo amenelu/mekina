@@ -273,6 +273,67 @@ document.addEventListener('DOMContentLoaded', function() {
             .catch(error => console.error('Error:', error));
         });
     }
+
+    // Fullscreen image viewer logic
+    const imageViewerModal = document.getElementById('image-viewer-modal');
+    const fullscreenImage = document.getElementById('fullscreen-image');
+    const viewerPrevBtn = document.getElementById('viewer-prev-btn');
+    const viewerNextBtn = document.getElementById('viewer-next-btn');
+    const imagesToWatch = document.querySelectorAll('.image-gallery img');
+    let galleryImageUrls = Array.from(document.querySelectorAll('.image-gallery .thumbnails img, .image-gallery .main-image-container img')).map(img => img.src);
+    let currentViewerIndex = 0;
+
+    function showImageInViewer(index) {
+        if (index < 0 || index >= galleryImageUrls.length) return;
+        currentViewerIndex = index;
+        fullscreenImage.src = galleryImageUrls[currentViewerIndex];
+        viewerPrevBtn.style.display = galleryImageUrls.length > 1 ? 'block' : 'none';
+        viewerNextBtn.style.display = galleryImageUrls.length > 1 ? 'block' : 'none';
+    }
+
+    imagesToWatch.forEach(img => {
+        img.style.cursor = 'pointer';
+        img.addEventListener('click', function(e) {
+            e.stopPropagation();
+            let clickedIndex = galleryImageUrls.indexOf(this.src);
+            imageViewerModal.style.display = 'block';
+            showImageInViewer(clickedIndex);
+        });
+    });
+
+    function closeImageViewer() {
+        imageViewerModal.style.display = 'none';
+    }
+
+    viewerPrevBtn.addEventListener('click', function(e) {
+        e.stopPropagation();
+        showImageInViewer((currentViewerIndex - 1 + galleryImageUrls.length) % galleryImageUrls.length);
+    });
+
+    viewerNextBtn.addEventListener('click', function(e) {
+        e.stopPropagation();
+        showImageInViewer((currentViewerIndex + 1) % galleryImageUrls.length);
+    });
+
+    imageViewerModal.addEventListener('click', closeImageViewer);
+    document.querySelector('.close-image-viewer').addEventListener('click', function(e) {
+        e.stopPropagation();
+        closeImageViewer();
+    });
+
+    // Keyboard navigation
+    document.addEventListener('keydown', function(e) {
+        if (imageViewerModal.style.display === 'block') {
+            if (e.key === 'Escape') {
+                closeImageViewer();
+            } else if (e.key === 'ArrowLeft') {
+                viewerPrevBtn.click();
+            } else if (e.key === 'ArrowRight') {
+                viewerNextBtn.click();
+            }
+        }
+    });
+
 });
 </script>
 {% endblock %}

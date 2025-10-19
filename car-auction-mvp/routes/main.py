@@ -2,6 +2,7 @@ from flask import Blueprint, render_template, abort
 from flask_login import current_user
 from models.car import Car
 from models.notification import Notification
+from sqlalchemy import or_
 
 main_bp = Blueprint('main', __name__)
 
@@ -34,4 +35,35 @@ def car_detail(car_id):
     if not car.is_approved or car.listing_type != 'sale':
         abort(404)
 
-    return render_template('car_detail_sale.html', car=car)
+    # --- Similar Cars Logic ---
+    similar_cars = []
+    similarity_reason = ""
+    base_query = Car.query.filter(
+        Car.id != car_id,
+        Car.is_approved == True,
+        Car.listing_type == 'sale'
+    )
+
+    # 1. Try same Make and Model
+    similar_cars = base_query.filter(Car.make == car.make, Car.model == car.model).limit(4).all()
+    if similar_cars:
+        similarity_reason = f"More {car.make} {car.model} Models"
+
+    # 2. If not enough, try same Make
+    if not similar_cars:
+        similar_cars = base_query.filter(Car.make == car.make).limit(4).all()
+        if similar_cars:
+            similarity_reason = f"More from {car.make}"
+
+    # 3. As a last resort, show any other cars for sale
+    if not similar_cars:
+        similar_cars = base_query.limit(4).all()
+        if similar_cars:
+            similarity_reason = "Other Cars For Sale"
+
+    return render_template(
+        'car_detail_sale.html',
+        car=car,
+        similar_cars=similar_cars,
+        similarity_reason=similarity_reason
+    )

@@ -113,6 +113,11 @@ def answer_question(question_id):
 @login_required
 def submit_car():
     form = CarSubmissionForm()
+
+    # Dynamically set choices based on user role
+    if not current_user.is_rental_company:
+        form.listing_type.choices = [('auction', 'Auction'), ('sale', 'For Sale (Fixed Price)')]
+
     if form.validate_on_submit():
         # --- Conditional Validation ---
         listing_type = form.listing_type.data
@@ -198,6 +203,10 @@ def edit_car(car_id):
 
     form = CarSubmissionForm(obj=car)
     form.submit.label.text = 'Update Submission'
+
+    # Dynamically set choices based on user role
+    if not current_user.is_rental_company:
+        form.listing_type.choices = [('auction', 'Auction'), ('sale', 'For Sale (Fixed Price)')]
 
     if request.method == 'GET':
         # Pre-populate auction-specific fields

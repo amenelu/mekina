@@ -12,6 +12,10 @@
             <div class="image-gallery">
                 <div class="main-image-container">
                     <img id="main-car-image" src="{{ car.primary_image_url or url_for('static', filename='img/default_car.png') }}" alt="Car Image">
+                    {% if car.images|length > 1 %}
+                        <button id="prev-image-btn" class="gallery-nav prev">&lt;</button>
+                        <button id="next-image-btn" class="gallery-nav next">&gt;</button>
+                    {% endif %}
                 </div>
                 {% if car.images|length > 1 %}
                 <div class="thumbnails">
@@ -61,6 +65,133 @@
                     <li>No special features listed.</li>
                 {% endfor %}
             </ul>
+
+            <hr>
+
+            <h3>{{ similarity_reason or 'Similar Listings' }}</h3>
+            {% if similar_cars %}
+                {% for sim_car in similar_cars %}
+                    <a href="{{ url_for('main.car_detail', car_id=sim_car.id) }}" class="auction-card-link">
+                        <div class="auction-card">
+                            <img src="{{ sim_car.primary_image_url or url_for('static', filename='img/default_car.png') }}" alt="Car Image">
+                            <div class="card-content">
+                                <h4>{{ sim_car.year }} {{ sim_car.make }} {{ sim_car.model }}</h4>
+                                <p>{{ '{:,.2f}'.format(sim_car.fixed_price) }} ETB</p>
+                            </div>
+                        </div>
+                    </a>
+                {% endfor %}
+            {% else %}
+                <p>No other similar cars found.</p>
+            {% endif %}
         </div>
     </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // --- On-page Image Gallery Logic ---
+    const mainImage = document.getElementById('main-car-image');
+    const thumbnails = document.querySelectorAll('.thumbnail-img');
+    const prevBtn = document.getElementById('prev-image-btn');
+    const nextBtn = document.getElementById('next-image-btn');
+
+    if (thumbnails.length > 0) {
+        let imageUrls = Array.from(thumbnails).map(thumb => thumb.src);
+        let currentIndex = 0;
+
+        function updateMainImage(index) {
+            if (index < 0 || index >= imageUrls.length) return;
+            mainImage.src = imageUrls[index];
+            currentIndex = index;
+            thumbnails.forEach((thumb, i) => {
+                thumb.classList.toggle('active', i === index);
+            });
+        }
+
+        thumbnails.forEach((thumb, index) => {
+            thumb.addEventListener('click', function() {
+                updateMainImage(index);
+            });
+        });
+
+        if (prevBtn) {
+            prevBtn.addEventListener('click', function() {
+                let newIndex = (currentIndex - 1 + imageUrls.length) % imageUrls.length;
+                updateMainImage(newIndex);
+            });
+        }
+
+        if (nextBtn) {
+            nextBtn.addEventListener('click', function() {
+                let newIndex = (currentIndex + 1) % imageUrls.length;
+                updateMainImage(newIndex);
+            });
+        }
+        thumbnails[0].classList.add('active'); // Set initial active thumbnail
+    }
+
+    // --- Fullscreen Image Viewer Logic ---
+    const modal = document.getElementById('image-viewer-modal');
+    const modalImg = document.getElementById('fullscreen-image');
+    const viewerPrevBtn = document.getElementById('viewer-prev-btn');
+    const viewerNextBtn = document.getElementById('viewer-next-btn');
+    const imagesToWatch = document.querySelectorAll('.image-gallery img'); // Main image and thumbnails
+    let galleryImageUrls = Array.from(imagesToWatch).map(img => img.src);
+    let currentViewerIndex = 0;
+
+    function showImageInViewer(index) {
+        if (index < 0 || index >= galleryImageUrls.length) return;
+        currentViewerIndex = index;
+        modalImg.src = galleryImageUrls[currentViewerIndex];
+        // Show/hide nav buttons based on whether there are multiple images
+        viewerPrevBtn.style.display = galleryImageUrls.length > 1 ? 'block' : 'none';
+        viewerNextBtn.style.display = galleryImageUrls.length > 1 ? 'block' : 'none';
+    }
+
+    imagesToWatch.forEach(img => {
+        img.style.cursor = 'pointer'; // Make it obvious it's clickable
+        img.addEventListener('click', function(e) {
+            e.stopPropagation(); // Prevent modal from closing immediately
+            let clickedIndex = galleryImageUrls.indexOf(this.src);
+            modal.style.display = 'block';
+            showImageInViewer(clickedIndex);
+        });
+    });
+
+    function closeModal() {
+        modal.style.display = 'none';
+    }
+
+    viewerPrevBtn.addEventListener('click', function(e) {
+        e.stopPropagation();
+        showImageInViewer((currentViewerIndex - 1 + galleryImageUrls.length) % galleryImageUrls.length);
+    });
+
+    viewerNextBtn.addEventListener('click', function(e) {
+        e.stopPropagation();
+        showImageInViewer((currentViewerIndex + 1) % galleryImageUrls.length);
+    });
+
+    // Close when clicking the 'x' or the background
+    modal.addEventListener('click', closeModal);
+    document.querySelector('.close-image-viewer').addEventListener('click', function(e) {
+        e.stopPropagation();
+        closeModal();
+    });
+
+    // Keyboard navigation for the modal
+    document.addEventListener('keydown', function(e) {
+        if (modal.style.display === 'block') {
+            if (e.key === 'Escape') {
+                closeModal();
+            } else if (e.key === 'ArrowLeft') {
+                viewerPrevBtn.click();
+            } else if (e.key === 'ArrowRight') {
+                viewerNextBtn.click();
+            }
+        }
+    });
+});
+</script>
+
 {% endblock %}
