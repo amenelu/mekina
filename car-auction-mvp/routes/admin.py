@@ -94,6 +94,15 @@ def add_car():
     flash('Add car functionality not implemented yet.', 'info')
     return redirect(url_for('admin.dashboard'))
 
+@admin_bp.route('/rentals')
+@login_required
+@admin_required
+def rental_management():
+    """Displays a list of all rental cars for management."""
+    page = request.args.get('page', 1, type=int)
+    rental_cars = Car.query.filter_by(listing_type='rental').order_by(Car.id.desc()).paginate(page=page, per_page=15)
+    return render_template('rental_management.html', cars=rental_cars)
+
 @admin_bp.route('/listing/edit/<int:car_id>', methods=['GET', 'POST'])
 @login_required
 @admin_required

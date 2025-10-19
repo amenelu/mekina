@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+
+{% block title %}Rental Management{% endblock %}
+
+{% block content %}
+    <h1>Rental Listing Management</h1>
+
+    <table>
+        <thead>
+            <tr>
+                <th>Car</th>
+                <th>Owner</th>
+                <th>Status</th>
+                <th>Price per Day</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for car in cars.items %}
+            <tr>
+                <td>{{ car.year }} {{ car.make }} {{ car.model }}</td>
+                <td>{{ car.owner.username }}</td>
+                <td>
+                    {% if car.is_approved %}
+                        <span style="color: hsl(var(--success)); font-weight: bold;">Approved</span>
+                    {% else %}
+                        <span style="color: hsl(var(--warning)); font-weight: bold;">Pending Approval</span>
+                    {% endif %}
+                </td>
+                <td>
+                    {% if car.rental_listing %}
+                        {{ '{:,.2f}'.format(car.rental_listing.price_per_day) }} ETB
+                    {% else %}
+                        N/A
+                    {% endif %}
+                </td>
+                <td class="button-group">
+                    {% if not car.is_approved %}
+                    <form action="{{ url_for('admin.approve_car', car_id=car.id) }}" method="post" style="display:inline;">
+                        <button type="submit" class="btn approve">Approve</button>
+                    </form>
+                    {% endif %}
+                    <a href="{{ url_for('admin.edit_listing', car_id=car.id) }}" class="btn edit">Edit</a>
+                    <form action="{{ url_for('admin.delete_listing', car_id=car.id) }}" method="post" onsubmit="return confirm('Are you sure you want to delete this listing? This cannot be undone.');">
+                        <button type="submit" class="btn delete">Delete</button>
+                    </form>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <div class="pagination">
+        {% if cars.has_prev %}<a href="{{ url_for('admin.rental_management', page=cars.prev_num) }}">&laquo; Previous</a>{% endif %}
+        <span>Page {{ cars.page }} of {{ cars.pages }}</span>
+        {% if cars.has_next %}<a href="{{ url_for('admin.rental_management', page=cars.next_num) }}">Next &raquo;</a>{% endif %}
+    </div>
+{% endblock %}

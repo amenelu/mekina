@@ -103,6 +103,10 @@ nav a:hover {
     color: hsl(var(--accent));
     text-decoration: none;
 }
+nav a.active {
+    color: hsl(var(--accent));
+    font-weight: 700;
+}
 .nav-right {
     display: flex;
     align-items: center;

@@ -261,6 +261,9 @@ def all_listings_api():
                 (Car.listing_type == 'auction') & (Auction.current_price <= max_price)
             )
         )
+    
+    if exclude_type := request.args.get('exclude_listing_type'):
+        query = query.filter(Car.listing_type != exclude_type)
 
     if request.args.get('random') == 'true':
         query = query.order_by(func.random())
