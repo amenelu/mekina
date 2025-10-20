@@ -99,8 +99,10 @@
                     <td>
                         {% if car.auction and car.auction.end_time > now %}
                             Active (Ends: {{ car.auction.end_time.strftime('%Y-%m-%d %H:%M') }})
-                        {% elif car.auction and car.auction.end_time <= now %}
+                        {% elif car.listing_type == 'auction' and car.auction and car.auction.end_time <= now %}
                             Expired
+                        {% elif car.listing_type == 'sale' or car.listing_type == 'rental' %}
+                            Live
                         {% else %}
                             No Auction Yet
                         {% endif %}

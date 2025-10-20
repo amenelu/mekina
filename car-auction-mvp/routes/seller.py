@@ -114,8 +114,12 @@ def answer_question(question_id):
 def submit_car():
     form = CarSubmissionForm()
 
-    # Dynamically set choices based on user role
-    if not current_user.is_rental_company:
+    # Dynamically set choices and default based on user role
+    if current_user.is_rental_company:
+        form.listing_type.choices = [('rental', 'For Rent')]
+        if request.method == 'GET':
+            form.listing_type.data = 'rental' # Pre-select 'rental' for new submissions
+    else:
         form.listing_type.choices = [('auction', 'Auction'), ('sale', 'For Sale (Fixed Price)')]
 
     if form.validate_on_submit():
@@ -233,9 +237,9 @@ def edit_car(car_id):
             auction.current_price = form.start_price.data # Reset current price to new start price
             auction.end_time = form.end_time.data
 
-        # Update equipment
-        car.equipment.clear()
-        for item_name in form.equipment.data:
+        # Update equipment - THIS BLOCK WAS MISSING
+        car.equipment.clear() # Clear old features
+        for item_name in form.equipment.data: # Add new features
             equipment_item = Equipment.query.filter_by(name=item_name).first()
             if equipment_item:
                 car.equipment.append(equipment_item)

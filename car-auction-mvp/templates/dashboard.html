@@ -27,31 +27,38 @@
     <h2>Cars Pending Approval</h2>
 
     {% if cars %}
-        <table>
-            <thead>
-                <tr>
-                    <th>Make</th>
-                    <th>Model</th>
-                    <th>Seller</th>
-                    <th>Action</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for car in cars %}
-                <tr>
-                    <td>{{ car.make }}</td>
-                    <td>{{ car.model }}</td>
-                    <td>{{ car.owner.username }} ({{ car.owner.phone_number or 'No Phone' }})</td>
-                    <td class="button-group">
-                        <form action="{{ url_for('admin.approve_car', car_id=car.id) }}" method="post">
-                            <button type="submit" class="btn approve">Approve</button>
-                        </form>
-                        <a href="{{ url_for('auctions.auction_detail', auction_id=car.auction.id) }}" class="btn edit">View</a>
-                    </td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+        <div class="auction-grid">
+            {% for car in cars %}
+            <div class="auction-card">
+                <span class="listing-type-tag small {{ car.listing_type.lower() }}">{{ car.listing_type|title }}</span>
+                <img src="{{ car.primary_image_url or url_for('static', filename='img/default_car.png') }}" alt="Car Image">
+                <div class="card-content">
+                    <h3>{{ car.year }} {{ car.make }} {{ car.model }}</h3>
+                    <p>Submitted by: <strong>{{ car.owner.username }}</strong></p>
+                </div>
+                <div class="card-footer button-group">
+                    <form action="{{ url_for('admin.approve_car', car_id=car.id) }}" method="post" style="flex-grow: 1;">
+                        <button type="submit" class="btn approve" style="width: 100%;">Approve</button>
+                    </form>
+                    
+                    {% set view_url = '' %}
+                    {% if car.listing_type == 'auction' and car.auction %}
+                        {% set view_url = url_for('auctions.auction_detail', auction_id=car.auction.id) %}
+                    {% elif car.listing_type == 'sale' %}
+                        {% set view_url = url_for('main.car_detail', car_id=car.id) %}
+                    {% elif car.listing_type == 'rental' and car.rental_listing %}
+                        {% set view_url = url_for('rentals.rental_detail', listing_id=car.rental_listing.id) %}
+                    {% endif %}
+
+                    {% if view_url %}
+                        <a href="{{ view_url }}" class="btn edit">View</a>
+                    {% endif %}
+                    
+                    <a href="{{ url_for('admin.edit_listing', car_id=car.id) }}" class="btn edit">Edit</a>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
     {% else %}
         <p>No cars are currently pending approval.</p>
     {% endif %}

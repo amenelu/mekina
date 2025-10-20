@@ -5,6 +5,7 @@ from models.rental_listing import RentalListing
 from models.user import User
 from models.car import Car
 from models.auction import Auction
+from models.notification import Notification
 from models.equipment import Equipment
 from models.car_image import CarImage
 from routes.seller import CarSubmissionForm, save_seller_document
@@ -185,6 +186,19 @@ def edit_listing(car_id):
 def approve_car(car_id):
     car = Car.query.get_or_404(car_id)
     car.is_approved = True
+
+    # --- Notify the seller ---
+    if car.listing_type == 'auction' and car.auction:
+        link = url_for('auctions.auction_detail', auction_id=car.auction.id, _external=True)
+    elif car.listing_type == 'sale':
+        link = url_for('main.car_detail', car_id=car.id, _external=True)
+    elif car.listing_type == 'rental' and car.rental_listing:
+        link = url_for('rentals.rental_detail', listing_id=car.rental_listing.id, _external=True)
+    else:
+        link = url_for('main.home', _external=True)
+    message = f"Congratulations! Your listing for the {car.year} {car.make} {car.model} has been approved and is now live."
+    notification = Notification(user_id=car.owner_id, message=message, link=link)
+    db.session.add(notification)
     db.session.commit()
     flash(f'Car {car.make} {car.model} has been approved.', 'success')
     return redirect(url_for('admin.dashboard'))

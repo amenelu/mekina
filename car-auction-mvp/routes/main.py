@@ -32,7 +32,7 @@ def car_detail(car_id):
     car = Car.query.get_or_404(car_id)
 
     # Security check: Only show approved cars that are for sale
-    if not car.is_approved or car.listing_type != 'sale':
+    if (not car.is_approved and not (current_user.is_authenticated and current_user.is_admin)) or car.listing_type != 'sale':
         abort(404)
 
     # --- Similar Cars Logic ---

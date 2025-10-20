@@ -57,9 +57,8 @@
                 {{ form.equipment.label }}
                 <div class="checkbox-group">
                     {% for subfield in form.equipment %}
-                        <label class="checkbox-label">
-                            {{ subfield(class="checkbox-input") }} {{ subfield.label.text }}
-                        </label>
+                        {{ subfield(class="checkbox-input") }}
+                        {{ subfield.label(class="checkbox-label") }}
                     {% endfor %}
                 </div>
             </div>
@@ -71,9 +70,8 @@
             {{ form.listing_type.label }}
             <div class="radio-button-group">
                 {% for subfield in form.listing_type %}
-                    <label class="radio-button-label">
-                        {{ subfield(class="radio-button-input") }} {{ subfield.label.text }}
-                    </label>
+                    {{ subfield(class="radio-button-input") }}
+                    {{ subfield.label(class="radio-button-label") }}
                 {% endfor %}
             </div>
         </div>

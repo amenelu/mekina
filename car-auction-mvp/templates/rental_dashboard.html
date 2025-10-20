@@ -16,6 +16,7 @@
                     <tr>
                         <th>Car</th>
                         <th>Status</th>
+                        <th>Availability</th>
                         <th>Price per Day</th>
                         <th>Actions</th>
                     </tr>
@@ -31,7 +32,20 @@
                                 <span style="color: hsl(var(--warning)); font-weight: bold;">Pending Approval</span>
                             {% endif %}
                         </td>
-                        <td>{{ '{:,.2f}'.format(car.rental_listing.price_per_day) }} ETB</td>
+                        <td>
+                            {% if car.is_approved and car.rental_listing %}
+                            <label class="switch">
+                                <input type="checkbox" class="availability-toggle" data-listing-id="{{ car.rental_listing.id }}" {% if car.rental_listing.is_available %}checked{% endif %}>
+                                <span class="slider round"></span>
+                            </label>
+                            <span id="status-text-{{ car.rental_listing.id }}" class="availability-text">{% if car.rental_listing.is_available %}Available{% else %}Unavailable{% endif %}</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if car.rental_listing %}
+                                {{ '{:,.2f}'.format(car.rental_listing.price_per_day) }} ETB
+                            {% endif %}
+                        </td>
                         <td>{% if not car.is_approved %}<a href="{{ url_for('seller.edit_car', car_id=car.id) }}">Edit</a>{% endif %}</td>
                     </tr>
                     {% endfor %}
@@ -41,4 +55,33 @@
             <p>You have not listed any cars for rent yet.</p>
         {% endif %}
     </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('.availability-toggle').forEach(toggle => {
+        toggle.addEventListener('change', function() {
+            const listingId = this.dataset.listingId;
+            const statusText = document.getElementById(`status-text-${listingId}`);
+
+            fetch(`/rentals/toggle_availability/${listingId}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    // Include CSRF token if you are using Flask-WTF CSRF protection
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    statusText.textContent = data.is_available ? 'Available' : 'Unavailable';
+                } else {
+                    // Revert the toggle on error
+                    this.checked = !this.checked;
+                    alert(data.message || 'An error occurred.');
+                }
+            });
+        });
+    });
+});
+</script>
 {% endblock %}

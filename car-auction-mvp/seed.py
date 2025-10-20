@@ -82,7 +82,8 @@ with app.app_context():
             elif listing_type == 'rental':
                 new_rental = RentalListing(
                     price_per_day=price,
-                    car_id=new_car.id
+                    car_id=new_car.id,
+                    is_available=True
                 )
                 db.session.add(new_rental)
                 print(f"Created car FOR RENT: {new_car.year} {new_car.make} {new_car.model}")
