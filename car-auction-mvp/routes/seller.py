@@ -258,3 +258,23 @@ def edit_car(car_id):
         return redirect(url_for('seller.dashboard'))
 
     return render_template('submit_car.html', title=f'Edit Submission: {car.year} {car.make}', form=form)
+
+@seller_bp.route('/delete_car/<int:car_id>', methods=['POST'])
+@login_required
+def delete_car(car_id):
+    """Allows a seller or dealer to delete their own car listing."""
+    car = Car.query.get_or_404(car_id)
+
+    # Security check: ensure the current user owns this car
+    if car.owner_id != current_user.id:
+        from flask import abort
+        abort(403)
+
+    # Optional: Add logic here to prevent deletion under certain conditions,
+        # e.g., if an auction has active bids. For now, we allow deletion.
+
+    db.session.delete(car)
+    db.session.commit()
+
+    flash(f'Your listing for the "{car.year} {car.make} {car.model}" has been removed.', 'success')
+    return redirect(url_for('dealer.dashboard'))

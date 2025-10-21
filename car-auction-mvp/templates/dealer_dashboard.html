@@ -35,7 +35,7 @@
                     </tr>
                 </thead>
                 <tbody>
-                    {% for car_request, bid_count, lowest_offer in requests %}
+i                    {% for car_request, bid_count, lowest_offer in requests %}
                     <tr>
                         <td>{{ car_request.created_at.strftime('%b %d, %Y') }}</td>
                         <td>
@@ -108,7 +108,12 @@
                         {% endif %}
                     </td>
                     <td>
-                        {% if not car.is_approved %}<a href="{{ url_for('seller.edit_car', car_id=car.id) }}">Edit</a>{% endif %}
+                        <div class="button-group">
+                            {% if not car.is_approved %}<a href="{{ url_for('seller.edit_car', car_id=car.id) }}" class="btn edit small">Edit</a>{% endif %}
+                            <form action="{{ url_for('seller.delete_car', car_id=car.id) }}" method="post" onsubmit="return confirm('Are you sure you want to permanently delete this listing?');">
+                                <button type="submit" class="btn delete small">Delete</button>
+                            </form>
+                        </div>
                     </td>
                 </tr>
                 {% endfor %}

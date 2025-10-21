@@ -3,14 +3,18 @@
 {% block title %}{{ listing.car.year }} {{ listing.car.make }} {{ listing.car.model }} - For Rent{% endblock %}
 
 {% block content %}
-    {% if current_user.is_authenticated and current_user.is_admin and not listing.car.is_approved %}
+    {% if current_user.is_authenticated and current_user.is_admin %}
     <div class="admin-actions pending">
         <h3>Admin Actions</h3>
-        <p>This car is pending approval. Review the details below and take an action.</p>
+        {% if not listing.car.is_approved %}
+            <p>This car is pending approval. Review the details below and take an action.</p>
+        {% endif %}
         <div class="button-group">
+            {% if not listing.car.is_approved %}
             <form action="{{ url_for('admin.approve_car', car_id=listing.car.id) }}" method="post">
                 <button type="submit" class="approve">Approve</button>
             </form>
+            {% endif %}
             <a href="{{ url_for('admin.edit_listing', car_id=listing.car.id) }}" class="edit">Edit</a>
             <form action="{{ url_for('admin.delete_listing', car_id=listing.car.id) }}" method="post" onsubmit="return confirm('Are you sure you want to delete this submission? This cannot be undone.');">
                 <button type="submit" class="delete">Delete</button>

@@ -43,7 +43,9 @@ def dashboard():
     stats = {
         'user_count': User.query.count(),
         'active_auction_count': Auction.query.filter(Auction.end_time > db.func.now()).count(),
-        'pending_approval_count': Car.query.filter_by(is_approved=False).count()
+        'pending_approval_count': Car.query.filter_by(is_approved=False).count(),
+        'for_sale_count': Car.query.filter_by(listing_type='sale', is_approved=True).count(),
+        'for_rent_count': Car.query.filter_by(listing_type='rental', is_approved=True).count(),
     }
     cars_pending_approval = Car.query.filter_by(is_approved=False).order_by(Car.id.desc()).all()
     return render_template('dashboard.html', stats=stats, cars=cars_pending_approval)
@@ -143,20 +145,35 @@ def edit_listing(car_id):
         car.fuel_type = form.fuel_type.data
 
         # Update listing-specific details
+        original_listing_type = car.listing_type
         car.listing_type = form.listing_type.data
-        if car.listing_type == 'auction' and auction:
-            auction.start_price = form.start_price.data
-            if not auction.bids and form.start_price.data:
-                 auction.current_price = form.start_price.data
-            auction.end_time = form.end_time.data
-        elif car.listing_type == 'sale':
-            # Ensure other listing types are nullified if they exist
-            if auction: auction.start_price = None
-            car.fixed_price = form.fixed_price.data
-        elif car.listing_type == 'rental' and rental:
-            # Ensure other listing types are nullified if they exist
-            if auction: auction.start_price = None
-            rental.price_per_day = form.price_per_day.data
+
+        if original_listing_type != car.listing_type:
+            # Listing type has changed, we need to create/delete associated objects
+            if original_listing_type == 'auction' and auction: db.session.delete(auction)
+            if original_listing_type == 'rental' and rental: db.session.delete(rental)
+            if original_listing_type == 'sale': car.fixed_price = None
+
+            if car.listing_type == 'auction':
+                from datetime import timedelta
+                new_auction = Auction(car_id=car.id, start_price=form.start_price.data, current_price=form.start_price.data, end_time=form.end_time.data or (datetime.utcnow() + timedelta(days=7)))
+                db.session.add(new_auction)
+            elif car.listing_type == 'sale':
+                car.fixed_price = form.fixed_price.data
+            elif car.listing_type == 'rental':
+                new_rental = RentalListing(car_id=car.id, price_per_day=form.price_per_day.data)
+                db.session.add(new_rental)
+        else:
+            # Listing type is the same, just update the values
+            if car.listing_type == 'auction' and auction:
+                auction.start_price = form.start_price.data
+                if not auction.bids and form.start_price.data:
+                     auction.current_price = form.start_price.data
+                auction.end_time = form.end_time.data
+            elif car.listing_type == 'sale':
+                car.fixed_price = form.fixed_price.data
+            elif car.listing_type == 'rental' and rental:
+                rental.price_per_day = form.price_per_day.data
 
         # Update equipment
         car.equipment.clear()
