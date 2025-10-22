@@ -144,6 +144,8 @@ def edit_listing(car_id):
         car.drivetrain = form.drivetrain.data
         car.fuel_type = form.fuel_type.data
 
+        car.is_featured = form.is_featured.data
+
         # Update listing-specific details
         original_listing_type = car.listing_type
         car.listing_type = form.listing_type.data

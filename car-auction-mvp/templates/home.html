@@ -30,6 +30,53 @@
         </div>
     </div>
 
+    {% if featured_cars %}
+    <section class="section featured-section">
+        <div class="container">
+            <div class="section-header">
+                <h2>Featured Listings</h2>
+            </div>
+            <div class="featured-slider">
+                <div class="slides">
+                    {% for car in featured_cars %}
+                    <div class="slide">
+                        {% set detail_url = '#' %}
+                        {% if car.listing_type == 'auction' and car.auction %}
+                            {% set detail_url = url_for('auctions.auction_detail', auction_id=car.auction.id) %}
+                        {% elif car.listing_type == 'sale' %}
+                            {% set detail_url = url_for('main.car_detail', car_id=car.id) %}
+                        {% endif %}
+                        <a href="{{ detail_url }}">
+                            <div class="featured-image-grid">
+                                <div class="featured-large-image">
+                                    <img src="{{ (car.images[0].image_url if car.images else url_for('static', filename='img/default_car.png')) }}" alt="Featured image of {{ car.make }} {{ car.model }}">
+                                </div>
+                                <div class="featured-small-images">
+                                    <img src="{{ (car.images[1].image_url if car.images|length > 1 else url_for('static', filename='img/default_car.png')) }}" alt="Thumbnail 1">
+                                    <img src="{{ (car.images[2].image_url if car.images|length > 2 else url_for('static', filename='img/default_car.png')) }}" alt="Thumbnail 2">
+                                    <img src="{{ (car.images[3].image_url if car.images|length > 3 else url_for('static', filename='img/default_car.png')) }}" alt="Thumbnail 3">
+                                    <img src="{{ (car.images[4].image_url if car.images|length > 4 else url_for('static', filename='img/default_car.png')) }}" alt="Thumbnail 4">
+                                </div>
+                            </div>
+                            <div class="slide-caption">
+                                <h3>{{ car.year }} {{ car.make }} {{ car.model }}</h3>
+                                {% if car.listing_type == 'auction' and car.auction %}
+                                    <p>Auction | Current Bid: {{ '{:,.2f}'.format(car.auction.current_price) }} ETB</p>
+                                {% elif car.listing_type == 'sale' %}
+                                    <p>For Sale | {{ '{:,.2f}'.format(car.fixed_price) }} ETB</p>
+                                {% endif %}
+                            </div>
+                        </a>
+                    </div>
+                    {% endfor %}
+                </div>
+                <button class="slider-nav prev">&lt;</button>
+                <button class="slider-nav next">&gt;</button>
+            </div>
+        </div>
+    </section>
+    {% endif %}
+
     <!-- Live Auctions Section -->
     <section id="auctions" class="section section-light">
         <div class="container">
@@ -72,6 +119,38 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+    // --- Featured Slider Logic ---
+    const slider = document.querySelector('.featured-slider');
+    if (slider) {
+        const slides = slider.querySelector('.slides');
+        const slideCount = slides.children.length;
+        let currentIndex = 0;
+
+        function showSlide(index) {
+            slides.style.transform = `translateX(-${index * 100}%)`;
+        }
+
+        function nextSlide() {
+            currentIndex = (currentIndex + 1) % slideCount;
+            showSlide(currentIndex);
+        }
+
+        function prevSlide() {
+            currentIndex = (currentIndex - 1 + slideCount) % slideCount;
+            showSlide(currentIndex);
+        }
+
+        slider.querySelector('.next').addEventListener('click', nextSlide);
+        slider.querySelector('.prev').addEventListener('click', prevSlide);
+
+        // Auto-play
+        if (slideCount > 1) {
+            setInterval(nextSlide, 5000); // Change slide every 5 seconds
+        }
+    }
+
+
+    // --- Dynamic Search Logic ---
     const gridContainer = document.getElementById('auction-grid-container');
     const noResultsMessage = document.getElementById('no-results-message');
     const searchInput = document.getElementById('search-input');
@@ -121,6 +200,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         cardLink.innerHTML = `
                             <div class="auction-card">
                                 ${listing.owner_role ? `<span class="role-badge ${listing.owner_role.toLowerCase()}">${listing.owner_role}</span>` : ''}
+                                ${listing.is_featured ? `<span class="featured-tag">Featured</span>` : ''}
                                 <span class="listing-type-tag ${listing.listing_type.toLowerCase().replace(' ', '-')}">${listing.listing_type}</span>
                                 <img src="${listing.image_url}" alt="Car Image">
                                 <div class="card-content">

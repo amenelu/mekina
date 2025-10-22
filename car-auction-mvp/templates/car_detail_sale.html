@@ -26,6 +26,9 @@
         <div class="main-content">
             <div class="title-with-tag">
                 <h1>{{ car.year }} {{ car.make }} {{ car.model }}</h1>
+                {% if car.is_featured %}
+                    <span class="featured-tag large">Featured</span>
+                {% endif %}
                 <span class="listing-type-tag large">For Sale</span>
             </div>
             <div class="image-gallery">

@@ -68,6 +68,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         // This card structure can be enhanced to show different details for different listing types
                         cardLink.innerHTML = `
                             <div class="auction-card">
+                                ${listing.is_featured ? `<span class="featured-tag">Featured</span>` : ''}
                                 ${listing.owner_role ? `<span class="role-badge ${listing.owner_role.toLowerCase()}">${listing.owner_role}</span>` : ''}
                                 <span class="listing-type-tag ${listing.listing_type.toLowerCase().replace(' ', '-')}">${listing.listing_type}</span>
                                 <img src="${listing.image_url}" alt="Car Image">

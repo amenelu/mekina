@@ -251,7 +251,8 @@ nav a.active {
 
 /* This is the fix: Override absolute positioning for any large badge in the title */
 .title-with-tag .role-badge.large,
-.title-with-tag .listing-type-tag.large {
+.title-with-tag .listing-type-tag.large,
+.title-with-tag .featured-tag.large {
     position: static;
     font-size: 1rem;
     padding: 6px 12px;
@@ -568,6 +569,90 @@ tbody tr:hover {
     color: hsl(var(--muted-foreground));
 }
 
+/* Featured Slider Section */
+.featured-section {
+    background-color: hsl(var(--background));
+    padding: 4rem 0;
+}
+.featured-slider {
+    position: relative;
+    width: 100%;
+    max-width: 1000px;
+    margin: auto;
+    overflow: hidden;
+    border-radius: var(--radius);
+    box-shadow: var(--shadow-elevated);
+}
+.slides {
+    display: flex;
+    transition: transform 0.5s ease-in-out;
+}
+.slide {
+    min-width: 100%;
+    position: relative;
+}
+.slide a {
+    display: block;
+    text-decoration: none;
+    color: inherit;
+}
+.slide img, .featured-image-grid img {
+    width: 100%;
+    height: 100%;
+    display: block;
+    object-fit: cover;
+}
+
+.featured-image-grid {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    grid-template-rows: 1fr;
+    gap: 5px;
+    height: 450px; /* Set a fixed height for the container */
+    background-color: hsl(var(--card));
+}
+
+.featured-small-images {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: 1fr 1fr;
+    gap: 5px;
+    height: 100%;
+}
+
+.slide-caption {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: linear-gradient(to top, hsl(var(--background) / 0.9), transparent);
+    color: hsl(var(--foreground));
+    padding: 3rem 1.5rem 1.5rem;
+}
+.slide-caption h3 {
+    margin: 0;
+    font-size: 1.5rem;
+}
+.slide-caption p {
+    margin: 0.25rem 0 0;
+    color: hsl(var(--muted-foreground));
+}
+.slider-nav {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    background-color: hsl(var(--background) / 0.5);
+    color: hsl(var(--foreground));
+    border: 1px solid hsl(var(--border));
+    font-size: 1.5rem;
+    cursor: pointer;
+    padding: 8px 12px;
+    border-radius: 50%;
+    z-index: 10;
+}
+.slider-nav.prev { left: 15px; }
+.slider-nav.next { right: 15px; }
+
 /* 9. Responsive Adjustments */
 @media (min-width: 768px) {
     .auction-grid {
@@ -877,4 +962,17 @@ input:checked + .slider:before { transform: translateX(22px); }
 .availability-tag.unavailable {
     background-color: hsl(var(--muted));
     color: hsl(var(--muted-foreground));
+}
+
+.featured-tag {
+    position: absolute;
+    bottom: 10px;
+    right: 10px;
+    background-color: hsl(var(--warning));
+    color: hsl(var(--background));
+    padding: 3px 8px;
+    border-radius: var(--radius);
+    font-size: 0.8em;
+    font-weight: 700;
+    z-index: 1;
 }

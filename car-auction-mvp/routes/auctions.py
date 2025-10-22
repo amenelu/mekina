@@ -291,6 +291,7 @@ def all_listings_api():
             'year': car.year,
             'make': car.make,
             'model': car.model,
+            'is_featured': car.is_featured,
             'image_url': car.primary_image_url or url_for('static', filename='img/default_car.png'),
             'owner_role': (
                 'Admin' if car.owner.is_admin else

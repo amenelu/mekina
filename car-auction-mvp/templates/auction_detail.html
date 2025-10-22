@@ -23,6 +23,9 @@
         <div class="main-content">
             <div class="title-with-tag">
                 <h1>{{ auction.car.year }} {{ auction.car.make }} {{ auction.car.model }}</h1>
+                {% if auction.car.is_featured %}
+                    <span class="featured-tag large">Featured</span>
+                {% endif %}
                 {% if auction.car.owner.is_admin %}
                     <span class="role-badge admin large">Admin Listing</span>
                 {% elif auction.car.owner.is_dealer %}

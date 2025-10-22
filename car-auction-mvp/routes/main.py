@@ -8,7 +8,8 @@ main_bp = Blueprint('main', __name__)
 
 @main_bp.route('/')
 def home():
-    return render_template('home.html')
+    featured_cars = Car.query.filter_by(is_featured=True, is_approved=True).all()
+    return render_template('home.html', featured_cars=featured_cars)
 
 @main_bp.route('/notifications')
 def notifications():

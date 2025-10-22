@@ -12,7 +12,7 @@ from datetime import datetime
 from werkzeug.utils import secure_filename
 
 from flask_wtf import FlaskForm
-from wtforms import StringField, IntegerField, TextAreaField, SubmitField, FloatField, SelectField, SelectMultipleField, widgets, RadioField
+from wtforms import StringField, IntegerField, TextAreaField, SubmitField, FloatField, SelectField, SelectMultipleField, widgets, RadioField, BooleanField
 from wtforms.fields import DateTimeLocalField, MultipleFileField
 from wtforms.validators import DataRequired, Length, NumberRange, Optional
 
@@ -43,6 +43,9 @@ class CarSubmissionForm(FlaskForm):
     fixed_price = FloatField('Sale Price (ETB)', validators=[Optional(), NumberRange(min=1)])
     # Rental Details
     price_per_day = FloatField('Price Per Day (ETB)', validators=[Optional(), NumberRange(min=1)])
+
+    # Admin-only field
+    is_featured = BooleanField('Featured Listing')
 
     submit = SubmitField('Submit')
 

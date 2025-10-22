@@ -88,6 +88,14 @@
             <div class="form-group">{{ form.price_per_day.label }} {{ form.price_per_day() }}</div>
         </div>
 
+        {% if current_user.is_admin %}
+        <hr>
+        <h3>Admin Settings</h3>
+        <div class="form-group checkbox-style">
+            {{ form.is_featured() }} {{ form.is_featured.label }}
+        </div>
+        {% endif %}
+
         {{ form.submit(class='btn approve') }}
     </form>
 
