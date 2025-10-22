@@ -213,6 +213,11 @@ nav a.active {
     display: block; /* Make the link a block-level element */
 }
 
+.auction-card-link:hover {
+    /* This is the fix: explicitly remove underline on hover for cards */
+    text-decoration: none;
+}
+
 /* This rule is now specific to tags inside an auction-card */
 .auction-card .listing-type-tag {
     position: absolute;

@@ -31,8 +31,8 @@ class Car(db.Model):
     fixed_price = db.Column(db.Float, nullable=True) # For 'sale' listing_type
 
     # Relationship
-    auction = db.relationship('Auction', backref='car', uselist=False) # One-to-one relationship with Auction
-    rental_listing = db.relationship('RentalListing', backref='car', uselist=False)
+    auction = db.relationship('Auction', backref='car', uselist=False, cascade="all, delete-orphan")
+    rental_listing = db.relationship('RentalListing', backref='car', uselist=False, cascade="all, delete-orphan")
     images = db.relationship('CarImage', backref='car', lazy=True, cascade="all, delete-orphan") # One-to-many relationship with CarImage
     equipment = db.relationship('Equipment', secondary=car_equipment_association, lazy='subquery', backref=db.backref('cars', lazy=True))
 
