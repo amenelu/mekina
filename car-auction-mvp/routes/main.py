@@ -8,7 +8,7 @@ main_bp = Blueprint('main', __name__)
 
 @main_bp.route('/')
 def home():
-    featured_cars = Car.query.filter_by(is_featured=True, is_approved=True).all()
+    featured_cars = Car.query.filter_by(is_featured=True, is_approved=True, is_active=True).all()
     return render_template('home.html', featured_cars=featured_cars)
 
 @main_bp.route('/notifications')
@@ -42,7 +42,8 @@ def car_detail(car_id):
     base_query = Car.query.filter(
         Car.id != car_id,
         Car.is_approved == True,
-        Car.listing_type == 'sale'
+        Car.listing_type == 'sale',
+        Car.is_active == True
     )
 
     # 1. Try same Make and Model

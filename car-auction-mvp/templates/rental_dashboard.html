@@ -16,6 +16,7 @@
                     <tr>
                         <th>Car</th>
                         <th>Status</th>
+                        <th>Visibility</th>
                         <th>Availability</th>
                         <th>Price per Day</th>
                         <th>Actions</th>
@@ -30,6 +31,15 @@
                                 <span style="color: hsl(var(--success)); font-weight: bold;">Approved & Live</span>
                             {% else %}
                                 <span style="color: hsl(var(--warning)); font-weight: bold;">Pending Approval</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if car.is_approved %}
+                            <label class="switch">
+                                <input type="checkbox" class="visibility-toggle" data-car-id="{{ car.id }}" {% if car.is_active %}checked{% endif %}>
+                                <span class="slider round"></span>
+                            </label>
+                            <span id="status-text-{{ car.id }}" class="availability-text">{% if car.is_active %}Active{% else %}Inactive{% endif %}</span>
                             {% endif %}
                         </td>
                         <td>
@@ -58,7 +68,7 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    document.querySelectorAll('.availability-toggle').forEach(toggle => {
+    document.querySelectorAll('.availability-toggle').forEach(toggle => { // For rental-specific availability
         toggle.addEventListener('change', function() {
             const listingId = this.dataset.listingId;
             const statusText = document.getElementById(`status-text-${listingId}`);
@@ -77,6 +87,27 @@ document.addEventListener('DOMContentLoaded', function() {
                 } else {
                     // Revert the toggle on error
                     this.checked = !this.checked;
+                    alert(data.message || 'An error occurred.');
+                }
+            });
+        });
+    });
+
+    document.querySelectorAll('.visibility-toggle').forEach(toggle => { // For general listing visibility
+        toggle.addEventListener('change', function() {
+            const carId = this.dataset.carId;
+            const statusText = document.getElementById(`status-text-${carId}`);
+
+            fetch(`/seller/toggle_active/${carId}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    statusText.textContent = data.status_text;
+                } else {
+                    this.checked = !this.checked; // Revert toggle on error
                     alert(data.message || 'An error occurred.');
                 }
             });

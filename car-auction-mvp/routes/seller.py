@@ -281,3 +281,20 @@ def delete_car(car_id):
 
     flash(f'Your listing for the "{car.year} {car.make} {car.model}" has been removed.', 'success')
     return redirect(url_for('dealer.dashboard'))
+
+@seller_bp.route('/toggle_active/<int:car_id>', methods=['POST'])
+@login_required
+def toggle_active(car_id):
+    """Toggles the active/visible status of a listing."""
+    car = Car.query.get_or_404(car_id)
+
+    # Security check: only owner or admin can toggle
+    if car.owner_id != current_user.id and not current_user.is_admin:
+        return jsonify({'status': 'error', 'message': 'Permission denied.'}), 403
+
+    car.is_active = not car.is_active
+    db.session.commit()
+
+    status_text = 'Active' if car.is_active else 'Inactive'
+    flash(f'Listing for "{car.year} {car.make} {car.model}" is now {status_text.lower()}.', 'success')
+    return jsonify({'status': 'success', 'is_active': car.is_active, 'status_text': status_text})

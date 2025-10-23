@@ -44,8 +44,7 @@ def toggle_availability(listing_id):
 @rentals_bp.route('/')
 def list_rentals():
     """Displays a list of all cars available for rent."""
-    # This is a placeholder page. You can build a full-featured rental list later.
-    listings = RentalListing.query.join(Car).filter(Car.is_approved == True).all()
+    listings = RentalListing.query.join(Car).filter(Car.is_approved == True, Car.is_active == True).all()
     return render_template('rental_list.html', listings=listings)
 
 @rentals_bp.route('/<int:listing_id>')

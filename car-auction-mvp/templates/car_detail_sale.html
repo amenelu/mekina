@@ -22,6 +22,22 @@
         </div>
     </div>
     {% endif %}
+
+    {% if car.is_approved and current_user.is_authenticated and (current_user.is_admin or current_user.id == car.owner_id) %}
+    <div class="owner-actions">
+        <h4>Manage Listing</h4>
+        <div class="visibility-control">
+            <span>Visibility:</span>
+            <label class="switch">
+                <input type="checkbox" class="visibility-toggle" data-car-id="{{ car.id }}" {% if car.is_active %}checked{% endif %}>
+                <span class="slider round"></span>
+            </label>
+            <span id="status-text-{{ car.id }}" class="availability-text">{% if car.is_active %}Active{% else %}Inactive{% endif %}</span>
+            <span style="margin-left: auto; font-size: 0.9em; color: hsl(var(--muted-foreground));">(Inactive listings are hidden from public view)</span>
+        </div>
+    </div>
+    {% endif %}
+
     <div class="detail-page-container">
         <div class="main-content">
             <div class="title-with-tag">
@@ -212,6 +228,28 @@ document.addEventListener('DOMContentLoaded', function() {
                 viewerNextBtn.click();
             }
         }
+    });
+
+    // Visibility toggle logic
+    document.querySelectorAll('.visibility-toggle').forEach(toggle => {
+        toggle.addEventListener('change', function() {
+            const carId = this.dataset.carId;
+            const statusText = document.getElementById(`status-text-${carId}`);
+
+            fetch(`/seller/toggle_active/${carId}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    statusText.textContent = data.status_text;
+                } else {
+                    this.checked = !this.checked; // Revert toggle on error
+                    alert(data.message || 'An error occurred.');
+                }
+            });
+        });
     });
 });
 </script>

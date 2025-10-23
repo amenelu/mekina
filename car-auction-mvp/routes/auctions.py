@@ -53,7 +53,8 @@ def list_auctions():
     if current_user.is_authenticated and current_user.is_admin:
         # Admin view: show all auctions, ordered by end time
         # Change: Fetch all approved cars, not just auctions.
-        cars = Car.query.filter(Car.is_approved == True).order_by(Car.id.desc()).paginate(page=page, per_page=10)
+        # Admin sees all cars, regardless of active status
+        cars = Car.query.order_by(Car.id.desc()).paginate(page=page, per_page=10)
         return render_template(
             'listing_management.html', 
             cars=cars, 
@@ -118,7 +119,8 @@ def auction_detail(auction_id):
     base_query = Auction.query.join(Car).filter(
         Auction.id != auction_id,
         Car.is_approved == True,
-        Auction.end_time > datetime.utcnow()
+        Auction.end_time > datetime.utcnow(),
+        Car.is_active == True
     )
 
     # 1. Try same Make and Model
@@ -235,7 +237,10 @@ def filter_auctions_api():
 @auctions_bp.route('/api/all_listings')
 def all_listings_api():
     """API endpoint to return all types of listings (auctions, rentals, etc.) as JSON."""
-    query = Car.query.options(db.joinedload(Car.auction), db.joinedload(Car.rental_listing)).filter(Car.is_approved == True)
+    query = Car.query.options(db.joinedload(Car.auction), db.joinedload(Car.rental_listing)).filter(
+        Car.is_approved == True,
+        Car.is_active == True
+    )
 
     # This is a simplified filter for the generic listings page.
     # It can be expanded later to include more car-specific attributes.

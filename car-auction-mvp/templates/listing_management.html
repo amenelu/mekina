@@ -11,6 +11,7 @@
                 <th>Car</th>
                 <th>Owner</th>
                 <th>Listing Type</th>
+                <th>Visibility</th>
                 <th>Price / Status</th>
                 <th>Actions</th>
             </tr>
@@ -34,6 +35,13 @@
                 </td>
                 <td>
                     <span class="listing-type-tag small {{ car.listing_type.lower() }}">{{ car.listing_type|title }}</span>
+                </td>
+                <td>
+                    <label class="switch">
+                        <input type="checkbox" class="visibility-toggle" data-car-id="{{ car.id }}" {% if car.is_active %}checked{% endif %}>
+                        <span class="slider round"></span>
+                    </label>
+                    <span id="status-text-{{ car.id }}" class="availability-text">{% if car.is_active %}Active{% else %}Inactive{% endif %}</span>
                 </td>
                 <td>
                     {% if car.listing_type == 'auction' and car.auction %}
@@ -71,11 +79,35 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+    // Make table rows clickable
     document.querySelectorAll('tr[data-href]').forEach(row => {
         row.addEventListener('click', function(e) {
             // Don't navigate if a button or link inside the row was clicked
-            if (e.target.closest('a, button')) return;
+            if (e.target.closest('a, button, .switch')) return;
             window.location.href = this.dataset.href;
+        });
+    });
+
+    // Handle the visibility toggle
+    document.querySelectorAll('.visibility-toggle').forEach(toggle => {
+        toggle.addEventListener('change', function() {
+            const carId = this.dataset.carId;
+            const statusText = document.getElementById(`status-text-${carId}`);
+
+            fetch(`/seller/toggle_active/${carId}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    statusText.textContent = data.status_text;
+                    // Optionally, you can show a flash message dynamically, but a page reload on next navigation will show it.
+                } else {
+                    this.checked = !this.checked; // Revert toggle on error
+                    alert(data.message || 'An error occurred.');
+                }
+            });
         });
     });
 });

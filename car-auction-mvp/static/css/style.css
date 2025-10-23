@@ -981,3 +981,18 @@ input:checked + .slider:before { transform: translateX(22px); }
     font-weight: 700;
     z-index: 1;
 }
+
+/* 16. Owner Actions on Detail Pages */
+.owner-actions {
+    background-color: hsl(var(--secondary));
+    border: 1px solid hsl(var(--border));
+    padding: 20px;
+    margin-bottom: 20px;
+    border-radius: var(--radius);
+}
+.owner-actions h4 { margin-top: 0; }
+.visibility-control {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}

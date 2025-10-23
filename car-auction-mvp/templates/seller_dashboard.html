@@ -16,6 +16,7 @@
                 <tr>
                     <th>Car</th>
                     <th>Status</th>
+                    <th>Visibility</th>
                     <th>Auction Status</th>
                     <th>Actions</th>
                 </tr>
@@ -29,6 +30,15 @@
                             <span style="color: hsl(var(--success)); font-weight: bold;">Approved</span>
                         {% else %}
                             <span style="color: hsl(var(--warning)); font-weight: bold;">Pending Approval</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if car.is_approved %}
+                        <label class="switch">
+                            <input type="checkbox" class="visibility-toggle" data-car-id="{{ car.id }}" {% if car.is_active %}checked{% endif %}>
+                            <span class="slider round"></span>
+                        </label>
+                        <span id="status-text-{{ car.id }}" class="availability-text">{% if car.is_active %}Active{% else %}Inactive{% endif %}</span>
                         {% endif %}
                     </td>
                     <td>
@@ -51,6 +61,32 @@
     {% else %}
         <p>You have not submitted any cars yet.</p>
     {% endif %}
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Handle the visibility toggle
+    document.querySelectorAll('.visibility-toggle').forEach(toggle => {
+        toggle.addEventListener('change', function() {
+            const carId = this.dataset.carId;
+            const statusText = document.getElementById(`status-text-${carId}`);
+
+            fetch(`/seller/toggle_active/${carId}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    statusText.textContent = data.status_text;
+                } else {
+                    this.checked = !this.checked; // Revert toggle on error
+                    alert(data.message || 'An error occurred.');
+                }
+            });
+        });
+    });
+});
+</script>
 
     <h2 style="margin-top: 40px;">My Unanswered Questions</h2>
     {% if unanswered_questions %}

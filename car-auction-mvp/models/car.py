@@ -20,6 +20,7 @@ class Car(db.Model):
     service_history_url = db.Column(db.String(200), nullable=True)
     inspection_report_url = db.Column(db.String(200), nullable=True)
     is_approved = db.Column(db.Boolean, default=False, nullable=False)
+    is_active = db.Column(db.Boolean, default=True, nullable=False)
     is_featured = db.Column(db.Boolean, default=False, nullable=False)
     transmission = db.Column(db.String(50))
     drivetrain = db.Column(db.String(50))
