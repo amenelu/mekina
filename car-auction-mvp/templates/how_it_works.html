@@ -4,7 +4,7 @@
 
 {% block content %}
     <h1>How Mekina Works</h1>
-    <p class="section-header" style="text-align: left; max-width: 800px; margin-left: 0; margin-bottom: 3rem;">Our platform is designed to be the simplest and most transparent way to buy or sell cars in Ethiopia. Whether you're a buyer looking for your dream car or a seller ready to find a new home for your vehicle, here’s how it works.</p>
+    <p class="section-header" style="text-align: left; max-width: 800px; margin-left: 0; margin-bottom: 3rem;">Our platform is designed to be the simplest and most transparent way to buy, sell, or rent cars in Ethiopia. Whether you're a buyer looking for your dream car or a seller ready to find a new home for your vehicle, here’s how it works.</p>
 
     <div class="how-it-works-container">
         <h2 class="section-title">For Buyers</h2>
@@ -12,7 +12,7 @@
             <div class="step-number">1</div>
             <div class="step-content">
                 <h3>Find Your Car in Two Ways</h3>
-                <p><strong>Browse Listings:</strong> Explore live auctions, fixed-price sales, and rental cars on our comprehensive <a href="{{ url_for('main.all_listings') }}">All Listings</a> page. <br><strong>Submit a Request:</strong> Can't find it? Use our <a href="{{ url_for('request.start_request') }}">Car Request</a> feature. Tell us exactly what you want, or let our guided process help you decide. Our network of verified dealers will then send you tailored offers.</p>
+                <p><strong>Browse Listings:</strong> Discover our curated <strong>Featured Listings</strong> on the homepage, or explore all live auctions, fixed-price sales, and rental cars on our comprehensive <a href="{{ url_for('main.all_listings') }}">All Listings</a> page. <br><strong>Submit a Request:</strong> Can't find it? Use our <a href="{{ url_for('request.start_request') }}">Car Request</a> feature. Tell us exactly what you want, or let our guided process help you decide. Our network of verified dealers will then send you tailored offers.</p>
             </div>
         </div>
         <div class="step-card">
@@ -44,14 +44,14 @@
             <div class="step-number">2</div>
             <div class="step-content">
                 <h3>Admin Review</h3>
-                <p>Our team reviews every submission to ensure quality and accuracy. You can edit your submission from your dashboard until it is approved.</p>
+                <p>Our team reviews every submission to ensure quality and accuracy. You can edit your submission from your dashboard until it is approved. Admins may also mark your car as a "Featured" listing to give it special prominence on the homepage!</p>
             </div>
         </div>
         <div class="step-card">
             <div class="step-number">3</div>
             <div class="step-content">
-                <h3>Engage with Buyers</h3>
-                <p>Once your listing is live, answer questions from potential buyers directly on your listing page. Dealers can also browse customer requests and place offers to win new business.</p>
+                <h3>Manage Your Listing</h3>
+                <p>Once your listing is live, you have full control. From your dashboard or the listing page itself, you can use the visibility toggle to temporarily hide your listing from the public without deleting it. You can also answer questions from potential buyers to build trust and provide clarity.</p>
             </div>
         </div>
 
@@ -62,14 +62,14 @@
             <div class="step-number">1</div>
             <div class="step-content">
                 <h3>List Your Fleet</h3>
-                <p>From your dedicated <a href="{{ url_for('rentals.dashboard') }}">Rental Dashboard</a>, use the submission form to list vehicles available for rent. Our team will review and approve your listings.</p>
+                <p>From your dedicated <a href="{{ url_for('rentals.dashboard') }}">Rental Dashboard</a>, the submission form is automatically configured for rentals. Simply provide your vehicle details and photos, and our team will review and approve your listings.</p>
             </div>
         </div>
         <div class="step-card">
             <div class="step-number">2</div>
             <div class="step-content">
                 <h3>Manage Your Listings</h3>
-                <p>Your dashboard provides a clear overview of all your rental cars and their approval status. Once live, customers can see your vehicles on the "All Listings" and "Rentals" pages and contact you directly.</p>
+                <p>Your dashboard gives you two levels of control. Use the <strong>Availability</strong> toggle to mark a car as temporarily booked, and use the <strong>Visibility</strong> toggle to hide the listing from the public entirely. Once live, customers can see your vehicles and contact you directly.</p>
             </div>
         </div>
     </div>

@@ -17,8 +17,16 @@
                 <label>{{ field.label.text }}</label>
                 <div class="radio-button-group">
                     {% for subfield in field %}
+                        {# Manually construct the input and label to ensure correct values #}
                         {{ subfield(class="radio-button-input") }}
-                        {{ subfield.label(class="radio-button-label") }}
+                        {% if field.name == 'body_type' %}
+                            <label for="{{ subfield.id }}" class="radio-button-label with-icon">
+                                <img src="{{ url_for('static', filename='img/body-styles/' + subfield.label.text|lower|replace(' ', '-') + '.png') }}" alt="{{ subfield.label.text }} icon">
+                                <span>{{ subfield.label.text }}</span>
+                            </label>
+                        {% else %}
+                            {{ subfield.label(class="radio-button-label") }}
+                        {% endif %}
                     {% endfor %}
                 </div>
                 {% for error in field.errors %}<div class="form-error">{{ error }}</div>{% endfor %}
