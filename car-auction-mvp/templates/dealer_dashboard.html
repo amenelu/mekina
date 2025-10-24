@@ -1,5 +1,22 @@
 {% extends "base.html" %}
 
+{% macro display_request_notes(notes) %}
+    {% set lines = notes.split('\n') %}
+    <ul class="request-notes-list">
+    {% for line in lines %}
+        {% if line.strip() and ':' in line %}
+            {% set parts = line.split(':', 1) %}
+            <li>
+                <strong>{{ parts[0].replace('-', '').strip() }}:</strong>
+                <span>{{ parts[1].strip() }}</span>
+            </li>
+        {% elif line.strip() %}
+            <li>{{ line.strip() }}</li>
+        {% endif %}
+    {% endfor %}
+    </ul>
+{% endmacro %}
+
 {% block title %}Dealer Dashboard{% endblock %}
 
 {# This block shows how you would add the notification link to your base template's navigation #}
@@ -44,7 +61,12 @@
                             {% else %}
                                 <em>General Request</em>
                             {% endif %}
-                            <blockquote class="compact">{{ car_request.notes|truncate(100) }}</blockquote>
+                            {% if car_request.make and car_request.model %}
+                                <blockquote class="compact">{{ car_request.notes|truncate(100) }}</blockquote>
+                            {% else %}
+                                {# This is a "help me decide" request, so format the notes #}
+                                {{ display_request_notes(car_request.notes) }}
+                            {% endif %}
                         </td>
                         <td>
                             {% if bid_count and bid_count > 0 %}

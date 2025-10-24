@@ -1067,3 +1067,31 @@ input:checked + .slider:before { transform: translateX(22px); }
     align-items: center;
 }
 .valid-until { font-size: 0.9em; color: hsl(var(--muted-foreground)); }
+
+/* 18. Request Notes List on Dealer Dashboard */
+.request-notes-list {
+    list-style: none;
+    padding: 0;
+    margin: 0.5rem 0 0 0;
+    font-size: 0.9em;
+}
+.request-notes-list li {
+    color: hsl(var(--muted-foreground));
+}
+.request-notes-list li strong {
+    color: hsl(var(--foreground));
+}
+
+/* 18. Request Notes List on Dealer Dashboard */
+.request-notes-list {
+    list-style: none;
+    padding: 0;
+    margin: 0.5rem 0 0 0;
+    font-size: 0.9em;
+}
+.request-notes-list li {
+    color: hsl(var(--muted-foreground));
+}
+.request-notes-list li strong {
+    color: hsl(var(--foreground));
+}

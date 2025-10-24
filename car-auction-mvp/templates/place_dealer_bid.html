@@ -1,5 +1,20 @@
 {% extends "base.html" %}
 
+{% macro display_request_notes(notes) %}
+    {% set lines = notes.split('\n') %}
+    <ul class="request-notes-list">
+    {% for line in lines %}
+        {% if line.strip() and ':' in line %}
+            {% set parts = line.split(':', 1) %}
+            <li>
+                <strong>{{ parts[0].replace('-', '').strip() }}:</strong>
+                <span>{{ parts[1].strip() }}</span>
+            </li>
+        {% endif %}
+    {% endfor %}
+    </ul>
+{% endmacro %}
+
 {% block title %}Place Offer on Request{% endblock %}
 
 {% block content %}
@@ -7,11 +22,15 @@
 
     <div class="question-context">
         <h3>Request Details</h3>
-        <p><strong>Make:</strong> {{ car_request.make or 'Any' }}</p>
-        <p><strong>Model:</strong> {{ car_request.model or 'Any' }}</p>
-        <p><strong>Minimum Year:</strong> {{ car_request.min_year or 'Any' }}</p>
-        <p><strong>Notes:</strong></p>
-        <blockquote>{{ car_request.notes or 'None' }}</blockquote>
+        {% if car_request.make and car_request.model %}
+            <p><strong>Make:</strong> {{ car_request.make }}</p>
+            <p><strong>Model:</strong> {{ car_request.model }}</p>
+            <p><strong>Minimum Year:</strong> {{ car_request.min_year or 'Any' }}</p>
+            <p><strong>Notes:</strong></p>
+            <blockquote>{{ car_request.notes or 'None' }}</blockquote>
+        {% else %}
+            {{ display_request_notes(car_request.notes) }}
+        {% endif %}
     </div>
 
     <form method="POST" action="">
