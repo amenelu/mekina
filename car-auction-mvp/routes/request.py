@@ -140,9 +140,32 @@ def step4_notes():
         )
         db.session.add(new_req)
         db.session.commit()
-        session.pop('car_request_data', None) # Clean up session
-        flash("Dealers will contact you with their offers. Thank you!", 'success')
-        return redirect(url_for('main.home'))
+        session.pop('car_request_data', None)
+
+        # --- Check for matching cars and redirect ---
+        filter_params = {
+            'make': data.get('make'),
+            'model': data.get('model'),
+            'min_year': data.get('min_year')
+        }
+
+        from models.car import Car
+        query = Car.query.filter(Car.is_approved==True, Car.is_active==True, Car.listing_type != 'rental')
+        if make := filter_params.get('make'):
+            query = query.filter(Car.make.ilike(f'%{make}%'))
+        if model := filter_params.get('model'):
+            query = query.filter(Car.model.ilike(f'%{model}%'))
+        if min_year := filter_params.get('min_year'):
+            query = query.filter(Car.year >= min_year)
+
+        if query.first():
+            flash("We've found some cars that match your preferences! Dealers will also be notified of your request.", 'success')
+        else:
+            flash("Your request has been sent to our dealers! While we couldn't find an immediate match, they will contact you with offers soon.", 'success')
+
+        filter_params['exclude_listing_type'] = 'rental'
+        return redirect(url_for('main.all_listings', **{k: v for k, v in filter_params.items() if v}))
+
     return render_template('request_step.html', form=form, title="Find a Car (4/4)")
 
 # --- New Routes for Guided Path ---
@@ -225,15 +248,30 @@ def step_guided_brand():
         db.session.add(new_req)
         db.session.commit()
         session.pop('car_request_data', None)
-        flash("We've found some cars that match your preferences! Dealers will also be notified of your request.", 'success')
 
         # Redirect to the filtered "All Listings" page, not just auctions
         filter_params = {
             'body_type': data.get('body_type'), 
             'fuel_type': data.get('fuel_type'), 
             'make': form.brand.data or data.get('brand'),
-            'exclude_listing_type': 'rental' # Exclude rentals from suggestions
         }
+
+        # --- Check for matching cars before flashing message ---
+        from models.car import Car
+        query = Car.query.filter(Car.is_approved==True, Car.is_active==True, Car.listing_type != 'rental')
+        if body_type := filter_params.get('body_type'):
+            query = query.filter(Car.body_type == body_type)
+        if fuel_type := filter_params.get('fuel_type'):
+            query = query.filter(Car.fuel_type == fuel_type)
+        if make := filter_params.get('make'):
+            query = query.filter(Car.make.ilike(f'%{make}%'))
+        
+        if query.first():
+            flash("We've found some cars that match your preferences! Dealers will also be notified of your request.", 'success')
+        else:
+            flash("Your request has been sent to our dealers! While we couldn't find an immediate match, they will contact you with offers soon.", 'success')
+
+        filter_params['exclude_listing_type'] = 'rental'
         return redirect(url_for('main.all_listings', **{k: v for k, v in filter_params.items() if v}))
     return render_template('request_step.html', form=form, title="Help Us Decide (5/5)")
 

@@ -1,7 +1,8 @@
 from flask import Blueprint, render_template, abort
-from flask_login import current_user
+from flask_login import current_user, login_required
 from models.car import Car
 from models.notification import Notification
+from models import db
 from sqlalchemy import or_
 
 main_bp = Blueprint('main', __name__)
@@ -12,9 +13,15 @@ def home():
     return render_template('home.html', featured_cars=featured_cars)
 
 @main_bp.route('/notifications')
+@login_required
 def notifications():
-    # A placeholder for a future notifications page
-    user_notifications = Notification.query.filter_by(user_id=current_user.id).order_by(Notification.timestamp.desc()).all()
+    """Displays a user's notifications and marks them as read."""
+    # Mark all unread notifications as read when the user visits the page
+    unread = Notification.query.filter_by(user_id=current_user.id, is_read=False)
+    for notification in unread:
+        notification.is_read = True
+    db.session.commit()
+    user_notifications = Notification.query.filter_by(user_id=current_user.id).order_by(Notification.timestamp.desc()).limit(50).all()
     return render_template('notifications.html', notifications=user_notifications)
 
 @main_bp.route('/how-it-works')

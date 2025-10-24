@@ -126,6 +126,13 @@ def place_bid(request_id):
         # Deduct one point from the dealer's account
         current_user.points -= 1
 
+        # --- Notify the customer who made the request ---
+        request_description = f"'{car_request.make} {car_request.model}'" if car_request.make else f"request #{car_request.id}"
+        notification_message = f"A dealer has placed an offer on your {request_description}."
+        link = url_for('request.request_detail', request_id=car_request.id, _external=True)
+        notification = Notification(user_id=car_request.user_id, message=notification_message, link=link)
+        db.session.add(notification)
+
         db.session.commit()
 
         flash(f'Your offer of {form.price.data:,.2f} ETB has been sent to the customer!', 'success')
