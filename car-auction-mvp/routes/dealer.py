@@ -30,14 +30,21 @@ def dealer_required(f):
 
 class DealerBidForm(FlaskForm):
     price = FloatField('Offer Price (ETB)', validators=[DataRequired(), NumberRange(min=1)])
+    make = StringField('Car Make', validators=[DataRequired()])
+    model = StringField('Car Model', validators=[DataRequired()])
     car_year = IntegerField('Car Year', validators=[DataRequired(), NumberRange(min=1900, max=datetime.now().year + 1)])
-    mileage = IntegerField('Mileage (km)', validators=[DataRequired(), NumberRange(min=0)])
     condition = SelectField('Condition', choices=[('New', 'New'), ('Used', 'Used')], validators=[DataRequired()])
+    mileage = IntegerField('Mileage (km)', validators=[Optional(), NumberRange(min=0)])
     availability = SelectField('Availability', choices=[('In Stock', 'In Stock'), ('Available on Order', 'Available on Order')], validators=[DataRequired()])
     valid_until = DateField('Offer Valid Until', format='%Y-%m-%d', validators=[DataRequired()])
     extras = TextAreaField('Extras (e.g., free service, floor mats)', validators=[Optional(), Length(max=500)])
     message = TextAreaField('Message to Customer (Optional)', validators=[Optional(), Length(max=1000)])
     submit = SubmitField('Submit Offer')
+
+    def validate_mileage(self, field):
+        """Custom validator to make mileage required only for used cars."""
+        if self.condition.data == 'Used' and field.data is None:
+            raise validators.ValidationError('Mileage is required for used cars.')
 
 class RequestAnswerForm(FlaskForm):
     answer_text = TextAreaField('Your Answer', validators=[DataRequired(), Length(min=5)])
@@ -111,8 +118,10 @@ def place_bid(request_id):
 
         new_bid = DealerBid(
             price=form.price.data,
+            make=form.make.data,
+            model=form.model.data,
             car_year=form.car_year.data,
-            mileage=form.mileage.data,
+            mileage=form.mileage.data or 0, # Default to 0 if condition is 'New' and mileage is empty
             condition=form.condition.data,
             availability=form.availability.data,
             valid_until=form.valid_until.data,

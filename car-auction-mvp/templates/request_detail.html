@@ -14,6 +14,7 @@
         </div>
     </div>
     <div class="offer-details-grid">
+        <div><strong>Car:</strong> {{ bid.make }} {{ bid.model }}</div>
         <div><strong>Year:</strong> {{ bid.car_year }}</div>
         <div><strong>Condition:</strong> {{ bid.condition }}</div>
         <div><strong>Mileage:</strong> {{ '{:,}'.format(bid.mileage) }} km</div>

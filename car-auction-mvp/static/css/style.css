@@ -1024,3 +1024,46 @@ input:checked + .slider:before { transform: translateX(22px); }
     align-items: center;
     gap: 10px;
 }
+
+/* 17. Request Detail Page */
+.offer-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+.offer-card {
+    background-color: hsl(var(--secondary));
+    border: 2px solid hsl(var(--border)); /* Set a default border */
+    padding: 20px;
+    border-radius: var(--radius);
+    transition: border-color 0.3s;
+}
+.offer-card.lowest-bid-highlight {
+    border-color: hsl(var(--accent));
+}
+.offer-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid hsl(var(--border));
+}
+.offer-price { font-size: 1.5rem; font-weight: 700; }
+.offer-meta { text-align: right; color: hsl(var(--muted-foreground)); font-size: 0.9em; }
+.offer-meta span { display: block; }
+.offer-details-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 0.5rem 1.5rem;
+    margin-bottom: 1rem;
+}
+.offer-footer {
+    margin-top: 1.5rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid hsl(var(--border));
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+.valid-until { font-size: 0.9em; color: hsl(var(--muted-foreground)); }

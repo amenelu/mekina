@@ -8,6 +8,9 @@ class DealerBid(db.Model):
     status = db.Column(db.String(20), nullable=False, default='pending') # e.g., pending, accepted, rejected
     
     # --- New fields for detailed offer ---
+    # These fields are added to specify the exact car being offered.
+    make = db.Column(db.String(64), nullable=False)
+    model = db.Column(db.String(64), nullable=False)
     availability = db.Column(db.String(50), nullable=False)
     car_year = db.Column(db.Integer, nullable=False)
     mileage = db.Column(db.Integer, nullable=False)
