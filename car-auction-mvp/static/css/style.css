@@ -1082,6 +1082,47 @@ input:checked + .slider:before { transform: translateX(22px); }
     color: hsl(var(--foreground));
 }
 
+/* 19. Deal Summary Page */
+.deal-summary-card {
+    background-color: hsl(var(--secondary));
+    border: 1px solid hsl(var(--border));
+    padding: 2rem;
+    border-radius: var(--radius);
+    max-width: 900px;
+    margin: 2rem auto;
+}
+
+.deal-header {
+    text-align: center;
+    border-bottom: 1px solid hsl(var(--border));
+    padding-bottom: 1.5rem;
+    margin-bottom: 1.5rem;
+}
+.deal-header h2 {
+    margin: 0;
+    font-size: 2rem;
+    color: hsl(var(--accent));
+}
+.deal-header span {
+    color: hsl(var(--muted-foreground));
+}
+
+.deal-parties {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 2rem;
+    margin-bottom: 1.5rem;
+    padding-bottom: 1.5rem;
+    border-bottom: 1px solid hsl(var(--border));
+}
+.party h3 {
+    margin-top: 0;
+}
+
+.offer-details h3 {
+    margin-top: 0;
+}
+
 /* 18. Request Notes List on Dealer Dashboard */
 .request-notes-list {
     list-style: none;
