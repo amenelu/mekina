@@ -3,47 +3,73 @@
 {% block title %}{{ car.year }} {{ car.make }} {{ car.model }}{% endblock %}
 
 {% block content %}
-<div class="auction-detail-container">
+<div class="detail-page-container">
     <div class="main-content">
         <h1>{{ car.year }} {{ car.make }} {{ car.model }}</h1>
-        <div class="auction-images">
+        <div class="image-gallery">
+            <div class="main-image-container">
+                <img id="main-car-image" src="{{ car.primary_image_url or url_for('static', filename='img/default_car.png') }}" alt="Primary image of {{ car.make }} {{ car.model }}">
+            </div>
             {% if car.images %}
-                <img src="{{ car.primary_image_url }}" alt="Primary image of {{ car.make }} {{ car.model }}" class="primary-image">
-                <div class="thumbnail-strip">
+                <div class="thumbnails">
                     {% for image in car.images %}
-                        <img src="{{ image.image_url }}" alt="Thumbnail of {{ car.make }} {{ car.model }}">
+                        <img src="{{ image.image_url }}" class="thumbnail-img" alt="Thumbnail of {{ car.make }} {{ car.model }}">
                     {% endfor %}
                 </div>
-            {% else %}
-                <img src="{{ url_for('static', filename='img/default_car.png') }}" alt="Default car image" class="primary-image">
             {% endif %}
         </div>
 
-        <div class="auction-description">
-            <h2>Description</h2>
-            <p>{{ car.description|safe }}</p>
-        </div>
+        <h2>Vehicle Details</h2>
+        <p>{{ car.description }}</p>
+        <hr>
+        <h3>Price: {{ '{:,.2f}'.format(car.fixed_price) }} ETB</h3>
+        <p>This is a fixed-price listing. Contact the seller to purchase.</p>
     </div>
 
     <div class="sidebar">
-        <div class="bid-box">
-            <h3>Fixed Price</h3>
-            <div class="current-price">{{ '{:,.2f}'.format(car.fixed_price) }} ETB</div>
-            <p>This vehicle is available for immediate purchase at the price shown.</p>
-            <button class="btn approve" style="width: 100%;">Contact Seller</button> {# Future feature #}
+        <div class="contact-seller-box">
+            <h4>Interested? Contact the Seller</h4>
+            <p><strong>Seller:</strong> {{ car.owner.username }}</p>
+            <p><strong>Email:</strong> {{ car.owner.email }}</p>
+            {% if car.owner.phone_number %}
+            <p><strong>Phone:</strong> {{ car.owner.phone_number }}</p>
+            {% endif %}
         </div>
 
-        <div class="car-specs">
-            <h3>Vehicle Details</h3>
+        <div class="info-columns">
+            <h3>Specifications</h3>
             <ul>
-                <li><strong>Year:</strong> {{ car.year }}</li>
                 <li><strong>Condition:</strong> {{ car.condition }}</li>
                 <li><strong>Mileage:</strong> {{ '{:,}'.format(car.mileage) }} km</li>
                 <li><strong>Transmission:</strong> {{ car.transmission }}</li>
                 <li><strong>Drivetrain:</strong> {{ car.drivetrain }}</li>
+                <li><strong>Body Type:</strong> {{ car.body_type }}</li>
                 <li><strong>Fuel Type:</strong> {{ car.fuel_type }}</li>
             </ul>
         </div>
     </div>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // --- On-page Image Gallery Logic ---
+    const mainImage = document.getElementById('main-car-image');
+    const thumbnails = document.querySelectorAll('.thumbnail-img');
+
+    if (thumbnails.length > 0) {
+        function updateMainImage(src) {
+            mainImage.src = src;
+        }
+
+        thumbnails.forEach((thumb) => {
+            thumb.addEventListener('click', function() {
+                updateMainImage(this.src);
+                thumbnails.forEach(t => t.classList.remove('active'));
+                this.classList.add('active');
+            });
+        });
+        thumbnails[0].classList.add('active'); // Set initial active thumbnail
+    }
+});
+</script>
 {% endblock %}

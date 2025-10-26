@@ -44,11 +44,7 @@ body {
     min-height: 100vh;
 }
 
-main {
-    flex-grow: 1;
-}
-
-.container, .main-content, .sidebar {
+.container {
     max-width: 1200px;
     margin: 20px auto;
     padding: 0 20px;
@@ -56,6 +52,10 @@ main {
 
 h1, h2, h3, h4, h5, h6 {
     font-weight: 600;
+}
+
+main {
+    flex-grow: 1;
 }
 
 a {
@@ -141,16 +141,23 @@ nav a.active {
     display: flex;
     gap: 30px;
 }
+
 .main-content {
-    flex: 3; /* Takes up 3/4 of the space */
-}
-.sidebar {
-    flex: 1; /* Takes up 1/4 of the space */
-    border-left: 1px solid hsl(var(--border));
-    padding-left: 30px;
+    flex: 3;
 }
 
-/* 4. Auction Cards */
+.sidebar {
+    flex: 1;
+    border-left: 1px solid hsl(var(--border));
+    padding-left: 30px; /* This creates space between main content and sidebar */
+}
+
+/* Add spacing for cards inside the sidebar */
+.sidebar .auction-card-link {
+    display: block; /* Ensure it's a block element */
+    margin-bottom: 20px; /* Add space below each card */
+}
+
 .auction-grid {
     display: grid;
     grid-template-columns: 1fr; /* 1 column on small screens */

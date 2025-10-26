@@ -1,6 +1,7 @@
 {% extends "base.html" %}
+{% from "_macros.html" import render_car_card %}
 
-{% block title %}{{ car.year }} {{ car.make }} {{ car.model }}{% endblock %}
+{% block title %}{{ car.year }} {{ car.make }} {{ car.model }} - For Sale{% endblock %}
 
 {% block content %}
     {% if current_user.is_authenticated and current_user.is_admin %}
@@ -43,9 +44,9 @@
             <div class="title-with-tag">
                 <h1>{{ car.year }} {{ car.make }} {{ car.model }}</h1>
                 {% if car.is_featured %}
-                    <span class="featured-tag large">Featured</span>
+                    <span class="featured-tag large">Featured</span> 
                 {% endif %}
-                <span class="listing-type-tag large">For Sale</span>
+                <span class="listing-type-tag large sale">For Sale</span>
             </div>
             <div class="image-gallery">
                 <div class="main-image-container">
@@ -108,17 +109,7 @@
 
             <h3>{{ similarity_reason or 'Similar Listings' }}</h3>
             {% if similar_cars %}
-                {% for sim_car in similar_cars %}
-                    <a href="{{ url_for('main.car_detail', car_id=sim_car.id) }}" class="auction-card-link">
-                        <div class="auction-card">
-                            <img src="{{ sim_car.primary_image_url or url_for('static', filename='img/default_car.png') }}" alt="Car Image">
-                            <div class="card-content">
-                                <h4>{{ sim_car.year }} {{ sim_car.make }} {{ sim_car.model }}</h4>
-                                <p>{{ '{:,.2f}'.format(sim_car.fixed_price) }} ETB</p>
-                            </div>
-                        </div>
-                    </a>
-                {% endfor %}
+                {% for sim_car in similar_cars %}{{ render_car_card(sim_car) }}{% endfor %}
             {% else %}
                 <p>No other similar cars found.</p>
             {% endif %}

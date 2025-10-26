@@ -25,11 +25,11 @@ class CarSubmissionForm(FlaskForm):
     description = TextAreaField('Description', validators=[DataRequired()])
     images = MultipleFileField('Car Photos (select multiple)')
     condition = SelectField('Condition', choices=[('Used', 'Used'), ('New', 'New')], validators=[DataRequired()])
-    body_type = SelectField('Body Type', choices=[('SUV', 'SUV'), ('Sedan', 'Sedan'), ('Hatchback', 'Hatchback'), ('Pickup', 'Pickup Truck')], validators=[DataRequired()])
+    body_type = SelectField('Body Type', choices=[('SUV', 'SUV'), ('Sedan', 'Sedan'), ('Hatchback', 'Hatchback'), ('Pickup', 'Pickup Truck'), ('Coupe', 'Coupe'), ('Minivan', 'Minivan')], validators=[DataRequired()])
     mileage = IntegerField('Mileage', validators=[DataRequired(), NumberRange(min=0)])
     transmission = SelectField('Transmission', choices=[('Automatic', 'Automatic'), ('Manual', 'Manual')], validators=[DataRequired()])
     drivetrain = SelectField('Drivetrain', choices=[('FWD', 'FWD'), ('RWD', 'RWD'), ('AWD', 'AWD'), ('4WD', '4WD')], validators=[DataRequired()])
-    fuel_type = SelectField('Fuel Type', choices=[('Gasoline', 'Gasoline'), ('Diesel', 'Diesel'), ('Electric', 'Electric')], validators=[DataRequired()])
+    fuel_type = SelectField('Fuel Type', choices=[('Gasoline', 'Gasoline'), ('Diesel', 'Diesel'), ('Electric', 'Electric'), ('Hybrid', 'Hybrid')], validators=[DataRequired()])
     equipment = SelectMultipleField('Features', choices=[
         ('sunroof', 'Sunroof'), ('leather_seats', 'Leather Seats'),
         ('apple_carplay', 'Apple CarPlay / Android Auto'), ('awd', 'All-Wheel Drive')

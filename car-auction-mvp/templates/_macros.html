@@ -1,0 +1,38 @@
+{# /home/amen/mekina/car-auction-mvp/templates/_macros.html #}
+
+{% macro render_car_card(car) %}
+    {% set detail_url = '' %}
+    {% if car.listing_type == 'auction' and car.auction %}
+        {% set detail_url = url_for('auctions.auction_detail', auction_id=car.auction.id) %}
+    {% elif car.listing_type == 'sale' %}
+        {% set detail_url = url_for('main.car_detail', car_id=car.id) %}
+    {% elif car.listing_type == 'rental' and car.rental_listing %}
+        {% set detail_url = url_for('rentals.rental_detail', listing_id=car.rental_listing.id) %}
+    {% endif %}
+
+    <a href="{{ detail_url }}" class="auction-card-link">
+        <div class="auction-card">
+            {% if car.owner.is_dealer %}<span class="role-badge dealer">Dealer</span>
+            {% elif car.owner.is_admin %}<span class="role-badge admin">Admin</span>
+            {% elif car.owner.is_rental_company %}<span class="role-badge rental">Rental Co.</span>
+            {% endif %}
+
+            <span class="listing-type-tag {{ car.listing_type.lower() }}">{{ car.listing_type|title }}</span>
+
+            {% if car.is_featured %}<span class="featured-tag">Featured</span>{% endif %}
+
+            <img src="{{ car.primary_image_url or url_for('static', filename='img/default_car.png') }}" alt="Image of {{ car.make }} {{ car.model }}">
+            <div class="card-content">
+                <h3>{{ car.year }} {{ car.make }} {{ car.model }}</h3>
+                <div class="card-details">
+                    {% if car.listing_type == 'auction' and car.auction %}
+                        <p>{{ '{:,.2f}'.format(car.auction.current_price) }} ETB</p>
+                        <span class="bid-count">{{ car.auction.bids.count() }} bids</span>
+                    {% elif car.listing_type == 'sale' %}
+                        <p>{{ '{:,.2f}'.format(car.fixed_price) }} ETB</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </a>
+{% endmacro %}
