@@ -12,9 +12,10 @@ from datetime import datetime
 from werkzeug.utils import secure_filename
 
 from flask_wtf import FlaskForm
-from wtforms import StringField, IntegerField, TextAreaField, SubmitField, FloatField, SelectField, SelectMultipleField, widgets, RadioField, BooleanField
+from wtforms import (StringField, IntegerField, TextAreaField, SubmitField, FloatField, 
+                     SelectField, SelectMultipleField, widgets, RadioField, BooleanField)
 from wtforms.fields import DateTimeLocalField, MultipleFileField
-from wtforms.validators import DataRequired, Length, NumberRange, Optional
+from wtforms.validators import DataRequired, Length, NumberRange, Optional, ValidationError
 
 seller_bp = Blueprint('seller', __name__, url_prefix='/seller')
 
@@ -22,11 +23,11 @@ class CarSubmissionForm(FlaskForm):
     make = StringField('Make', validators=[DataRequired()])
     model = StringField('Model', validators=[DataRequired()])
     year = IntegerField('Year', validators=[DataRequired(), NumberRange(min=1900, max=datetime.now().year + 1)])
-    description = TextAreaField('Description', validators=[DataRequired()])
+    description = TextAreaField('Description', validators=[Optional(), Length(max=2000)])
     images = MultipleFileField('Car Photos (select multiple)')
     condition = SelectField('Condition', choices=[('Used', 'Used'), ('New', 'New')], validators=[DataRequired()])
     body_type = SelectField('Body Type', choices=[('SUV', 'SUV'), ('Sedan', 'Sedan'), ('Hatchback', 'Hatchback'), ('Pickup', 'Pickup Truck'), ('Coupe', 'Coupe'), ('Minivan', 'Minivan')], validators=[DataRequired()])
-    mileage = IntegerField('Mileage', validators=[DataRequired(), NumberRange(min=0)])
+    mileage = IntegerField('Mileage', validators=[Optional(), NumberRange(min=0)])
     transmission = SelectField('Transmission', choices=[('Automatic', 'Automatic'), ('Manual', 'Manual')], validators=[DataRequired()])
     drivetrain = SelectField('Drivetrain', choices=[('FWD', 'FWD'), ('RWD', 'RWD'), ('AWD', 'AWD'), ('4WD', '4WD')], validators=[DataRequired()])
     fuel_type = SelectField('Fuel Type', choices=[('Gasoline', 'Gasoline'), ('Diesel', 'Diesel'), ('Electric', 'Electric'), ('Hybrid', 'Hybrid')], validators=[DataRequired()])
@@ -48,6 +49,16 @@ class CarSubmissionForm(FlaskForm):
     is_featured = BooleanField('Featured Listing')
 
     submit = SubmitField('Submit')
+
+    def validate_mileage(self, field):
+        """Custom validator to make mileage required only for used cars."""
+        if self.condition.data == 'Used' and field.data is None:
+            raise ValidationError('Mileage is required for used cars.')
+
+    def validate_description(self, field):
+        """Custom validator to make description required only for used cars."""
+        if self.condition.data == 'Used' and not field.data:
+            raise ValidationError('A description is required for used cars.')
 
 class AnswerForm(FlaskForm):
     answer_text = TextAreaField('Your Answer', validators=[DataRequired(), Length(min=5)])
@@ -145,7 +156,7 @@ def submit_car():
             model=form.model.data,
             year=form.year.data,
             description=form.description.data,
-            condition=form.condition.data,
+            condition=form.condition.data, # 'New' or 'Used'
             body_type=form.body_type.data,
             mileage=form.mileage.data,
             transmission=form.transmission.data,

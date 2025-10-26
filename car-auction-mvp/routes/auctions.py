@@ -7,6 +7,7 @@ from models.bid import Bid
 from models.question import Question
 from app import db
 from datetime import datetime
+from routes.main import get_similar_cars
 
 # Simple form for placing a bid
 from flask_wtf import FlaskForm
@@ -113,40 +114,11 @@ def auction_detail(auction_id):
     # Get all bids for the history, newest first
     all_bids = auction.bids.order_by(Bid.timestamp.desc()).all()
 
-    # --- Enhanced Similar Auctions Logic ---
-    similar_auctions = []
-    similarity_reason = ""
-    base_query = Auction.query.join(Car).filter(
-        Auction.id != auction_id,
-        Car.is_approved == True,
-        Auction.end_time > datetime.utcnow(),
-        Car.is_active == True
-    )
-
-    # 1. Try same Make and Model
-    similar_auctions = base_query.filter(Car.make == auction.car.make, Car.model == auction.car.model).limit(4).all()
-    if similar_auctions:
-        similarity_reason = f"More {auction.car.make} {auction.car.model} models"
-
-    # 2. If not enough, try same Make
-    if not similar_auctions:
-        similar_auctions = base_query.filter(Car.make == auction.car.make).limit(4).all()
-        if similar_auctions:
-            similarity_reason = f"More from {auction.car.make}"
-
-    # 3. If still none, try a broader search (same fuel type or similar year)
-    if not similar_auctions:
-        similar_auctions = base_query.filter(or_(
-            Car.fuel_type == auction.car.fuel_type,
-            Car.year.between(auction.car.year - 2, auction.car.year + 2)
-        )).limit(4).all()
-        if similar_auctions:
-            similarity_reason = "Similar Models"
-
-    # 4. As a last resort, show any other active auctions
-    if not similar_auctions:
-        similar_auctions = base_query.limit(4).all()
-        similarity_reason = "Other Active Auctions"
+    # --- Get Similar Auctions using the helper ---
+    similar_cars, similarity_reason = get_similar_cars(auction.car, 'auction')
+    # The helper returns Car objects, but the template expects Auction objects.
+    # We can get the associated auction from each car.
+    similar_auctions = [car.auction for car in similar_cars if car.auction]
 
     # Get all questions and answers for this auction
     questions = auction.questions.order_by(Question.timestamp.asc()).all()
@@ -185,7 +157,7 @@ def filter_auctions_api():
     # The body_type filter is a placeholder for now as the model doesn't have this field.
     # To implement it fully, you would add a `body_type` column to the `Car` model.
     if body_type := request.args.get('body_type'):
-        pass # query = query.filter(Car.body_type == body_type)
+        query = query.filter(Car.body_type == body_type)
 
     if request.args.get('random') == 'true':
         query = query.order_by(func.random())

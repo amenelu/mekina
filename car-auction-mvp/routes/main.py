@@ -3,7 +3,44 @@ from flask_login import current_user, login_required
 from models.car import Car
 from models.notification import Notification
 from models import db
-from sqlalchemy import or_
+from sqlalchemy import or_, func
+
+def get_similar_cars(car, listing_type_filter):
+    """
+    Finds similar cars based on a hierarchy of criteria and returns them
+    along with a descriptive reason for the similarity.
+    """
+    similar_cars_dict = {}
+    base_query = Car.query.filter(
+        Car.id != car.id,
+        Car.is_approved == True,
+        Car.listing_type == listing_type_filter,
+        Car.is_active == True
+    )
+
+    def add_cars(cars_list):
+        for c in cars_list:
+            if len(similar_cars_dict) < 4 and c.id not in similar_cars_dict:
+                similar_cars_dict[c.id] = c
+
+    # 1. Same Make and Model
+    add_cars(base_query.filter(Car.make == car.make, Car.model == car.model).all())
+    if len(similar_cars_dict) > 0:
+        return list(similar_cars_dict.values())[:4], f"More {car.make} {car.model} Models"
+
+    # 2. Same Make and Body Type
+    add_cars(base_query.filter(Car.make == car.make, Car.body_type == car.body_type).all())
+    if len(similar_cars_dict) > 0:
+        return list(similar_cars_dict.values())[:4], f"More {car.make} {car.body_type}s"
+
+    # 3. Same Make
+    add_cars(base_query.filter(Car.make == car.make).all())
+    if len(similar_cars_dict) > 0:
+        return list(similar_cars_dict.values())[:4], f"More from {car.make}"
+
+    # 4. Fallback to any other random cars
+    add_cars(base_query.order_by(func.random()).limit(4).all())
+    return list(similar_cars_dict.values())[:4], "Other Available Listings"
 
 main_bp = Blueprint('main', __name__)
 
@@ -43,32 +80,7 @@ def car_detail(car_id):
     if (not car.is_approved and not (current_user.is_authenticated and current_user.is_admin)) or car.listing_type != 'sale':
         abort(404)
 
-    # --- Similar Cars Logic ---
-    similar_cars = []
-    similarity_reason = ""
-    base_query = Car.query.filter(
-        Car.id != car_id,
-        Car.is_approved == True,
-        Car.listing_type == 'sale',
-        Car.is_active == True
-    )
-
-    # 1. Try same Make and Model
-    similar_cars = base_query.filter(Car.make == car.make, Car.model == car.model).limit(4).all()
-    if similar_cars:
-        similarity_reason = f"More {car.make} {car.model} Models"
-
-    # 2. If not enough, try same Make
-    if not similar_cars:
-        similar_cars = base_query.filter(Car.make == car.make).limit(4).all()
-        if similar_cars:
-            similarity_reason = f"More from {car.make}"
-
-    # 3. As a last resort, show any other cars for sale
-    if not similar_cars:
-        similar_cars = base_query.limit(4).all()
-        if similar_cars:
-            similarity_reason = "Other Cars For Sale"
+    similar_cars, similarity_reason = get_similar_cars(car, 'sale')
 
     return render_template(
         'car_detail_sale.html',

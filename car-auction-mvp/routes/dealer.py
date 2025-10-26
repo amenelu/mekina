@@ -13,7 +13,7 @@ from functools import wraps
 from datetime import datetime
 from flask_wtf import FlaskForm
 from wtforms import StringField, IntegerField, TextAreaField, SelectField, DateField, FloatField, SubmitField
-from wtforms.validators import DataRequired, NumberRange, Optional, Length
+from wtforms.validators import DataRequired, NumberRange, Optional, Length, ValidationError
 
 dealer_bp = Blueprint('dealer', __name__, url_prefix='/dealer')
 
@@ -44,7 +44,7 @@ class DealerBidForm(FlaskForm):
     def validate_mileage(self, field):
         """Custom validator to make mileage required only for used cars."""
         if self.condition.data == 'Used' and field.data is None:
-            raise validators.ValidationError('Mileage is required for used cars.')
+            raise ValidationError('Mileage is required for used cars.')
 
 class RequestAnswerForm(FlaskForm):
     answer_text = TextAreaField('Your Answer', validators=[DataRequired(), Length(min=5)])
