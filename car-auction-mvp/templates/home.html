@@ -199,10 +199,12 @@ document.addEventListener('DOMContentLoaded', function() {
                         cardLink.className = 'auction-card-link';
                         cardLink.innerHTML = `
                             <div class="auction-card">
-                                ${listing.owner_role ? `<span class="role-badge ${listing.owner_role.toLowerCase()}">${listing.owner_role}</span>` : ''}
-                                ${listing.is_featured ? `<span class="featured-tag">Featured</span>` : ''}
-                                <span class="listing-type-tag ${listing.listing_type.toLowerCase().replace(' ', '-')}">${listing.listing_type}</span>
-                                <img src="${listing.image_url}" alt="Car Image">
+                                <div class="card-image-container">
+                                    <img src="${listing.image_url}" alt="Car Image">
+                                    ${listing.owner_role ? `<span class="role-badge ${listing.owner_role.toLowerCase()}">${listing.owner_role}</span>` : ''}
+                                    ${listing.is_featured ? `<span class="featured-tag">Featured</span>` : ''}
+                                    <span class="listing-type-tag ${listing.listing_type.toLowerCase().replace(' ', '-')}">${listing.listing_type}</span>
+                                </div>
                                 <div class="card-content">
                                     <h3>${listing.year} ${listing.make} ${listing.model}</h3>
                                     <div class="card-details">

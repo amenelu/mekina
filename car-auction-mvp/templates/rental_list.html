@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% from "_macros.html" import render_car_card %}
 
 {% block title %}Cars For Rent{% endblock %}
 
@@ -8,30 +9,7 @@
 
     {% if listings %}
         <div class="auction-grid" style="margin-top: 2rem;">
-            {% for listing in listings %}
-                <a href="{{ url_for('rentals.rental_detail', listing_id=listing.id) }}" class="auction-card-link">
-                    <div class="auction-card">
-                        {% if listing.car.owner.is_rental_company %}
-                            <span class="role-badge rental">Rental Co.</span>
-                        {% elif listing.car.owner.is_dealer %}
-                             <span class="role-badge dealer">Dealer</span>
-                        {% endif %}
-                        <span class="listing-type-tag rental">For Rent</span>
-                        <img src="{{ listing.car.primary_image_url or url_for('static', filename='img/default_car.png') }}" alt="Image of {{ listing.car.make }} {{ listing.car.model }}">
-                        <div class="card-content">
-                            <h3>{{ listing.car.year }} {{ listing.car.make }} {{ listing.car.model }}</h3>
-                            <div class="card-details">
-                                <p>{{ '{:,.2f}'.format(listing.price_per_day) }} ETB / day</p>
-                                {% if listing.is_available %}
-                                    <span class="availability-tag">Available</span>
-                                {% else %}
-                                    <span class="availability-tag unavailable">Not Available</span>
-                                {% endif %}
-                            </div>
-                        </div>
-                    </div>
-                </a>
-            {% endfor %}
+            {% for listing in listings %}{{ render_car_card(listing.car) }}{% endfor %}
         </div>
     {% else %}
         <p>There are currently no cars available for rent. Please check back later.</p>

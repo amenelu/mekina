@@ -233,53 +233,14 @@ nav a.active {
 }
 
 .auction-card-link:hover {
-    /* This is the fix: explicitly remove underline on hover for cards */
     text-decoration: none;
 }
 
-/* This rule is now specific to tags inside an auction-card */
-.auction-card .listing-type-tag {
-    position: absolute;
-    top: 10px;
-    right: 10px;
-    z-index: 1;
-}
-
-.listing-type-tag {
-    background-color: hsl(var(--accent));
-    color: hsl(var(--accent-foreground));
-    padding: 4px 8px;
-    border-radius: var(--radius);
-    font-size: 0.8em;
-    font-weight: 600;
-}
-
-/* Add specific styles for different listing types */
-.listing-type-tag.sale {
-    background-color: hsl(var(--success));
-    color: hsl(var(--destructive-foreground)); /* Use a light text color */
-}
-
-.listing-type-tag.rental {
-    background-color: hsl(var(--info));
-    color: hsl(var(--foreground)); /* Ensure it uses the main light text color */
-}
-
 .title-with-tag {
-    position: relative; /* This is the fix */
     display: flex;
     align-items: center;
     gap: 15px;
     flex-wrap: wrap;
-}
-
-/* This is the fix: Override absolute positioning for any large badge in the title */
-.title-with-tag .role-badge.large,
-.title-with-tag .listing-type-tag.large,
-.title-with-tag .featured-tag.large {
-    position: static;
-    font-size: 1rem;
-    padding: 6px 12px;
 }
 
 /* 5. Forms & Tables */
@@ -835,26 +796,6 @@ tbody tr:hover {
     margin-top: 2.5rem;
 }
 
-.role-badge {
-    position: absolute;
-    top: 10px;
-    left: 10px;
-    z-index: 1;
-    padding: 0.2em 0.6em;
-    border-radius: var(--radius);
-    font-size: 0.8em;
-    font-weight: 600;
-    color: hsl(var(--accent-foreground));
-}
-.role-badge.admin { background-color: hsl(var(--destructive)); }
-.role-badge.dealer { background-color: hsl(var(--success)); }
-.role-badge.rental { background-color: hsl(var(--info)); color: hsl(var(--primary)); }
-/* Fix for role badges inside tables (like on user management page) */
-td .role-badge {
-    position: static;
-    margin-right: 5px; /* Add some space between badges */
-}
-
 /* 13. How It Works Page */
 .how-it-works-container {
     max-width: 900px;
@@ -1004,18 +945,77 @@ input:checked + .slider:before { transform: translateX(22px); }
     color: hsl(var(--muted-foreground));
 }
 
+/* --- CONSOLIDATED TAG STYLING --- */
+
+/* 1. Base styles for all tags (small, non-positioned) */
+.role-badge,
+.listing-type-tag,
 .featured-tag {
-    position: absolute;
-    bottom: 10px;
-    right: 10px;
-    background-color: hsl(var(--warning));
-    color: hsl(var(--background));
-    padding: 3px 8px;
+    padding: 0.2em 0.6em;
     border-radius: var(--radius);
     font-size: 0.8em;
-    font-weight: 700;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+/* 2. Specific colors */
+.role-badge { color: hsl(var(--accent-foreground)); }
+.role-badge.admin { background-color: hsl(var(--destructive)); }
+.role-badge.dealer { background-color: hsl(var(--success)); }
+.role-badge.rental { background-color: hsl(var(--info)); color: hsl(var(--primary)); }
+
+.listing-type-tag { background-color: hsl(var(--accent)); color: hsl(var(--accent-foreground)); }
+.listing-type-tag.sale { background-color: hsl(var(--success)); color: hsl(var(--destructive-foreground)); }
+.listing-type-tag.rental { background-color: hsl(var(--info)); color: hsl(var(--foreground)); }
+
+.featured-tag { background-color: hsl(var(--warning)); color: hsl(var(--background)); font-weight: 700; }
+
+/* 3. Context-specific positioning and sizing */
+
+/* For small cards with image overlays */
+.card-image-container {
+    position: relative;
+    width: 100%;
+    height: 180px;
+    overflow: hidden;
+}
+
+.card-image-container .role-badge {
+    position: absolute;
+    top: 10px;
+    left: 10px;
     z-index: 1;
 }
+
+.card-image-container .listing-type-tag {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    z-index: 1;
+}
+
+.card-image-container .featured-tag {
+    position: absolute;
+    bottom: 10px;
+    left: 10px;
+    z-index: 1;
+}
+
+/* For large tags next to H1 on detail pages */
+.title-with-tag .role-badge.large,
+.title-with-tag .listing-type-tag.large,
+.title-with-tag .featured-tag.large {
+    position: static; /* Override any absolute positioning */
+    font-size: 1rem;
+    padding: 6px 12px;
+}
+
+/* For tags inside table cells */
+td .role-badge {
+    position: static;
+    margin-right: 5px;
+}
+
 
 /* 16. Owner Actions on Detail Pages */
 .owner-actions {
@@ -1032,22 +1032,6 @@ input:checked + .slider:before { transform: translateX(22px); }
     gap: 10px;
 }
 
-/* 17. Request Detail Page */
-.offer-list {
-    display: flex;
-    flex-direction: column;
-    gap: 1.5rem;
-}
-.offer-card {
-    background-color: hsl(var(--secondary));
-    border: 2px solid hsl(var(--border)); /* Set a default border */
-    padding: 20px;
-    border-radius: var(--radius);
-    transition: border-color 0.3s;
-}
-.offer-card.lowest-bid-highlight {
-    border-color: hsl(var(--accent));
-}
 .offer-header {
     display: flex;
     justify-content: space-between;
@@ -1074,20 +1058,6 @@ input:checked + .slider:before { transform: translateX(22px); }
     align-items: center;
 }
 .valid-until { font-size: 0.9em; color: hsl(var(--muted-foreground)); }
-
-/* 18. Request Notes List on Dealer Dashboard */
-.request-notes-list {
-    list-style: none;
-    padding: 0;
-    margin: 0.5rem 0 0 0;
-    font-size: 0.9em;
-}
-.request-notes-list li {
-    color: hsl(var(--muted-foreground));
-}
-.request-notes-list li strong {
-    color: hsl(var(--foreground));
-}
 
 /* 19. Deal Summary Page */
 .deal-summary-card {
@@ -1124,22 +1094,4 @@ input:checked + .slider:before { transform: translateX(22px); }
 }
 .party h3 {
     margin-top: 0;
-}
-
-.offer-details h3 {
-    margin-top: 0;
-}
-
-/* 18. Request Notes List on Dealer Dashboard */
-.request-notes-list {
-    list-style: none;
-    padding: 0;
-    margin: 0.5rem 0 0 0;
-    font-size: 0.9em;
-}
-.request-notes-list li {
-    color: hsl(var(--muted-foreground));
-}
-.request-notes-list li strong {
-    color: hsl(var(--foreground));
 }
