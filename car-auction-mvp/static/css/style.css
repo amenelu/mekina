@@ -124,6 +124,12 @@ nav a.active {
     text-decoration: none;
 }
 
+/* --- Desktop Navigation Layout --- */
+.nav-menu {
+    flex-grow: 1;
+    display: contents; /* This makes the children of nav-menu direct children of nav for flex layout */
+}
+
 /* --- Mobile Navigation --- */
 .mobile-nav-toggle {
     display: none; /* Hidden on desktop */
@@ -1068,6 +1074,7 @@ td .role-badge {
     display: flex;
     align-items: center;
     gap: 10px;
+    flex-wrap: wrap; /* Allow items to wrap to the next line on small screens */
 }
 
 .offer-header {
@@ -1243,10 +1250,164 @@ td .role-badge {
     }
 
     /* --- Tables --- */
+    .table-responsive-wrapper {
+        display: block;
+        width: 100%;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch; /* Smoother scrolling on iOS */
+        border: 1px solid hsl(var(--border));
+        border-radius: var(--radius);
+    }
+    /* Hide the actions column on mobile for a cleaner look */
+    .actions-column {
+        display: none;
+    }
+    .clickable-row { 
+        cursor: pointer; 
+    }
+
+    /* --- Image Gallery --- */
+    .main-image-container img {
+        max-height: 45vh; /* Set max height to 45% of the viewport height */
+    }
+    .thumbnails {
+        flex-wrap: wrap; /* Allow thumbnails to wrap onto the next line */
+        justify-content: center; /* Center them when they wrap */
+    }
+}
+
+/* --- RESPONSIVE DESIGN (Mobile First Approach) --- */
+
+/* Medium screens (tablets) */
+@media (max-width: 1024px) {
+    .footer-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    .stat-grid {
+        grid-template-columns: repeat(3, 1fr);
+    }
+}
+
+/* Small screens (tablets and large phones) */
+@media (max-width: 768px) {
+    /* --- General Layout --- */
+    .container {
+        padding: 0 15px;
+    }
+    h1 { font-size: 1.8rem; }
+    h2 { font-size: 1.5rem; }
+
+    /* --- Navigation --- */
+    .mobile-nav-toggle {
+        display: block;
+    }
+    .nav-menu {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: hsl(var(--background));
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        z-index: 1000;
+        padding-top: 60px; /* Space for header */
+    }
+    .nav-menu.active {
+        display: flex;
+    }
+    nav ul {
+        flex-direction: column;
+        text-align: center;
+        gap: 1.5rem;
+    }
+    .nav-right {
+        flex-direction: column;
+        margin-top: 2rem;
+        gap: 1rem;
+    }
+    /* Hamburger animation */
+    .mobile-nav-toggle.active .hamburger-icon {
+        background-color: transparent;
+    }
+    .mobile-nav-toggle.active .hamburger-icon::before {
+        transform: translateY(8px) rotate(45deg);
+    }
+    .mobile-nav-toggle.active .hamburger-icon::after {
+        transform: translateY(-8px) rotate(-45deg);
+    }
+
+    /* --- Grids --- */
+    .auction-grid {
+        grid-template-columns: 1fr;
+    }
+    .stat-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    .trust-grid {
+        grid-template-columns: 1fr;
+        gap: 2.5rem;
+    }
+    .form-grid {
+        grid-template-columns: 1fr;
+    }
+
+    /* --- Detail Page Layout --- */
+    .detail-page-container {
+        flex-direction: column;
+    }
+    .sidebar {
+        border-left: none;
+        border-top: 1px solid hsl(var(--border));
+        padding-left: 0;
+        padding-top: 30px;
+    }
+
+    /* --- Hero Section --- */
+    .search-hero {
+        padding: 3rem 0;
+    }
+    .search-bar {
+        flex-direction: column;
+    }
+    .search-bar button {
+        border-left: none;
+        border-top: 1px solid hsl(var(--border));
+        padding: 15px;
+    }
+
+    /* --- Footer --- */
+    .footer-grid {
+        grid-template-columns: 1fr;
+        text-align: center;
+    }
+
+    /* --- Tables --- */
     .admin-table, .dashboard-table {
         display: block;
         overflow-x: auto;
         white-space: nowrap;
+        -webkit-overflow-scrolling: touch; /* Smoother scrolling on iOS */
+    }
+    .table-responsive-wrapper {
+        width: 100%;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        border: 1px solid hsl(var(--border));
+        border-radius: var(--radius);
+    }
+    .admin-table th, .admin-table td,
+    .dashboard-table th, .dashboard-table td {
+        white-space: normal; /* Allow text to wrap within the cell */
+        word-break: break-word; /* Force long text to wrap */
+        min-width: 120px; /* A reasonable minimum width */
+    }
+    .dashboard-table .button-group {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 5px;
     }
 
     /* --- Featured Slider --- */
