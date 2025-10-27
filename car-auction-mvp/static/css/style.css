@@ -124,6 +124,36 @@ nav a.active {
     text-decoration: none;
 }
 
+/* --- Mobile Navigation --- */
+.mobile-nav-toggle {
+    display: none; /* Hidden on desktop */
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0;
+    z-index: 1001;
+}
+.hamburger-icon {
+    display: block;
+    width: 24px;
+    height: 2px;
+    background-color: hsl(var(--foreground));
+    position: relative;
+    transition: background-color 0.2s ease-in-out;
+}
+.hamburger-icon::before,
+.hamburger-icon::after {
+    content: '';
+    position: absolute;
+    width: 100%;
+    height: 2px;
+    background-color: hsl(var(--foreground));
+    left: 0;
+    transition: transform 0.2s ease-in-out;
+}
+.hamburger-icon::before { top: -8px; }
+.hamburger-icon::after { bottom: -8px; }
+
 /* Notification Badge */
 .notification-badge {
     background-color: hsl(var(--destructive));
@@ -716,15 +746,18 @@ tbody tr:hover {
     background-color: hsl(var(--secondary));
 }
 
-/* 11. Image Gallery */
+/* 11. Image Gallery on Detail Pages */
+.image-gallery {
+    margin-bottom: 20px; /* Add some space below the gallery */
+}
 .main-image-container {
     position: relative;
     max-width: 100%;
 }
 .main-image-container img {
     width: 100%;
-    max-height: 500px;
-    object-fit: cover;
+    max-height: 500px; /* Max height on desktop */
+    object-fit: contain; /* Changed to contain to show the whole car */
     border-radius: var(--radius);
 }
 .gallery-nav {
@@ -757,6 +790,11 @@ tbody tr:hover {
 }
 .thumbnails img.active {
     border-color: hsl(var(--accent));
+}
+
+/* Adjustments for fullscreen image viewer */
+.image-viewer-content {
+    object-fit: contain; /* Ensure entire image is visible in fullscreen */
 }
 
 /* 12. Q&A Section */
@@ -1094,4 +1132,147 @@ td .role-badge {
 }
 .party h3 {
     margin-top: 0;
+}
+
+/* --- RESPONSIVE DESIGN (Mobile First Approach) --- */
+
+/* Medium screens (tablets) */
+@media (max-width: 1024px) {
+    .footer-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    .stat-grid {
+        grid-template-columns: repeat(3, 1fr);
+    }
+}
+
+/* Small screens (tablets and large phones) */
+@media (max-width: 768px) {
+    /* --- General Layout --- */
+    .container {
+        padding: 0 15px;
+    }
+    h1 { font-size: 1.8rem; }
+    h2 { font-size: 1.5rem; }
+
+    /* --- Navigation --- */
+    .mobile-nav-toggle {
+        display: block;
+    }
+    .nav-menu {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: hsl(var(--background));
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        z-index: 1000;
+        padding-top: 60px; /* Space for header */
+    }
+    .nav-menu.active {
+        display: flex;
+    }
+    nav ul {
+        flex-direction: column;
+        text-align: center;
+        gap: 1.5rem;
+    }
+    .nav-right {
+        flex-direction: column;
+        margin-top: 2rem;
+        gap: 1rem;
+    }
+    /* Hamburger animation */
+    .mobile-nav-toggle.active .hamburger-icon {
+        background-color: transparent;
+    }
+    .mobile-nav-toggle.active .hamburger-icon::before {
+        transform: translateY(8px) rotate(45deg);
+    }
+    .mobile-nav-toggle.active .hamburger-icon::after {
+        transform: translateY(-8px) rotate(-45deg);
+    }
+
+    /* --- Grids --- */
+    .auction-grid {
+        grid-template-columns: 1fr;
+    }
+    .stat-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    .trust-grid {
+        grid-template-columns: 1fr;
+        gap: 2.5rem;
+    }
+    .form-grid {
+        grid-template-columns: 1fr;
+    }
+
+    /* --- Detail Page Layout --- */
+    .detail-page-container {
+        flex-direction: column;
+    }
+    .sidebar {
+        border-left: none;
+        border-top: 1px solid hsl(var(--border));
+        padding-left: 0;
+        padding-top: 30px;
+    }
+
+    /* --- Hero Section --- */
+    .search-hero {
+        padding: 3rem 0;
+    }
+    .search-bar {
+        flex-direction: column;
+    }
+    .search-bar button {
+        border-left: none;
+        border-top: 1px solid hsl(var(--border));
+        padding: 15px;
+    }
+
+    /* --- Footer --- */
+    .footer-grid {
+        grid-template-columns: 1fr;
+        text-align: center;
+    }
+
+    /* --- Tables --- */
+    .admin-table, .dashboard-table {
+        display: block;
+        overflow-x: auto;
+        white-space: nowrap;
+    }
+
+    /* --- Featured Slider --- */
+    .featured-image-grid {
+        grid-template-columns: 1fr;
+        height: auto;
+    }
+    .featured-large-image {
+        height: 250px;
+    }
+    .featured-small-images {
+        grid-template-columns: repeat(4, 1fr);
+        height: 80px;
+    }
+
+    /* --- Deal Summary --- */
+    .deal-parties {
+        grid-template-columns: 1fr;
+    }
+
+    /* --- Image Gallery --- */
+    .main-image-container img {
+        max-height: 45vh; /* Set max height to 45% of the viewport height */
+    }
+    .thumbnails {
+        flex-wrap: wrap; /* Allow thumbnails to wrap onto the next line */
+        justify-content: center; /* Center them when they wrap */
+    }
 }
