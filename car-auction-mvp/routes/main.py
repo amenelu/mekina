@@ -1,4 +1,4 @@
-from flask import Blueprint, render_template, abort
+from flask import Blueprint, render_template, abort, jsonify, request
 from flask_login import current_user, login_required
 from models.car import Car
 from models.notification import Notification
@@ -60,6 +60,50 @@ def notifications():
     db.session.commit()
     user_notifications = Notification.query.filter_by(user_id=current_user.id).order_by(Notification.timestamp.desc()).limit(50).all()
     return render_template('notifications.html', notifications=user_notifications)
+
+@main_bp.route('/api/search_suggestions')
+def search_suggestions():
+    """Provides search suggestions for makes and models."""
+    query = request.args.get('q', '').strip()
+    if not query or len(query) < 2:
+        return jsonify([])
+
+    suggestions = set() # Use a set to automatically handle duplicates
+    query_words = query.lower().split() # Split query into words for broader matching
+
+    # Build dynamic OR conditions for make and model
+    make_model_conditions = []
+    for word in query_words:
+        make_model_conditions.append(Car.make.ilike(f"%{word}%"))
+        make_model_conditions.append(Car.model.ilike(f"%{word}%"))
+
+    # 1. Prioritize exact make matches or makes starting with the query
+    makes_starting = db.session.query(Car.make).filter(Car.make.ilike(f"{query}%")).distinct().limit(3).all()
+    for make_tuple in makes_starting:
+        suggestions.add(make_tuple[0])
+
+    # 2. Find matching make + model combinations using word-based search
+    cars = Car.query.filter(
+        or_(*make_model_conditions)
+    ).limit(15).all() # Increased limit to find more potential suggestions
+
+    for car in cars:
+        # Add just the make if it's a strong match
+        if any(word in car.make.lower() for word in query_words):
+            suggestions.add(car.make)
+        
+        # Add make + model if the model is a strong match
+        if any(word in car.model.lower() for word in query_words):
+            suggestions.add(f"{car.make} {car.model}")
+        
+        # Add make + model if both make and model contain parts of the query
+        if any(word in car.make.lower() for word in query_words) and any(word in car.model.lower() for word in query_words):
+            suggestions.add(f"{car.make} {car.model}")
+
+    # Sort and limit results
+    sorted_suggestions = sorted(list(suggestions), key=lambda x: (len(x), x)) # Sort by length then alphabetically
+    
+    return jsonify(sorted_suggestions[:8]) # Return up to 8 suggestions
 
 @main_bp.route('/how-it-works')
 def how_it_works():

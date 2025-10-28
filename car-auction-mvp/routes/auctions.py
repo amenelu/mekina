@@ -216,13 +216,16 @@ def all_listings_api():
 
     # This is a simplified filter for the generic listings page.
     # It can be expanded later to include more car-specific attributes.
-    if q := request.args.get('q'):
-        search_term = f"%{q}%"
-        query = query.filter(or_(
-            Car.make.ilike(search_term),
-            Car.model.ilike(search_term),
-            Car.year.like(search_term)
-        ))
+    if q := request.args.get('q'): # Use the same forgiving logic for main search
+        search_terms = q.lower().split()
+        conditions = []
+        for term in search_terms:
+            conditions.append(Car.make.ilike(f"%{term}%"))
+            conditions.append(Car.model.ilike(f"%{term}%"))
+            if term.isdigit(): # Allow searching by year if it's a number
+                conditions.append(Car.year == int(term))
+        if conditions:
+            query = query.filter(or_(*conditions))
     
     if condition := request.args.get('condition'):
         query = query.filter(Car.condition == condition)

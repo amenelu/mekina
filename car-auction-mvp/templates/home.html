@@ -7,8 +7,11 @@
         <div class="container">
             <h1>Find Your Next Car</h1>
             <p>Search Ethiopia's best selection of enthusiast cars for sale.</p>
-            <div class="search-bar">
-                <input type="text" id="search-input" placeholder="Start typing to search by make, model, year...">
+            <div class="search-wrapper">
+                <div class="search-bar">
+                    <input type="text" id="search-input" placeholder="Start typing to search by make, model, year...">
+                </div>
+                <div id="search-suggestions" class="search-suggestions-container"></div>
             </div>
             <div class="quick-filters">
                 <button class="filter-btn" data-filter="condition" data-value="New">New</button>
@@ -86,7 +89,10 @@
                     Browse all active auctions and listings.
                 </p>
             </div>
-            <div id="auction-grid-container" class="auction-grid"></div>
+            <div class="results-wrapper">
+                <div id="auction-grid-container" class="auction-grid"></div>
+                <div class="loading-spinner" id="loading-spinner" style="display: none;"></div>
+            </div>
             <p id="no-results-message" style="display: none;">No auctions match your filter criteria.</p>
             <div class="view-all-container">
                 <a href="{{ url_for('main.all_listings') }}" class="btn approve">View All Listings</a>
@@ -154,6 +160,8 @@ document.addEventListener('DOMContentLoaded', function() {
     const gridContainer = document.getElementById('auction-grid-container');
     const noResultsMessage = document.getElementById('no-results-message');
     const searchInput = document.getElementById('search-input');
+    const loadingSpinner = document.getElementById('loading-spinner');
+    const suggestionsContainer = document.getElementById('search-suggestions');
     const filterButtons = document.querySelectorAll('.filter-btn');
     let activeFilters = {};
 
@@ -167,10 +175,13 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     function fetchAuctions() {
+        loadingSpinner.style.display = 'block';
+        gridContainer.style.opacity = '0.5';
+
         const params = new URLSearchParams();
         // Add text search
         if (searchInput.value) {
-            params.append('q', searchInput.value);
+            params.append('q', searchInput.value); // This was correct
         }
         // Add active filters
         for (const [key, value] of Object.entries(activeFilters)) {
@@ -180,14 +191,18 @@ document.addEventListener('DOMContentLoaded', function() {
         }
 
         // For the homepage, we only want 8 random cars if no filters are active
-        if (Object.keys(activeFilters).length === 0 && !searchInput.value) {
+        if (Object.keys(activeFilters).length === 0 && !searchInput.value.trim()) {
             params.append('limit', '6');
             params.append('random', 'true');
+        } else {
+            params.delete('random'); // Ensure we don't get random results when filtering
         }
 
         fetch(`{{ url_for('auctions.all_listings_api') }}?${params.toString()}`)
             .then(response => response.json())
             .then(data => {
+                loadingSpinner.style.display = 'none';
+                gridContainer.style.opacity = '1';
                 gridContainer.innerHTML = ''; // Clear existing results
                 if (data.length === 0) {
                     noResultsMessage.style.display = 'block';
@@ -217,11 +232,56 @@ document.addEventListener('DOMContentLoaded', function() {
                     });
                 }
             })
-            .catch(error => console.error('Error fetching auctions:', error));
+            .catch(error => {
+                loadingSpinner.style.display = 'none';
+                gridContainer.style.opacity = '1';
+                console.error('Error fetching auctions:', error)
+            });
     }
 
-    const debouncedFetch = debounce(fetchAuctions, 300); // 300ms delay
-    searchInput.addEventListener('input', debouncedFetch);
+    function fetchSuggestions() {
+        const query = searchInput.value;
+        if (query.length < 2) {
+            suggestionsContainer.innerHTML = '';
+            suggestionsContainer.style.display = 'none';
+            return;
+        }
+
+        fetch(`{{ url_for('main.search_suggestions') }}?q=${query}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.length > 0) {
+                    suggestionsContainer.innerHTML = data.map(item => `<div class="suggestion-item" data-value="${item}">${item}</div>`).join('');
+                    suggestionsContainer.style.display = 'block';
+                } else {
+                    suggestionsContainer.style.display = 'none';
+                }
+            });
+    }
+
+    const debouncedFetch = debounce(fetchAuctions, 300);
+    const debouncedFetchSuggestions = debounce(fetchSuggestions, 250);
+
+    searchInput.addEventListener('input', () => {
+        debouncedFetchSuggestions(); // This fetches the text suggestions
+        debouncedFetch(); // This fetches the car grid results
+    });
+
+    suggestionsContainer.addEventListener('click', function(e) {
+        if (e.target.classList.contains('suggestion-item')) {
+            // Use the data-value attribute to set the input value
+            searchInput.value = e.target.dataset.value;
+            suggestionsContainer.style.display = 'none';
+            fetchAuctions();
+        }
+    });
+
+    document.addEventListener('click', function(e) {
+        if (!e.target.closest('.search-wrapper')) {
+            suggestionsContainer.style.display = 'none';
+        }
+    });
+
     filterButtons.forEach(button => {
         button.addEventListener('click', function() {
             const filter = this.dataset.filter;
