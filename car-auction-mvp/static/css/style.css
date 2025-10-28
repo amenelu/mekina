@@ -387,12 +387,28 @@ nav a.active {
     overflow-y: auto;
 }
 .suggestion-item {
+    display: flex;
+    align-items: center;
+    gap: 15px;
     padding: 12px 20px;
     cursor: pointer;
     text-align: left;
+    text-decoration: none;
+    color: hsl(var(--card-foreground));
 }
 .suggestion-item:hover {
     background-color: hsl(var(--accent) / 0.1);
+    text-decoration: none;
+}
+.suggestion-image {
+    width: 60px;
+    height: 45px;
+    object-fit: cover;
+    border-radius: calc(var(--radius) / 2);
+    flex-shrink: 0;
+}
+.suggestion-title {
+    font-weight: 500;
 }
 
 /* Loading Spinner for Live Search */

@@ -33,6 +33,8 @@
         </div>
     </div>
 
+    <!-- Test area removed. Logic will be integrated into the main search. -->
+
     {% if featured_cars %}
     <section class="section featured-section">
         <div class="container">
@@ -181,7 +183,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const params = new URLSearchParams();
         // Add text search
         if (searchInput.value) {
-            params.append('q', searchInput.value); // This was correct
+            params.append('q', searchInput.value);
         }
         // Add active filters
         for (const [key, value] of Object.entries(activeFilters)) {
@@ -192,12 +194,11 @@ document.addEventListener('DOMContentLoaded', function() {
 
         // For the homepage, we only want 8 random cars if no filters are active
         if (Object.keys(activeFilters).length === 0 && !searchInput.value.trim()) {
-            params.append('limit', '6');
+            params.append('limit', '8');
             params.append('random', 'true');
         } else {
             params.delete('random'); // Ensure we don't get random results when filtering
         }
-
         fetch(`{{ url_for('auctions.all_listings_api') }}?${params.toString()}`)
             .then(response => response.json())
             .then(data => {
@@ -241,17 +242,33 @@ document.addEventListener('DOMContentLoaded', function() {
 
     function fetchSuggestions() {
         const query = searchInput.value;
-        if (query.length < 2) {
+        if (query.trim().length < 2) {
             suggestionsContainer.innerHTML = '';
             suggestionsContainer.style.display = 'none';
             return;
+        }
+
+        // When we start fetching suggestions, we also want to clear the main grid
+        // and show the spinner, as the live results will be updating.
+        if (query.trim() !== '') {
+            gridContainer.innerHTML = '';
+            loadingSpinner.style.display = 'block';
+            gridContainer.style.opacity = '0.5';
         }
 
         fetch(`{{ url_for('main.search_suggestions') }}?q=${query}`)
             .then(response => response.json())
             .then(data => {
                 if (data.length > 0) {
-                    suggestionsContainer.innerHTML = data.map(item => `<div class="suggestion-item" data-value="${item}">${item}</div>`).join('');
+                    // This is the key fix: The backend now sends car objects, not just text.
+                    suggestionsContainer.innerHTML = data.map(car => `
+                        <a href="${car.detail_url}" class="suggestion-item">
+                            <img src="${car.image_url}" class="suggestion-image" alt="Image of ${car.make} ${car.model}">
+                            <div class="suggestion-details">
+                                <span class="suggestion-title">${car.year} ${car.make} ${car.model}</span>
+                            </div>
+                        </a>
+                    `).join('');
                     suggestionsContainer.style.display = 'block';
                 } else {
                     suggestionsContainer.style.display = 'none';
@@ -262,17 +279,17 @@ document.addEventListener('DOMContentLoaded', function() {
     const debouncedFetch = debounce(fetchAuctions, 300);
     const debouncedFetchSuggestions = debounce(fetchSuggestions, 250);
 
+    // The main input listener
     searchInput.addEventListener('input', () => {
-        debouncedFetchSuggestions(); // This fetches the text suggestions
-        debouncedFetch(); // This fetches the car grid results
-    });
-
-    suggestionsContainer.addEventListener('click', function(e) {
-        if (e.target.classList.contains('suggestion-item')) {
-            // Use the data-value attribute to set the input value
-            searchInput.value = e.target.dataset.value;
+        const query = searchInput.value.trim();
+        if (query === '') {
+            // If input is cleared, hide suggestions and load initial random cars
             suggestionsContainer.style.display = 'none';
             fetchAuctions();
+        } else {
+            // Otherwise, fetch suggestions and live results
+            debouncedFetchSuggestions();
+            debouncedFetch();
         }
     });
 
