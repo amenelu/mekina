@@ -375,7 +375,7 @@ nav a.active {
 .search-suggestions-container {
     display: none; /* Hidden by default */
     position: absolute;
-    top: calc(100% - 2.5rem); /* Position below the search bar, accounting for quick-filters margin */
+    top: 100%; /* Position it right below the search-and-filters block */
     left: 0;
     right: 0;
     width: 100%; /* Ensure it matches the wrapper width */
@@ -386,6 +386,10 @@ nav a.active {
     z-index: 10;
     max-height: 300px;
     overflow-y: auto;
+}
+/* The new container for search and filters */
+#search-and-filters {
+    position: relative; /* This is important for z-index to work correctly with its siblings */
 }
 .suggestion-item {
     display: flex;
