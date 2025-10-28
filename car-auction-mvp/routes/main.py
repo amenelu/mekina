@@ -80,7 +80,20 @@ def search_suggestions():
         return jsonify([])
 
     # Find cars that match the search terms
-    cars = Car.query.filter(or_(*conditions)).limit(5).all()
+    query = Car.query.filter(or_(*conditions))
+
+    # Apply quick filters to the suggestions
+    if condition := request.args.get('condition'):
+        query = query.filter(Car.condition == condition)
+    if fuel_type := request.args.get('fuel_type'):
+        query = query.filter(Car.fuel_type == fuel_type)
+    if body_type := request.args.get('body_type'):
+        query = query.filter(Car.body_type == body_type)
+    if max_price := request.args.get('max_price', type=float):
+        # This filter needs to check both fixed_price and auction price
+        query = query.outerjoin(Car.auction).filter(or_(Car.fixed_price <= max_price, Car.auction.current_price <= max_price))
+
+    cars = query.limit(5).all()
 
     results = []
     for car in cars:

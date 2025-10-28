@@ -11,16 +11,16 @@
                 <div class="search-bar">
                     <input type="text" id="search-input" placeholder="Start typing to search by make, model, year...">
                 </div>
+                <div class="quick-filters">
+                    <button class="filter-btn" data-filter="condition" data-value="New">New</button>
+                    <button class="filter-btn" data-filter="condition" data-value="Used">Used</button>
+                    <button class="filter-btn" data-filter="fuel_type" data-value="Electric">EV</button>
+                    <button class="filter-btn" data-filter="fuel_type" data-value="Hybrid">Hybrid</button>
+                    <button class="filter-btn" data-filter="body_type" data-value="SUV">SUV</button>
+                    <button class="filter-btn" data-filter="body_type" data-value="Sedan">Sedan</button>
+                    <button class="filter-btn" data-filter="max_price" data-value="5000000">&lt; 5M ETB</button>
+                </div>
                 <div id="search-suggestions" class="search-suggestions-container"></div>
-            </div>
-            <div class="quick-filters">
-                <button class="filter-btn" data-filter="condition" data-value="New">New</button>
-                <button class="filter-btn" data-filter="condition" data-value="Used">Used</button>
-                <button class="filter-btn" data-filter="fuel_type" data-value="Electric">EV</button>
-                <button class="filter-btn" data-filter="fuel_type" data-value="Hybrid">Hybrid</button>
-                <button class="filter-btn" data-filter="body_type" data-value="SUV">SUV</button>
-                <button class="filter-btn" data-filter="body_type" data-value="Sedan">Sedan</button>
-                <button class="filter-btn" data-filter="max_price" data-value="5000000">&lt; 5M ETB</button>
             </div>
             <div class="find-car-link">
                 <span>Can't find what you're looking for?</span>
@@ -256,7 +256,16 @@ document.addEventListener('DOMContentLoaded', function() {
             gridContainer.style.opacity = '0.5';
         }
 
-        fetch(`{{ url_for('main.search_suggestions') }}?q=${query}`)
+        const params = new URLSearchParams();
+        params.append('q', query);
+        // Add active filters to the suggestions fetch
+        for (const [key, value] of Object.entries(activeFilters)) {
+            if (value) {
+                params.append(key, value);
+            }
+        }
+
+        fetch(`{{ url_for('main.search_suggestions') }}?${params.toString()}`)
             .then(response => response.json())
             .then(data => {
                 if (data.length > 0) {
@@ -315,6 +324,10 @@ document.addEventListener('DOMContentLoaded', function() {
                 activeFilters[filter] = value;
             }
             fetchAuctions();
+            // Also update the suggestions dropdown when a filter is clicked
+            if (searchInput.value.trim().length > 0) {
+                fetchSuggestions();
+            }
         });
     });
 

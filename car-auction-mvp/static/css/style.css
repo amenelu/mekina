@@ -334,6 +334,7 @@ nav a.active {
     justify-content: center;
     gap: 10px;
     flex-wrap: wrap;
+    transition: margin-top 0.2s ease-in-out; /* Smooth transition for push-down effect */
 }
 .filter-btn {
     background-color: hsl(var(--secondary) / 0.2);
@@ -374,7 +375,7 @@ nav a.active {
 .search-suggestions-container {
     display: none; /* Hidden by default */
     position: absolute;
-    top: 100%;
+    top: calc(100% - 2.5rem); /* Position below the search bar, accounting for quick-filters margin */
     left: 0;
     right: 0;
     width: 100%; /* Ensure it matches the wrapper width */
