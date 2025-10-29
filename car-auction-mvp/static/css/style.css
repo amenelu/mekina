@@ -1192,6 +1192,17 @@ td .role-badge {
     justify-content: space-between;
     align-items: center;
 }
+.offer-card.lowest-bid-highlight {
+    border: 2px solid hsl(var(--accent)); /* Thicker, more colorful border */
+    background-color: hsl(var(--accent) / 0.1); /* Brighter background highlight */
+    padding: 1.5rem; /* Add more internal padding */
+    border-radius: calc(var(--radius) * 1.5); /* Make corners more rounded */
+    box-shadow: 0 0 15px hsl(var(--accent) / 0.2); /* Add a subtle glow effect */
+    transform: scale(1.01); /* Slightly enlarge the card to make it pop */
+}
+.offer-card.lowest-bid-highlight .offer-price {
+    color: hsl(var(--accent));
+}
 .valid-until { font-size: 0.9em; color: hsl(var(--muted-foreground)); }
 
 /* 19. Deal Summary Page */
