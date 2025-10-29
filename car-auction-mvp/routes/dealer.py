@@ -138,7 +138,7 @@ def place_bid(request_id):
         # --- Notify the customer who made the request ---
         request_description = f"'{car_request.make} {car_request.model}'" if car_request.make else f"request #{car_request.id}"
         notification_message = f"A dealer has placed an offer on your {request_description}."
-        link = url_for('request.request_detail', request_id=car_request.id, _external=True)
+        link = url_for('request.request_detail', request_id=car_request.id)
         notification = Notification(user_id=car_request.user_id, message=notification_message, link=link)
         db.session.add(notification)
 
@@ -207,7 +207,7 @@ def answer_request_question(question_id):
 
         # Notify the buyer that their question was answered
         notification_message = f"The dealer has answered your question regarding their offer for request #{bid.car_request.id}."
-        link = url_for('request.request_detail', request_id=bid.car_request.id, _anchor=f'qna-for-bid-{bid.id}', _external=True)
+        link = url_for('request.request_detail', request_id=bid.car_request.id, _anchor=f'qna-for-bid-{bid.id}')
         notification = Notification(user_id=question.user_id, message=notification_message, link=link)
         db.session.add(notification)
 

@@ -5,23 +5,23 @@
 /* Dark Theme Activated */
 :root {
     --background: 220 25% 8%;
-    --foreground: 0 0% 95%;
-    --card: 220 20% 12%;
+    --foreground: 0 0% 98%;
+    --card: 220 20% 13%;
     --card-foreground: 0 0% 95%;
-    --popover: 220 20% 12%;
+    --popover: 220 20% 13%;
     --popover-foreground: 0 0% 95%;
     --primary: 38 92% 50%; /* Using accent as primary for dark mode */
     --primary-foreground: 220 70% 12%;
-    --secondary: 220 20% 18%;
+    --secondary: 220 20% 20%;
     --secondary-foreground: 0 0% 95%;
-    --muted: 220 20% 16%;
+    --muted: 220 20% 18%;
     --muted-foreground: 220 10% 60%;
     --accent: 260 80% 70%; /* Light Purple */
     --accent-foreground: 0 0% 100%;
     --destructive: 0 62.8% 30.6%;
     --destructive-foreground: 0 0% 100%;
-    --border: 220 20% 18%;
-    --input: 220 20% 18%;
+    --border: 220 20% 22%;
+    --input: 220 20% 20%;
     --ring: 260 80% 70%;
     --radius: 0.75rem;
     --success: 142 76% 36%;
@@ -684,7 +684,7 @@ tbody tr:hover {
 /* Featured Slider Section */
 .featured-section {
     background-color: hsl(var(--background));
-    padding: 4rem 0;
+    padding: 2rem 0; /* Reduced vertical padding */
 }
 .featured-slider {
     position: relative;
@@ -720,7 +720,7 @@ tbody tr:hover {
     grid-template-columns: 2fr 1fr;
     grid-template-rows: 1fr;
     gap: 5px;
-    height: 450px; /* Set a fixed height for the container */
+    height: 380px; /* Reduced height for a more compact look */
     background-color: hsl(var(--card));
 }
 
@@ -732,6 +732,11 @@ tbody tr:hover {
     height: 100%;
 }
 
+.featured-large-image {
+    position: relative; /* Needed to position the featured tag */
+    overflow: hidden;
+}
+
 .slide-caption {
     position: absolute;
     bottom: 0;
@@ -739,7 +744,7 @@ tbody tr:hover {
     right: 0;
     background: linear-gradient(to top, hsl(var(--background) / 0.9), transparent);
     color: hsl(var(--foreground));
-    padding: 3rem 1.5rem 1.5rem;
+    padding: 2rem 1.5rem 1.5rem; /* Reduced top padding */
 }
 .slide-caption h3 {
     margin: 0;
@@ -1120,6 +1125,16 @@ input:checked + .slider:before { transform: translateX(22px); }
     z-index: 1;
 }
 
+/* For the large featured slider */
+.featured-large-image .featured-tag.on-slider {
+    position: absolute;
+    top: 15px;
+    left: 15px;
+    z-index: 1;
+    padding: 6px 12px;
+    font-size: 1rem;
+}
+
 /* For large tags next to H1 on detail pages */
 .title-with-tag .role-badge.large,
 .title-with-tag .listing-type-tag.large,
@@ -1214,6 +1229,41 @@ td .role-badge {
 }
 .party h3 {
     margin-top: 0;
+}
+
+/* --- Notifications Page --- */
+.notification-list {
+    margin-top: 2rem;
+}
+.notification-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 1rem;
+    border-bottom: 1px solid hsl(var(--border));
+    transition: background-color 0.2s;
+}
+.notification-item:hover {
+    background-color: hsl(var(--secondary));
+}
+.notification-item.unread {
+    background-color: hsl(var(--secondary));
+    border-left: 3px solid hsl(var(--accent));
+    padding-left: calc(1rem - 3px);
+}
+.notification-content {
+    flex-grow: 1;
+}
+.notification-content p {
+    margin: 0 0 0.25rem 0;
+}
+.notification-time {
+    font-size: 0.8em;
+    color: hsl(var(--muted-foreground));
+}
+.notification-action {
+    flex-shrink: 0;
 }
 
 /* --- RESPONSIVE DESIGN (Mobile First Approach) --- */
@@ -1334,6 +1384,13 @@ td .role-badge {
         border-radius: var(--radius);
     }
     /* Hide the actions column on mobile for a cleaner look */
+    .notification-item {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+    .notification-action {
+        margin-top: 0.5rem;
+    }
     .actions-column {
         display: none;
     }

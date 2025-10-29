@@ -6,7 +6,7 @@
     <div class="search-hero">
         <div class="container">
             <h1>Find Your Next Car</h1>
-            <p>Search Ethiopia's best selection of enthusiast cars for sale.</p>
+            <p>Search Ethiopia's best selection of modern cars for sale.</p>
             <div class="search-wrapper">
                 <div id="search-and-filters">
                     <div class="search-bar">
@@ -40,9 +40,7 @@
     {% if featured_cars %}
     <section class="section featured-section">
         <div class="container">
-            <div class="section-header">
-                <h2>Featured Listings</h2>
-            </div>
+            <!-- Section header removed for a cleaner look -->
             <div class="featured-slider">
                 <div class="slides">
                     {% for car in featured_cars %}
@@ -56,6 +54,7 @@
                         <a href="{{ detail_url }}">
                             <div class="featured-image-grid">
                                 <div class="featured-large-image">
+                                    <span class="featured-tag on-slider">Featured</span>
                                     <img src="{{ (car.images[0].image_url if car.images else url_for('static', filename='img/default_car.png')) }}" alt="Featured image of {{ car.make }} {{ car.model }}">
                                 </div>
                                 <div class="featured-small-images">

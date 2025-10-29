@@ -208,13 +208,13 @@ def approve_car(car_id):
 
     # --- Notify the seller ---
     if car.listing_type == 'auction' and car.auction:
-        link = url_for('auctions.auction_detail', auction_id=car.auction.id, _external=True)
+        link = url_for('auctions.auction_detail', auction_id=car.auction.id)
     elif car.listing_type == 'sale':
-        link = url_for('main.car_detail', car_id=car.id, _external=True)
+        link = url_for('main.car_detail', car_id=car.id)
     elif car.listing_type == 'rental' and car.rental_listing:
-        link = url_for('rentals.rental_detail', listing_id=car.rental_listing.id, _external=True)
+        link = url_for('rentals.rental_detail', listing_id=car.rental_listing.id)
     else:
-        link = url_for('main.home', _external=True)
+        link = url_for('main.home')
     message = f"Congratulations! Your listing for the {car.year} {car.make} {car.model} has been approved and is now live."
     notification = Notification(user_id=car.owner_id, message=message, link=link)
     db.session.add(notification)

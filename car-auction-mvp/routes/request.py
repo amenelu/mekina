@@ -320,7 +320,7 @@ def ask_dealer_question(bid_id):
 
         # Notify the dealer
         notification_message = f"A customer asked a question about your offer for request #{car_request.id}."
-        link = url_for('dealer.answer_request_question', question_id=new_question.id, _external=True)
+        link = url_for('dealer.answer_request_question', question_id=new_question.id)
         notification = Notification(user_id=bid.dealer_id, message=notification_message, link=link)
         db.session.add(notification)
         db.session.commit()
@@ -375,7 +375,7 @@ def accept_offer(bid_id):
             request_description = f"customer request #{car_request.id}"
 
         notification_message = f"Congratulations! Your offer for {request_description} was accepted by the customer."
-        deal_notification = Notification(user_id=bid_to_accept.dealer_id, message=notification_message, link=url_for('request.deal_summary', deal_id=new_deal.id, _external=True))
+        deal_notification = Notification(user_id=bid_to_accept.dealer_id, message=notification_message, link=url_for('request.deal_summary', deal_id=new_deal.id))
         db.session.add(deal_notification)
 
         db.session.commit() # Commit the notification
