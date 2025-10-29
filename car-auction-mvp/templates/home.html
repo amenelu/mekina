@@ -27,9 +27,9 @@
             <div class="find-car-link">
                 <span>Can't find what you're looking for?</span>
                 {% if current_user.is_authenticated %}
-                    <a href="{{ url_for('request.start_request') }}">Let us find it for you &rarr;</a>
+                    <a href="{{ url_for('request.start_request') }}" class="find-car-cta">Let us find it for you &rarr;</a>
                 {% else %}
-                    <a href="{{ url_for('auth.login', next=url_for('request.start_request')) }}">Let us find it for you &rarr;</a>
+                    <a href="{{ url_for('auth.login', next=url_for('request.start_request')) }}" class="find-car-cta">Let us find it for you &rarr;</a>
                 {% endif %}
             </div>
         </div>

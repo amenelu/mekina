@@ -378,7 +378,13 @@ nav a.active {
 }
 .find-car-link {
     margin-top: 2rem;
-    color: hsl(var(--muted-foreground));
+    text-align: center; /* Center the whole block */
+}
+.find-car-link span {
+    display: block;
+    font-size: 1.1rem; /* Make it slightly larger */
+    color: hsl(var(--foreground)); /* Make it brighter */
+    margin-bottom: 0.75rem; /* Add space between it and the button */
 }
 .find-car-link a {
     color: hsl(var(--accent));
@@ -387,6 +393,25 @@ nav a.active {
 }
 .find-car-link a:hover {
     text-decoration: underline;
+}
+.find-car-link .find-car-cta {
+    display: inline-block;
+    background: hsl(var(--accent)); /* Use the solid accent purple */
+    color: hsl(var(--background)); /* Use very dark text for high contrast */
+    padding: 12px 24px;
+    border-radius: var(--radius);
+    font-weight: 600;
+    text-decoration: none;
+    transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+    box-shadow: var(--shadow-card);
+    margin-top: 0.5rem;
+}
+
+.find-car-link .find-car-cta:hover {
+    transform: translateY(-2px);
+    background: hsl(var(--accent) / 0.9); /* Slightly darken the purple on hover */
+    box-shadow: var(--shadow-elevated);
+    text-decoration: none; /* remove underline on hover */
 }
 
 /* Search Suggestions */
