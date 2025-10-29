@@ -112,6 +112,10 @@ nav a.active {
     align-items: center;
     gap: 15px;
 }
+/* Hide desktop notification link by default, show on desktop */
+.desktop-notification-link {
+    display: inline-block;
+}
 .nav-button {
     background-color: hsl(var(--info));
     color: hsl(var(--foreground)); /* Light text for dark button */
@@ -136,8 +140,9 @@ nav a.active {
     background: none;
     border: none;
     cursor: pointer;
-    padding: 0;
+    padding: 10px; /* Increase the clickable area */
     z-index: 1001;
+    margin: -10px; /* Counteract the padding to maintain layout */
 }
 .hamburger-icon {
     display: block;
@@ -170,6 +175,24 @@ nav a.active {
     font-weight: 700;
     vertical-align: super;
     margin-left: 4px;
+}
+
+/* Mobile Notification Bell Icon */
+.mobile-nav-icons {
+    display: none; /* Hidden by default on desktop */
+    align-items: center;
+    gap: 10px; /* Space between bell and hamburger */
+}
+.mobile-notification-bell-link {
+    position: relative;
+    color: hsl(var(--foreground));
+    padding: 5px;
+    display: flex; /* To center the SVG */
+    align-items: center;
+}
+.mobile-notification-bell-link svg {
+    width: 24px;
+    height: 24px;
 }
 
 /* 3. Layouts */
@@ -414,6 +437,7 @@ nav a.active {
 }
 .suggestion-title {
     font-weight: 500;
+    font-size: 1.1rem; /* Make suggestion text larger */
 }
 
 /* Loading Spinner for Live Search */
@@ -1336,6 +1360,10 @@ td .role-badge {
         margin-top: 2rem;
         gap: 1rem;
     }
+    /* Make text in the mobile dropdown menu larger */
+    .nav-menu.active a {
+        font-size: 2rem; /* Double the default text size */
+    }
     /* Hamburger animation */
     .mobile-nav-toggle.active .hamburger-icon {
         background-color: transparent;
@@ -1346,6 +1374,20 @@ td .role-badge {
     .mobile-nav-toggle.active .hamburger-icon::after {
         transform: translateY(-8px) rotate(-45deg);
     }
+
+    /* Mobile Notification Bell Icon */
+    .mobile-nav-icons {
+        display: flex; /* Show on mobile */
+    }
+    .mobile-notification-bell-link .notification-badge {
+        position: absolute;
+        top: -5px;
+        right: -5px;
+    }
+    /* Hide the desktop notification link on mobile */
+    .desktop-notification-link { display: none; }
+    /* Hide desktop username on mobile */
+    .desktop-username { display: none; }
 
     /* --- Grids --- */
     .auction-grid {

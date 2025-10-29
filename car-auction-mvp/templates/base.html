@@ -40,13 +40,14 @@
                     <li><a href="{{ url_for('rentals.list_rentals') }}" class="{{ 'active' if request.endpoint == 'rentals.list_rentals' }}">Rentals</a></li>
                 {% endif %}
             </ul>
-            <div class="nav-right">
+            {# This nav-right is for desktop and the mobile dropdown menu #}
+            <div class="nav-right"> 
                 {% if current_user.is_authenticated %}
-                    <a href="{{ url_for('main.notifications') }}">
+                    <a href="{{ url_for('main.notifications') }}" class="desktop-notification-link">
                         Notifications 
                         {% if unread_notifications > 0 %}<span class="notification-badge">{{ unread_notifications }}</span>{% endif %}
                     </a>
-                    <span>Hi, {{ current_user.username }}!</span>
+                    <span class="desktop-username">Hi, {{ current_user.username }}!</span>
                     <a href="{{ url_for('auth.logout') }}" class="nav-button">Logout</a>
                 {% else %}
                     <a href="{{ url_for('auth.login') }}" class="nav-button">Login</a>
@@ -54,9 +55,18 @@
                 {% endif %}
             </div>
         </div>
-        <button class="mobile-nav-toggle" id="mobile-nav-toggle" aria-label="Toggle navigation">
-            <span class="hamburger-icon"></span>
-        </button>
+        {# Mobile-only notification bell icon and hamburger toggle, grouped together #}
+        <div class="mobile-nav-icons">
+            {% if current_user.is_authenticated %}
+                <a href="{{ url_for('main.notifications') }}" class="mobile-notification-bell-link">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-bell"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>
+                    {% if unread_notifications > 0 %}<span class="notification-badge">{{ unread_notifications }}</span>{% endif %}
+                </a>
+            {% endif %}
+            <button class="mobile-nav-toggle" id="mobile-nav-toggle" aria-label="Toggle navigation">
+                <span class="hamburger-icon"></span>
+            </button>
+        </div>
     </nav>
     <main class="container">
         {% with messages = get_flashed_messages() %}
