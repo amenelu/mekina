@@ -42,11 +42,12 @@ body {
     display: flex;
     flex-direction: column;
     min-height: 100vh;
+    padding-top: 53px; /* Account for fixed navigation bar height (10px nav padding + 32px nav-button height + 10px nav padding + 1px border) */
 }
 
 .container {
-    max-width: 1200px;
-    margin: 20px auto;
+    max-width: 1200px; /* Keep max-width */
+    margin: 0 auto 20px auto; /* Remove top margin, keep other margins */
     padding: 0 20px;
 }
 
@@ -75,6 +76,11 @@ hr {
 
 /* 2. Navigation Bar */
 nav {
+    position: fixed; /* Make the navigation bar stick to the top */
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 100; /* Ensure it stays on top of other content */
     background-color: hsl(var(--background));
     border-bottom: 1px solid hsl(var(--border));
     padding: 10px 20px;
