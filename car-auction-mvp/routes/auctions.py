@@ -5,7 +5,7 @@ from models.auction import Auction
 from models.car import Car
 from models.bid import Bid
 from models.question import Question
-from app import db
+from extensions import db
 from datetime import datetime
 from routes.main import get_similar_cars
 

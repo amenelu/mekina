@@ -3,7 +3,7 @@ from flask_login import login_required, current_user
 from models.rental_listing import RentalListing
 from models.car import Car
 from functools import wraps
-from models import db
+from extensions import db
 
 rentals_bp = Blueprint('rentals', __name__, url_prefix='/rentals')
 

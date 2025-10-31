@@ -3,7 +3,7 @@ from flask_login import login_required, current_user
 from models.car_request import CarRequest
 from models.dealer_bid import DealerBid
 from models.deal import Deal
-from models import db
+from extensions import db, socketio
 from models.notification import Notification
 from models.request_question import RequestQuestion
 
@@ -321,11 +321,22 @@ def ask_dealer_question(bid_id):
         # Notify the dealer
         notification_message = f"A customer asked a question about your offer for request #{car_request.id}."
         link = url_for('dealer.answer_request_question', question_id=new_question.id)
-        notification = Notification(user_id=bid.dealer_id, message=notification_message, link=link)
-        db.session.add(notification)
+        new_notification = Notification(user_id=bid.dealer_id, message=notification_message, link=link)
+        db.session.add(new_notification)
         db.session.commit()
+
+        # --- Real-time Notification ---
+        unread_count = Notification.query.filter_by(user_id=bid.dealer_id, is_read=False).count()
+        notification_data = {
+            'message': new_notification.message,
+            'link': link,
+            'timestamp': new_notification.timestamp.isoformat() + 'Z',
+            'count': unread_count
+        }
+        socketio.emit('new_notification', notification_data, room=str(bid.dealer_id))
+
         return jsonify({'status': 'success', 'message': 'Your question has been sent to the dealer.'})
-    
+
     return jsonify({'status': 'error', 'errors': form.errors})
 
 @request_bp.route('/offer/<int:bid_id>/accept', methods=['POST'])
@@ -379,6 +390,17 @@ def accept_offer(bid_id):
         db.session.add(deal_notification)
 
         db.session.commit() # Commit the notification
+
+        # --- Real-time Notification ---
+        unread_count = Notification.query.filter_by(user_id=bid_to_accept.dealer_id, is_read=False).count()
+        notification_data = {
+            'message': deal_notification.message,
+            'link': deal_notification.link,
+            'timestamp': deal_notification.timestamp.isoformat() + 'Z',
+            'count': unread_count
+        }
+        socketio.emit('new_notification', notification_data, room=str(bid_to_accept.dealer_id))
+
         flash('Offer accepted! The dealer has been notified and you can see the deal summary below.', 'success')
         return redirect(url_for('request.deal_summary', deal_id=new_deal.id))
 

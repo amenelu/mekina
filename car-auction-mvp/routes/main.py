@@ -2,7 +2,7 @@ from flask import Blueprint, render_template, abort, jsonify, request, url_for
 from flask_login import current_user, login_required
 from models.car import Car
 from models.notification import Notification
-from models import db
+from extensions import db
 from sqlalchemy import or_, func
 
 def get_similar_cars(car, listing_type_filter):

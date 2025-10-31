@@ -183,6 +183,15 @@ nav a.active {
     margin-left: 4px;
 }
 
+/* Bell shake animation */
+@keyframes shake {
+  10%, 90% { transform: translate3d(-1px, 0, 0); }
+  20%, 80% { transform: translate3d(2px, 0, 0); }
+  30%, 50%, 70% { transform: translate3d(-3px, 0, 0); }
+  40%, 60% { transform: translate3d(3px, 0, 0); }
+}
+.notification-bell-link.shake { animation: shake 0.5s cubic-bezier(.36,.07,.19,.97) both; }
+
 /* Mobile Notification Bell Icon */
 .mobile-nav-icons {
     display: none; /* Hidden by default on desktop */
@@ -199,6 +208,10 @@ nav a.active {
 .mobile-notification-bell-link svg {
     width: 24px;
     height: 24px;
+}
+
+.mobile-notification-bell-link .notification-badge {
+    position: absolute;
 }
 
 /* 3. Layouts */

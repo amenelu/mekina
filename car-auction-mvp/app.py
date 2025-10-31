@@ -1,13 +1,12 @@
 from flask import Flask
-from flask_login import LoginManager
-from flask_migrate import Migrate
+from flask_login import current_user
 from config import Config
+from flask_socketio import join_room
 
-# Initialize extensions
-from models import db
-login_manager = LoginManager()
+# Import extensions from the new extensions.py file
+from extensions import db, socketio, login_manager, migrate
+
 login_manager.login_view = 'auth.login' # Redirect to login page if user is not authenticated
-migrate = Migrate()
 
 def create_app(config_class=Config):
     """Create and configure an instance of the Flask application."""
@@ -16,6 +15,7 @@ def create_app(config_class=Config):
 
     # Initialize Flask extensions here
     db.init_app(app)
+    socketio.init_app(app)
     login_manager.init_app(app)
     migrate.init_app(app, db)
 
@@ -43,6 +43,13 @@ def create_app(config_class=Config):
     @login_manager.user_loader
     def load_user(user_id):
         return User.query.get(int(user_id))
+
+    # --- SocketIO Event Handlers ---
+    @socketio.on('connect')
+    def handle_connect():
+        """When a user connects, add them to a room based on their user ID."""
+        if current_user.is_authenticated:
+            join_room(str(current_user.id))
 
     # Make 'now' available to all templates
     @app.context_processor
@@ -73,4 +80,4 @@ def create_app(config_class=Config):
 
 if __name__ == '__main__':
     app = create_app()
-    app.run(debug=True)
+    socketio.run(app, host='0.0.0.0', port=5000, debug=True)

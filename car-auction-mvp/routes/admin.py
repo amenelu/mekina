@@ -1,6 +1,6 @@
 from flask import Blueprint, render_template, redirect, url_for, flash, abort, request
 from flask_login import login_required, current_user
-from models import db
+from extensions import db, socketio
 from models.rental_listing import RentalListing
 from models.user import User
 from models.car import Car
@@ -216,9 +216,20 @@ def approve_car(car_id):
     else:
         link = url_for('main.home')
     message = f"Congratulations! Your listing for the {car.year} {car.make} {car.model} has been approved and is now live."
-    notification = Notification(user_id=car.owner_id, message=message, link=link)
-    db.session.add(notification)
+    new_notification = Notification(user_id=car.owner_id, message=message, link=link)
+    db.session.add(new_notification)
     db.session.commit()
+
+    # --- Real-time Notification ---
+    unread_count = Notification.query.filter_by(user_id=car.owner_id, is_read=False).count()
+    notification_data = {
+        'message': new_notification.message,
+        'link': link,
+        'timestamp': new_notification.timestamp.isoformat() + 'Z',
+        'count': unread_count
+    }
+    socketio.emit('new_notification', notification_data, room=str(car.owner_id))
+
     flash(f'Car {car.make} {car.model} has been approved.', 'success')
     return redirect(url_for('admin.dashboard'))
 

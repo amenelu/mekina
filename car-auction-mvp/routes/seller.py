@@ -7,7 +7,7 @@ from models.auction import Auction
 from models.rental_listing import RentalListing
 from models.equipment import Equipment
 from models.car_image import CarImage
-from models import db
+from extensions import db, socketio
 from datetime import datetime
 from werkzeug.utils import secure_filename
 

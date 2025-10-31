@@ -1,6 +1,4 @@
-from flask_sqlalchemy import SQLAlchemy
-
-db = SQLAlchemy()
+from extensions import db
 
 # Import all models here to ensure they are registered with SQLAlchemy's metadata
 # before Alembic tries to create a migration.

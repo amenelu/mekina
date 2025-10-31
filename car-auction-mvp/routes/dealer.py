@@ -6,14 +6,17 @@ from models.car import Car
 from models.request_question import RequestQuestion
 from models.question import Question
 from models.auction import Auction
-from models.notification import Notification
-from models import db
+from models.notification import Notification 
+from extensions import db
 from sqlalchemy import func
 from functools import wraps
 from datetime import datetime
 from flask_wtf import FlaskForm
 from wtforms import StringField, IntegerField, TextAreaField, SelectField, DateField, FloatField, SubmitField
 from wtforms.validators import DataRequired, NumberRange, Optional, Length, ValidationError
+
+# Import socketio instance from the new extensions.py file
+from extensions import socketio
 
 dealer_bp = Blueprint('dealer', __name__, url_prefix='/dealer')
 
@@ -141,8 +144,21 @@ def place_bid(request_id):
         link = url_for('request.request_detail', request_id=car_request.id)
         notification = Notification(user_id=car_request.user_id, message=notification_message, link=link)
         db.session.add(notification)
-
+        # Commit the session to save the notification and get its timestamp
         db.session.commit()
+
+        # --- Real-time Notification (send *after* commit) ---
+        # Get the new unread count for the customer
+        unread_count = Notification.query.filter_by(user_id=car_request.user_id, is_read=False).count()
+
+        # Create a dictionary with the notification data to send to the client
+        notification_data = {
+            'message': notification.message,
+            'link': link,
+            'timestamp': notification.timestamp.isoformat() + 'Z', # Use ISO format for JavaScript
+            'count': unread_count
+        }
+        socketio.emit('new_notification', notification_data, room=str(car_request.user_id))
 
         flash(f'Your offer of {form.price.data:,.2f} ETB has been sent to the customer!', 'success')
         return redirect(url_for('dealer.dashboard'))

@@ -1,4 +1,5 @@
-from app import create_app, db
+from app import create_app
+from extensions import db
 from models.user import User
 from models.car import Car
 from models.auction import Auction
