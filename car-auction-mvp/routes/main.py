@@ -1,9 +1,26 @@
 from flask import Blueprint, render_template, abort, jsonify, request, url_for
 from flask_login import current_user, login_required
+from functools import wraps
 from models.car import Car
 from models.notification import Notification
-from extensions import db
+from extensions import db, socketio
 from sqlalchemy import or_, func
+
+def mark_notification_as_read(f):
+    """
+    A decorator that checks for a 'notification_id' in the request arguments.
+    If found, it marks the corresponding notification as read for the current user.
+    """
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        notification_id = request.args.get('notification_id', type=int)
+        if notification_id and current_user.is_authenticated:
+            notification = Notification.query.filter_by(id=notification_id, user_id=current_user.id).first()
+            if notification and not notification.is_read:
+                notification.is_read = True
+                db.session.commit()
+        return f(*args, **kwargs)
+    return decorated_function
 
 def get_similar_cars(car, listing_type_filter):
     """
@@ -53,11 +70,14 @@ def home():
 @login_required
 def notifications():
     """Displays a user's notifications and marks them as read."""
-    # Mark all unread notifications as read when the user visits the page
-    unread = Notification.query.filter_by(user_id=current_user.id, is_read=False)
+    # Fetch the list of unread notifications first
+    unread = Notification.query.filter_by(user_id=current_user.id, is_read=False).all()
+    
+    # Mark only those specific notifications as read
     for notification in unread:
         notification.is_read = True
     db.session.commit()
+
     user_notifications = Notification.query.filter_by(user_id=current_user.id).order_by(Notification.timestamp.desc()).limit(50).all()
     return render_template('notifications.html', notifications=user_notifications)
 
@@ -126,6 +146,7 @@ def all_listings():
     return render_template('all_listings.html')
 
 @main_bp.route('/car/<int:car_id>')
+@mark_notification_as_read
 def car_detail(car_id):
     """Displays details for a car that is for fixed-price sale."""
     car = Car.query.get_or_404(car_id)

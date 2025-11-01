@@ -6,6 +6,7 @@ from models.deal import Deal
 from extensions import db, socketio
 from models.notification import Notification
 from models.request_question import RequestQuestion
+from routes.main import mark_notification_as_read
 
 from flask_wtf import FlaskForm
 from wtforms import StringField, IntegerField, TextAreaField, SubmitField, RadioField, SelectField, SelectMultipleField, widgets, validators
@@ -283,6 +284,7 @@ def my_requests():
 
 @request_bp.route('/<int:request_id>')
 @login_required
+@mark_notification_as_read
 def request_detail(request_id):
     car_request = CarRequest.query.get_or_404(request_id)
     # Security check: only the user who made the request or an admin can view it.
@@ -320,16 +322,18 @@ def ask_dealer_question(bid_id):
 
         # Notify the dealer
         notification_message = f"A customer asked a question about your offer for request #{car_request.id}."
-        link = url_for('dealer.answer_request_question', question_id=new_question.id)
-        new_notification = Notification(user_id=bid.dealer_id, message=notification_message, link=link)
+        new_notification = Notification(user_id=bid.dealer_id, message=notification_message)
         db.session.add(new_notification)
+        db.session.flush() # Get ID
+
+        new_notification.link = url_for('dealer.answer_request_question', question_id=new_question.id, notification_id=new_notification.id)
         db.session.commit()
 
         # --- Real-time Notification ---
         unread_count = Notification.query.filter_by(user_id=bid.dealer_id, is_read=False).count()
         notification_data = {
             'message': new_notification.message,
-            'link': link,
+            'link': new_notification.link,
             'timestamp': new_notification.timestamp.isoformat() + 'Z',
             'count': unread_count
         }
@@ -386,8 +390,10 @@ def accept_offer(bid_id):
             request_description = f"customer request #{car_request.id}"
 
         notification_message = f"Congratulations! Your offer for {request_description} was accepted by the customer."
-        deal_notification = Notification(user_id=bid_to_accept.dealer_id, message=notification_message, link=url_for('request.deal_summary', deal_id=new_deal.id))
+        deal_notification = Notification(user_id=bid_to_accept.dealer_id, message=notification_message)
         db.session.add(deal_notification)
+        db.session.flush() # Get ID
+        deal_notification.link = url_for('request.deal_summary', deal_id=new_deal.id, notification_id=deal_notification.id)
 
         db.session.commit() # Commit the notification
 
@@ -411,6 +417,7 @@ def accept_offer(bid_id):
 
 @request_bp.route('/deal/<int:deal_id>')
 @login_required
+@mark_notification_as_read
 def deal_summary(deal_id):
     """Displays the final summary of a completed deal."""
     deal = Deal.query.get_or_404(deal_id)

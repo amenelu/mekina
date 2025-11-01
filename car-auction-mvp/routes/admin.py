@@ -216,15 +216,17 @@ def approve_car(car_id):
     else:
         link = url_for('main.home')
     message = f"Congratulations! Your listing for the {car.year} {car.make} {car.model} has been approved and is now live."
-    new_notification = Notification(user_id=car.owner_id, message=message, link=link)
+    new_notification = Notification(user_id=car.owner_id, message=message)
     db.session.add(new_notification)
+    db.session.flush() # Get ID
+    new_notification.link = url_for('auctions.auction_detail', auction_id=car.auction.id, notification_id=new_notification.id) if car.auction else link
     db.session.commit()
 
     # --- Real-time Notification ---
     unread_count = Notification.query.filter_by(user_id=car.owner_id, is_read=False).count()
     notification_data = {
         'message': new_notification.message,
-        'link': link,
+        'link': new_notification.link,
         'timestamp': new_notification.timestamp.isoformat() + 'Z',
         'count': unread_count
     }

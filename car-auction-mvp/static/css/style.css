@@ -1334,7 +1334,7 @@ td .role-badge {
     background-color: hsl(var(--secondary));
 }
 .notification-item.unread {
-    background-color: hsl(var(--secondary));
+    background-color: hsl(var(--secondary)) !important;
     border-left: 3px solid hsl(var(--accent));
     padding-left: calc(1rem - 3px);
 }

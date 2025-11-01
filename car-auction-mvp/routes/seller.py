@@ -112,6 +112,14 @@ def answer_question(question_id):
         question.answer_timestamp = datetime.utcnow()
         db.session.commit()
 
+        # --- Notify the user who asked the question ---
+        notification_message = f"The seller has answered your question on the '{auction.car.make} {auction.car.model}' listing."
+        notification = Notification(user_id=question.user_id, message=notification_message)
+        db.session.add(notification)
+        db.session.flush() # Get ID
+        notification.link = url_for('auctions.auction_detail', auction_id=auction.id, _anchor=f'question-{question.id}', notification_id=notification.id)
+        db.session.commit()
+
         if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
             return jsonify({
                 'status': 'success',

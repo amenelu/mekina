@@ -7,7 +7,7 @@ from models.bid import Bid
 from models.question import Question
 from extensions import db
 from datetime import datetime
-from routes.main import get_similar_cars
+from routes.main import get_similar_cars, mark_notification_as_read
 
 # Simple form for placing a bid
 from flask_wtf import FlaskForm
@@ -67,6 +67,7 @@ def list_auctions():
 
 
 @auctions_bp.route('/<int:auction_id>', methods=['GET', 'POST'])
+@mark_notification_as_read
 def auction_detail(auction_id):
     auction = Auction.query.join(Car).filter(Auction.id == auction_id).first_or_404()
 

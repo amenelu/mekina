@@ -140,23 +140,66 @@
         // Connect to the Socket.IO server
         const socket = io();
         
+        // Function to update notification badges
+        function updateNotificationBadges(count) {
+            const badges = document.querySelectorAll('.main-notification-badge');
+            badges.forEach(badge => {
+                badge.textContent = count;
+                badge.style.display = count > 0 ? 'inline-block' : 'none';
+            });
+        }
+
         // Listen for the 'new_notification' event from the server
         socket.on('new_notification', function(data) {
             console.log('New notification received:', data);
 
-            // 1. Find all main notification badges and update them
-            const badges = document.querySelectorAll('.main-notification-badge');
-            badges.forEach(badge => {
-                badge.textContent = data.count;
-                badge.style.display = data.count > 0 ? 'inline-block' : 'none';
-            });
+            if (window.location.pathname === "{{ url_for('main.notifications') }}") {
+                // --- User is ON the notifications page ---
+                const notificationList = document.getElementById('notification-list');
+                const noNotificationsMsg = document.getElementById('no-notifications-message'); // Assuming this ID exists
 
-            // 2. Find all notification bell icons/links and make them shake
-            const bells = document.querySelectorAll('.notification-bell-link');
-            bells.forEach(bell => {
-                bell.classList.add('shake');
-                setTimeout(() => { bell.classList.remove('shake'); }, 500);
-            });
+                if (notificationList) {
+                    // Remove "No notifications" message if it's there
+                    if (noNotificationsMsg) {
+                        noNotificationsMsg.remove();
+                    }
+
+                    const newNotificationItem = document.createElement('div');
+                    newNotificationItem.classList.add('notification-item', 'unread'); // Mark as unread
+                    newNotificationItem.innerHTML = `
+                        <div class="notification-content">
+                            <p>${data.message}</p>
+                            <small class="notification-time">${
+                                new Date(data.timestamp).toLocaleString('en-US', {
+                                    month: 'short', day: '2-digit', year: 'numeric',
+                                    hour: '2-digit', minute: '2-digit', hour12: false
+                                }).replace(',', '')
+                            }</small>
+                        </div>
+                        <div class="notification-action">
+                            <a href="${data.link}" class="btn">View</a>
+                        </div>
+                    `;
+                    notificationList.prepend(newNotificationItem);
+                }
+            } else {
+                // --- User is NOT on the notifications page ---
+                // 1. Update the badge count
+                updateNotificationBadges(data.count);
+
+                // 2. Find all notification bell icons/links and make them shake
+                const bells = document.querySelectorAll('.notification-bell-link');
+                bells.forEach(bell => {
+                    bell.classList.add('shake');
+                    setTimeout(() => { bell.classList.remove('shake'); }, 500);
+                });
+            }
+        });
+
+        // Listen for the 'notification_count_update' event (for count resets, etc.)
+        socket.on('notification_count_update', function(data) {
+            console.log('Notification count update received:', data);
+            updateNotificationBadges(data.count);
         });
     });
     </script>

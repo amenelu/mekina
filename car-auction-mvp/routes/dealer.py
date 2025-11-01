@@ -14,6 +14,7 @@ from datetime import datetime
 from flask_wtf import FlaskForm
 from wtforms import StringField, IntegerField, TextAreaField, SelectField, DateField, FloatField, SubmitField
 from wtforms.validators import DataRequired, NumberRange, Optional, Length, ValidationError
+from routes.main import mark_notification_as_read
 
 # Import socketio instance from the new extensions.py file
 from extensions import socketio
@@ -141,10 +142,12 @@ def place_bid(request_id):
         # --- Notify the customer who made the request ---
         request_description = f"'{car_request.make} {car_request.model}'" if car_request.make else f"request #{car_request.id}"
         notification_message = f"A dealer has placed an offer on your {request_description}."
-        link = url_for('request.request_detail', request_id=car_request.id)
-        notification = Notification(user_id=car_request.user_id, message=notification_message, link=link)
+        notification = Notification(user_id=car_request.user_id, message=notification_message)
         db.session.add(notification)
-        # Commit the session to save the notification and get its timestamp
+        db.session.flush() # Flush to get the notification ID
+
+        # Now update the link with the notification ID
+        notification.link = url_for('request.request_detail', request_id=car_request.id, notification_id=notification.id)
         db.session.commit()
 
         # --- Real-time Notification (send *after* commit) ---
@@ -154,7 +157,7 @@ def place_bid(request_id):
         # Create a dictionary with the notification data to send to the client
         notification_data = {
             'message': notification.message,
-            'link': link,
+            'link': notification.link,
             'timestamp': notification.timestamp.isoformat() + 'Z', # Use ISO format for JavaScript
             'count': unread_count
         }
@@ -201,6 +204,7 @@ def edit_bid(bid_id):
 @dealer_bp.route('/request_question/<int:question_id>/answer', methods=['GET', 'POST'])
 @login_required
 @dealer_required
+@mark_notification_as_read
 def answer_request_question(question_id):
     question = RequestQuestion.query.get_or_404(question_id)
     bid = question.dealer_bid
@@ -223,11 +227,23 @@ def answer_request_question(question_id):
 
         # Notify the buyer that their question was answered
         notification_message = f"The dealer has answered your question regarding their offer for request #{bid.car_request.id}."
-        link = url_for('request.request_detail', request_id=bid.car_request.id, _anchor=f'qna-for-bid-{bid.id}')
-        notification = Notification(user_id=question.user_id, message=notification_message, link=link)
+        notification = Notification(user_id=question.user_id, message=notification_message)
         db.session.add(notification)
+        db.session.flush() # Get ID
 
+        notification.link = url_for('request.request_detail', request_id=bid.car_request.id, _anchor=f'qna-for-bid-{bid.id}', notification_id=notification.id)
         db.session.commit()
+
+        # --- Real-time Notification ---
+        unread_count = Notification.query.filter_by(user_id=question.user_id, is_read=False).count()
+        notification_data = {
+            'message': notification.message,
+            'link': notification.link,
+            'timestamp': notification.timestamp.isoformat() + 'Z',
+            'count': unread_count
+        }
+        socketio.emit('new_notification', notification_data, room=str(question.user_id))
+
         flash("Your answer has been posted.", "success")
         # Redirect back to the dealer dashboard, which is a more logical flow.
         return redirect(url_for('dealer.dashboard'))
