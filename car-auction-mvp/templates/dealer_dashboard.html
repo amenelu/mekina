@@ -213,7 +213,10 @@ document.addEventListener('DOMContentLoaded', function() {
                 {% for q in unanswered_questions %}
                 <tr>
                     <td>{{ q.auction.car.year }} {{ q.auction.car.make }} {{ q.auction.car.model }}</td>
-                    <td>{{ q.question_text }}</td>
+                    <td>
+                        <span class="new-item-tag">New</span>
+                        {{ q.question_text }}
+                    </td>
                     <td><a href="{{ url_for('seller.answer_question', question_id=q.id) }}">Answer</a></td>
                 </tr>
                 {% endfor %}
@@ -250,7 +253,10 @@ document.addEventListener('DOMContentLoaded', function() {
                             <p class="text-muted">{{ q.dealer_bid.car_request.notes|truncate(50) }}</p>
                         {% endif %}
                     </td>
-                    <td>{{ q.question_text }}</td>
+                    <td>
+                        <span class="new-item-tag">New</span>
+                        {{ q.question_text }}
+                    </td>
                     <td><strong>{{ '{:,.2f}'.format(q.dealer_bid.price) }} ETB</strong></td>
                     <td><a href="{{ url_for('dealer.answer_request_question', question_id=q.id) }}">Answer</a></td>
                 </tr>

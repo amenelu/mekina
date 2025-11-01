@@ -1352,6 +1352,15 @@ td .role-badge {
     flex-shrink: 0;
 }
 
+/* New tag for unread/unanswered items */
+.new-item-tag {
+    background-color: hsl(var(--warning));
+    color: hsl(var(--background));
+    font-weight: 600;
+    padding: 3px 8px;
+    border-radius: var(--radius);
+    font-size: 0.8em;
+}
 /* --- RESPONSIVE DESIGN (Mobile First Approach) --- */
 
 /* Medium screens (tablets) */
