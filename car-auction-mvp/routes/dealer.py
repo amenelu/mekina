@@ -124,27 +124,6 @@ def view_conversation(conversation_id):
         from flask import abort
         abort(403)
 
-    if request.method == 'POST':
-        reply_body = request.form.get('message')
-        if reply_body:
-            new_message = ChatMessage(body=reply_body, sender_id=current_user.id, conversation_id=conversation.id)
-            db.session.add(new_message)
-            
-            # --- Notify the buyer ---
-            notification_message = f"You have a new reply from {current_user.username} about the '{conversation.car.make} {conversation.car.model}'."
-            new_notification = Notification(user_id=conversation.buyer_id, message=notification_message)
-            db.session.add(new_notification)
-            db.session.flush() # Get ID
-            new_notification.link = url_for('main.view_buyer_conversation', conversation_id=conversation.id, notification_id=new_notification.id)
-            db.session.commit()
-
-            # --- Real-time Notification to Buyer ---
-            unread_count = Notification.query.filter_by(user_id=conversation.buyer_id, is_read=False).count()
-            notification_data = {'message': new_notification.message, 'link': new_notification.link, 'timestamp': new_notification.timestamp.isoformat() + 'Z', 'count': unread_count}
-            socketio.emit('new_notification', notification_data, room=str(conversation.buyer_id))
-
-            return redirect(url_for('dealer.view_conversation', conversation_id=conversation.id))
-
     return render_template('dealer_conversation_detail.html', conversation=conversation)
 
 @dealer_bp.route('/request/<int:request_id>/bid', methods=['GET', 'POST'])

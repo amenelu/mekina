@@ -247,20 +247,36 @@ def send_chat_message():
     conversation.messages.append(new_message)
     db.session.commit()
 
-    # --- Real-time Notification to Dealer ---
-    # Only send a notification if the buyer is sending the message
-    if current_user.id == conversation.buyer_id:
-        notification_message = f"New message from {current_user.username} about your '{car.make} {car.model}' listing."
-        # Create notification without the link first
-        new_notification = Notification(user_id=dealer_id, message=notification_message)
-        db.session.add(new_notification)
-        db.session.flush()  # Flush to get the new_notification.id
-        # Now create the link with the ID and update the object
-        new_notification.link = url_for('dealer.view_conversation', conversation_id=conversation.id, notification_id=new_notification.id)
-        db.session.commit()
+    # --- Real-time Logic ---
+    # 1. Emit the new chat message to the conversation room
+    chat_message_data = {
+        'body': new_message.body,
+        'sender_id': new_message.sender_id,
+        'sender_username': new_message.sender.username,
+        'timestamp': new_message.timestamp.isoformat() + 'Z'
+    }
+    conversation_room = f'conversation_{conversation.id}'
+    socketio.emit('new_chat_message', chat_message_data, room=conversation_room)
 
-        unread_count = Notification.query.filter_by(user_id=dealer_id, is_read=False).count()
+    # 2. Send a traditional notification to the *other* person in the chat
+    if current_user.id == conversation.buyer_id: # Buyer is sending
+        recipient_id = conversation.dealer_id
+        notification_message = f"New message from {current_user.username} about your '{car.make} {car.model}'."
+        link_url = url_for('dealer.view_conversation', conversation_id=conversation.id)
+    else: # Dealer is sending
+        recipient_id = conversation.buyer_id
+        notification_message = f"New reply from {current_user.username} about the '{car.make} {car.model}'."
+        link_url = url_for('main.view_buyer_conversation', conversation_id=conversation.id)
+
+    if recipient_id:
+        new_notification = Notification(user_id=recipient_id, message=notification_message)
+        db.session.add(new_notification)
+        db.session.flush()
+        new_notification.link = f"{link_url}?notification_id={new_notification.id}"
+        db.session.commit()
+        
+        unread_count = Notification.query.filter_by(user_id=recipient_id, is_read=False).count()
         notification_data = {'message': new_notification.message, 'link': new_notification.link, 'timestamp': new_notification.timestamp.isoformat() + 'Z', 'count': unread_count}
-        socketio.emit('new_notification', notification_data, room=str(dealer_id))
+        socketio.emit('new_notification', notification_data, room=str(recipient_id))
     
     return jsonify({'status': 'success', 'message': 'Message sent!'})

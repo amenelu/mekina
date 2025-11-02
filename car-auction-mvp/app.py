@@ -51,6 +51,13 @@ def create_app(config_class=Config):
         if current_user.is_authenticated:
             join_room(str(current_user.id))
 
+    @socketio.on('join_conversation')
+    def handle_join_conversation(data):
+        """When a user opens a chat, add them to a room for that conversation."""
+        conversation_id = data.get('conversation_id')
+        if conversation_id:
+            join_room(f'conversation_{conversation_id}')
+
     # Make 'now' available to all templates
     @app.context_processor
     def inject_now():

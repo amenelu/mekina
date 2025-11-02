@@ -20,8 +20,8 @@
             {% endfor %}
         </div>
         <div class="chat-input-area">
-            <form method="POST">
-                <textarea name="message" placeholder="Type your reply..." required></textarea>
+            <form id="chat-form" data-car-id="{{ conversation.car.id }}">
+                <textarea name="message" id="chat-message-input" placeholder="Type your reply..." required></textarea>
                 <button type="submit" class="btn">Send Reply</button>
             </form>
         </div>
@@ -41,5 +41,74 @@
 .received { background-color: hsl(var(--secondary)); }
 .chat-container { border: 1px solid hsl(var(--border)); border-radius: var(--radius); overflow: hidden; }
 .chat-history { padding: 1rem; height: 400px; overflow-y: auto; }
+.chat-history { display: flex; flex-direction: column; }
 </style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // --- Chat Message Sending Logic (same as buyer's page) ---
+    const socket = io();
+    const conversationId = "{{ conversation.id }}";
+    const currentUserId = "{{ current_user.id }}";
+
+    const chatForm = document.getElementById('chat-form');
+    const messageInput = document.getElementById('chat-message-input');
+    const chatHistory = document.getElementById('chat-history');
+
+    if (chatForm) {
+        chatForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            const message = messageInput.value.trim();
+            if (!message) return;
+
+            const carId = this.dataset.carId;
+
+            fetch("{{ url_for('main.send_chat_message') }}", {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ car_id: carId, message: message })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status !== 'success') {
+                    alert(data.message || 'Failed to send message.');
+                } else {
+                    messageInput.value = ''; // Clear input on success
+                }
+            }).catch(err => console.error('Chat send error:', err));
+        });
+    }
+
+    // --- Real-time Message Receiving Logic ---
+    socket.emit('join_conversation', { 'conversation_id': conversationId });
+
+    socket.on('new_chat_message', function(data) {
+        const isSentByMe = data.sender_id == currentUserId;
+        const wrapperClass = isSentByMe ? 'sent-wrapper' : 'received-wrapper';
+        const messageClass = isSentByMe ? 'sent' : 'received';
+
+        const messageWrapper = document.createElement('div');
+        messageWrapper.classList.add('chat-message-wrapper', wrapperClass);
+
+        const messageEl = document.createElement('div');
+        messageEl.classList.add('chat-message', messageClass);
+
+        const bodyEl = document.createElement('p');
+        bodyEl.classList.add('message-body');
+        bodyEl.textContent = data.body;
+
+        const timeEl = document.createElement('small');
+        timeEl.classList.add('message-time');
+        timeEl.textContent = new Date(data.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+        messageEl.appendChild(bodyEl);
+        messageEl.appendChild(timeEl);
+        messageWrapper.appendChild(messageEl);
+        chatHistory.appendChild(messageWrapper);
+
+        // Scroll to the bottom
+        chatHistory.scrollTop = chatHistory.scrollHeight;
+    });
+});
+</script>
 {% endblock %}
