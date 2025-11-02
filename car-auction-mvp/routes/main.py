@@ -3,6 +3,8 @@ from flask_login import current_user, login_required
 from functools import wraps
 from models.car import Car
 from models.notification import Notification
+from models.conversation import Conversation
+from models.chat_message import ChatMessage
 from extensions import db, socketio
 from sqlalchemy import or_, func
 
@@ -80,6 +82,27 @@ def notifications():
 
     user_notifications = Notification.query.filter_by(user_id=current_user.id).order_by(Notification.timestamp.desc()).limit(50).all()
     return render_template('notifications.html', notifications=user_notifications)
+
+@main_bp.route('/my-messages')
+@login_required
+def my_messages():
+    """Lists all conversations for the current buyer."""
+    conversations = Conversation.query.filter_by(buyer_id=current_user.id).order_by(Conversation.created_at.desc()).all()
+    return render_template('buyer_messages.html', conversations=conversations)
+
+@main_bp.route('/my-messages/<int:conversation_id>')
+@login_required
+@mark_notification_as_read
+def view_buyer_conversation(conversation_id):
+    """Displays a single conversation for the buyer."""
+    conversation = Conversation.query.get_or_404(conversation_id)
+
+    # Security check: ensure buyer is part of this conversation
+    if conversation.buyer_id != current_user.id:
+        from flask import abort
+        abort(403)
+
+    return render_template('buyer_conversation_detail.html', conversation=conversation)
 
 @main_bp.route('/api/search_suggestions')
 def search_suggestions():
@@ -186,3 +209,58 @@ def compare():
     sorted_cars = [cars_dict.get(id) for id in car_ids if cars_dict.get(id)]
 
     return render_template('compare.html', cars=sorted_cars)
+
+@main_bp.route('/chat/send', methods=['POST'])
+@login_required
+def send_chat_message():
+    """Handles sending a new chat message."""
+    data = request.get_json()
+    car_id = data.get('car_id')
+    message_body = data.get('message')
+
+    if not car_id or not message_body:
+        return jsonify({'status': 'error', 'message': 'Missing car ID or message.'}), 400
+
+    car = Car.query.get_or_404(car_id)
+    dealer_id = car.owner_id
+
+    # A user cannot start a conversation with themselves
+    if current_user.id == dealer_id:
+        return jsonify({'status': 'error', 'message': 'You cannot message yourself.'}), 403
+
+    # Find existing conversation or create a new one
+    conversation = Conversation.query.filter_by(
+        car_id=car_id,
+        buyer_id=current_user.id
+    ).first()
+
+    if not conversation:
+        conversation = Conversation(
+            car_id=car_id,
+            buyer_id=current_user.id,
+            dealer_id=dealer_id
+        )
+        db.session.add(conversation)
+
+    # Create and save the new message
+    new_message = ChatMessage(body=message_body, sender_id=current_user.id)
+    conversation.messages.append(new_message)
+    db.session.commit()
+
+    # --- Real-time Notification to Dealer ---
+    # Only send a notification if the buyer is sending the message
+    if current_user.id == conversation.buyer_id:
+        notification_message = f"New message from {current_user.username} about your '{car.make} {car.model}' listing."
+        # Create notification without the link first
+        new_notification = Notification(user_id=dealer_id, message=notification_message)
+        db.session.add(new_notification)
+        db.session.flush()  # Flush to get the new_notification.id
+        # Now create the link with the ID and update the object
+        new_notification.link = url_for('dealer.view_conversation', conversation_id=conversation.id, notification_id=new_notification.id)
+        db.session.commit()
+
+        unread_count = Notification.query.filter_by(user_id=dealer_id, is_read=False).count()
+        notification_data = {'message': new_notification.message, 'link': new_notification.link, 'timestamp': new_notification.timestamp.isoformat() + 'Z', 'count': unread_count}
+        socketio.emit('new_notification', notification_data, room=str(dealer_id))
+    
+    return jsonify({'status': 'success', 'message': 'Message sent!'})

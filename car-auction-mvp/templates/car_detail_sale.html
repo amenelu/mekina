@@ -1,5 +1,4 @@
 {% extends "base.html" %}
-{% from "_macros.html" import render_car_card %}
 
 {% block title %}{{ car.year }} {{ car.make }} {{ car.model }} - For Sale{% endblock %}
 
@@ -7,15 +6,7 @@
     {% if current_user.is_authenticated and current_user.is_admin %}
     <div class="admin-actions pending">
         <h3>Admin Actions</h3>
-        {% if not car.is_approved %}
-            <p>This car is pending approval. Review the details below and take an action.</p>
-        {% endif %}
         <div class="button-group">
-            {% if not car.is_approved %}
-            <form action="{{ url_for('admin.approve_car', car_id=car.id) }}" method="post">
-                <button type="submit" class="approve">Approve</button>
-            </form>
-            {% endif %}
             <a href="{{ url_for('admin.edit_listing', car_id=car.id) }}" class="edit">Edit</a>
             <form action="{{ url_for('admin.delete_listing', car_id=car.id) }}" method="post" onsubmit="return confirm('Are you sure you want to delete this submission? This cannot be undone.');">
                 <button type="submit" class="delete">Delete</button>
@@ -44,17 +35,13 @@
             <div class="title-with-tag">
                 <h1>{{ car.year }} {{ car.make }} {{ car.model }}</h1>
                 {% if car.is_featured %}
-                    <span class="featured-tag large">Featured</span> 
+                    <span class="featured-tag large">Featured</span>
                 {% endif %}
                 <span class="listing-type-tag large sale">For Sale</span>
             </div>
             <div class="image-gallery">
                 <div class="main-image-container">
                     <img id="main-car-image" src="{{ car.primary_image_url or url_for('static', filename='img/default_car.png') }}" alt="Car Image">
-                    {% if car.images|length > 1 %}
-                        <button id="prev-image-btn" class="gallery-nav prev">&lt;</button>
-                        <button id="next-image-btn" class="gallery-nav next">&gt;</button>
-                    {% endif %}
                 </div>
                 {% if car.images|length > 1 %}
                 <div class="thumbnails">
@@ -69,16 +56,6 @@
             <p>{{ car.description }}</p>
             <hr>
             <h3>Price: {{ '{:,.2f}'.format(car.fixed_price) }} ETB</h3>
-            <p>This is a fixed-price listing. Contact the seller to purchase.</p>
-
-            <div class="contact-seller-box">
-                <h4>Interested? Contact the Seller</h4>
-                <p><strong>Seller:</strong> {{ car.owner.username }}</p>
-                <p><strong>Email:</strong> {{ car.owner.email }}</p>
-                {% if car.owner.phone_number %}
-                <p><strong>Phone:</strong> {{ car.owner.phone_number }}</p>
-                {% endif %}
-            </div>
 
             <hr>
 
@@ -104,145 +81,129 @@
                     <li>No special features listed.</li>
                 {% endfor %}
             </ul>
-
             <hr>
-
-            <h3>{{ similarity_reason or 'Similar Listings' }}</h3>
-            {% if similar_cars %}
-                {% for sim_car in similar_cars %}{{ render_car_card(sim_car) }}{% endfor %}
-            {% else %}
-                <p>No other similar cars found.</p>
+            {# Only show contact button if user is not the owner of the car #}
+            {% if not current_user.is_authenticated or current_user.id != car.owner_id %}
+            <div class="contact-seller-box">
+                <h4>Interested?</h4>
+                <p>Ask the dealer a question about this car.</p>
+                <button id="contact-dealer-btn" 
+                        class="btn approve" 
+                        style="width: 100%;"
+                        data-is-authenticated="{{ 'true' if current_user.is_authenticated else 'false' }}"
+                        data-login-url="{{ url_for('auth.login', next=request.url) }}">Contact Dealer</button>
+            </div>
             {% endif %}
         </div>
     </div>
 
+    <!-- Chat Modal -->
+    <div id="chat-modal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Chat with {{ car.owner.username }}</h2>
+                <span class="close-modal">&times;</span>
+            </div>
+            <div class="modal-body">
+                <div class="chat-history" id="chat-history">
+                    <!-- Messages will be loaded here -->
+                    <p class="system-message">Your conversation will appear here. Be friendly!</p>
+                </div>
+                <div class="chat-input-area">
+                    <form id="chat-form" data-car-id="{{ car.id }}">
+                        <textarea name="message" id="chat-message-input" placeholder="Type your message..." required></textarea>
+                        <button type="submit" class="btn">Send</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock %}
+
+{% block after_content %}
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // --- On-page Image Gallery Logic ---
+    // --- Modal Logic ---
+    const modal = document.getElementById('chat-modal');
+    const contactBtn = document.getElementById('contact-dealer-btn');
+    const closeBtn = document.querySelector('.close-modal');
+
+    if(contactBtn) {
+        contactBtn.addEventListener('click', function() {
+            if (this.dataset.isAuthenticated === 'true') {
+                modal.style.display = 'block';
+            } else {
+                window.location.href = this.dataset.loginUrl;
+            }
+        });
+    }
+
+    if(closeBtn) {
+        closeBtn.onclick = function() {
+            modal.style.display = 'none';
+        }
+    }
+
+    window.onclick = function(event) {
+        if (event.target == modal) {
+            modal.style.display = 'none';
+        }
+    }
+
+    // --- Image Gallery Logic ---
     const mainImage = document.getElementById('main-car-image');
     const thumbnails = document.querySelectorAll('.thumbnail-img');
-    const prevBtn = document.getElementById('prev-image-btn');
-    const nextBtn = document.getElementById('next-image-btn');
 
-    if (thumbnails.length > 0) {
-        let imageUrls = Array.from(thumbnails).map(thumb => thumb.src);
-        let currentIndex = 0;
+    thumbnails.forEach(thumb => {
+        thumb.addEventListener('click', function() {
+            // Set the main image src to the clicked thumbnail's src
+            mainImage.src = this.src;
 
-        function updateMainImage(index) {
-            if (index < 0 || index >= imageUrls.length) return;
-            mainImage.src = imageUrls[index];
-            currentIndex = index;
-            thumbnails.forEach((thumb, i) => {
-                thumb.classList.toggle('active', i === index);
-            });
-        }
-
-        thumbnails.forEach((thumb, index) => {
-            thumb.addEventListener('click', function() {
-                updateMainImage(index);
-            });
-        });
-
-        if (prevBtn) {
-            prevBtn.addEventListener('click', function() {
-                let newIndex = (currentIndex - 1 + imageUrls.length) % imageUrls.length;
-                updateMainImage(newIndex);
-            });
-        }
-
-        if (nextBtn) {
-            nextBtn.addEventListener('click', function() {
-                let newIndex = (currentIndex + 1) % imageUrls.length;
-                updateMainImage(newIndex);
-            });
-        }
-        thumbnails[0].classList.add('active'); // Set initial active thumbnail
-    }
-
-    // --- Fullscreen Image Viewer Logic ---
-    const modal = document.getElementById('image-viewer-modal');
-    const modalImg = document.getElementById('fullscreen-image');
-    const viewerPrevBtn = document.getElementById('viewer-prev-btn');
-    const viewerNextBtn = document.getElementById('viewer-next-btn');
-    const imagesToWatch = document.querySelectorAll('.image-gallery img'); // Main image and thumbnails
-    let galleryImageUrls = Array.from(imagesToWatch).map(img => img.src);
-    let currentViewerIndex = 0;
-
-    function showImageInViewer(index) {
-        if (index < 0 || index >= galleryImageUrls.length) return;
-        currentViewerIndex = index;
-        modalImg.src = galleryImageUrls[currentViewerIndex];
-        // Show/hide nav buttons based on whether there are multiple images
-        viewerPrevBtn.style.display = galleryImageUrls.length > 1 ? 'block' : 'none';
-        viewerNextBtn.style.display = galleryImageUrls.length > 1 ? 'block' : 'none';
-    }
-
-    imagesToWatch.forEach(img => {
-        img.style.cursor = 'pointer'; // Make it obvious it's clickable
-        img.addEventListener('click', function(e) {
-            e.stopPropagation(); // Prevent modal from closing immediately
-            let clickedIndex = galleryImageUrls.indexOf(this.src);
-            modal.style.display = 'block';
-            showImageInViewer(clickedIndex);
+            // Update active state for thumbnails
+            thumbnails.forEach(t => t.classList.remove('active'));
+            this.classList.add('active');
         });
     });
+    // Set the first thumbnail as active initially
+    if (thumbnails.length > 0) thumbnails[0].classList.add('active');
 
-    function closeModal() {
-        modal.style.display = 'none';
-    }
+    // --- Chat Message Sending Logic ---
+    const chatForm = document.getElementById('chat-form');
+    const messageInput = document.getElementById('chat-message-input');
+    const chatHistory = document.getElementById('chat-history');
 
-    viewerPrevBtn.addEventListener('click', function(e) {
-        e.stopPropagation();
-        showImageInViewer((currentViewerIndex - 1 + galleryImageUrls.length) % galleryImageUrls.length);
-    });
+    if (chatForm) {
+        chatForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            const message = messageInput.value.trim();
+            if (!message) return;
 
-    viewerNextBtn.addEventListener('click', function(e) {
-        e.stopPropagation();
-        showImageInViewer((currentViewerIndex + 1) % galleryImageUrls.length);
-    });
-
-    // Close when clicking the 'x' or the background
-    modal.addEventListener('click', closeModal);
-    document.querySelector('.close-image-viewer').addEventListener('click', function(e) {
-        e.stopPropagation();
-        closeModal();
-    });
-
-    // Keyboard navigation for the modal
-    document.addEventListener('keydown', function(e) {
-        if (modal.style.display === 'block') {
-            if (e.key === 'Escape') {
-                closeModal();
-            } else if (e.key === 'ArrowLeft') {
-                viewerPrevBtn.click();
-            } else if (e.key === 'ArrowRight') {
-                viewerNextBtn.click();
-            }
-        }
-    });
-
-    // Visibility toggle logic
-    document.querySelectorAll('.visibility-toggle').forEach(toggle => {
-        toggle.addEventListener('change', function() {
             const carId = this.dataset.carId;
-            const statusText = document.getElementById(`status-text-${carId}`);
 
-            fetch(`/seller/toggle_active/${carId}`, {
+            fetch("{{ url_for('main.send_chat_message') }}", {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' }
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ car_id: carId, message: message })
             })
             .then(response => response.json())
             .then(data => {
                 if (data.status === 'success') {
-                    statusText.textContent = data.status_text;
+                    // Clear the system message if it exists
+                    const systemMessage = chatHistory.querySelector('.system-message');
+                    if (systemMessage) systemMessage.remove();
+
+                    // Add the sent message to the chat history (as the current user)
+                    const messageEl = document.createElement('p');
+                    messageEl.textContent = message;
+                    messageEl.classList.add('chat-message', 'sent'); // 'sent' for styling your own messages
+                    chatHistory.appendChild(messageEl);
+                    messageInput.value = ''; // Clear input
                 } else {
-                    this.checked = !this.checked; // Revert toggle on error
-                    alert(data.message || 'An error occurred.');
+                    alert(data.message || 'Failed to send message.');
                 }
-            });
+            }).catch(err => console.error('Chat send error:', err));
         });
-    });
+    }
 });
 </script>
-
 {% endblock %}

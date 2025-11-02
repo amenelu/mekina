@@ -6,6 +6,8 @@ from models.car import Car
 from models.request_question import RequestQuestion
 from models.question import Question
 from models.auction import Auction
+from models.conversation import Conversation
+from models.chat_message import ChatMessage
 from models.notification import Notification 
 from extensions import db
 from sqlalchemy import func
@@ -101,6 +103,49 @@ def dashboard():
         unanswered_request_questions=unanswered_request_questions,
         now=datetime.utcnow()
     )
+
+@dealer_bp.route('/messages')
+@login_required
+@dealer_required
+def list_messages():
+    """Lists all conversations for the dealer."""
+    conversations = Conversation.query.filter_by(dealer_id=current_user.id).order_by(Conversation.created_at.desc()).all()
+    return render_template('dealer_messages.html', conversations=conversations)
+
+@dealer_bp.route('/messages/<int:conversation_id>', methods=['GET', 'POST'])
+@login_required
+@dealer_required
+def view_conversation(conversation_id):
+    """Displays a single conversation and allows the dealer to reply."""
+    conversation = Conversation.query.get_or_404(conversation_id)
+
+    # Security check: ensure dealer is part of this conversation
+    if conversation.dealer_id != current_user.id:
+        from flask import abort
+        abort(403)
+
+    if request.method == 'POST':
+        reply_body = request.form.get('message')
+        if reply_body:
+            new_message = ChatMessage(body=reply_body, sender_id=current_user.id, conversation_id=conversation.id)
+            db.session.add(new_message)
+            
+            # --- Notify the buyer ---
+            notification_message = f"You have a new reply from {current_user.username} about the '{conversation.car.make} {conversation.car.model}'."
+            new_notification = Notification(user_id=conversation.buyer_id, message=notification_message)
+            db.session.add(new_notification)
+            db.session.flush() # Get ID
+            new_notification.link = url_for('main.view_buyer_conversation', conversation_id=conversation.id, notification_id=new_notification.id)
+            db.session.commit()
+
+            # --- Real-time Notification to Buyer ---
+            unread_count = Notification.query.filter_by(user_id=conversation.buyer_id, is_read=False).count()
+            notification_data = {'message': new_notification.message, 'link': new_notification.link, 'timestamp': new_notification.timestamp.isoformat() + 'Z', 'count': unread_count}
+            socketio.emit('new_notification', notification_data, room=str(conversation.buyer_id))
+
+            return redirect(url_for('dealer.view_conversation', conversation_id=conversation.id))
+
+    return render_template('dealer_conversation_detail.html', conversation=conversation)
 
 @dealer_bp.route('/request/<int:request_id>/bid', methods=['GET', 'POST'])
 @login_required

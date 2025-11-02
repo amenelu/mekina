@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+
+{% block title %}Conversation with {{ conversation.buyer.username }}{% endblock %}
+
+{% block content %}
+    <a href="{{ url_for('dealer.list_messages') }}">&larr; Back to All Messages</a>
+    <h1>Chat about {{ conversation.car.year }} {{ conversation.car.make }} {{ conversation.car.model }}</h1>
+
+    <div class="chat-container">
+        <div class="chat-history" id="chat-history">
+            {% for message in conversation.messages.order_by('timestamp') %}
+                <div class="chat-message-wrapper {% if message.sender_id == current_user.id %}sent-wrapper{% else %}received-wrapper{% endif %}">
+                    <div class="chat-message {% if message.sender_id == current_user.id %}sent{% else %}received{% endif %}">
+                        <p class="message-body">{{ message.body }}</p>
+                        <small class="message-time">{{ message.timestamp.strftime('%b %d, %H:%M') }}</small>
+                    </div>
+                </div>
+            {% else %}
+                <p class="system-message">No messages yet.</p>
+            {% endfor %}
+        </div>
+        <div class="chat-input-area">
+            <form method="POST">
+                <textarea name="message" placeholder="Type your reply..." required></textarea>
+                <button type="submit" class="btn">Send Reply</button>
+            </form>
+        </div>
+    </div>
+{% endblock %}
+
+{% block after_content %}
+<style>
+/* Basic chat styling */
+.chat-message-wrapper { display: flex; margin-bottom: 10px; }
+.sent-wrapper { justify-content: flex-end; }
+.received-wrapper { justify-content: flex-start; }
+.chat-message { max-width: 70%; padding: 10px 15px; border-radius: var(--radius); }
+.chat-message p { margin: 0 0 5px 0; }
+.chat-message small { font-size: 0.75em; color: hsl(var(--muted-foreground)); }
+.sent { background-color: hsl(var(--accent)); color: hsl(var(--accent-foreground)); }
+.received { background-color: hsl(var(--secondary)); }
+.chat-container { border: 1px solid hsl(var(--border)); border-radius: var(--radius); overflow: hidden; }
+.chat-history { padding: 1rem; height: 400px; overflow-y: auto; }
+</style>
+{% endblock %}

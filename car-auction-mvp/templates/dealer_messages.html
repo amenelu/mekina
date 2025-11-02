@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+
+{% block title %}My Messages{% endblock %}
+
+{% block content %}
+    <h1>My Messages</h1>
+    <p>Here are all the conversations started by potential buyers.</p>
+
+    <div class="notification-list">
+        {% if conversations %}
+            {% for conv in conversations %}
+                <a href="{{ url_for('dealer.view_conversation', conversation_id=conv.id) }}" class="notification-item-link">
+                    <div class="notification-item">
+                        <div class="notification-content">
+                            <p>
+                                Conversation with <strong>{{ conv.buyer.username }}</strong> 
+                                about <strong>{{ conv.car.year }} {{ conv.car.make }} {{ conv.car.model }}</strong>
+                            </p>
+                            <small class="notification-time">Started on: {{ conv.created_at.strftime('%b %d, %Y') }}</small>
+                        </div>
+                        <div class="notification-action">
+                            <span class="btn">View Chat</span>
+                        </div>
+                    </div>
+                </a>
+            {% endfor %}
+        {% else %}
+            <p>You have no messages from buyers yet.</p>
+        {% endif %}
+    </div>
+{% endblock %}
