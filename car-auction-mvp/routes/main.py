@@ -163,3 +163,26 @@ def car_detail(car_id):
         similar_cars=similar_cars,
         similarity_reason=similarity_reason
     )
+
+@main_bp.route('/compare')
+def compare():
+    """Displays a side-by-side comparison of selected cars."""
+    car_ids_str = request.args.get('ids')
+    if not car_ids_str:
+        return redirect(url_for('main.all_listings'))
+
+    try:
+        # Sanitize input and convert to integers
+        car_ids = [int(id) for id in car_ids_str.split(',') if id.isdigit()]
+    except ValueError:
+        flash("Invalid comparison request.", "danger")
+        return redirect(url_for('main.all_listings'))
+
+    # Fetch cars from the database, preserving the order of IDs
+    cars = Car.query.filter(Car.id.in_(car_ids)).all()
+    # Create a dictionary for quick lookups
+    cars_dict = {car.id: car for car in cars}
+    # Sort the final list based on the original ID order
+    sorted_cars = [cars_dict.get(id) for id in car_ids if cars_dict.get(id)]
+
+    return render_template('compare.html', cars=sorted_cars)

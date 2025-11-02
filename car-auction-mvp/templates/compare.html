@@ -1,0 +1,97 @@
+{% extends "base.html" %}
+
+{% block title %}Car Comparison{% endblock %}
+
+{% block content %}
+    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; margin-bottom: 1rem;">
+        <h1>Car Comparison</h1>
+        <a href="{{ url_for('main.all_listings') }}" id="exit-comparison-btn" class="btn delete">Exit Comparison & Clear</a>
+    </div>
+    
+    {% if cars %}
+        <div class="table-responsive-wrapper">
+            <table class="dashboard-table comparison-table">
+                <thead>
+                    <tr>
+                        <th>Feature</th>
+                        {% for car in cars %}
+                            <th>
+                                <a href="{{ url_for('auctions.auction_detail', auction_id=car.auction.id) if car.listing_type == 'auction' and car.auction else url_for('main.car_detail', car_id=car.id) }}">
+                                    {{ car.year }} {{ car.make }} {{ car.model }}
+                                </a>
+                            </th>
+                        {% endfor %}
+                    </tr>
+                </thead>
+                <tbody>
+                    <!-- Image Row -->
+                    <tr>
+                        <td></td>
+                        {% for car in cars %}
+                            <td>
+                                <a href="{{ url_for('auctions.auction_detail', auction_id=car.auction.id) if car.listing_type == 'auction' and car.auction else url_for('main.car_detail', car_id=car.id) }}">
+                                    <img src="{{ car.primary_image_url or url_for('static', filename='img/default_car.png') }}" alt="{{ car.make }} {{ car.model }}" style="width: 100%; height: 150px; object-fit: cover; border-radius: var(--radius);">
+                                </a>
+                            </td>
+                        {% endfor %}
+                    </tr>
+                    <!-- Price Row -->
+                    <tr>
+                        <td><strong>Price</strong></td>
+                        {% for car in cars %}
+                            <td><strong>
+                                {% if car.listing_type == 'auction' and car.auction %}
+                                    {{ '{:,.2f}'.format(car.auction.current_price) }} ETB (Auction)
+                                {% elif car.listing_type == 'sale' %}
+                                    {{ '{:,.2f}'.format(car.fixed_price) }} ETB
+                                {% else %}
+                                    N/A
+                                {% endif %}
+                            </strong></td>
+                        {% endfor %}
+                    </tr>
+                    <!-- Other Rows -->
+                    <tr><td><strong>Condition</strong></td>{% for car in cars %}<td>{{ car.condition or 'N/A' }}</td>{% endfor %}</tr>
+                    <tr><td><strong>Mileage</strong></td>{% for car in cars %}<td>{{ '{:,}'.format(car.mileage) if car.mileage is not none else 'N/A' }} km</td>{% endfor %}</tr>
+                    <tr><td><strong>Body Type</strong></td>{% for car in cars %}<td>{{ car.body_type or 'N/A' }}</td>{% endfor %}</tr>
+                    <tr><td><strong>Transmission</strong></td>{% for car in cars %}<td>{{ car.transmission or 'N/A' }}</td>{% endfor %}</tr>
+                    <tr><td><strong>Drivetrain</strong></td>{% for car in cars %}<td>{{ car.drivetrain or 'N/A' }}</td>{% endfor %}</tr>
+                    <tr><td><strong>Fuel Type</strong></td>{% for car in cars %}<td>{{ car.fuel_type or 'N/A' }}</td>{% endfor %}</tr>
+                    <!-- Equipment Row -->
+                    <tr>
+                        <td><strong>Features</strong></td>
+                        {% for car in cars %}
+                            <td>
+                                {% if car.equipment %}
+                                    <ul>
+                                    {% for item in car.equipment %}
+                                        <li>{{ item.name|replace('_', ' ')|title }}</li>
+                                    {% endfor %}
+                                    </ul>
+                                {% else %}
+                                    <span class="text-muted">None listed</span>
+                                {% endif %}
+                            </td>
+                        {% endfor %}
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    {% else %}
+        <p>No cars selected for comparison. Go to a <a href="{{ url_for('main.all_listings') }}">listing page</a> and select some cars to compare.</p>
+    {% endif %}
+{% endblock %}
+
+{% block after_content %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const exitBtn = document.getElementById('exit-comparison-btn');
+    if (exitBtn) {
+        exitBtn.addEventListener('click', function() {
+            // Clear the comparison list from storage before navigating away
+            localStorage.removeItem('compareCars');
+        });
+    }
+});
+</script>
+{% endblock %}

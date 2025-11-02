@@ -1363,6 +1363,55 @@ td .role-badge {
     border-radius: var(--radius);
     font-size: 0.8em;
 }
+
+/* --- Comparison Tool --- */
+.compare-container {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    margin-top: 10px;
+}
+.compare-description {
+    font-size: 0.8em;
+    color: hsl(var(--muted-foreground));
+    margin-left: 5px;
+}
+.compare-container label {
+    font-size: 0.9em;
+    color: hsl(var(--muted-foreground));
+    cursor: pointer;
+    vertical-align: middle; /* Align with larger checkbox */
+}
+.compare-checkbox {
+    accent-color: hsl(var(--accent));
+    width: 1.2em; /* Make checkbox slightly larger */
+    height: 1.2em;
+    vertical-align: middle;
+}
+.comparison-bar {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    background-color: hsl(var(--card));
+    border-top: 1px solid hsl(var(--border));
+    padding: 1rem 0;
+    z-index: 999;
+    box-shadow: 0 -4px 15px hsl(var(--background) / 0.5);
+}
+.comparison-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+.comparison-content span {
+    font-weight: 600;
+    font-size: 1.1rem;
+}
+.comparison-actions {
+    display: flex;
+    gap: 1rem;
+}
 /* --- RESPONSIVE DESIGN (Mobile First Approach) --- */
 
 /* Medium screens (tablets) */

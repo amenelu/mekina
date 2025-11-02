@@ -81,6 +81,13 @@ document.addEventListener('DOMContentLoaded', function() {
                                         <span class="time-left">${listing.time_left || ''}</span>
                                     </div>
                                 </div>
+                                <div class="card-footer">
+                                    <div class="compare-container">
+                                        <input type="checkbox" class="compare-checkbox" id="compare-${listing.id}" data-car-id="${listing.id}" title="Select up to 4 cars to compare">
+                                        <label for="compare-${listing.id}">Compare</label>
+                                        <span class="compare-description">(Add to comparison)</span>
+                                    </div>
+                                </div>
                             </div>`;
                         gridContainer.appendChild(cardLink);
                     });

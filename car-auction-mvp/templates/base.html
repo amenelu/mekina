@@ -132,6 +132,22 @@
         <button class="image-viewer-nav next" id="viewer-next-btn">&gt;</button>
     </div>
 
+    <!-- Comparison Bar -->
+    {% if request.endpoint != 'main.compare' %}
+    <div id="comparison-bar" class="comparison-bar" style="display: none;">
+        <div class="container">
+            <div class="comparison-content">
+                <span id="comparison-count">Comparing 0 cars</span>
+                <div class="comparison-actions">
+                    <a href="#" id="view-comparison-btn" class="btn approve">View Comparison</a>
+                    <button id="clear-comparison-btn" class="btn delete small">Clear</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+
     {# --- START: Socket.IO Client-side Script --- #}
     {% if current_user.is_authenticated %}
     <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
@@ -217,6 +233,82 @@ document.addEventListener('DOMContentLoaded', function() {
             this.classList.toggle('active');
         });
     }
+});
+</script>
+
+<!-- Comparison Tool JavaScript -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const comparisonBar = document.getElementById('comparison-bar');
+    const comparisonCount = document.getElementById('comparison-count');
+    const viewBtn = document.getElementById('view-comparison-btn');
+    const clearBtn = document.getElementById('clear-comparison-btn');
+    const MAX_COMPARE = 4; // Set a limit for comparison
+
+    // Load selected cars from localStorage
+    let selectedCars = JSON.parse(localStorage.getItem('compareCars')) || [];
+
+    function updateComparisonBar() {
+        if (selectedCars.length > 0) {
+            comparisonCount.textContent = `Comparing ${selectedCars.length} of ${MAX_COMPARE} cars`;
+            comparisonBar.style.display = 'block';
+            if (selectedCars.length > 1) {
+                viewBtn.classList.remove('disabled');
+                viewBtn.href = `{{ url_for('main.compare') }}?ids=${selectedCars.join(',')}`;
+            } else {
+                viewBtn.classList.add('disabled');
+                viewBtn.href = '#';
+            }
+        } else {
+            comparisonBar.style.display = 'none';
+        }
+    }
+
+    function updateCheckboxes() {
+        document.querySelectorAll('.compare-checkbox').forEach(checkbox => {
+            const carId = checkbox.dataset.carId;
+            checkbox.checked = selectedCars.includes(carId);
+        });
+    }
+
+    function handleCompareChange(event) {
+        const checkbox = event.target;
+        const carId = checkbox.dataset.carId;
+
+        if (checkbox.checked) {
+            if (selectedCars.length < MAX_COMPARE) {
+                if (!selectedCars.includes(carId)) {
+                    selectedCars.push(carId);
+                }
+            } else {
+                checkbox.checked = false; // Prevent checking more than the max
+                alert(`You can only compare up to ${MAX_COMPARE} cars at a time.`);
+            }
+        } else {
+            selectedCars = selectedCars.filter(id => id !== carId);
+        }
+
+        localStorage.setItem('compareCars', JSON.stringify(selectedCars));
+        updateComparisonBar();
+    }
+
+    // Event delegation for checkboxes added dynamically via AJAX
+    document.body.addEventListener('change', function(event) {
+        if (event.target.classList.contains('compare-checkbox')) {
+            handleCompareChange(event);
+        }
+    });
+
+    clearBtn.addEventListener('click', function() {
+        selectedCars = [];
+        localStorage.removeItem('compareCars');
+        updateComparisonBar();
+        updateCheckboxes();
+    });
+
+    // Initial state setup
+    updateComparisonBar();
+    updateCheckboxes(); // Check boxes for already selected items on initial load
 });
 </script>
 
