@@ -16,7 +16,10 @@
     
     <!-- Unlock Prompt for Dealer -->
     {% if not conversation.is_unlocked %}
-    <div id="unlock-prompt" class="admin-actions pending" style="display: none;">
+    {# Check if any message body contains the masked text. If so, show the prompt on page load. #}
+    {% set has_masked_info = conversation.messages.filter(ChatMessage.body.contains('[Contact Info Hidden]')).first() %}
+    <div id="unlock-prompt" class="admin-actions pending" 
+         style="display: {% if has_masked_info %}block{% else %}none{% endif %};">
         <h3>Serious Buyer Detected!</h3>
         <p>This buyer has shared contact information. Unlock their full messages and contact details to close the deal.</p>
         <form id="unlock-form" method="POST" action="{{ url_for('dealer.unlock_conversation', conversation_id=conversation.id) }}">
@@ -30,7 +33,10 @@
             {% for message in conversation.messages.order_by('timestamp') %}
                 <div class="chat-message-wrapper {% if message.sender_id == current_user.id %}sent-wrapper{% else %}received-wrapper{% endif %}">
                     <div class="chat-message {% if message.sender_id == current_user.id %}sent{% else %}received{% endif %}">
-                        <p class="message-body">{{ message.body }}</p>
+                        <p class="message-body">
+                            {# If unlocked and an original body exists, show it. Otherwise, show the default body. #}
+                            {{ message.original_body if conversation.is_unlocked and message.original_body else message.body }}
+                        </p>
                         <small class="message-time">{{ message.timestamp.strftime('%b %d, %H:%M') }}</small>
                     </div>
                 </div>
@@ -75,7 +81,14 @@ document.addEventListener('DOMContentLoaded', function() {
             .then(response => response.json())
             .then(data => {
                 if (data.status !== 'success') {
-                    alert(data.message || 'Failed to send message.');
+                    // If the message limit is reached, disable the form
+                    if (response.status === 403) {
+                        messageInput.value = data.message;
+                        messageInput.disabled = true;
+                        chatForm.querySelector('button').disabled = true;
+                    } else {
+                        alert(data.message || 'Failed to send message.');
+                    }
                 } else {
                     messageInput.value = ''; // Clear input on success
                 }

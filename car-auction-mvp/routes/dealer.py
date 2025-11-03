@@ -124,7 +124,7 @@ def view_conversation(conversation_id):
         from flask import abort
         abort(403)
 
-    return render_template('dealer_conversation_detail.html', conversation=conversation)
+    return render_template('dealer_conversation_detail.html', conversation=conversation, ChatMessage=ChatMessage)
 
 @dealer_bp.route('/messages/<int:conversation_id>/unlock', methods=['POST'])
 @login_required

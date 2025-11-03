@@ -194,7 +194,14 @@ document.addEventListener('DOMContentLoaded', function() {
                     // The real-time 'new_chat_message' event will handle appending it to the UI.
                     messageInput.value = ''; // Clear input
                 } else {
-                    alert(data.message || 'Failed to send message.');
+                    // If the message limit is reached, disable the form
+                    if (response.status === 403) {
+                        messageInput.value = data.message;
+                        messageInput.disabled = true;
+                        chatForm.querySelector('button').disabled = true;
+                    } else {
+                        alert(data.message || 'Failed to send message.');
+                    }
                 }
             }).catch(err => console.error('Chat send error:', err));
         });

@@ -68,7 +68,8 @@ def mask_contact_info(message):
     Returns the masked message and a boolean indicating if contact info was found.
     """
     # Regex to find common Ethiopian phone number formats (e.g., 09..., +2519..., 9...)
-    phone_regex = r'(\+251|0)?(9\d{8})'
+    # This improved regex handles optional spaces.
+    phone_regex = r'(?:\+251\s?|0)?9\d{2}\s?\d{3}\s?\d{3}'
     masked_message, count = re.subn(phone_regex, '[Contact Info Hidden]', message)
     found_contact_info = count > 0
     return masked_message, found_contact_info
@@ -257,15 +258,30 @@ def send_chat_message():
         )
         db.session.add(conversation)
 
+    # --- Free Message Limit Logic ---
+    FREE_MESSAGE_LIMIT = 3
+    if not conversation.is_unlocked and conversation.message_count >= FREE_MESSAGE_LIMIT:
+        return jsonify({'status': 'error', 'message': 'Free message limit reached. The dealer must unlock the conversation to continue.'}), 403
+
+    # --- Contact Info Masking & Filtering ---
+    original_message = message_body
+    is_serious = False
+    # Only mask if the conversation is not already unlocked
+    if not conversation.is_unlocked:
+        message_body, is_serious = mask_contact_info(original_message)
+        # Increment message count only for free messages
+        conversation.message_count += 1
+
     # Create and save the new message
-    new_message = ChatMessage(body=message_body, sender_id=current_user.id)
+    # We store the (potentially masked) body for display, and the original for when it's unlocked
+    new_message = ChatMessage(body=message_body, original_body=original_message, sender_id=current_user.id)
     conversation.messages.append(new_message)
     db.session.commit()
 
     # --- Real-time Logic ---
     # 1. Emit the new chat message to the conversation room
     chat_message_data = {
-        'body': new_message.body,
+        'body': message_body, # Send the masked version to the UI
         'sender_id': new_message.sender_id,
         'sender_username': new_message.sender.username,
         'timestamp': new_message.timestamp.isoformat() + 'Z'
@@ -293,8 +309,12 @@ def send_chat_message():
         unread_count = Notification.query.filter_by(user_id=recipient_id, is_read=False).count()
         notification_data = {'message': new_notification.message, 'link': new_notification.link, 'timestamp': new_notification.timestamp.isoformat() + 'Z', 'count': unread_count}
         socketio.emit('new_notification', notification_data, room=str(recipient_id))
-    
-    return jsonify({'status': 'success', 'message': 'Message sent!'})
+
+    # If contact info was found, emit a special event to the dealer's room
+    if is_serious:
+        socketio.emit('serious_buyer_detected', {'conversation_id': conversation.id}, room=str(dealer_id))
+
+    return jsonify({'status': 'success', 'message': 'Message sent!', 'is_masked': is_serious})
 
 @main_bp.route('/chat/history/<int:car_id>')
 @login_required
