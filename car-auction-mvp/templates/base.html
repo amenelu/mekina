@@ -44,15 +44,21 @@
             <div class="nav-right"> 
                 {% if current_user.is_authenticated %}
                     {# --- START: Integrated Real-time Notification Link --- #}
-                    <a href="{{ url_for('main.notifications') }}" class="desktop-notification-link notification-bell-link">
-                        Notifications 
+                    <a href="{{ url_for('main.notifications') }}" class="desktop-icon-link notification-bell-link">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-bell"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>
                         <span class="notification-badge main-notification-badge" style="display: {% if unread_notifications > 0 %}inline-block{% else %}none{% endif %};">{{ unread_notifications }}</span>
                     </a>
                     {# --- START: Messages Link --- #}
                     {% if current_user.is_dealer %}
-                        <a href="{{ url_for('dealer.list_messages') }}" class="desktop-notification-link">Messages</a>
+                        <a href="{{ url_for('dealer.list_messages') }}" class="desktop-icon-link">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-message-square"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
+                            <span class="notification-badge message-badge" style="display: {% if unread_messages_count > 0 %}inline-block{% else %}none{% endif %};">{{ unread_messages_count }}</span>
+                        </a>
                     {% else %}
-                        <a href="{{ url_for('main.my_messages') }}" class="desktop-notification-link">Messages</a>
+                        <a href="{{ url_for('main.my_messages') }}" class="desktop-icon-link">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-message-square"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
+                            <span class="notification-badge message-badge" style="display: {% if unread_messages_count > 0 %}inline-block{% else %}none{% endif %};">{{ unread_messages_count }}</span>
+                        </a>
                     {% endif %}
                     {# --- END: Messages Link --- #}
                     {# --- END: Integrated Real-time Notification Link --- #}
@@ -73,9 +79,15 @@
                 </a>
                 {# --- START: Mobile Messages Link --- #}
                 {% if current_user.is_dealer %}
-                    <a href="{{ url_for('dealer.list_messages') }}" class="mobile-notification-bell-link"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-message-square"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg></a>
+                    <a href="{{ url_for('dealer.list_messages') }}" class="mobile-notification-bell-link">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-message-square"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
+                        <span class="notification-badge message-badge" style="display: {% if unread_messages_count > 0 %}inline-block{% else %}none{% endif %};">{{ unread_messages_count }}</span>
+                    </a>
                 {% else %}
-                    <a href="{{ url_for('main.my_messages') }}" class="mobile-notification-bell-link"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-message-square"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg></a>
+                    <a href="{{ url_for('main.my_messages') }}" class="mobile-notification-bell-link">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-message-square"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
+                        <span class="notification-badge message-badge" style="display: {% if unread_messages_count > 0 %}inline-block{% else %}none{% endif %};">{{ unread_messages_count }}</span>
+                    </a>
                 {% endif %}
                 {# --- END: Mobile Messages Link --- #}
                 </a>
@@ -180,6 +192,15 @@
             });
         }
 
+        // Function to update message badges
+        function updateMessageBadges(count) {
+            const badges = document.querySelectorAll('.message-badge');
+            badges.forEach(badge => {
+                badge.textContent = count;
+                badge.style.display = count > 0 ? 'inline-block' : 'none';
+            });
+        }
+
         // Listen for the 'new_notification' event from the server
         socket.on('new_notification', function(data) {
             console.log('New notification received:', data);
@@ -223,7 +244,7 @@
                 // In the future, you could add logic to update the conversation list with an "unread" indicator.
             } else {
                 // --- User is NOT on the notifications page ---
-                // 1. Update the badge count
+                // 1. Update the notification badge count
                 updateNotificationBadges(data.count);
 
                 // 2. Find all notification bell icons/links and make them shake
@@ -239,6 +260,12 @@
         socket.on('notification_count_update', function(data) {
             console.log('Notification count update received:', data);
             updateNotificationBadges(data.count);
+        });
+
+        // Listen for the 'message_count_update' event
+        socket.on('message_count_update', function(data) {
+            console.log('Message count update received:', data);
+            updateMessageBadges(data.count);
         });
     });
     </script>

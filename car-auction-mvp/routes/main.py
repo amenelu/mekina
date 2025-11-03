@@ -123,6 +123,17 @@ def view_buyer_conversation(conversation_id):
         from flask import abort
         abort(403)
 
+    # Mark messages from dealer as read and emit a real-time update
+    unread_messages = conversation.messages.filter_by(sender_id=conversation.dealer_id, is_read=False).all()
+    if unread_messages:
+        for msg in unread_messages:
+            msg.is_read = True
+        db.session.commit()
+
+        # Recalculate the total unread count and emit an update
+        total_unread = db.session.query(ChatMessage.id).join(Conversation, ChatMessage.conversation_id == Conversation.id).filter(Conversation.buyer_id == current_user.id, ChatMessage.sender_id != current_user.id, ChatMessage.is_read == False).count()
+        socketio.emit('message_count_update', {'count': total_unread}, room=str(current_user.id))
+
     return render_template('buyer_conversation_detail.html', conversation=conversation)
 
 @main_bp.route('/api/search_suggestions')

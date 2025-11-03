@@ -124,6 +124,18 @@ def view_conversation(conversation_id):
         from flask import abort
         abort(403)
 
+    # Mark messages from buyer as read and emit a real-time update
+    unread_messages = conversation.messages.filter_by(sender_id=conversation.buyer_id, is_read=False).all()
+    if unread_messages:
+        for msg in unread_messages:
+            msg.is_read = True
+        db.session.commit()
+
+        # Recalculate the total unread count and emit an update
+        from sqlalchemy import or_
+        total_unread = db.session.query(ChatMessage.id).join(Conversation, ChatMessage.conversation_id == Conversation.id).filter(Conversation.dealer_id == current_user.id, ChatMessage.sender_id != current_user.id, ChatMessage.is_read == False).count()
+        socketio.emit('message_count_update', {'count': total_unread}, room=str(current_user.id))
+
     return render_template('dealer_conversation_detail.html', conversation=conversation, ChatMessage=ChatMessage)
 
 @dealer_bp.route('/messages/<int:conversation_id>/unlock', methods=['POST'])

@@ -119,8 +119,20 @@ nav a.active {
     gap: 15px;
 }
 /* Hide desktop notification link by default, show on desktop */
+.desktop-icon-link {
+    position: relative;
+    color: hsl(var(--foreground));
+    display: flex;
+    align-items: center;
+    padding: 5px;
+}
+.desktop-icon-link .notification-badge {
+    position: absolute;
+    top: 0;
+    right: 0;
+}
 .desktop-notification-link {
-    display: inline-block;
+    display: none; /* This class is for the old text link, keep it hidden */
 }
 .nav-button {
     background-color: hsl(var(--info));
@@ -714,7 +726,7 @@ tbody tr:hover {
 .site-footer {
     background-color: hsl(var(--secondary));
     border-top: 1px solid hsl(var(--border));
-    padding: 3rem 0;
+    padding: 2rem 0; /* Revert to a slightly larger default padding */
     font-size: 0.9rem;
 }
 .footer-grid {
@@ -744,7 +756,7 @@ tbody tr:hover {
     text-decoration: none;
 }
 .footer-bottom {
-    margin-top: 3rem;
+    margin-top: 2rem;
     padding-top: 2rem;
     border-top: 1px solid hsl(var(--border));
     text-align: center;
@@ -1363,113 +1375,6 @@ td .role-badge {
     border-radius: var(--radius);
     font-size: 0.8em;
 }
-
-/* --- Comparison Tool --- */
-.compare-container {
-    display: flex;
-    align-items: center;
-    gap: 5px;
-    margin-top: 10px;
-}
-.compare-description {
-    font-size: 0.8em;
-    color: hsl(var(--muted-foreground));
-    margin-left: 5px;
-}
-.compare-container label {
-    font-size: 0.9em;
-    color: hsl(var(--muted-foreground));
-    cursor: pointer;
-    vertical-align: middle; /* Align with larger checkbox */
-}
-.compare-checkbox {
-    accent-color: hsl(var(--accent));
-    width: 1.2em; /* Make checkbox slightly larger */
-    height: 1.2em;
-    vertical-align: middle;
-}
-.comparison-bar {
-    position: fixed;
-    bottom: 0;
-    left: 0;
-    width: 100%;
-    background-color: hsl(var(--card));
-    border-top: 1px solid hsl(var(--border));
-    padding: 1rem 0;
-    z-index: 999;
-    box-shadow: 0 -4px 15px hsl(var(--background) / 0.5);
-}
-.comparison-content {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-}
-.comparison-content span {
-    font-weight: 600;
-    font-size: 1.1rem;
-}
-.comparison-actions {
-    display: flex;
-    gap: 1rem;
-}
-
-/* --- Chat System --- */
-.chat-container {
-    border: 1px solid hsl(var(--border));
-    border-radius: var(--radius);
-    overflow: hidden;
-    display: flex;
-    flex-direction: column;
-}
-.chat-history {
-    padding: 1rem;
-    height: 400px;
-    overflow-y: auto;
-    display: flex;
-    flex-direction: column;
-    gap: 0.75rem;
-}
-.chat-message-wrapper {
-    display: flex;
-    max-width: 80%;
-}
-.sent-wrapper {
-    justify-content: flex-end;
-    align-self: flex-end;
-}
-.received-wrapper {
-    justify-content: flex-start;
-    align-self: flex-start;
-}
-.chat-message {
-    padding: 10px 15px;
-    border-radius: var(--radius);
-}
-.chat-message p { margin: 0 0 5px 0; }
-.chat-message small { font-size: 0.75em; color: hsl(var(--muted-foreground)); opacity: 0.8; }
-.sent { background-color: hsl(var(--accent)); color: hsl(var(--accent-foreground)); }
-.received { background-color: hsl(var(--secondary)); }
-.system-message {
-    text-align: center;
-    color: hsl(var(--muted-foreground));
-    font-style: italic;
-    padding: 1rem;
-}
-.chat-input-area {
-    border-top: 1px solid hsl(var(--border));
-    padding: 0.5rem;
-}
-.chat-input-area form {
-    display: flex;
-    gap: 0.5rem;
-}
-.chat-input-area textarea {
-    flex-grow: 1;
-    resize: none;
-    height: 40px; /* Start with a smaller height */
-}
-
-
 /* --- RESPONSIVE DESIGN (Mobile First Approach) --- */
 
 /* Medium screens (tablets) */
@@ -1525,6 +1430,10 @@ td .role-badge {
     /* Make text in the mobile dropdown menu larger */
     .nav-menu.active a {
         font-size: 2rem; /* Double the default text size */
+    }
+    /* Hide the desktop menu container by default on mobile */
+    .nav-menu {
+        display: none;
     }
     /* Hamburger animation */
     .mobile-nav-toggle.active .hamburger-icon {
@@ -1624,167 +1533,8 @@ td .role-badge {
     .main-image-container img {
         max-height: 45vh; /* Set max height to 45% of the viewport height */
     }
-    .thumbnails {
-        flex-wrap: wrap; /* Allow thumbnails to wrap onto the next line */
-        justify-content: center; /* Center them when they wrap */
-    }
-}
-
-/* --- RESPONSIVE DESIGN (Mobile First Approach) --- */
-
-/* Medium screens (tablets) */
-@media (max-width: 1024px) {
-    .footer-grid {
-        grid-template-columns: repeat(2, 1fr);
-    }
-    .stat-grid {
-        grid-template-columns: repeat(3, 1fr);
-    }
-}
-
-/* Small screens (tablets and large phones) */
-@media (max-width: 768px) {
-    /* --- General Layout --- */
-    .container {
-        padding: 0 15px;
-    }
-    h1 { font-size: 1.8rem; }
-    h2 { font-size: 1.5rem; }
-
-    /* --- Navigation --- */
-    .mobile-nav-toggle {
-        display: block;
-    }
-    .nav-menu {
-        display: none;
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background-color: hsl(var(--background));
-        flex-direction: column;
-        justify-content: center;
-        align-items: center;
-        z-index: 1000;
-        padding-top: 60px; /* Space for header */
-    }
-    .nav-menu.active {
-        display: flex;
-    }
-    nav ul {
-        flex-direction: column;
-        text-align: center;
-        gap: 1.5rem;
-    }
-    .nav-right {
-        flex-direction: column;
-        margin-top: 2rem;
-        gap: 1rem;
-    }
-    /* Hamburger animation */
-    .mobile-nav-toggle.active .hamburger-icon {
-        background-color: transparent;
-    }
-    .mobile-nav-toggle.active .hamburger-icon::before {
-        transform: translateY(8px) rotate(45deg);
-    }
-    .mobile-nav-toggle.active .hamburger-icon::after {
-        transform: translateY(-8px) rotate(-45deg);
-    }
-
-    /* --- Grids --- */
-    .auction-grid {
-        grid-template-columns: 1fr;
-    }
-    .stat-grid {
-        grid-template-columns: repeat(2, 1fr);
-    }
-    .trust-grid {
-        grid-template-columns: 1fr;
-        gap: 2.5rem;
-    }
-    .form-grid {
-        grid-template-columns: 1fr;
-    }
-
-    /* --- Detail Page Layout --- */
-    .detail-page-container {
-        flex-direction: column;
-    }
-    .sidebar {
-        border-left: none;
-        border-top: 1px solid hsl(var(--border));
-        padding-left: 0;
-        padding-top: 30px;
-    }
-
-    /* --- Hero Section --- */
-    .search-hero {
-        padding: 3rem 0;
-    }
-    .search-bar {
-        flex-direction: column;
-    }
-    .search-bar button {
-        border-left: none;
-        border-top: 1px solid hsl(var(--border));
-        padding: 15px;
-    }
-
-    /* --- Footer --- */
-    .footer-grid {
-        grid-template-columns: 1fr;
-        text-align: center;
-    }
-
-    /* --- Tables --- */
-    .admin-table, .dashboard-table {
-        display: block;
-        overflow-x: auto;
-        white-space: nowrap;
-        -webkit-overflow-scrolling: touch; /* Smoother scrolling on iOS */
-    }
-    .table-responsive-wrapper {
-        width: 100%;
-        overflow-x: auto;
-        -webkit-overflow-scrolling: touch;
-        border: 1px solid hsl(var(--border));
-        border-radius: var(--radius);
-    }
-    .admin-table th, .admin-table td,
-    .dashboard-table th, .dashboard-table td {
-        white-space: normal; /* Allow text to wrap within the cell */
-        word-break: break-word; /* Force long text to wrap */
-        min-width: 120px; /* A reasonable minimum width */
-    }
-    .dashboard-table .button-group {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 5px;
-    }
-
-    /* --- Featured Slider --- */
-    .featured-image-grid {
-        grid-template-columns: 1fr;
-        height: auto;
-    }
-    .featured-large-image {
-        height: 250px;
-    }
-    .featured-small-images {
-        grid-template-columns: repeat(4, 1fr);
-        height: 80px;
-    }
-
-    /* --- Deal Summary --- */
-    .deal-parties {
-        grid-template-columns: 1fr;
-    }
-
-    /* --- Image Gallery --- */
-    .main-image-container img {
-        max-height: 45vh; /* Set max height to 45% of the viewport height */
+    .gallery-nav {
+        display: none; /* Hide nav buttons on mobile, swipe is enabled */
     }
     .thumbnails {
         flex-wrap: wrap; /* Allow thumbnails to wrap onto the next line */
@@ -1857,6 +1607,13 @@ td .role-badge {
     .mobile-nav-toggle.active .hamburger-icon::after {
         transform: translateY(-8px) rotate(-45deg);
     }
+    /* Mobile Notification Bell Icon */
+    .mobile-nav-icons { display: flex; }
+    .mobile-notification-bell-link .notification-badge { top: -5px; right: -5px; }
+    /* Hide the desktop notification link on mobile */
+    .desktop-notification-link { display: none; }
+    /* Hide desktop username on mobile */
+    .desktop-username { display: none; }
 
     /* --- Grids --- */
     .auction-grid {

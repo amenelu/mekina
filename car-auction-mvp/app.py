@@ -63,11 +63,22 @@ def create_app(config_class=Config):
     def inject_now():
         from datetime import datetime
         from models.notification import Notification
+        from models.conversation import Conversation
+        from models.chat_message import ChatMessage
+        from sqlalchemy import or_
         from flask_login import current_user
         unread_notifications = 0
+        unread_messages_count = 0
         if current_user.is_authenticated:
             unread_notifications = Notification.query.filter_by(user_id=current_user.id, is_read=False).count()
-        return {'now': datetime.utcnow(), 'unread_notifications': unread_notifications}
+            # Count unread messages where the current user is a participant but not the sender
+            unread_messages_count = db.session.query(ChatMessage.id).join(Conversation).filter(
+                or_(Conversation.buyer_id == current_user.id, Conversation.dealer_id == current_user.id),
+                ChatMessage.sender_id != current_user.id,
+                ChatMessage.is_read == False
+            ).count()
+
+        return {'now': datetime.utcnow(), 'unread_notifications': unread_notifications, 'unread_messages_count': unread_messages_count}
 
     # CLI command to create an admin user
     @app.cli.command("create-admin")
