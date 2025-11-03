@@ -316,7 +316,8 @@ def get_chat_history(car_id):
         ).first()
 
     if not conversation:
-        return jsonify([]) # No history yet, return an empty list
+        # No history yet, return an empty list but indicate no conversation exists
+        return jsonify({'conversation_id': None, 'messages': []})
 
     messages = ChatMessage.query.filter_by(conversation_id=conversation.id).order_by(ChatMessage.timestamp.asc()).all()
 
@@ -327,4 +328,7 @@ def get_chat_history(car_id):
             'timestamp': msg.timestamp.isoformat() + 'Z'
         } for msg in messages
     ]
-    return jsonify(history)
+    return jsonify({
+        'conversation_id': conversation.id,
+        'messages': history
+    })

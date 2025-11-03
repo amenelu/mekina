@@ -208,18 +208,17 @@ document.addEventListener('DOMContentLoaded', function() {
 
         fetch(`/chat/history/${carId}`)
             .then(response => response.json())
-            .then(messages => {
+            .then(data => {
                 chatHistory.innerHTML = ''; // Clear loading message
-                if (messages.length === 0) {
+                if (data.messages.length === 0) {
                     chatHistory.innerHTML = '<p class="system-message">Start the conversation!</p>';
                 } else {
-                    messages.forEach(msg => {
+                    data.messages.forEach(msg => {
                         appendMessage(msg);
                     });
-                    const firstMessage = messages[0];
-                    if(firstMessage && firstMessage.conversation_id) {
-                         socket.emit('join_conversation', { 'conversation_id': firstMessage.conversation_id });
-                    }
+                }
+                if (data.conversation_id) {
+                    socket.emit('join_conversation', { 'conversation_id': data.conversation_id });
                 }
                 chatHistory.scrollTop = chatHistory.scrollHeight;
             });
