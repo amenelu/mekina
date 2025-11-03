@@ -199,38 +199,6 @@ document.addEventListener('DOMContentLoaded', function() {
 
     <hr>
     <div class="dashboard-section">
-        <h2>My Unanswered Questions</h2>
-        {% if unanswered_questions %}
-            <div class="table-responsive-wrapper">
-                <table class="dashboard-table">
-             <thead>
-                <tr>
-                    <th>Car</th>
-                    <th>Question</th>
-                    <th>Action</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for q in unanswered_questions %}
-                <tr>
-                    <td>{{ q.auction.car.year }} {{ q.auction.car.make }} {{ q.auction.car.model }}</td>
-                    <td>
-                        <span class="new-item-tag">New</span>
-                        {{ q.question_text }}
-                    </td>
-                    <td><a href="{{ url_for('seller.answer_question', question_id=q.id) }}">Answer</a></td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-            </div>
-        {% else %}
-            <p>You have no unanswered questions.</p>
-        {% endif %}
-    </div>
-
-    <hr>
-    <div class="dashboard-section">
         <h2>Unanswered Questions on Your Offers</h2>
         {% if unanswered_request_questions %}
             <div class="table-responsive-wrapper">

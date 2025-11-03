@@ -43,10 +43,6 @@ class BidForm(FlaskForm):
         super(BidForm, self).__init__(*args, **kwargs)
         self.auction = auction # Pass auction object to the form for the validator
 
-class QuestionForm(FlaskForm):
-    question_text = TextAreaField('Ask a Question', validators=[DataRequired(), validators.Length(min=10, max=500)])
-    submit_question = SubmitField('Submit Question')
-
 @auctions_bp.route('/')
 def list_auctions():
     page = request.args.get('page', 1, type=int)
@@ -77,7 +73,6 @@ def auction_detail(auction_id):
         abort(404)
 
     bid_form = BidForm(auction=auction)
-    question_form = QuestionForm()
 
     # Separate logic for two different forms on the page
     if bid_form.validate_on_submit() and bid_form.submit.data:
@@ -92,24 +87,6 @@ def auction_detail(auction_id):
         flash('Your bid has been placed successfully!')
         return redirect(url_for('auctions.auction_detail', auction_id=auction.id))
 
-    if question_form.validate_on_submit() and question_form.submit_question.data:
-        if not current_user.is_authenticated:
-            return jsonify({'error': 'You must be logged in to ask a question.'}), 401
-
-        new_question = Question(question_text=question_form.question_text.data, user_id=current_user.id, auction_id=auction.id)
-        db.session.add(new_question)
-        db.session.commit()
-
-        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-            return jsonify({
-                'status': 'success',
-                'message': 'Your question has been submitted.',
-                'question_html': render_template('_question_item.html', q=new_question, auction=auction)
-            })
-
-        flash('Your question has been submitted successfully!')
-        return redirect(url_for('auctions.auction_detail', auction_id=auction.id))
-
     highest_bid = Bid.query.filter_by(auction_id=auction.id).order_by(Bid.amount.desc()).first()
 
     # Get all bids for the history, newest first
@@ -121,10 +98,7 @@ def auction_detail(auction_id):
     # We can get the associated auction from each car.
     similar_auctions = [car.auction for car in similar_cars if car.auction]
 
-    # Get all questions and answers for this auction
-    questions = auction.questions.order_by(Question.timestamp.asc()).all()
-
-    return render_template('auction_detail.html', auction=auction, bid_form=bid_form, question_form=question_form, highest_bid=highest_bid, all_bids=all_bids, similar_auctions=similar_auctions, questions=questions, similarity_reason=similarity_reason)
+    return render_template('auction_detail.html', auction=auction, bid_form=bid_form, highest_bid=highest_bid, all_bids=all_bids, similar_auctions=similar_auctions, similarity_reason=similarity_reason)
 
 @auctions_bp.route('/api/filter')
 def filter_auctions_api():

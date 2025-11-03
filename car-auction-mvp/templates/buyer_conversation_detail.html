@@ -4,8 +4,16 @@
 
 {% block content %}
     <a href="{{ url_for('main.my_messages') }}">&larr; Back to All Messages</a>
-    <h1>Chat about {{ conversation.car.year }} {{ conversation.car.make }} {{ conversation.car.model }}</h1>
-
+    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; margin-bottom: 1rem;">
+        <h1>Chat about {{ conversation.car.year }} {{ conversation.car.make }} {{ conversation.car.model }}</h1>
+        {% set car = conversation.car %}
+        <a href="{{ url_for('auctions.auction_detail', auction_id=car.auction.id) if car.listing_type == 'auction' and car.auction else 
+                   (url_for('main.car_detail', car_id=car.id) if car.listing_type == 'sale' else 
+                   (url_for('rentals.rental_detail', listing_id=car.rental_listing.id) if car.listing_type == 'rental' and car.rental_listing else '#')) }}" 
+           class="btn">View Listing
+        </a>
+    </div>
+    
     <div class="chat-container">
         <div class="chat-history" id="chat-history">
             {% for message in conversation.messages.order_by('timestamp') %}
@@ -29,20 +37,6 @@
 {% endblock %}
 
 {% block after_content %}
-<style>
-/* Basic chat styling */
-.chat-message-wrapper { display: flex; margin-bottom: 10px; }
-.sent-wrapper { justify-content: flex-end; }
-.received-wrapper { justify-content: flex-start; }
-.chat-message { max-width: 70%; padding: 10px 15px; border-radius: var(--radius); }
-.chat-message p { margin: 0 0 5px 0; }
-.chat-message small { font-size: 0.75em; color: hsl(var(--muted-foreground)); }
-.sent { background-color: hsl(var(--accent)); color: hsl(var(--accent-foreground)); }
-.received { background-color: hsl(var(--secondary)); }
-.chat-container { border: 1px solid hsl(var(--border)); border-radius: var(--radius); overflow: hidden; }
-.chat-history { padding: 1rem; height: 400px; overflow-y: auto; }
-</style>
-
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     // --- Chat Message Sending Logic ---

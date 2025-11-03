@@ -96,41 +96,6 @@ def dashboard():
 
     return render_template('seller_dashboard.html', my_cars=my_cars, unanswered_questions=unanswered_questions, now=datetime.utcnow())
 
-@seller_bp.route('/answer_question/<int:question_id>', methods=['GET', 'POST'])
-@login_required
-def answer_question(question_id):
-    question = Question.query.get_or_404(question_id)
-    auction = question.auction
-    # Security check: ensure the current user owns the car in the auction
-    if auction.car.owner_id != current_user.id:
-        flash("You do not have permission to answer this question.", "danger")
-        return redirect(url_for('seller.dashboard'))
-
-    form = AnswerForm()
-    if form.validate_on_submit():
-        question.answer_text = form.answer_text.data
-        question.answer_timestamp = datetime.utcnow()
-        db.session.commit()
-
-        # --- Notify the user who asked the question ---
-        notification_message = f"The seller has answered your question on the '{auction.car.make} {auction.car.model}' listing."
-        notification = Notification(user_id=question.user_id, message=notification_message)
-        db.session.add(notification)
-        db.session.flush() # Get ID
-        notification.link = url_for('auctions.auction_detail', auction_id=auction.id, _anchor=f'question-{question.id}', notification_id=notification.id)
-        db.session.commit()
-
-        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-            return jsonify({
-                'status': 'success',
-                'message': 'Your answer has been posted successfully!'
-            })
-
-        flash("Your answer has been posted.", "success")
-        return redirect(url_for('auctions.auction_detail', auction_id=auction.id))
-
-    return render_template('answer_question.html', form=form, question=question, auction=auction)
-
 @seller_bp.route('/submit_car', methods=['GET', 'POST'])
 @login_required
 def submit_car():

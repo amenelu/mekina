@@ -126,6 +126,33 @@ def view_conversation(conversation_id):
 
     return render_template('dealer_conversation_detail.html', conversation=conversation)
 
+@dealer_bp.route('/messages/<int:conversation_id>/unlock', methods=['POST'])
+@login_required
+@dealer_required
+def unlock_conversation(conversation_id):
+    """Allows a dealer to spend a point to unlock a conversation."""
+    conversation = Conversation.query.get_or_404(conversation_id)
+
+    # Security check
+    if conversation.dealer_id != current_user.id:
+        abort(403)
+
+    # Point system check
+    if current_user.points <= 0:
+        flash("You do not have enough credits to unlock this conversation.", "danger")
+        return redirect(url_for('dealer.view_conversation', conversation_id=conversation.id))
+
+    if not conversation.is_unlocked:
+        # Deduct point and unlock
+        current_user.points -= 1
+        conversation.is_unlocked = True
+        db.session.commit()
+        flash("Conversation unlocked! You can now see the buyer's full messages.", "success")
+    else:
+        flash("This conversation is already unlocked.", "info")
+
+    return redirect(url_for('dealer.view_conversation', conversation_id=conversation.id))
+
 @dealer_bp.route('/request/<int:request_id>/bid', methods=['GET', 'POST'])
 @login_required
 @dealer_required

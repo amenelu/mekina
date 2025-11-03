@@ -62,8 +62,8 @@
             <h3>Specifications</h3>
             <div class="info-columns">
                 <ul>
-                    <li><strong>Condition:</strong> {{ car.condition }}</li>
-                    <li><strong>Mileage:</strong> {{ '{:,}'.format(car.mileage) }} km</li>
+                    <li><strong>Condition:</strong><span>{{ car.condition }}</span></li>
+                    <li><strong>Mileage:</strong><span>{{ '{:,}'.format(car.mileage) if car.mileage is not none else 'N/A' }} km</span></li>
                     <li><strong>Transmission:</strong> {{ car.transmission }}</li>
                     <li><strong>Drivetrain:</strong> {{ car.drivetrain }}</li>
                     <li><strong>Fuel Type:</strong> {{ car.fuel_type }}</li>
@@ -82,16 +82,16 @@
                 {% endfor %}
             </ul>
             <hr>
-            {# Only show contact button if user is not the owner of the car #}
-            {% if not current_user.is_authenticated or current_user.id != car.owner_id %}
+            {# Show contact button only to logged-in users who are not the owner #}
+            {% if current_user.is_authenticated and current_user.id != car.owner_id %}
             <div class="contact-seller-box">
                 <h4>Interested?</h4>
                 <p>Ask the dealer a question about this car.</p>
-                <button id="contact-dealer-btn" 
-                        class="btn approve" 
-                        style="width: 100%;"
-                        data-is-authenticated="{{ 'true' if current_user.is_authenticated else 'false' }}"
-                        data-login-url="{{ url_for('auth.login', next=request.url) }}">Contact Dealer</button>
+                <button id="contact-dealer-btn" class="btn approve" style="width: 100%;">Contact Dealer</button>
+            </div>
+            {% elif not current_user.is_authenticated %}
+            <div class="contact-seller-box">
+                <a href="{{ url_for('auth.login', next=request.url) }}" class="btn approve" style="width: 100%;">Log In to Contact Dealer</a>
             </div>
             {% endif %}
         </div>
@@ -123,19 +123,22 @@
 {% block after_content %}
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // --- Modal Logic ---
+    const socket = io();
+    const currentUserId = "{{ current_user.id if current_user.is_authenticated else 'null' }}";
+
+    // --- Get all DOM elements first ---
     const modal = document.getElementById('chat-modal');
     const contactBtn = document.getElementById('contact-dealer-btn');
     const closeBtn = document.querySelector('.close-modal');
+    const chatForm = document.getElementById('chat-form');
+    const messageInput = document.getElementById('chat-message-input');
+    const chatHistory = document.getElementById('chat-history');
+    const mainImage = document.getElementById('main-car-image');
+    const thumbnails = document.querySelectorAll('.thumbnail-img');
 
+    // --- Modal Logic ---
     if(contactBtn) {
-        contactBtn.addEventListener('click', function() {
-            if (this.dataset.isAuthenticated === 'true') {
-                modal.style.display = 'block';
-            } else {
-                window.location.href = this.dataset.loginUrl;
-            }
-        });
+        contactBtn.addEventListener('click', function() { modal.style.display = 'block'; loadChatHistory(); });
     }
 
     if(closeBtn) {
@@ -151,9 +154,6 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     // --- Image Gallery Logic ---
-    const mainImage = document.getElementById('main-car-image');
-    const thumbnails = document.querySelectorAll('.thumbnail-img');
-
     thumbnails.forEach(thumb => {
         thumb.addEventListener('click', function() {
             // Set the main image src to the clicked thumbnail's src
@@ -168,15 +168,17 @@ document.addEventListener('DOMContentLoaded', function() {
     if (thumbnails.length > 0) thumbnails[0].classList.add('active');
 
     // --- Chat Message Sending Logic ---
-    const chatForm = document.getElementById('chat-form');
-    const messageInput = document.getElementById('chat-message-input');
-    const chatHistory = document.getElementById('chat-history');
-
     if (chatForm) {
         chatForm.addEventListener('submit', function(e) {
             e.preventDefault();
             const message = messageInput.value.trim();
             if (!message) return;
+
+            // Check if user is authenticated before sending
+            if (currentUserId === 'null') {
+                window.location.href = "{{ url_for('auth.login', next=request.url) }}";
+                return;
+            }
 
             const carId = this.dataset.carId;
 
@@ -188,15 +190,8 @@ document.addEventListener('DOMContentLoaded', function() {
             .then(response => response.json())
             .then(data => {
                 if (data.status === 'success') {
-                    // Clear the system message if it exists
-                    const systemMessage = chatHistory.querySelector('.system-message');
-                    if (systemMessage) systemMessage.remove();
-
-                    // Add the sent message to the chat history (as the current user)
-                    const messageEl = document.createElement('p');
-                    messageEl.textContent = message;
-                    messageEl.classList.add('chat-message', 'sent'); // 'sent' for styling your own messages
-                    chatHistory.appendChild(messageEl);
+                    // The message is sent successfully.
+                    // The real-time 'new_chat_message' event will handle appending it to the UI.
                     messageInput.value = ''; // Clear input
                 } else {
                     alert(data.message || 'Failed to send message.');
@@ -204,6 +199,66 @@ document.addEventListener('DOMContentLoaded', function() {
             }).catch(err => console.error('Chat send error:', err));
         });
     }
+
+    function loadChatHistory() {
+        const carId = chatForm.dataset.carId;
+        chatHistory.innerHTML = '<p class="system-message">Loading history...</p>';
+
+        fetch(`/chat/history/${carId}`)
+            .then(response => response.json())
+            .then(messages => {
+                chatHistory.innerHTML = ''; // Clear loading message
+                if (messages.length === 0) {
+                    chatHistory.innerHTML = '<p class="system-message">Start the conversation!</p>';
+                } else {
+                    messages.forEach(msg => {
+                        appendMessage(msg);
+                    });
+                    // Find the conversation ID from the first message to join the room
+                    // This is a bit of a workaround. A better way would be to get conv ID from the history endpoint.
+                    const firstMessage = messages[0];
+                    if(firstMessage && firstMessage.conversation_id) {
+                         socket.emit('join_conversation', { 'conversation_id': firstMessage.conversation_id });
+                    }
+                }
+                chatHistory.scrollTop = chatHistory.scrollHeight;
+            });
+    }
+
+    function appendMessage(data) {
+        const isSentByMe = data.sender_id == currentUserId;
+        const wrapperClass = isSentByMe ? 'sent-wrapper' : 'received-wrapper';
+        const messageClass = isSentByMe ? 'sent' : 'received';
+
+        const messageWrapper = document.createElement('div');
+        messageWrapper.classList.add('chat-message-wrapper', wrapperClass);
+
+        const messageEl = document.createElement('div');
+        messageEl.classList.add('chat-message', messageClass);
+
+        const bodyEl = document.createElement('p');
+        bodyEl.classList.add('message-body');
+        bodyEl.textContent = data.body;
+
+        const timeEl = document.createElement('small');
+        timeEl.classList.add('message-time');
+        timeEl.textContent = new Date(data.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+        messageEl.appendChild(bodyEl);
+        messageEl.appendChild(timeEl);
+        messageWrapper.appendChild(messageEl);
+        chatHistory.appendChild(messageWrapper);
+
+        chatHistory.scrollTop = chatHistory.scrollHeight;
+    }
+
+    // Listen for real-time messages only when the modal is open
+    socket.on('new_chat_message', function(data) {
+        if (modal.style.display === 'block') {
+            // If it's a new message, append it
+            appendMessage(data);
+        }
+    });
 });
 </script>
 {% endblock %}

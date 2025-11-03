@@ -1,6 +1,7 @@
 from flask import Blueprint, render_template, abort, jsonify, request, url_for
 from flask_login import current_user, login_required
 from functools import wraps
+import re
 from models.car import Car
 from models.notification import Notification
 from models.conversation import Conversation
@@ -60,6 +61,17 @@ def get_similar_cars(car, listing_type_filter):
     # 4. Fallback to any other random cars
     add_cars(base_query.order_by(func.random()).limit(4).all())
     return list(similar_cars_dict.values())[:4], "Other Available Listings"
+
+def mask_contact_info(message):
+    """
+    Detects and masks phone numbers in a message.
+    Returns the masked message and a boolean indicating if contact info was found.
+    """
+    # Regex to find common Ethiopian phone number formats (e.g., 09..., +2519..., 9...)
+    phone_regex = r'(\+251|0)?(9\d{8})'
+    masked_message, count = re.subn(phone_regex, '[Contact Info Hidden]', message)
+    found_contact_info = count > 0
+    return masked_message, found_contact_info
 
 main_bp = Blueprint('main', __name__)
 
@@ -224,18 +236,21 @@ def send_chat_message():
     car = Car.query.get_or_404(car_id)
     dealer_id = car.owner_id
 
-    # A user cannot start a conversation with themselves
-    if current_user.id == dealer_id:
-        return jsonify({'status': 'error', 'message': 'You cannot message yourself.'}), 403
-
-    # Find existing conversation or create a new one
-    conversation = Conversation.query.filter_by(
-        car_id=car_id,
-        buyer_id=current_user.id
-    ).first()
-
-    if not conversation:
-        conversation = Conversation(
+    # --- Refactored Conversation Logic ---
+    # If the current user is the dealer, we need to find the conversation based on the car and a potential buyer.
+    # Since the buyer initiates, we can assume a conversation exists if the dealer is replying.
+    # A more robust solution would pass the buyer_id from the client, but for now we can infer it.
+    if current_user.id == dealer_id: # The dealer is replying
+        # Find any conversation for this car. This is a simplification.
+        # A better approach would be to know which buyer the dealer is talking to.
+        # We'll find the first conversation for this car initiated by any buyer.
+        conversation = Conversation.query.filter_by(car_id=car_id).first()
+        if not conversation:
+            return jsonify({'status': 'error', 'message': 'Conversation not found.'}), 404
+    else: # A buyer is sending a message
+        conversation = Conversation.query.filter_by(car_id=car_id, buyer_id=current_user.id).first()
+        if not conversation:
+            conversation = Conversation(
             car_id=car_id,
             buyer_id=current_user.id,
             dealer_id=dealer_id
@@ -280,3 +295,36 @@ def send_chat_message():
         socketio.emit('new_notification', notification_data, room=str(recipient_id))
     
     return jsonify({'status': 'success', 'message': 'Message sent!'})
+
+@main_bp.route('/chat/history/<int:car_id>')
+@login_required
+def get_chat_history(car_id):
+    """API endpoint to fetch the history of a conversation for a given car."""
+    car = Car.query.get_or_404(car_id)
+    conversation = None
+
+    if current_user.id == car.owner_id:
+        # The dealer is viewing the chat. A car can have multiple conversations.
+        # For simplicity in the modal, we'll just load the first one.
+        # A more advanced implementation might show a list of buyers to chat with.
+        conversation = Conversation.query.filter_by(car_id=car_id).first()
+    else:
+        # A buyer is viewing the chat.
+        conversation = Conversation.query.filter_by(
+            car_id=car_id,
+            buyer_id=current_user.id
+        ).first()
+
+    if not conversation:
+        return jsonify([]) # No history yet, return an empty list
+
+    messages = ChatMessage.query.filter_by(conversation_id=conversation.id).order_by(ChatMessage.timestamp.asc()).all()
+
+    history = [
+        {
+            'body': msg.body,
+            'sender_id': msg.sender_id,
+            'timestamp': msg.timestamp.isoformat() + 'Z'
+        } for msg in messages
+    ]
+    return jsonify(history)

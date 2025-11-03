@@ -1,40 +1,8 @@
 {% extends "base.html" %}
-{% from "_macros.html" import render_car_card %}
 
 {% block title %}{{ auction.car.year }} {{ auction.car.make }} {{ auction.car.model }} - Auction{% endblock %}
 
 {% block content %}
-    {% if current_user.is_authenticated and current_user.is_admin and not auction.car.is_approved %}
-    <div class="admin-actions pending">
-        <h3>Admin Actions</h3>
-        <p>This car is pending approval. Review the details below and take an action.</p>
-        <div class="button-group">
-            <form action="{{ url_for('admin.approve_car', car_id=auction.car.id) }}" method="post">
-                <button type="submit" class="approve">Approve</button>
-            </form>
-            <a href="{{ url_for('admin.edit_listing', car_id=auction.car.id) }}" class="edit">Edit</a>
-            <form action="{{ url_for('admin.delete_listing', car_id=auction.car.id) }}" method="post" onsubmit="return confirm('Are you sure you want to delete this submission? This cannot be undone.');">
-                <button type="submit" class="delete">Delete</button>
-            </form>
-        </div>
-    </div>
-    {% endif %}
-
-    {% if auction.car.is_approved and current_user.is_authenticated and (current_user.is_admin or current_user.id == auction.car.owner_id) %}
-    <div class="owner-actions">
-        <h4>Manage Listing</h4>
-        <div class="visibility-control">
-            <span>Visibility:</span>
-            <label class="switch">
-                <input type="checkbox" class="visibility-toggle" data-car-id="{{ auction.car.id }}" {% if auction.car.is_active %}checked{% endif %}>
-                <span class="slider round"></span>
-            </label>
-            <span id="status-text-{{ auction.car.id }}" class="availability-text">{% if auction.car.is_active %}Active{% else %}Inactive{% endif %}</span>
-            <span style="margin-left: auto; font-size: 0.9em; color: hsl(var(--muted-foreground));">(Inactive listings are hidden from public view)</span>
-        </div>
-    </div>
-    {% endif %}
-
     <div class="detail-page-container">
         <div class="main-content">
             <div class="title-with-tag">
@@ -42,21 +10,11 @@
                 {% if auction.car.is_featured %}
                     <span class="featured-tag large">Featured</span>
                 {% endif %}
-                {% if auction.car.owner.is_admin %}
-                    <span class="role-badge admin large">Admin Listing</span>
-                {% elif auction.car.owner.is_dealer %}
-                    <span class="role-badge dealer large">Dealer Listing</span>
-                {% elif auction.car.owner.is_rental_company %}
-                    <span class="role-badge rental large">Rental Listing</span>
-                {% endif %}
+                <span class="listing-type-tag large">Auction</span>
             </div>
             <div class="image-gallery">
                 <div class="main-image-container">
                     <img id="main-car-image" src="{{ auction.car.primary_image_url or url_for('static', filename='img/default_car.png') }}" alt="Car Image">
-                    {% if auction.car.images|length > 1 %}
-                        <button id="prev-image-btn" class="gallery-nav prev">&lt;</button>
-                        <button id="next-image-btn" class="gallery-nav next">&gt;</button>
-                    {% endif %}
                 </div>
                 {% if auction.car.images|length > 1 %}
                 <div class="thumbnails">
@@ -67,297 +25,238 @@
                 {% endif %}
             </div>
 
-            <h2>Auction Details</h2>
+            <h2>Vehicle Details</h2>
             <p>{{ auction.car.description }}</p>
-            <p><strong>Auction ends:</strong> {{ auction.end_time.strftime('%Y-%m-%d %H:%M') }} UTC</p>
-            <p><strong>Starting Price:</strong> {{ '{:,.2f}'.format(auction.start_price) }} ETB</p>
-            <hr>
-            <h3>Current Price: {{ '{:,.2f}'.format(auction.current_price) }} ETB</h3>
-            {% if highest_bid %}
-                <p>Highest bid by: {{ highest_bid.bidder.username }}</p>
-            {% else %}
-                <p>No bids yet. Be the first!</p>
-            {% endif %}
-
-            <hr>
-            
-            {% if current_user.is_authenticated %}
-                <form method="POST" action="{{ url_for('auctions.auction_detail', auction_id=auction.id) }}">
-                    {{ bid_form.hidden_tag() }}
-                    <p>
-                        {{ bid_form.amount.label }}<br>
-                        {{ bid_form.amount(size=20) }}
-                        {% for error in bid_form.amount.errors %}
-                        <div class="form-error">{{ error }}</div>
-                        {% endfor %}
-                    </p>
-                    <p>{{ bid_form.submit(class='btn approve') }}</p>
-                </form>
-            {% else %}
-                <p><a href="{{ url_for('auth.login', next=request.path) }}">Log in to place a bid.</a></p>
-            {% endif %}
-
             <hr>
 
+            <h3>Specifications</h3>
             <div class="info-columns">
-                <div class="bid-history-column">
-                    <h3>Bid History</h3>
-                    {% if all_bids %}
-                        <table>
-                            <thead>
-                                <tr>
-                                    <th>Bidder</th>
-                                    <th>Amount (ETB)</th>
-                                    <th>Time</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for bid in all_bids %}
-                                <tr>
-                                    <td>{{ bid.bidder.username }}</td>
-                                    <td>{{ '{:,.2f}'.format(bid.amount) }}</td>
-                                    <td>{{ bid.timestamp.strftime('%Y-%m-%d %H:%M') }}</td>
-                                </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
-                    {% else %}
-                        <p>No bid history available.</p>
-                    {% endif %}
-                </div>
-
-                <div class="qna-column">
-                    <h3>Questions & Answers</h3>
-                    <div class="qna-section">
-                        {% for q in questions %}
-                            {% include '_question_item.html' %}
-                        {% else %}
-                            <p id="no-questions-message">No questions have been asked yet. Be the first!</p>
-                        {% endfor %}
-                    </div>
-
-                    {% if current_user.is_authenticated and current_user.id != auction.car.owner_id %}
-                        <div class="ask-question-container">
-                            <button id="ask-question-btn" class="btn edit">Ask the Seller a Question</button>
-                            <div id="ask-question-form-div">
-                                <form id="question-form" method="POST" action="{{ url_for('auctions.auction_detail', auction_id=auction.id) }}">
-                                    {{ question_form.hidden_tag() }}
-                                    <p>
-                                        {{ question_form.question_text.label }}<br>
-                                        {{ question_form.question_text(rows=4) }}<br>
-                                        <span id="question-error"></span>
-                                    </p>
-                                    <p>
-                                        {{ question_form.submit_question(class='btn approve') }}
-                                        <span id="question-success"></span>
-                                    </p>
-                                </form>
-                            </div>
-                        </div>
-                    {% elif not current_user.is_authenticated %}
-                        <p><a href="{{ url_for('auth.login', next=request.path) }}">Log in to ask a question.</a></p>
-                    {% endif %}
-                </div>
+                <ul>
+                    <li><strong>Condition:</strong> {{ auction.car.condition }}</li>
+                    <li><strong>Mileage:</strong> {{ '{:,}'.format(auction.car.mileage) }} km</li>
+                    <li><strong>Transmission:</strong> {{ auction.car.transmission }}</li>
+                    <li><strong>Drivetrain:</strong> {{ auction.car.drivetrain }}</li>
+                    <li><strong>Fuel Type:</strong> {{ auction.car.fuel_type }}</li>
+                    <li><strong>Body Type:</strong> {{ auction.car.body_type }}</li>
+                </ul>
             </div>
+
+            <hr>
+
+            <h3>Bid History ({{ all_bids|length }})</h3>
+            {% if all_bids %}
+                <ul>
+                    {% for bid in all_bids %}
+                        <li><strong>{{ '{:,.2f}'.format(bid.amount) }} ETB</strong> by {{ bid.bidder.username }} on {{ bid.timestamp.strftime('%b %d, %Y at %H:%M') }}</li>
+                    {% endfor %}
+                </ul>
+            {% else %}
+                <p>No bids have been placed yet.</p>
+            {% endif %}
         </div>
 
         <div class="sidebar">
-            <h3>{{ similarity_reason or 'Similar Listings' }}</h3>
-            {% if similar_auctions %}
-                {% for sim_auction in similar_auctions %}{{ render_car_card(sim_auction.car) }}{% endfor %}
-            {% else %}
-                <p>No other similar cars found.</p>
+            <div class="bid-box">
+                <h3>Auction Details</h3>
+                <p><strong>Current Bid:</strong> {{ '{:,.2f}'.format(auction.current_price) }} ETB</p>
+                <p><strong>Time Left:</strong> <span id="countdown-timer"></span></p>
+                {% if highest_bid %}
+                    <p><strong>Highest Bidder:</strong> {{ highest_bid.bidder.username }}</p>
+                {% endif %}
+                <hr>
+                <form method="POST">
+                    {{ bid_form.hidden_tag() }}
+                    <div class="form-group">
+                        {{ bid_form.amount.label }}
+                        {{ bid_form.amount(class="form-control") }}
+                        {% for error in bid_form.amount.errors %}
+                            <span class="form-error">{{ error }}</span>
+                        {% endfor %}
+                    </div>
+                    {{ bid_form.submit(class="btn approve", style="width: 100%;") }}
+                </form>
+            </div>
+
+            <hr>
+
+            {% if current_user.is_authenticated and current_user.id != auction.car.owner_id %}
+            <div class="contact-seller-box">
+                <h4>Have a question?</h4>
+                <p>Ask the seller a private question about this car.</p>
+                <button id="contact-dealer-btn" class="btn" style="width: 100%;">Contact Seller</button>
+            </div>
+            {% elif not current_user.is_authenticated %}
+            <div class="contact-seller-box">
+                <a href="{{ url_for('auth.login', next=request.url) }}" class="btn" style="width: 100%;">Log In to Contact Seller</a>
+            </div>
             {% endif %}
         </div>
     </div>
 
+    <!-- Chat Modal -->
+    <div id="chat-modal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Chat with {{ auction.car.owner.username }}</h2>
+                <span class="close-modal">&times;</span>
+            </div>
+            <div class="modal-body">
+                <div class="chat-history" id="chat-history">
+                    <p class="system-message">Your conversation will appear here. Be friendly!</p>
+                </div>
+                <div class="chat-input-area">
+                    <form id="chat-form" data-car-id="{{ auction.car.id }}">
+                        <textarea name="message" id="chat-message-input" placeholder="Type your message..." required></textarea>
+                        <button type="submit" class="btn">Send</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock %}
+
+{% block after_content %}
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // Image gallery logic
-    const imageGallery = document.querySelector('.image-gallery');
-    if (imageGallery) {
-        const mainImage = document.getElementById('main-car-image');
-        const thumbnails = document.querySelectorAll('.thumbnail-img');
-        const prevBtn = document.getElementById('prev-image-btn');
-        const nextBtn = document.getElementById('next-image-btn');
+    const socket = io();
+    const currentUserId = "{{ current_user.id if current_user.is_authenticated else 'null' }}";
 
-        let imageUrls = Array.from(thumbnails).map(thumb => thumb.src);
-        let currentIndex = 0;
+    // --- Get all DOM elements first ---
+    const modal = document.getElementById('chat-modal');
+    const contactBtn = document.getElementById('contact-dealer-btn');
+    const closeBtn = document.querySelector('.close-modal');
+    const chatForm = document.getElementById('chat-form');
+    const messageInput = document.getElementById('chat-message-input');
+    const chatHistory = document.getElementById('chat-history');
+    const mainImage = document.getElementById('main-car-image');
+    const thumbnails = document.querySelectorAll('.thumbnail-img');
+    const countdownElement = document.getElementById('countdown-timer');
+    const endTime = new Date("{{ auction.end_time.isoformat() }}Z");
 
-        function updateMainImage(index) {
-            mainImage.src = imageUrls[index];
-            currentIndex = index;
-            // Highlight the active thumbnail
-            thumbnails.forEach((thumb, i) => {
-                thumb.classList.toggle('active', i === index);
-            });
+    // --- Countdown Timer ---
+    function updateCountdown() {
+        const now = new Date();
+        const diff = endTime - now;
+
+        if (diff <= 0) {
+            countdownElement.textContent = "Auction Ended";
+            return;
         }
 
-        thumbnails.forEach((thumb, index) => {
-            thumb.addEventListener('click', function() {
-                updateMainImage(index);
-            });
-        });
+        const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+        const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+        const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+        const seconds = Math.floor((diff % (1000 * 60)) / 1000);
 
-        if (prevBtn) {
-            prevBtn.addEventListener('click', function() {
-                let newIndex = (currentIndex - 1 + imageUrls.length) % imageUrls.length;
-                updateMainImage(newIndex);
-            });
-        }
-
-        if (nextBtn) {
-            nextBtn.addEventListener('click', function() {
-                let newIndex = (currentIndex + 1) % imageUrls.length;
-                updateMainImage(newIndex);
-            });
-        }
-
-        // Set initial active thumbnail
-        if (thumbnails.length > 0) {
-            thumbnails[0].classList.add('active');
-        }
+        countdownElement.textContent = `${days}d ${hours}h ${minutes}m ${seconds}s`;
     }
 
-    // Q&A Logic
-    const askBtn = document.getElementById('ask-question-btn');
-    const formDiv = document.getElementById('ask-question-form-div');
-    const questionForm = document.getElementById('question-form');
+    setInterval(updateCountdown, 1000);
+    updateCountdown();
 
-    if (askBtn) {
-        askBtn.addEventListener('click', function() {
-            formDiv.style.display = 'block';
-            this.style.display = 'none';
-        });
+    // --- Image Gallery & Chat Modal Logic (copied from car_detail_sale.html) ---
+    if(contactBtn) {
+        contactBtn.addEventListener('click', function() { modal.style.display = 'block'; loadChatHistory(); });
     }
 
-    // Add a click listener to the whole document to hide the form when clicking away
-    document.addEventListener('click', function(event) {
-        // Check if the form is visible and if the click was outside the form container and not on the button that opens it
-        if (formDiv && formDiv.style.display === 'block' && !formDiv.contains(event.target) && event.target !== askBtn) {
-            formDiv.style.display = 'none';
-            askBtn.style.display = 'block';
-        }
+    if(closeBtn) { closeBtn.onclick = function() { modal.style.display = 'none'; } }
+    window.onclick = function(event) { if (event.target == modal) { modal.style.display = 'none'; } }
+
+    thumbnails.forEach(thumb => {
+        thumb.addEventListener('click', function() {
+            mainImage.src = this.src;
+            thumbnails.forEach(t => t.classList.remove('active'));
+            this.classList.add('active');
+        });
     });
+    if (thumbnails.length > 0) thumbnails[0].classList.add('active');
 
-
-    if (questionForm) {
-        questionForm.addEventListener('submit', function(e) {
+    // --- Chat Sending Logic ---
+    if (chatForm) {
+        chatForm.addEventListener('submit', function(e) {
             e.preventDefault();
-            const formData = new FormData(this);
-            const successMsg = document.getElementById('question-success');
-            const errorMsg = document.getElementById('question-error');
+            const message = messageInput.value.trim();
+            if (!message) return;
 
-            fetch(this.action, {
+            // Check if user is authenticated before sending
+            if (currentUserId === 'null') {
+                window.location.href = "{{ url_for('auth.login', next=request.url) }}";
+                return;
+            }
+
+            const carId = this.dataset.carId;
+            fetch("{{ url_for('main.send_chat_message') }}", {
                 method: 'POST',
-                body: formData,
-                headers: {
-                    'X-Requested-With': 'XMLHttpRequest'
-                }
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ car_id: carId, message: message })
             })
             .then(response => response.json())
             .then(data => {
-                if (data.status === 'success') {
-                    const qnaSection = document.querySelector('.qna-section');
-                    const noQuestionsMsg = document.getElementById('no-questions-message');
-                    if (noQuestionsMsg) {
-                        noQuestionsMsg.remove();
-                    }
-                    qnaSection.insertAdjacentHTML('beforeend', data.question_html);
-                    questionForm.reset();
-                    errorMsg.textContent = '';
-                    successMsg.textContent = data.message;
-                    setTimeout(() => { successMsg.textContent = ''; }, 3000);
+                if (data.status !== 'success') {
+                    alert(data.message || 'Failed to send message.');
                 } else {
-                    errorMsg.textContent = data.error || 'An unknown error occurred.';
+                    // The message is sent successfully.
+                    // The real-time 'new_chat_message' event will handle appending it to the UI.
+                    messageInput.value = '';
                 }
-            })
-            .catch(error => console.error('Error:', error));
+            }).catch(err => console.error('Chat send error:', err));
         });
     }
 
-    // Fullscreen image viewer logic
-    const imageViewerModal = document.getElementById('image-viewer-modal');
-    const fullscreenImage = document.getElementById('fullscreen-image');
-    const viewerPrevBtn = document.getElementById('viewer-prev-btn');
-    const viewerNextBtn = document.getElementById('viewer-next-btn');
-    const imagesToWatch = document.querySelectorAll('.image-gallery img');
-    let galleryImageUrls = Array.from(document.querySelectorAll('.image-gallery .thumbnails img, .image-gallery .main-image-container img')).map(img => img.src);
-    let currentViewerIndex = 0;
+    function loadChatHistory() {
+        const carId = chatForm.dataset.carId;
 
-    function showImageInViewer(index) {
-        if (index < 0 || index >= galleryImageUrls.length) return;
-        currentViewerIndex = index;
-        fullscreenImage.src = galleryImageUrls[currentViewerIndex];
-        viewerPrevBtn.style.display = galleryImageUrls.length > 1 ? 'block' : 'none';
-        viewerNextBtn.style.display = galleryImageUrls.length > 1 ? 'block' : 'none';
+        fetch(`/chat/history/${carId}`)
+            .then(response => response.json())
+            .then(messages => {
+                chatHistory.innerHTML = ''; // Clear loading message
+                if (messages.length === 0) {
+                    chatHistory.innerHTML = '<p class="system-message">Start the conversation!</p>';
+                } else {
+                    messages.forEach(msg => {
+                        appendMessage(msg);
+                    });
+                    const firstMessage = messages[0];
+                    if(firstMessage && firstMessage.conversation_id) {
+                         socket.emit('join_conversation', { 'conversation_id': firstMessage.conversation_id });
+                    }
+                }
+                chatHistory.scrollTop = chatHistory.scrollHeight;
+            });
     }
 
-    imagesToWatch.forEach(img => {
-        img.style.cursor = 'pointer';
-        img.addEventListener('click', function(e) {
-            e.stopPropagation();
-            let clickedIndex = galleryImageUrls.indexOf(this.src);
-            imageViewerModal.style.display = 'block';
-            showImageInViewer(clickedIndex);
-        });
-    });
+    function appendMessage(data) {
+        const isSentByMe = data.sender_id == currentUserId;
+        const wrapperClass = isSentByMe ? 'sent-wrapper' : 'received-wrapper';
+        const messageClass = isSentByMe ? 'sent' : 'received';
 
-    function closeImageViewer() {
-        imageViewerModal.style.display = 'none';
+        const messageWrapper = document.createElement('div');
+        messageWrapper.classList.add('chat-message-wrapper', wrapperClass);
+
+        const messageEl = document.createElement('div');
+        messageEl.classList.add('chat-message', messageClass);
+
+        const bodyEl = document.createElement('p');
+        bodyEl.classList.add('message-body');
+        bodyEl.textContent = data.body;
+
+        const timeEl = document.createElement('small');
+        timeEl.classList.add('message-time');
+        timeEl.textContent = new Date(data.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+        messageEl.appendChild(bodyEl);
+        messageEl.appendChild(timeEl);
+        messageWrapper.appendChild(messageEl);
+        chatHistory.appendChild(messageWrapper);
+
+        chatHistory.scrollTop = chatHistory.scrollHeight;
     }
 
-    viewerPrevBtn.addEventListener('click', function(e) {
-        e.stopPropagation();
-        showImageInViewer((currentViewerIndex - 1 + galleryImageUrls.length) % galleryImageUrls.length);
-    });
-
-    viewerNextBtn.addEventListener('click', function(e) {
-        e.stopPropagation();
-        showImageInViewer((currentViewerIndex + 1) % galleryImageUrls.length);
-    });
-
-    imageViewerModal.addEventListener('click', closeImageViewer);
-    document.querySelector('.close-image-viewer').addEventListener('click', function(e) {
-        e.stopPropagation();
-        closeImageViewer();
-    });
-
-    // Keyboard navigation
-    document.addEventListener('keydown', function(e) {
-        if (imageViewerModal.style.display === 'block') {
-            if (e.key === 'Escape') {
-                closeImageViewer();
-            } else if (e.key === 'ArrowLeft') {
-                viewerPrevBtn.click();
-            } else if (e.key === 'ArrowRight') {
-                viewerNextBtn.click();
-            }
+    socket.on('new_chat_message', function(data) {
+        if (modal.style.display === 'block') {
+            appendMessage(data);
         }
     });
-
-    // Visibility toggle logic
-    document.querySelectorAll('.visibility-toggle').forEach(toggle => {
-        toggle.addEventListener('change', function() {
-            const carId = this.dataset.carId;
-            const statusText = document.getElementById(`status-text-${carId}`);
-
-            fetch(`/seller/toggle_active/${carId}`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' }
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.status === 'success') {
-                    statusText.textContent = data.status_text;
-                } else {
-                    this.checked = !this.checked; // Revert toggle on error
-                    alert(data.message || 'An error occurred.');
-                }
-            });
-        });
-    });
-
 });
 </script>
 {% endblock %}

@@ -170,8 +170,12 @@
         socket.on('new_notification', function(data) {
             console.log('New notification received:', data);
 
-            if (window.location.pathname === "{{ url_for('main.notifications') }}") {
-                // --- User is ON the notifications page ---
+            const currentPath = window.location.pathname;
+            const onNotificationsPage = currentPath === "{{ url_for('main.notifications') }}";
+            const onMessagesPage = currentPath.startsWith("{{ url_for('main.my_messages') }}") || currentPath.startsWith("{{ url_for('dealer.list_messages') }}");
+
+            if (onNotificationsPage) {
+                // --- User is ON the main notifications page ---
                 const notificationList = document.getElementById('notification-list');
                 const noNotificationsMsg = document.getElementById('no-notifications-message'); // Assuming this ID exists
 
@@ -199,6 +203,10 @@
                     `;
                     notificationList.prepend(newNotificationItem);
                 }
+            } else if (onMessagesPage) {
+                // --- User is ON a messages list or detail page ---
+                // Do nothing here to prevent the badge from updating.
+                // In the future, you could add logic to update the conversation list with an "unread" indicator.
             } else {
                 // --- User is NOT on the notifications page ---
                 // 1. Update the badge count
