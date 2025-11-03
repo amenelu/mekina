@@ -264,8 +264,14 @@
 
         // Listen for the 'message_count_update' event
         socket.on('message_count_update', function(data) {
-            console.log('Message count update received:', data);
-            updateMessageBadges(data.count);
+            const currentPath = window.location.pathname;
+            const onMessagesPage = currentPath.startsWith("{{ url_for('main.my_messages') }}") || currentPath.startsWith("{{ url_for('dealer.list_messages') }}");
+
+            // Only update the message counter if the user is NOT on a messaging page.
+            if (!onMessagesPage) {
+                console.log('Message count update received:', data);
+                updateMessageBadges(data.count);
+            }
         });
     });
     </script>

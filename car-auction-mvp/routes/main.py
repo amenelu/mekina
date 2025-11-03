@@ -326,15 +326,13 @@ def send_chat_message():
         link_url = url_for('main.view_buyer_conversation', conversation_id=conversation.id)
 
     if recipient_id:
-        new_notification = Notification(user_id=recipient_id, message=notification_message)
-        db.session.add(new_notification)
-        db.session.flush()
-        new_notification.link = f"{link_url}?notification_id={new_notification.id}"
-        db.session.commit()
-        
-        unread_count = Notification.query.filter_by(user_id=recipient_id, is_read=False).count()
-        notification_data = {'message': new_notification.message, 'link': new_notification.link, 'timestamp': new_notification.timestamp.isoformat() + 'Z', 'count': unread_count}
-        socketio.emit('new_notification', notification_data, room=str(recipient_id))
+        # Emit a message count update to the recipient
+        unread_messages_count = db.session.query(ChatMessage.id).join(Conversation).filter(
+            or_(Conversation.buyer_id == recipient_id, Conversation.dealer_id == recipient_id),
+            ChatMessage.sender_id != recipient_id,
+            ChatMessage.is_read == False
+        ).count()
+        socketio.emit('message_count_update', {'count': unread_messages_count}, room=str(recipient_id))
 
     # If contact info was found, emit a special event to the dealer's room
     if is_serious:
