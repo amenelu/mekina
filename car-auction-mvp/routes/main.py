@@ -67,10 +67,18 @@ def mask_contact_info(message):
     Detects and masks phone numbers in a message.
     Returns the masked message and a boolean indicating if contact info was found.
     """
-    # Regex to find common Ethiopian phone number formats (e.g., 09..., +2519..., 9...)
-    # This improved regex handles optional spaces.
-    phone_regex = r'(?:\+251\s?|0)?9\d{2}\s?\d{3}\s?\d{3}'
-    masked_message, count = re.subn(phone_regex, '[Contact Info Hidden]', message)
+    # A list of patterns to detect various forms of contact information.
+    patterns = [
+        r'(?:\+251\s?|0)?9\d{2}\s?\d{3}\s?\d{3}',  # Ethiopian phone numbers with optional spaces
+        r'https?://\S+',                         # URLs (http, https)
+        r'\b(WhatsApp|Telegram|Instagram|Facebook|fb\.com|t\.me)\b' # Social media keywords
+    ]
+    
+    # Combine all patterns into a single regex, separated by '|' (OR)
+    combined_regex = '|'.join(patterns)
+    
+    # Use re.IGNORECASE to catch variations like 'whatsapp' or 'FACEBOOK'
+    masked_message, count = re.subn(combined_regex, '[Contact Info Hidden]', message, flags=re.IGNORECASE)
     found_contact_info = count > 0
     return masked_message, found_contact_info
 
@@ -268,9 +276,16 @@ def send_chat_message():
     is_serious = False
     # Only mask if the conversation is not already unlocked
     if not conversation.is_unlocked:
-        message_body, is_serious = mask_contact_info(original_message)
+        # Mask for both buyer and dealer before unlock
+        masked_body, is_serious = mask_contact_info(original_message)
+        message_body = masked_body
         # Increment message count only for free messages
         conversation.message_count += 1
+
+    # --- Lead Scoring Logic ---
+    if is_serious:
+        # Buyer attempted to share contact info
+        conversation.lead_score.score += 30
 
     # Create and save the new message
     # We store the (potentially masked) body for display, and the original for when it's unlocked
@@ -314,7 +329,17 @@ def send_chat_message():
     if is_serious:
         socketio.emit('serious_buyer_detected', {'conversation_id': conversation.id}, room=str(dealer_id))
 
-    return jsonify({'status': 'success', 'message': 'Message sent!', 'is_masked': is_serious})
+    # Check for message frequency to increase score
+    from datetime import datetime, timedelta
+    if conversation.messages.filter(ChatMessage.sender_id == current_user.id, ChatMessage.timestamp > datetime.utcnow() - timedelta(hours=24)).count() >= 3:
+        conversation.lead_score.score += 20
+
+    response_data = {'status': 'success', 'message': 'Message sent!'}
+    # If the buyer's message was masked, add a flag to the response for the UI
+    if is_serious and current_user.id == conversation.buyer_id:
+        response_data['buyer_action_required'] = 'request_call'
+
+    return jsonify(response_data)
 
 @main_bp.route('/chat/history/<int:car_id>')
 @login_required

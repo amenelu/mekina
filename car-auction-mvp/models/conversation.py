@@ -1,5 +1,6 @@
 from . import db
 from datetime import datetime
+from sqlalchemy import event
 
 class Conversation(db.Model):
     __tablename__ = 'conversations'
@@ -20,3 +21,10 @@ class Conversation(db.Model):
 
     def __repr__(self):
         return f'<Conversation {self.id} between Buyer {self.buyer_id} and Dealer {self.dealer_id}>'
+
+# Use an event listener to automatically create a LeadScore for each new Conversation
+@event.listens_for(Conversation, 'after_insert')
+def create_lead_score(mapper, connection, target):
+    from .lead_score import LeadScore
+    lead_score_table = LeadScore.__table__
+    connection.execute(lead_score_table.insert().values(conversation_id=target.id, score=0))

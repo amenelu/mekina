@@ -16,3 +16,4 @@ from .equipment import Equipment
 from .request_question import RequestQuestion
 from .conversation import Conversation
 from .chat_message import ChatMessage
+from .lead_score import LeadScore

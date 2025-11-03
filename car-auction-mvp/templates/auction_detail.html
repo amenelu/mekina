@@ -193,6 +193,15 @@ document.addEventListener('DOMContentLoaded', function() {
             .then(response => response.json())
             .then(data => {
                 if (data.status !== 'success') {
+                    // If the buyer's message was masked, show the CTA.
+                    if (data.buyer_action_required === 'request_call') {
+                        const ctaMessage = {
+                            body: "We've hidden contact info in your message. To allow the dealer to see your details and contact you, please request a call. This will notify the dealer that you are a serious buyer.",
+                            sender_id: 'system', // Special ID for system messages
+                            timestamp: new Date().toISOString()
+                        };
+                        appendMessage(ctaMessage);
+                    }
                     // If the message limit is reached, disable the form
                     if (response.status === 403) {
                         messageInput.value = data.message;
@@ -233,6 +242,13 @@ document.addEventListener('DOMContentLoaded', function() {
 
     function appendMessage(data) {
         const isSentByMe = data.sender_id == currentUserId;
+        const isSystemMessage = data.sender_id === 'system';
+
+        if (isSystemMessage) {
+            chatHistory.innerHTML += `<p class="system-message">${data.body}</p>`;
+            chatHistory.scrollTop = chatHistory.scrollHeight;
+            return;
+        }
         const wrapperClass = isSentByMe ? 'sent-wrapper' : 'received-wrapper';
         const messageClass = isSentByMe ? 'sent' : 'received';
 

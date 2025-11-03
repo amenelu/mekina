@@ -30,7 +30,6 @@
                     {% endif %}
                     {% if not current_user.is_dealer %}
                     <li><a href="{{ url_for('request.my_requests') }}" class="{{ 'active' if request.endpoint == 'request.my_requests' }}">My Requests</a></li>
-                    <li><a href="{{ url_for('main.my_messages') }}" class="{{ 'active' if 'my_messages' in request.endpoint or 'view_buyer_conversation' in request.endpoint }}">My Messages</a></li>
                     {% endif %}
                     {% if not current_user.is_dealer %}
                         <li><a href="{{ url_for('seller.dashboard') }}" class="{{ 'active' if request.endpoint == 'seller.dashboard' }}">Seller Dashboard</a></li>
@@ -49,6 +48,13 @@
                         Notifications 
                         <span class="notification-badge main-notification-badge" style="display: {% if unread_notifications > 0 %}inline-block{% else %}none{% endif %};">{{ unread_notifications }}</span>
                     </a>
+                    {# --- START: Messages Link --- #}
+                    {% if current_user.is_dealer %}
+                        <a href="{{ url_for('dealer.list_messages') }}" class="desktop-notification-link">Messages</a>
+                    {% else %}
+                        <a href="{{ url_for('main.my_messages') }}" class="desktop-notification-link">Messages</a>
+                    {% endif %}
+                    {# --- END: Messages Link --- #}
                     {# --- END: Integrated Real-time Notification Link --- #}
                     <span class="desktop-username">Hi, {{ current_user.username }}!</span>
                     <a href="{{ url_for('auth.logout') }}" class="nav-button">Logout</a>
@@ -64,6 +70,14 @@
                 <a href="{{ url_for('main.notifications') }}" class="mobile-notification-bell-link notification-bell-link">
                     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-bell"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>
                     <span class="notification-badge main-notification-badge" style="display: {% if unread_notifications > 0 %}inline-block{% else %}none{% endif %};">{{ unread_notifications }}</span>
+                </a>
+                {# --- START: Mobile Messages Link --- #}
+                {% if current_user.is_dealer %}
+                    <a href="{{ url_for('dealer.list_messages') }}" class="mobile-notification-bell-link"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-message-square"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg></a>
+                {% else %}
+                    <a href="{{ url_for('main.my_messages') }}" class="mobile-notification-bell-link"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-message-square"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg></a>
+                {% endif %}
+                {# --- END: Mobile Messages Link --- #}
                 </a>
             {% endif %}
             <button class="mobile-nav-toggle" id="mobile-nav-toggle" aria-label="Toggle navigation">
