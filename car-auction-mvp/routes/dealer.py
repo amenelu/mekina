@@ -3,12 +3,14 @@ from flask_login import login_required, current_user
 from models.car_request import CarRequest
 from models.dealer_bid import DealerBid
 from models.car import Car
+from models.user import User
 from models.request_question import RequestQuestion
 from models.question import Question
 from models.auction import Auction
 from models.conversation import Conversation
 from models.chat_message import ChatMessage
 from models.notification import Notification 
+from models.dealer_rating import DealerRating
 from extensions import db
 from sqlalchemy import func
 from functools import wraps
@@ -109,8 +111,33 @@ def dashboard():
 @dealer_required
 def list_messages():
     """Lists all conversations for the dealer."""
-    conversations = Conversation.query.filter_by(dealer_id=current_user.id).order_by(Conversation.created_at.desc()).all()
+    # Use joinedload to efficiently fetch the related lead_score, buyer, and car objects
+    conversations = Conversation.query.options(
+        db.joinedload(Conversation.lead_score),
+        db.joinedload(Conversation.buyer),
+        db.joinedload(Conversation.car)
+    ).filter_by(dealer_id=current_user.id).order_by(Conversation.created_at.desc()).all()
     return render_template('dealer_messages.html', conversations=conversations)
+
+@dealer_bp.route('/profile/<int:dealer_id>')
+def profile(dealer_id):
+    """Displays a dealer's public profile, listings, and ratings."""
+    dealer = User.query.filter_by(id=dealer_id, is_dealer=True).first_or_404()
+
+    # Get the dealer's active listings
+    active_listings = Car.query.filter_by(owner_id=dealer.id, is_approved=True, is_active=True).order_by(Car.id.desc()).all()
+
+    # Calculate average rating
+    ratings = dealer.ratings_received.all()
+    avg_rating = 0
+    if ratings:
+        avg_rating = sum(r.rating for r in ratings) / len(ratings)
+
+    return render_template('dealer_profile.html', 
+                           dealer=dealer, 
+                           listings=active_listings, 
+                           ratings=ratings,
+                           avg_rating=avg_rating)
 
 @dealer_bp.route('/messages/<int:conversation_id>', methods=['GET', 'POST'])
 @login_required

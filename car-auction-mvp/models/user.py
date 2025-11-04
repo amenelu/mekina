@@ -18,6 +18,8 @@ class User(UserMixin, db.Model):
     bids = db.relationship('Bid', backref='bidder', lazy='dynamic')
     dealer_bids = db.relationship('DealerBid', backref='dealer', lazy='dynamic')
     car_requests = db.relationship('CarRequest', backref='customer', lazy='dynamic')
+    ratings_given = db.relationship('DealerRating', foreign_keys='DealerRating.buyer_id', back_populates='buyer', lazy='dynamic')
+    ratings_received = db.relationship('DealerRating', foreign_keys='DealerRating.dealer_id', back_populates='dealer', lazy='dynamic')
 
     def set_password(self, password):
         self.password_hash = generate_password_hash(password)

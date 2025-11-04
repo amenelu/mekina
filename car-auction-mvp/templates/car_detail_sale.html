@@ -84,7 +84,9 @@
             <hr>
             {# Show contact button only to logged-in users who are not the owner #}
             {% if current_user.is_authenticated and current_user.id != car.owner_id %}
-            <div class="contact-seller-box">
+            <div class="contact-seller-box" style="text-align: center;">
+                <p>Listed by: <a href="{{ url_for('dealer.profile', dealer_id=car.owner_id) }}"><strong>{{ car.owner.username }}</strong></a></p>
+                <hr style="margin: 1rem 0;">
                 <h4>Interested?</h4>
                 <p>Ask the dealer a question about this car.</p>
                 <button id="contact-dealer-btn" class="btn approve" style="width: 100%;">Contact Dealer</button>

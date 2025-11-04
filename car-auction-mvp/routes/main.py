@@ -6,6 +6,7 @@ from models.car import Car
 from models.notification import Notification
 from models.conversation import Conversation
 from models.chat_message import ChatMessage
+from models.lead_score import LeadScore
 from extensions import db, socketio
 from sqlalchemy import or_, func
 
@@ -271,11 +272,18 @@ def send_chat_message():
         conversation = Conversation.query.filter_by(car_id=car_id, buyer_id=current_user.id).first()
         if not conversation:
             conversation = Conversation(
-            car_id=car_id,
-            buyer_id=current_user.id,
-            dealer_id=dealer_id
-        )
-        db.session.add(conversation)
+                car_id=car_id,
+                buyer_id=current_user.id,
+                dealer_id=dealer_id
+            )
+            # Explicitly create the LeadScore at the same time
+            conversation.lead_score = LeadScore(score=0)
+            db.session.add(conversation)
+
+    # Ensure a lead score object exists for this conversation (for older conversations)
+    if not conversation.lead_score:
+        conversation.lead_score = LeadScore(score=0)
+        db.session.add(conversation.lead_score)
 
     # --- Free Message Limit Logic ---
     FREE_MESSAGE_LIMIT = 3
@@ -302,10 +310,6 @@ def send_chat_message():
     # We store the (potentially masked) body for display, and the original for when it's unlocked
     new_message = ChatMessage(body=message_body, original_body=original_message, sender_id=current_user.id)
     conversation.messages.append(new_message)
-    db.session.commit()
-
-    # --- Real-time Logic ---
-    # 1. Emit the new chat message to the conversation room
     chat_message_data = {
         'body': message_body, # Send the masked version to the UI
         'sender_id': new_message.sender_id,
@@ -313,6 +317,19 @@ def send_chat_message():
         'timestamp': new_message.timestamp.isoformat() + 'Z'
     }
     conversation_room = f'conversation_{conversation.id}'
+
+    # --- Update Lead Score on Buyer Actions ---
+    if current_user.id == conversation.buyer_id:
+        # Check for message frequency to increase score
+        from datetime import datetime, timedelta
+        # Check if this is the 3rd message from the buyer in the last 24 hours
+        if conversation.messages.filter(ChatMessage.sender_id == current_user.id, ChatMessage.timestamp > datetime.utcnow() - timedelta(hours=24)).count() == 3:
+            conversation.lead_score.score += 20
+
+    db.session.commit()
+
+    # --- Real-time Logic ---
+    # 1. Emit the new chat message to the conversation room
     socketio.emit('new_chat_message', chat_message_data, room=conversation_room)
 
     # 2. Send a traditional notification to the *other* person in the chat
@@ -337,11 +354,6 @@ def send_chat_message():
     # If contact info was found, emit a special event to the dealer's room
     if is_serious:
         socketio.emit('serious_buyer_detected', {'conversation_id': conversation.id}, room=str(dealer_id))
-
-    # Check for message frequency to increase score
-    from datetime import datetime, timedelta
-    if conversation.messages.filter(ChatMessage.sender_id == current_user.id, ChatMessage.timestamp > datetime.utcnow() - timedelta(hours=24)).count() >= 3:
-        conversation.lead_score.score += 20
 
     response_data = {'status': 'success', 'message': 'Message sent!'}
     # If the buyer's message was masked, add a flag to the response for the UI

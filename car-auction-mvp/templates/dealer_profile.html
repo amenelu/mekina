@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+
+{% block title %}{{ dealer.username }}'s Profile{% endblock %}
+
+{% block content %}
+    <div class="dealer-profile-header">
+        <h1>{{ dealer.username }}</h1>
+        <div class="dealer-rating-summary">
+            {% if avg_rating > 0 %}
+                <span class="star-rating">
+                    {% for i in range(5) %}
+                        <span class="star {% if i < avg_rating|round|int %}filled{% endif %}">&#9733;</span>
+                    {% endfor %}
+                </span>
+                <span class="rating-text">{{ "%.1f"|format(avg_rating) }} ({{ ratings|length }} reviews)</span>
+            {% else %}
+                <span class="rating-text text-muted">No reviews yet</span>
+            {% endif %}
+        </div>
+    </div>
+
+    <hr>
+
+    <h2>Active Listings from {{ dealer.username }}</h2>
+    {% if listings %}
+        <div class="auction-grid">
+            {% for car in listings %}
+                {% set listing_data = {
+                    'id': car.id,
+                    'year': car.year,
+                    'make': car.make,
+                    'model': car.model,
+                    'is_featured': car.is_featured,
+                    'image_url': car.primary_image_url or url_for('static', filename='img/default_car.png'),
+                    'listing_type': car.listing_type,
+                    'price_display': '',
+                    'time_left': '',
+                    'detail_url': '#'
+                } %}
+                {% if car.auction %}
+                    {% set _ = listing_data.update({'detail_url': url_for('auctions.auction_detail', auction_id=car.auction.id), 'price_display': '{:,.2f}'.format(car.auction.current_price) ~ ' ETB'}) %}
+                {% elif car.listing_type == 'sale' %}
+                    {% set _ = listing_data.update({'detail_url': url_for('main.car_detail', car_id=car.id), 'price_display': '{:,.2f}'.format(car.fixed_price) ~ ' ETB'}) %}
+                {% endif %}
+
+                <a href="{{ listing_data.detail_url }}" class="auction-card-link">
+                    <div class="auction-card">
+                        <div class="card-image-container">
+                            <img src="{{ listing_data.image_url }}" alt="Car Image">
+                        </div>
+                        <div class="card-content">
+                            <h3>{{ listing_data.year }} {{ listing_data.make }} {{ listing_data.model }}</h3>
+                        </div>
+                    </div>
+                </a>
+            {% endfor %}
+        </div>
+    {% else %}
+        <p>{{ dealer.username }} has no active listings at the moment.</p>
+    {% endif %}
+
+{% endblock %}

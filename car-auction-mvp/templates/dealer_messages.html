@@ -13,13 +13,16 @@
                     <div class="notification-item">
                         <div class="notification-content">
                             <p>
-                                {% if conv.lead_score and conv.lead_score.score >= 60 %}
-                                    <span class="featured-tag" style="background-color: hsl(var(--success));">Serious Lead</span>
-                                {% endif %}
                                 Conversation with <strong>{{ conv.buyer.username }}</strong> 
                                 about <strong>{{ conv.car.year }} {{ conv.car.make }} {{ conv.car.model }}</strong>
                             </p>
-                            <small class="notification-time">Started on: {{ conv.created_at.strftime('%b %d, %Y') }}</small>
+                            <small class="notification-time">
+                                Started on: {{ conv.created_at.strftime('%b %d, %Y') }}
+                                {% if conv.lead_score %}
+                                    <span style="margin-left: 1rem; font-weight: 600;">Lead Score: {{ conv.lead_score.score }}</span>
+                                    {% if conv.lead_score.score >= 60 %}<span class="featured-tag" style="background-color: hsl(var(--success)); margin-left: 5px;">Serious Lead</span>{% endif %}
+                                {% endif %}
+                            </small>
                         </div>
                         <div class="notification-action">
                             <span class="btn">View Chat</span>

@@ -80,7 +80,9 @@
             <hr>
 
             {% if current_user.is_authenticated and current_user.id != auction.car.owner_id %}
-            <div class="contact-seller-box">
+            <div class="contact-seller-box" style="text-align: center;">
+                <p>Listed by: <a href="{{ url_for('dealer.profile', dealer_id=auction.car.owner_id) }}"><strong>{{ auction.car.owner.username }}</strong></a></p>
+                <hr style="margin: 1rem 0;">
                 <h4>Have a question?</h4>
                 <p>Ask the seller a private question about this car.</p>
                 <button id="contact-dealer-btn" class="btn" style="width: 100%;">Contact Seller</button>
