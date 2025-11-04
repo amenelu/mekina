@@ -3,19 +3,33 @@
 {% block title %}{{ dealer.username }}'s Profile{% endblock %}
 
 {% block content %}
-    <div class="dealer-profile-header">
-        <h1>{{ dealer.username }}</h1>
-        <div class="dealer-rating-summary">
-            {% if avg_rating > 0 %}
-                <span class="star-rating">
-                    {% for i in range(5) %}
-                        <span class="star {% if i < avg_rating|round|int %}filled{% endif %}">&#9733;</span>
-                    {% endfor %}
-                </span>
-                <span class="rating-text">{{ "%.1f"|format(avg_rating) }} ({{ ratings|length }} reviews)</span>
-            {% else %}
-                <span class="rating-text text-muted">No reviews yet</span>
-            {% endif %}
+    <div class="dealer-profile-hero">
+        <div class="dealer-info">
+            <div class="dealer-logo-placeholder">
+                <span>{{ dealer.username[0]|upper }}</span>
+            </div>
+            <div class="dealer-details">
+                <div class="dealer-name-verified">
+                    <h1>{{ dealer.username }}</h1>
+                    <span class="verified-badge">&#10003; Verified Dealer</span>
+                </div>
+                <p class="dealer-tagline">Trusted Importer of Quality Vehicles since 2018.</p>
+                <div class="dealer-rating-summary">
+                    {% if avg_rating > 0 %}
+                        <span class="star-rating">
+                            {% for i in range(5) %}
+                                <span class="star {% if i < avg_rating|round|int %}filled{% endif %}">&#9733;</span>
+                            {% endfor %}
+                        </span>
+                        <span class="rating-text">{{ "%.1f"|format(avg_rating) }} ({{ ratings|length }} reviews)</span>
+                    {% else %}
+                        <span class="rating-text text-muted">No reviews yet</span>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        <div class="dealer-location">
+            <div class="map-placeholder">Map Preview (e.g., OpenStreetMap Embed)</div>
         </div>
     </div>
 

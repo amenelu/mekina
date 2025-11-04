@@ -22,6 +22,7 @@ class Car(db.Model):
     is_approved = db.Column(db.Boolean, default=False, nullable=False)
     is_active = db.Column(db.Boolean, default=True, nullable=False)
     is_featured = db.Column(db.Boolean, default=False, nullable=False)
+    is_bank_loan_available = db.Column(db.Boolean, default=False, nullable=False)
     transmission = db.Column(db.String(50))
     drivetrain = db.Column(db.String(50))
     mileage = db.Column(db.Integer)

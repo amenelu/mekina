@@ -66,6 +66,9 @@
                     <li><strong>Mileage:</strong><span>{{ '{:,}'.format(car.mileage) if car.mileage is not none else 'N/A' }} km</span></li>
                     <li><strong>Transmission:</strong> {{ car.transmission }}</li>
                     <li><strong>Drivetrain:</strong> {{ car.drivetrain }}</li>
+                    {% if car.is_bank_loan_available %}
+                        <li><strong>Financing:</strong> <span style="color: hsl(var(--success));">Bank Loan Available</span></li>
+                    {% endif %}
                     <li><strong>Fuel Type:</strong> {{ car.fuel_type }}</li>
                     <li><strong>Body Type:</strong> {{ car.body_type }}</li>
                 </ul>

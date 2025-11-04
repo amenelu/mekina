@@ -36,6 +36,9 @@
                     <li><strong>Mileage:</strong> {{ '{:,}'.format(auction.car.mileage) }} km</li>
                     <li><strong>Transmission:</strong> {{ auction.car.transmission }}</li>
                     <li><strong>Drivetrain:</strong> {{ auction.car.drivetrain }}</li>
+                    {% if auction.car.is_bank_loan_available %}
+                        <li><strong>Financing:</strong> <span style="color: hsl(var(--success));">Bank Loan Available</span></li>
+                    {% endif %}
                     <li><strong>Fuel Type:</strong> {{ auction.car.fuel_type }}</li>
                     <li><strong>Body Type:</strong> {{ auction.car.body_type }}</li>
                 </ul>

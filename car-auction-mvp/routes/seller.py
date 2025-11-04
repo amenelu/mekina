@@ -45,6 +45,9 @@ class CarSubmissionForm(FlaskForm):
     # Rental Details
     price_per_day = FloatField('Price Per Day (ETB)', validators=[Optional(), NumberRange(min=1)])
 
+    # Bank Loan
+    is_bank_loan_available = BooleanField('Available with Bank Loan')
+
     # Admin-only field
     is_featured = BooleanField('Featured Listing')
 
@@ -137,6 +140,7 @@ def submit_car():
             fuel_type=form.fuel_type.data,
             owner_id=current_user.id,
             listing_type=listing_type,
+            is_bank_loan_available=form.is_bank_loan_available.data,
             fixed_price=form.fixed_price.data if listing_type == 'sale' else None,
             is_approved=False # All seller submissions must be approved
         )
@@ -217,6 +221,7 @@ def edit_car(car_id):
         car.transmission = form.transmission.data
         car.drivetrain = form.drivetrain.data
         car.fuel_type = form.fuel_type.data
+        car.is_bank_loan_available = form.is_bank_loan_available.data
 
         # Update Auction details
         if auction:
