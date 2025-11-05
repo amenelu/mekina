@@ -1,104 +1,7 @@
 {% extends "base.html" %}
 
 {% block title %}Offers for Your Request{% endblock %}
-
-{% macro offer_card(bid, is_lowest=false) %}
-<div class="offer-card {% if is_lowest %}lowest-bid-highlight{% endif %}">
-    <div class="offer-header">
-        <div class="offer-price-options">
-            <div class="offer-price cash">
-                <span>Cash Price</span>
-                {{ '{:,.2f}'.format(bid.price) }} ETB
-            </div>
-            {% if bid.price_with_loan %}
-            <div class="offer-price loan">
-                <span>With Loan</span>
-                {{ '{:,.2f}'.format(bid.price_with_loan) }} ETB
-            </div>
-            {% endif %}
-        </div>
-        <div class="offer-meta">
-            <span>From: <strong>{{ bid.dealer.username }}</strong></span>
-            <span>Received: {{ bid.timestamp.strftime('%b %d, %Y') }}</span>
-        </div>
-    </div>
-    <div class="offer-details-grid">
-        <div><strong>Car:</strong> {{ bid.make }} {{ bid.model }}</div>
-        <div><strong>Year:</strong> {{ bid.car_year }}</div>
-        <div><strong>Condition:</strong> {{ bid.condition }}</div>
-        <div><strong>Mileage:</strong> {{ '{:,}'.format(bid.mileage) }} km</div>
-        <div><strong>Availability:</strong> {{ bid.availability }}</div>
-    </div>
-    {% if bid.extras %}
-    <div class="offer-extras">
-        <strong>Extras:</strong> {{ bid.extras }}
-    </div>
-    {% endif %}
-    {% if bid.message %}
-    <div class="offer-message">
-        <strong>Message from Dealer:</strong>
-        <blockquote>{{ bid.message }}</blockquote>
-    </div>
-    {% endif %}
-
-    {# --- Q&A Section for this Bid --- #}
-    <div class="offer-qna-section" id="qna-for-bid-{{ bid.id }}">
-        <h5>Questions about this offer</h5>
-        {% if bid.questions.all() %}
-            {% for q in bid.questions %}
-            <div class="qna-item">
-                <p class="question"><strong>Q:</strong> {{ q.question_text }} <span class="meta"> (from you, {{ q.timestamp.strftime('%b %d') }})</span></p>
-                {% if q.answer_text %}
-                <p class="answer"><strong>A:</strong> {{ q.answer_text }} <span class="meta">(from dealer, {{ q.answer_timestamp.strftime('%b %d') }})</span></p>
-                {% else %}
-                <p class="answer-pending"><em>Awaiting dealer response...</em></p>
-                {% endif %}
-            </div>
-            {% endfor %}
-        {% else %}
-            <p class="no-questions-yet">No questions asked about this offer yet.</p>
-        {% endif %}
-
-        {# --- Ask Question Form --- #}
-        {% if car_request.status == 'active' %}
-        <div class="ask-question-container">
-            <button class="btn-link ask-question-btn" data-bid-id="{{ bid.id }}">Ask the dealer a question</button>
-            <div class="ask-question-form" id="ask-form-{{ bid.id }}" style="display: none;">
-                <form method="POST" action="{{ url_for('request.ask_dealer_question', bid_id=bid.id) }}" class="qna-form">
-                    {{ question_form.hidden_tag() }}
-                    {{ question_form.question_text(rows=3, placeholder="Ask about vehicle history, specific features, etc.") }}
-                    <button type="submit" class="btn approve small">Send</button>
-                    <span class="form-feedback"></span>
-                </form>
-            </div>
-        </div>
-        {% endif %}
-    </div>
-    <div class="offer-footer">
-        <span class="valid-until">Offer valid until: {{ bid.valid_until.strftime('%b %d, %Y') }}</span>
-        {% if car_request.status == 'active' %}
-        <form action="{{ url_for('request.accept_offer', bid_id=bid.id) }}" method="POST" class="accept-offer-form" onsubmit="return confirm('Are you sure you want to accept this offer? This will close the request to other offers.');">
-            <div class="accept-options">
-                <label class="accept-radio">
-                    <input type="radio" name="payment_method" value="cash" checked>
-                    Accept Cash Price
-                </label>
-                {% if bid.price_with_loan %}
-                <label class="accept-radio">
-                    <input type="radio" name="payment_method" value="loan">
-                    Accept Loan Price
-                </label>
-                {% endif %}
-            </div>
-            <button type="submit" class="btn approve">Accept This Offer</button>
-        </form>
-        {% elif bid.status == 'accepted' %}
-            <span class="status-approved">Offer Accepted</span>
-        {% endif %}
-    </div>
-</div>
-{% endmacro %}
-
+{% from "_macros.html" import offer_card %}
 {% block content %}
     <h1>Offers for Your Request</h1>
 
@@ -121,69 +24,69 @@
     {% if bids %}
         <p>You have received {{ bids|length }} offer(s). The lowest offer is highlighted.</p>
         
-        <div class="offer-list">
+        <div class="offer-table-wrapper">
             {% for bid in bids %}
-                {{ offer_card(bid, is_lowest=loop.first) }}
+                {{ offer_card(bid, car_request, question_form, is_lowest=loop.first) }}
             {% endfor %}
         </div>
     {% else %}
         <p>No dealers have placed an offer on your request yet. Please check back soon!</p>
     {% endif %}
 
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    // Toggle visibility of "ask question" forms
-    document.querySelectorAll('.ask-question-btn').forEach(button => {
-        button.addEventListener('click', function() {
-            const bidId = this.dataset.bidId;
-            const formDiv = document.getElementById(`ask-form-${bidId}`);
-            formDiv.style.display = formDiv.style.display === 'none' ? 'block' : 'none';
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Toggle visibility of "ask question" forms
+        document.querySelectorAll('.ask-question-btn').forEach(button => {
+            button.addEventListener('click', function() {
+                const bidId = this.dataset.bidId;
+                const formDiv = document.getElementById(`ask-form-${bidId}`);
+                formDiv.style.display = formDiv.style.display === 'none' ? 'block' : 'none';
+            });
         });
-    });
-
-    // Handle AJAX form submission for questions
-    document.querySelectorAll('.qna-form').forEach(form => {
-        form.addEventListener('submit', function(e) {
-            e.preventDefault();
-            const formData = new FormData(this);
-            const feedbackSpan = this.querySelector('.form-feedback');
-
-            fetch(this.action, {
-                method: 'POST',
-                body: formData,
-                headers: {
-                    'X-Requested-With': 'XMLHttpRequest'
-                }
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.status === 'success') {
-                    feedbackSpan.textContent = data.message;
-                    feedbackSpan.style.color = 'hsl(var(--success))';
-                    this.reset();
-                    // Hide the form and reload to show the new question
-                    setTimeout(() => {
-                        this.parentElement.style.display = 'none';
-                        feedbackSpan.textContent = '';
-                        location.reload();
-                    }, 2000);
-                } else {
-                    // Display errors
-                    let errorMsg = 'An error occurred.';
-                    if (data.errors && data.errors.question_text) {
-                        errorMsg = data.errors.question_text[0];
+    
+        // Handle AJAX form submission for questions
+        document.querySelectorAll('.qna-form').forEach(form => {
+            form.addEventListener('submit', function(e) {
+                e.preventDefault();
+                const formData = new FormData(this);
+                const feedbackSpan = this.querySelector('.form-feedback');
+    
+                fetch(this.action, {
+                    method: 'POST',
+                    body: formData,
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest'
                     }
-                    feedbackSpan.textContent = errorMsg;
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        feedbackSpan.textContent = data.message;
+                        feedbackSpan.style.color = 'hsl(var(--success))';
+                        this.reset();
+                        // Hide the form and reload to show the new question
+                        setTimeout(() => {
+                            this.parentElement.style.display = 'none';
+                            feedbackSpan.textContent = '';
+                            location.reload();
+                        }, 2000);
+                    } else {
+                        // Display errors
+                        let errorMsg = 'An error occurred.';
+                        if (data.errors && data.errors.question_text) {
+                            errorMsg = data.errors.question_text[0];
+                        }
+                        feedbackSpan.textContent = errorMsg;
+                        feedbackSpan.style.color = 'hsl(var(--danger))';
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    feedbackSpan.textContent = 'A network error occurred.';
                     feedbackSpan.style.color = 'hsl(var(--danger))';
-                }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                feedbackSpan.textContent = 'A network error occurred.';
-                feedbackSpan.style.color = 'hsl(var(--danger))';
+                });
             });
         });
     });
-});
-</script>
+    </script>
 {% endblock %}

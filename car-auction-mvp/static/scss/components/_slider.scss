@@ -1,0 +1,113 @@
+.featured-slider {
+    position: relative;
+    width: 100%;
+    max-width: 1000px;
+    margin: auto;
+    overflow: hidden;
+    border-radius: var(--radius);
+    box-shadow: var(--shadow-elevated);
+}
+.slides {
+    display: flex;
+    transition: transform 0.5s ease-in-out;
+}
+.slide {
+    min-width: 100%;
+    position: relative;
+}
+.slide a {
+    display: block;
+    text-decoration: none;
+    color: inherit;
+}
+.featured-image-grid img {
+    width: 100%;
+    height: 100%;
+    display: block;
+}
+
+.featured-image-grid {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    grid-template-rows: 1fr;
+    gap: 5px;
+    height: 380px; /* Reduced height for a more compact look */
+    background-color: hsl(var(--background));
+    overflow: hidden;
+}
+
+.featured-small-images {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: 1fr 1fr;
+    gap: 5px;
+    height: 100%;
+}
+
+.featured-large-image {
+    position: relative; /* Needed to position the featured tag */
+    overflow: hidden;
+    background-color: hsl(var(--card));
+}
+
+.slide-caption {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: linear-gradient(to top, hsl(var(--background) / 0.9), transparent);
+    color: hsl(var(--foreground));
+    padding: 2rem 1.5rem 1.5rem; /* Reduced top padding */
+}
+.slide-caption h3 { margin: 0; font-size: 1.5rem; }
+.slide-caption p { margin: 0.25rem 0 0; color: hsl(var(--muted-foreground)); }
+
+/* --- Slider Navigation Buttons --- */
+.slider-nav {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    background-color: hsl(var(--background) / 0.5);
+    color: hsl(var(--foreground));
+    border: 1px solid hsl(var(--border));
+    font-size: 1.5rem;
+    cursor: pointer;
+    padding: 8px 12px;
+    border-radius: 50%;
+    z-index: 10;
+    transition: background-color 0.2s, transform 0.2s;
+}
+.slider-nav:hover {
+    background-color: hsl(var(--background) / 0.8);
+    transform: translateY(-50%) scale(1.1);
+}
+.slider-nav.prev { left: 15px; }
+.slider-nav.next { right: 15px; }
+
+/* --- Responsive Carousel for Mobile --- */
+@media (max-width: 768px) {
+    .featured-image-grid {
+        grid-template-columns: 1fr; /* Single column layout */
+        height: 250px; /* Set a fixed height for mobile */
+        gap: 0;
+    }
+
+    .featured-small-images {
+        display: none; /* Hide the small images on mobile */
+    }
+
+    .featured-large-image img {
+        object-fit: cover; /* Fill the container on mobile, cropping if necessary */
+    }
+
+    .slide-caption {
+        padding: 1.5rem 1rem 1rem;
+    }
+}
+
+/* Desktop-specific image fitting */
+@media (min-width: 769px) {
+    .featured-large-image img {
+        object-fit: contain; /* Show the whole car on desktop */
+    }
+}

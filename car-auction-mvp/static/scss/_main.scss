@@ -1,0 +1,2138 @@
+/* --- C&B Inspired Redesign --- */
+
+/* 1. Variables & Base Styles */
+/* Light Theme (Default) */
+/* Dark Theme Activated */
+:root {
+    --background: 220 25% 8%;
+    --foreground: 0 0% 98%;
+    --card: 220 20% 13%;
+    --card-foreground: 0 0% 95%;
+    --popover: 220 20% 13%;
+    --popover-foreground: 0 0% 95%;
+    --primary: 38 92% 50%; /* Using accent as primary for dark mode */
+    --primary-foreground: 220 70% 12%;
+    --secondary: 220 20% 20%;
+    --secondary-foreground: 0 0% 95%;
+    --muted: 220 20% 18%;
+    --muted-foreground: 220 10% 60%;
+    --accent: 260 80% 70%; /* Light Purple */
+    --accent-foreground: 0 0% 100%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 220 20% 22%;
+    --input: 220 20% 20%;
+    --ring: 260 80% 70%;
+    --radius: 0.75rem;
+    --success: 142 76% 36%;
+    --warning: 38 92% 50%; /* This is our new accent color */
+    --info: 220 20% 18%; /* A neutral dark gray for info buttons */
+    --gradient-primary: linear-gradient(135deg, hsl(220 20% 12%), hsl(220 20% 18%));
+    --gradient-accent: linear-gradient(135deg, hsl(260 80% 70%), hsl(260 70% 60%));
+    --shadow-card: 0 4px 6px -1px hsl(0 0% 0% / 0.3), 0 2px 4px -1px hsl(0 0% 0% / 0.2);
+    --shadow-elevated: 0 10px 15px -3px hsl(0 0% 0% / 0.3), 0 4px 6px -2px hsl(0 0% 0% / 0.2);
+}
+
+body {
+    font-family: 'Inter', sans-serif;
+    background-color: hsl(var(--background));
+    color: hsl(var(--foreground));
+    margin: 0;
+    line-height: 1.6;
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+    padding-top: 53px; /* Account for fixed navigation bar height (10px nav padding + 32px nav-button height + 10px nav padding + 1px border) */
+}
+
+.container {
+    max-width: 1200px; /* Keep max-width */
+    margin: 0 auto 20px auto; /* Remove top margin, keep other margins */
+    padding: 0 20px;
+}
+
+h1, h2, h3, h4, h5, h6 {
+    font-weight: 600;
+}
+
+main {
+    flex-grow: 1;
+}
+
+a {
+    color: hsl(var(--accent));
+    text-decoration: none;
+}
+
+a:hover {
+    text-decoration: underline;
+}
+
+hr {
+    border: none;
+    border-top: 1px solid hsl(var(--border));
+    margin: 2rem 0;
+}
+
+/* 2. Navigation Bar */
+nav {
+    position: fixed; /* Make the navigation bar stick to the top */
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 100; /* Ensure it stays on top of other content */
+    background-color: hsl(var(--background));
+    border-bottom: 1px solid hsl(var(--border));
+    padding: 10px 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+.nav-brand {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: hsl(var(--foreground));
+    text-decoration: none;
+}
+nav ul {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    gap: 20px;
+}
+nav a {
+    color: hsl(var(--foreground));
+    font-weight: 500;
+}
+nav a:hover {
+    color: hsl(var(--accent));
+    text-decoration: none;
+}
+nav a.active {
+    color: hsl(var(--accent));
+    font-weight: 700;
+}
+.nav-right {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+.desktop-icon-link.active,
+.mobile-notification-bell-link.active {
+    color: hsl(var(--accent)); /* Highlight the icon color */
+}
+/* Hide desktop notification link by default, show on desktop */
+.desktop-notification-link {
+    display: inline-block;
+}
+.nav-button {
+    background-color: hsl(var(--info));
+    color: hsl(var(--foreground)); /* Light text for dark button */
+    padding: 8px 15px;
+    border-radius: var(--radius);
+    font-weight: 500;
+}
+.nav-button:hover {
+    background-color: hsl(var(--info) / 0.9);
+    text-decoration: none;
+}
+
+/* --- Desktop Navigation Layout --- */
+.nav-menu {
+    flex-grow: 1;
+    display: contents; /* This makes the children of nav-menu direct children of nav for flex layout */
+}
+
+/* --- Mobile Navigation --- */
+.mobile-nav-toggle {
+    display: none; /* Hidden on desktop */
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 10px; /* Increase the clickable area */
+    z-index: 1001;
+    margin: -10px; /* Counteract the padding to maintain layout */
+}
+.hamburger-icon {
+    display: block;
+    width: 24px;
+    height: 2px;
+    background-color: hsl(var(--foreground));
+    position: relative;
+    transition: background-color 0.2s ease-in-out;
+}
+.hamburger-icon::before,
+.hamburger-icon::after {
+    content: '';
+    position: absolute;
+    width: 100%;
+    height: 2px;
+    background-color: hsl(var(--foreground));
+    left: 0;
+    transition: transform 0.2s ease-in-out;
+}
+.hamburger-icon::before { top: -8px; }
+.hamburger-icon::after { bottom: -8px; }
+
+/* Notification Badge */
+.notification-badge {
+    background-color: hsl(var(--destructive));
+    color: hsl(var(--destructive-foreground));
+    border-radius: 50%;
+    padding: 2px 6px;
+    font-size: 0.75em;
+    font-weight: 700;
+    vertical-align: super;
+    margin-left: 4px;
+}
+
+/* Bell shake animation */
+@keyframes shake {
+  10%, 90% { transform: translate3d(-1px, 0, 0); }
+  20%, 80% { transform: translate3d(2px, 0, 0); }
+  30%, 50%, 70% { transform: translate3d(-3px, 0, 0); }
+  40%, 60% { transform: translate3d(3px, 0, 0); }
+}
+.notification-bell-link.shake { animation: shake 0.5s cubic-bezier(.36,.07,.19,.97) both; }
+
+/* Mobile Notification Bell Icon */
+.mobile-nav-icons {
+    display: none; /* Hidden by default on desktop */
+    align-items: center;
+    gap: 10px; /* Space between bell and hamburger */
+}
+.mobile-notification-bell-link {
+    position: relative;
+    color: hsl(var(--foreground));
+    padding: 5px;
+    display: flex; /* To center the SVG */
+    align-items: center;
+}
+.mobile-notification-bell-link svg {
+    width: 24px;
+    height: 24px;
+}
+
+.mobile-notification-bell-link .notification-badge {
+    position: absolute;
+}
+
+/* 3. Layouts */
+.detail-page-container {
+    display: flex;
+    gap: 30px;
+}
+
+.main-content {
+    flex: 3;
+}
+
+.sidebar {
+    flex: 1;
+    border-left: 1px solid hsl(var(--border));
+    padding-left: 30px; /* This creates space between main content and sidebar */
+}
+
+/* Add spacing for cards inside the sidebar */
+.sidebar .auction-card-link {
+    display: block; /* Ensure it's a block element */
+    margin-bottom: 20px; /* Add space below each card */
+}
+
+.auction-grid {
+    display: grid;
+    grid-template-columns: 1fr; /* 1 column on small screens */
+    gap: 20px; /* Adds space between the cards */
+    margin-top: 20px;
+}
+.auction-card {
+    border: 1px solid hsl(var(--border));
+    border-radius: var(--radius);
+    overflow: hidden; /* Ensures image corners are rounded */
+    box-shadow: var(--shadow-card);
+    transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+    position: relative;
+    background-color: hsl(var(--card));
+    display: flex;
+    flex-direction: column;
+}
+.auction-card .card-footer {
+    padding: 15px;
+    border-top: 1px solid hsl(var(--border));
+    margin-top: auto; /* Pushes footer to the bottom */
+}
+.auction-card-link:hover .auction-card {
+    transform: translateY(-5px);
+    box-shadow: var(--shadow-elevated);
+}
+.auction-card img {
+    width: 100%;
+    height: 180px;
+    object-fit: cover;
+}
+.auction-card .card-content {
+    padding: 15px;
+    text-align: left;
+}
+.auction-card .card-content h3 {
+    font-size: 1.1em;
+    margin: 0 0 10px 0;
+    line-height: 1.3;
+}
+.auction-card .card-content p {
+    margin: 0;
+    font-size: 1em;
+    font-weight: 600;
+    color: hsl(var(--foreground));
+}
+.auction-card .bid-count {
+    font-size: 0.9em;
+    font-weight: 500;
+    color: hsl(var(--muted-foreground));
+    margin-left: 10px;
+}
+.auction-card .card-details {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 10px;
+}
+.auction-card h3 {
+    font-size: 1.1em;
+    margin: 0 0 10px 0;
+}
+.auction-card .time-left {
+    font-size: 0.9em;
+    font-weight: 500;
+    color: hsl(var(--accent));
+    margin-top: 8px;
+}
+.auction-card-link {
+    text-decoration: none; /* Remove underline from links */
+    color: inherit; /* Make the link text color the same as normal text */
+    display: block; /* Make the link a block-level element */
+}
+
+.auction-card-link:hover {
+    text-decoration: none;
+}
+
+.title-with-tag {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    flex-wrap: wrap;
+}
+
+/* 5. Forms & Tables */
+.search-hero {
+    background: var(--gradient-primary);
+    padding: 4rem 0;
+    text-align: center;
+}
+.search-hero h1 {
+    color: hsl(var(--foreground));
+    font-size: 2.5rem;
+    margin-bottom: 0.5rem;
+}
+.search-hero p {
+    color: hsl(var(--muted-foreground));
+    font-size: 1.1rem;
+    margin-bottom: 2rem;
+}
+.search-bar {
+    display: flex;
+    max-width: 600px;
+    margin: 0 auto;
+    border-radius: var(--radius);
+    overflow: hidden;
+    box-shadow: var(--shadow-elevated);
+    border: 1px solid hsl(var(--border));
+}
+.search-bar input {
+    flex-grow: 1;
+    border: none;
+    padding: 15px 20px;
+    font-size: 1.1rem;
+    transition: box-shadow 0.2s;
+}
+.search-bar input:focus {
+    outline: none;
+    box-shadow: inset 0 0 0 2px hsl(var(--accent));
+}
+.search-bar button {
+    background-color: hsl(var(--accent));
+    color: hsl(var(--accent-foreground));
+    border: none;
+    border-left: 1px solid hsl(var(--border));
+    padding: 0 25px;
+    cursor: pointer;
+    font-weight: 600;
+    transition: background-color 0.2s;
+}
+.search-bar button:hover {
+    background-color: hsl(var(--accent) / 0.9);
+}
+.quick-filters {
+    margin-top: 2.5rem;
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    transition: margin-top 0.2s ease-in-out; /* Smooth transition for push-down effect */
+}
+.filter-btn {
+    background-color: hsl(var(--secondary) / 0.2);
+    color: hsl(var(--secondary-foreground));
+    border: 1px solid hsl(var(--border));
+    padding: 8px 15px;
+    border-radius: var(--radius);
+    cursor: pointer;
+    transition: all 0.2s;
+}
+.filter-btn:hover {
+    background-color: hsl(var(--secondary) / 0.4);
+}
+.filter-btn.active {
+    background-color: hsl(var(--accent));
+    color: hsl(var(--accent-foreground));
+    border-color: hsl(var(--accent));
+}
+.find-car-link {
+    margin-top: 2rem;
+    text-align: center; /* Center the whole block */
+}
+.find-car-link span {
+    display: block;
+    font-size: 1.1rem; /* Make it slightly larger */
+    color: hsl(var(--foreground)); /* Make it brighter */
+    margin-bottom: 0.75rem; /* Add space between it and the button */
+}
+.find-car-link a {
+    color: hsl(var(--accent));
+    font-weight: 500;
+    text-decoration: none;
+}
+.find-car-link a:hover {
+    text-decoration: underline;
+}
+.find-car-link .find-car-cta {
+    display: inline-block;
+    background: hsl(var(--accent)); /* Use the solid accent purple */
+    color: hsl(var(--background)); /* Use very dark text for high contrast */
+    padding: 12px 24px;
+    border-radius: var(--radius);
+    font-weight: 600;
+    text-decoration: none;
+    transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+    box-shadow: var(--shadow-card);
+    margin-top: 0.5rem;
+}
+
+.find-car-link .find-car-cta:hover {
+    transform: translateY(-2px);
+    background: hsl(var(--accent) / 0.9); /* Slightly darken the purple on hover */
+    box-shadow: var(--shadow-elevated);
+    text-decoration: none; /* remove underline on hover */
+}
+
+.filter-bar {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+    padding: 0.5rem;
+    background-color: hsl(var(--secondary));
+    border-radius: var(--radius);
+    border: 1px solid hsl(var(--border));
+}
+
+/* Search Suggestions */
+.search-wrapper {
+    position: relative; /* New parent for positioning the suggestions */
+    max-width: 600px; /* Match the search-bar width */
+    margin: 0 auto;
+}
+.search-suggestions-container {
+    display: none; /* Hidden by default */
+    position: absolute;
+    top: 100%; /* Position it right below the search-and-filters block */
+    left: 0;
+    right: 0;
+    width: 100%; /* Ensure it matches the wrapper width */
+    background-color: hsl(var(--card));
+    border: 1px solid hsl(var(--border));
+    border-top: none;
+    border-radius: 0 0 var(--radius) var(--radius);
+    z-index: 10;
+    max-height: 300px;
+    overflow-y: auto;
+}
+/* The new container for search and filters */
+#search-and-filters {
+    position: relative; /* This is important for z-index to work correctly with its siblings */
+}
+.suggestion-item {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    padding: 12px 20px;
+    cursor: pointer;
+    text-align: left;
+    text-decoration: none;
+    color: hsl(var(--card-foreground));
+}
+.suggestion-item:hover {
+    background-color: hsl(var(--accent) / 0.1);
+    text-decoration: none;
+}
+.suggestion-image {
+    width: 60px;
+    height: 45px;
+    object-fit: cover;
+    border-radius: calc(var(--radius) / 2);
+    flex-shrink: 0;
+}
+.suggestion-title {
+    font-weight: 500;
+    font-size: 1.1rem; /* Make suggestion text larger */
+}
+
+/* Loading Spinner for Live Search */
+.results-wrapper {
+    position: relative;
+    min-height: 200px; /* Prevent layout shift while loading */
+}
+.loading-spinner {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 50px;
+    height: 50px;
+    border: 5px solid hsl(var(--border));
+    border-top: 5px solid hsl(var(--accent));
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    z-index: 5;
+}
+
+@keyframes spin {
+    0% { transform: translate(-50%, -50%) rotate(0deg); }
+    100% { transform: translate(-50%, -50%) rotate(360deg); }
+}
+
+/* DEPRECATED */
+/* .filter-container {
+    background-color: hsl(var(--secondary));
+    padding: 20px;
+    border-radius: var(--radius);
+    margin-bottom: 30px;
+    border: 1px solid hsl(var(--border));
+} */
+
+.form-group {
+    margin-bottom: 1.5rem;
+}
+.form-group label {
+    display: block;
+    font-weight: 500;
+    margin-bottom: 0.5rem;
+}
+.form-group input, .form-group select, .form-group textarea {
+    width: 100%;
+    box-sizing: border-box; /* Ensures padding doesn't affect width */
+}
+.form-error {
+    color: hsl(var(--destructive));
+    font-size: 0.875rem;
+    margin-top: 0.25rem;
+}
+
+.form-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem 1.5rem;
+}
+
+.form-grid .form-group {
+    margin-bottom: 0.5rem;
+}
+
+.form-grid .full-width {
+    grid-column: 1 / -1; /* Span the full width */
+}
+
+
+.checkbox-style {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+.checkbox-style input {
+    width: auto;
+}
+.checkbox-style label {
+    margin-bottom: 0;
+}
+
+
+.radio-button-group, .checkbox-group {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+}
+.radio-button-input, .checkbox-input {
+    display: none; /* Hide the actual radio/checkbox input */
+}
+.radio-button-label, .checkbox-label {
+    display: block;
+    padding: 1rem;
+    border: 2px solid hsl(var(--border));
+    border-radius: var(--radius);
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s ease-in-out;
+    font-weight: 500;
+}
+.radio-button-label:hover, .checkbox-label:hover {
+    border-color: hsl(var(--accent));
+    background-color: hsl(var(--accent) / 0.1);
+}
+
+.radio-button-label.with-icon {
+    min-height: 140px; /* Apply height only to icon cards */
+}
+
+.radio-button-input:checked + .radio-button-label,
+.checkbox-input:checked + .checkbox-label {
+    background-color: hsl(var(--accent));
+    color: hsl(var(--accent-foreground));
+    border-color: hsl(var(--accent));
+}
+.radio-button-input:checked + .radio-button-label {
+    cursor: wait;
+}
+.radio-button-label.with-icon {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem;
+}
+
+.radio-button-label.with-icon img {
+    height: 70px; /* Increase image size */
+}
+
+/* For single column layout on smaller screens */
+@media (max-width: 768px) {
+    .radio-button-group, .checkbox-group {
+        grid-template-columns: 1fr;
+    }
+}
+
+
+input[type="text"],
+input[type="number"],
+input[type="password"],
+input[type="email"],
+input[type="date"],
+input[type="datetime-local"],
+select,
+textarea {
+    padding: 10px;
+    margin: 0;
+    border: 1px solid hsl(var(--muted-foreground) / 0.5);
+    border-radius: var(--radius);
+    font-family: 'Inter', sans-serif;
+    font-size: 1rem;
+    background-color: hsl(var(--input));
+    color: hsl(var(--foreground));
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 20px;
+}
+
+th, td {
+    padding: 12px 15px;
+    text-align: left;
+    border-bottom: 1px solid hsl(var(--border));
+}
+
+thead th {
+    background-color: hsl(var(--secondary));
+    font-weight: 600;
+}
+
+tbody tr:hover {
+    background-color: hsl(var(--secondary));
+}
+
+/* Highlight for new/unread items in tables */
+tbody tr.new-request {
+    background-color: hsl(var(--accent) / 0.1);
+    border-left: 3px solid hsl(var(--accent));
+    transition: background-color 0.2s ease-in-out;
+}
+
+/* Add a specific hover effect for new/unread rows */
+tbody tr.new-request:hover {
+    background-color: hsl(var(--accent) / 0.2);
+}
+
+/* Highlight for a user's own items in a list */
+tbody tr.my-bid-highlight {
+    background-color: hsl(var(--accent) / 0.1) !important;
+    border-left: 3px solid hsl(var(--accent));
+}
+
+/* 6. Sections */
+.section {
+    padding: 4rem 0;
+}
+.section-header {
+    margin-bottom: 2.5rem;
+    text-align: center;
+}
+.section-header h2 {
+    font-size: 2rem;
+    font-weight: 700;
+    margin-bottom: 0.5rem;
+}
+.section-header p {
+    color: hsl(var(--muted-foreground));
+    max-width: 600px;
+    margin: 0 auto;
+}
+.section-light {
+    background-color: hsl(var(--secondary));
+    border-top: 1px solid hsl(var(--border));
+    border-bottom: 1px solid hsl(var(--border));
+}
+
+/* 7. Trust Section */
+.trust-section {
+    background: var(--gradient-primary);
+    color: hsl(var(--foreground));
+}
+.trust-section h2 {
+    color: hsl(var(--foreground));
+}
+.trust-section .section-header p {
+    color: rgba(255, 255, 255, 0.8);
+}
+.trust-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 2rem;
+    max-width: 900px;
+    margin: 0 auto;
+    text-align: center;
+}
+.trust-grid .stat .value {
+    font-size: 2.5rem;
+    font-weight: 700;
+    color: hsl(var(--accent));
+}
+.trust-grid .stat .label {
+    font-size: 1rem;
+}
+
+/* Featured Slider Section */
+.featured-section {
+    background-color: hsl(var(--background));
+    padding: 2rem 0; /* Reduced vertical padding */
+}
+.featured-slider {
+    position: relative;
+    width: 100%;
+    max-width: 1000px;
+    margin: auto;
+    overflow: hidden;
+    border-radius: var(--radius);
+    box-shadow: var(--shadow-elevated);
+}
+.slides {
+    display: flex;
+    transition: transform 0.5s ease-in-out;
+}
+.slide {
+    min-width: 100%;
+    position: relative;
+}
+.slide a {
+    display: block;
+    text-decoration: none;
+    color: inherit;
+}
+.slide img, .featured-image-grid img {
+    width: 100%;
+    height: 100%;
+    display: block;
+    object-fit: cover;
+}
+
+.featured-image-grid {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    grid-template-rows: 1fr;
+    gap: 5px;
+    height: 380px; /* Reduced height for a more compact look */
+    background-color: hsl(var(--card));
+}
+
+.featured-small-images {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: 1fr 1fr;
+    gap: 5px;
+    height: 100%;
+}
+
+.featured-large-image {
+    position: relative; /* Needed to position the featured tag */
+    overflow: hidden;
+}
+
+.slide-caption {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: linear-gradient(to top, hsl(var(--background) / 0.9), transparent);
+    color: hsl(var(--foreground));
+    padding: 2rem 1.5rem 1.5rem; /* Reduced top padding */
+}
+.slide-caption h3 {
+    margin: 0;
+    font-size: 1.5rem;
+}
+.slide-caption p {
+    margin: 0.25rem 0 0;
+    color: hsl(var(--muted-foreground));
+}
+.slider-nav {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    background-color: hsl(var(--background) / 0.5);
+    color: hsl(var(--foreground));
+    border: 1px solid hsl(var(--border));
+    font-size: 1.5rem;
+    cursor: pointer;
+    padding: 8px 12px;
+    border-radius: 50%;
+    z-index: 10;
+}
+.slider-nav.prev { left: 15px; }
+.slider-nav.next { right: 15px; }
+
+/* 9. Responsive Adjustments */
+@media (min-width: 768px) {
+    .auction-grid {
+        grid-template-columns: repeat(2, 1fr); /* 2 columns on medium screens */
+    }
+}
+
+@media (min-width: 1024px) {
+    .auction-grid {
+        grid-template-columns: repeat(3, 1fr); /* 3 columns on large screens */
+    }
+}
+
+
+/* 10. Admin & Seller Dashboard Specifics */
+.admin-actions, .question-context {
+    background-color: hsl(var(--secondary));
+    border: 1px solid hsl(var(--border));
+    padding: 20px;
+    margin-bottom: 20px;
+    border-radius: var(--radius);
+}
+.admin-actions h3, .question-context h3 {
+    margin-top: 0;
+}
+.admin-actions.pending {
+    background-color: hsl(var(--warning) / 0.1);
+    border-color: hsl(var(--warning));
+}
+.admin-actions .button-group {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+.btn, .button-group button, .button-group a {
+    border: none;
+    padding: 8px 12px;
+    border-radius: var(--radius);
+    cursor: pointer;
+    font-weight: 500;
+    text-decoration: none;
+    display: inline-block;
+    text-align: center;
+}
+.btn.approve, .button-group .approve { background-color: hsl(var(--accent)); color: hsl(var(--accent-foreground)); }
+.btn.edit, .button-group .edit { background-color: hsl(var(--info)); color: hsl(var(--foreground)); }
+.btn.delete, .button-group .delete { background-color: hsl(var(--destructive)); color: hsl(var(--destructive-foreground)); }
+
+.stat-grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 20px;
+    margin-bottom: 40px;
+}
+.stat-card {
+    border: 1px solid hsl(var(--border));
+    padding: 20px;
+    text-align: center;
+    border-radius: var(--radius);
+    background-color: hsl(var(--secondary));
+}
+
+/* 11. Image Gallery on Detail Pages */
+.image-gallery {
+    margin-bottom: 20px; /* Add some space below the gallery */
+}
+.main-image-container {
+    position: relative;
+    max-width: 100%;
+}
+.main-image-container img {
+    width: 100%;
+    max-height: 500px; /* Max height on desktop */
+    object-fit: contain; /* Changed to contain to show the whole car */
+    border-radius: var(--radius);
+}
+.gallery-nav {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    background-color: hsla(0, 0%, 0%, 0.5);
+    color: white;
+    border: none;
+    font-size: 24px;
+    cursor: pointer;
+    padding: 5px 10px;
+    border-radius: 50%;
+}
+.gallery-nav.prev { left: 10px; }
+.gallery-nav.next { right: 10px; }
+.thumbnails {
+    display: flex;
+    gap: 10px;
+    margin-top: 10px;
+}
+.thumbnails img {
+    width: 100px;
+    height: 75px;
+    object-fit: cover;
+    cursor: pointer;
+    border-radius: calc(var(--radius) / 2);
+    border: 2px solid transparent;
+    transition: border-color 0.2s;
+}
+.thumbnails img.active {
+    border-color: hsl(var(--accent));
+}
+
+/* Adjustments for fullscreen image viewer */
+.image-viewer-content {
+    object-fit: contain; /* Ensure entire image is visible in fullscreen */
+}
+
+/* 12. Q&A Section */
+.qna-section .question-item {
+    border: 1px solid hsl(var(--border));
+    padding: 15px;
+    border-radius: var(--radius);
+    margin-bottom: 15px;
+}
+.qna-section .question-item p { margin: 0.25rem 0; }
+.qna-section .question-item .meta {
+    font-size: 0.9em;
+    color: hsl(var(--muted-foreground));
+}
+.qna-section .answer-item {
+    border-left: 3px solid hsl(var(--success));
+    margin-top: 10px;
+    padding-left: 15px;
+    background-color: hsl(var(--success) / 0.05);
+}
+.qna-section .awaiting-answer {
+    font-style: italic;
+    color: hsl(var(--muted-foreground));
+}
+.ask-question-container { margin-top: 20px; }
+#ask-question-form-div { display: none; margin-top: 10px; }
+#question-success { color: hsl(var(--success)); margin-left: 10px; }
+#question-error { color: hsl(var(--destructive)); }
+
+#no-results-message {
+    text-align: center;
+    padding: 2rem;
+}
+
+.view-all-container {
+    text-align: center;
+    margin-top: 2.5rem;
+}
+
+/* 13. How It Works Page */
+.how-it-works-container {
+    max-width: 900px;
+    margin: 0 auto;
+}
+
+.section-title {
+    font-size: 1.8rem;
+    margin-top: 3rem;
+    margin-bottom: 1.5rem;
+    border-bottom: 2px solid hsl(var(--accent));
+    padding-bottom: 0.5rem;
+    display: inline-block;
+}
+
+.step-card {
+    display: flex;
+    align-items: flex-start;
+    gap: 2rem;
+    margin-bottom: 2rem;
+}
+
+.step-number {
+    font-size: 2rem;
+    font-weight: 700;
+    color: hsl(var(--accent));
+    line-height: 1;
+}
+
+.step-content h3 { margin-top: 0; }
+.step-content p { color: hsl(var(--muted-foreground)); margin-top: 0.5rem; }
+
+/* 14. Fullscreen Image Viewer */
+.image-viewer-modal {
+    display: none; /* Hidden by default */
+    position: fixed; /* Stay in place */
+    z-index: 1000; /* Sit on top */
+    padding-top: 50px;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    overflow: auto; /* Enable scroll if needed */
+    background-color: hsl(var(--background) / 0.95); /* Dark overlay */
+    cursor: pointer;
+}
+
+.image-viewer-content {
+    margin: auto;
+    display: block;
+    width: auto;
+    height: 80vh; /* Take 80% of the viewport height */
+    max-width: 90vw;
+    object-fit: contain;
+}
+
+.close-image-viewer {
+    position: absolute;
+    top: 15px;
+    right: 35px;
+    color: hsl(var(--muted-foreground));
+    font-size: 40px;
+    font-weight: bold;
+    transition: 0.3s;
+}
+
+.close-image-viewer:hover,
+.close-image-viewer:focus {
+    color: hsl(var(--foreground));
+    text-decoration: none;
+    cursor: pointer;
+}
+
+.image-viewer-nav {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    background-color: hsl(var(--background) / 0.5);
+    color: hsl(var(--foreground));
+    border: 1px solid hsl(var(--border));
+    font-size: 2rem;
+    cursor: pointer;
+    padding: 10px 15px;
+    border-radius: var(--radius);
+    user-select: none;
+    transition: background-color 0.2s;
+}
+.image-viewer-nav:hover { background-color: hsl(var(--background) / 0.8); }
+.image-viewer-nav.prev { left: 20px; }
+.image-viewer-nav.next { right: 20px; }
+
+/* 15. Availability Toggle Switch */
+.switch {
+  position: relative;
+  display: inline-block;
+  width: 50px;
+  height: 28px;
+  vertical-align: middle;
+}
+
+.switch input { 
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: hsl(var(--muted));
+  transition: .4s;
+}
+
+.slider:before {
+  position: absolute;
+  content: "";
+  height: 20px;
+  width: 20px;
+  left: 4px;
+  bottom: 4px;
+  background-color: white;
+  transition: .4s;
+}
+
+input:checked + .slider { background-color: hsl(var(--success)); }
+input:focus + .slider { box-shadow: 0 0 1px hsl(var(--success)); }
+input:checked + .slider:before { transform: translateX(22px); }
+.slider.round { border-radius: 34px; }
+.slider.round:before { border-radius: 50%; }
+.availability-text { margin-left: 10px; font-weight: 500; }
+
+.availability-tag {
+    background-color: hsl(var(--success));
+    color: hsl(var(--destructive-foreground));
+    padding: 3px 8px;
+    border-radius: var(--radius);
+    font-size: 0.8em;
+    font-weight: 600;
+}
+
+.availability-tag.unavailable {
+    background-color: hsl(var(--muted));
+    color: hsl(var(--muted-foreground));
+}
+
+/* --- CONSOLIDATED TAG STYLING --- */
+
+/* 1. Base styles for all tags (small, non-positioned) */
+.role-badge,
+.listing-type-tag,
+.featured-tag {
+    padding: 0.2em 0.6em;
+    border-radius: var(--radius);
+    font-size: 0.8em;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+/* 2. Specific colors */
+.role-badge { color: hsl(var(--accent-foreground)); }
+.role-badge.admin { background-color: hsl(var(--destructive)); }
+.role-badge.dealer { background-color: hsl(var(--success)); }
+.role-badge.rental { background-color: hsl(var(--info)); color: hsl(var(--primary)); }
+
+.listing-type-tag { background-color: hsl(var(--accent)); color: hsl(var(--accent-foreground)); }
+.listing-type-tag.sale { background-color: hsl(var(--success)); color: hsl(var(--destructive-foreground)); }
+.listing-type-tag.rental { background-color: hsl(var(--info)); color: hsl(var(--foreground)); }
+
+.featured-tag { background-color: hsl(var(--warning)); color: hsl(var(--background)); font-weight: 700; }
+
+/* 3. Context-specific positioning and sizing */
+
+/* For small cards with image overlays */
+.card-image-container {
+    position: relative;
+    width: 100%;
+    height: 180px;
+    overflow: hidden;
+}
+
+.card-image-container .role-badge {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    z-index: 1;
+}
+
+.card-image-container .listing-type-tag {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    z-index: 1;
+}
+
+.card-image-container .featured-tag {
+    position: absolute;
+    bottom: 10px;
+    left: 10px;
+    z-index: 1;
+}
+
+/* For the large featured slider */
+.featured-large-image .featured-tag.on-slider {
+    position: absolute;
+    top: 15px;
+    left: 15px;
+    z-index: 1;
+    padding: 6px 12px;
+    font-size: 1rem;
+}
+
+/* For large tags next to H1 on detail pages */
+.title-with-tag .role-badge.large,
+.title-with-tag .listing-type-tag.large,
+.title-with-tag .featured-tag.large {
+    position: static; /* Override any absolute positioning */
+    font-size: 1rem;
+    padding: 6px 12px;
+}
+
+/* For tags inside table cells */
+td .role-badge {
+    position: static;
+    margin-right: 5px;
+}
+
+/* --- Status Tags --- */
+.status-tag {
+    padding: 0.2em 0.6em;
+    border-radius: var(--radius);
+    font-size: 0.8em;
+    font-weight: 600;
+    white-space: nowrap;
+    background-color: hsl(var(--muted));
+    color: hsl(var(--muted-foreground));
+}
+.status-tag.status-active { background-color: hsl(var(--success)); color: hsl(var(--destructive-foreground)); }
+.status-tag.status-completed { background-color: hsl(var(--info)); color: hsl(var(--foreground)); }
+.status-tag.status-pending { background-color: hsl(var(--warning)); color: hsl(var(--background)); }
+
+
+/* 16. Owner Actions on Detail Pages */
+.owner-actions {
+    background-color: hsl(var(--secondary));
+    border: 1px solid hsl(var(--border));
+    padding: 20px;
+    margin-bottom: 20px;
+    border-radius: var(--radius);
+}
+.owner-actions h4 { margin-top: 0; }
+.visibility-control {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap; /* Allow items to wrap to the next line on small screens */
+}
+
+.offer-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid hsl(var(--border));
+}
+.offer-price { font-size: 1.5rem; font-weight: 700; }
+.offer-price-options {
+    display: flex;
+    gap: 1.5rem;
+    align-items: center;
+}
+.offer-price.cash, .offer-price.loan {
+    padding: 0.5rem 1rem;
+    border-radius: var(--radius);
+    text-align: center;
+}
+.offer-price.cash {
+    background-color: hsl(var(--success) / 0.1);
+    border: 1px solid hsl(var(--success));
+}
+.offer-price.loan {
+    background-color: hsl(var(--info) / 0.1);
+    border: 1px solid hsl(var(--info));
+}
+.offer-price span { display: block; font-size: 0.8em; font-weight: 500; color: hsl(var(--muted-foreground)); }
+.offer-meta { text-align: right; color: hsl(var(--muted-foreground)); font-size: 0.9em; }
+.offer-meta span { display: block; }
+.offer-details-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 0.5rem 1.5rem;
+    margin-bottom: 1rem;
+}
+.offer-footer {
+    margin-top: 1.5rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid hsl(var(--border));
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+.offer-card {
+    background-color: hsl(var(--card));
+    border: 1px solid hsl(var(--border));
+    border-radius: var(--radius);
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+}
+.offer-card.lowest-bid-highlight {
+    border: 2px solid hsl(var(--accent)); /* Thicker, more colorful border */
+    background-color: hsl(var(--accent) / 0.1); /* Brighter background highlight */
+    padding: 1.5rem; /* Add more internal padding */
+    border-radius: calc(var(--radius) * 1.5); /* Make corners more rounded */
+    box-shadow: 0 0 15px hsl(var(--accent) / 0.2); /* Add a subtle glow effect */
+    transform: scale(1.01); /* Slightly enlarge the card to make it pop */
+}
+.offer-card.lowest-bid-highlight .offer-price {
+    /* color: hsl(var(--accent)); */ /* Removed to allow individual price colors */
+}
+.valid-until { font-size: 0.9em; color: hsl(var(--muted-foreground)); }
+
+.accept-offer-form {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+.accept-options {
+    display: flex;
+    gap: 1rem;
+}
+.accept-radio {
+    font-size: 0.9em;
+    cursor: pointer;
+}
+
+
+/* 19. Deal Summary Page */
+.deal-summary-card {
+    background-color: hsl(var(--secondary));
+    border: 1px solid hsl(var(--border));
+    padding: 2rem;
+    border-radius: var(--radius);
+    max-width: 900px;
+    margin: 2rem auto;
+}
+
+.deal-header {
+    text-align: center;
+    border-bottom: 1px solid hsl(var(--border));
+    padding-bottom: 1.5rem;
+    margin-bottom: 1.5rem;
+}
+.deal-header h2 {
+    margin: 0;
+    font-size: 2rem;
+    color: hsl(var(--accent));
+}
+.deal-header span {
+    color: hsl(var(--muted-foreground));
+}
+
+.payment-method-tag {
+    display: inline-block;
+    background-color: hsl(var(--secondary));
+    padding: 0.3rem 0.8rem;
+    border-radius: var(--radius);
+    margin-top: 0.5rem;
+}
+
+.deal-parties {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 2rem;
+    margin-bottom: 1.5rem;
+    padding-bottom: 1.5rem;
+    border-bottom: 1px solid hsl(var(--border));
+}
+.party h3 {
+    margin-top: 0;
+}
+
+/* --- Notifications Page --- */
+.notification-list {
+    margin-top: 2rem;
+}
+.notification-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 1rem;
+    border-bottom: 1px solid hsl(var(--border));
+    transition: background-color 0.2s;
+}
+.notification-item:hover {
+    background-color: hsl(var(--secondary));
+}
+.notification-item.unread {
+    background-color: hsl(var(--secondary)) !important;
+    border-left: 3px solid hsl(var(--accent));
+    padding-left: calc(1rem - 3px);
+}
+.notification-content {
+    flex-grow: 1;
+}
+.notification-content p {
+    margin: 0 0 0.25rem 0;
+}
+.notification-time {
+    font-size: 0.8em;
+    color: hsl(var(--muted-foreground));
+}
+.notification-action {
+    flex-shrink: 0;
+}
+
+/* New tag for unread/unanswered items */
+.new-item-tag {
+    background-color: hsl(var(--warning));
+    color: hsl(var(--background));
+    font-weight: 600;
+    padding: 3px 8px;
+    border-radius: var(--radius);
+    font-size: 0.8em;
+}
+
+/* --- Comparison Tool --- */
+.compare-container {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    margin-top: 10px;
+}
+.compare-description {
+    font-size: 0.8em;
+    color: hsl(var(--muted-foreground));
+    margin-left: 5px;
+}
+.compare-container label {
+    font-size: 0.9em;
+    color: hsl(var(--muted-foreground));
+    cursor: pointer;
+    vertical-align: middle; /* Align with larger checkbox */
+}
+.compare-checkbox {
+    accent-color: hsl(var(--accent));
+    width: 1.2em; /* Make checkbox slightly larger */
+    height: 1.2em;
+    vertical-align: middle;
+}
+.comparison-bar {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    background-color: hsl(var(--card));
+    border-top: 1px solid hsl(var(--border));
+    padding: 1rem 0;
+    z-index: 999;
+    box-shadow: 0 -4px 15px hsl(var(--background) / 0.5);
+}
+.comparison-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+.comparison-content span {
+    font-weight: 600;
+    font-size: 1.1rem;
+}
+.comparison-actions {
+    display: flex;
+    gap: 1rem;
+}
+
+/* --- Chat System --- */
+.chat-container {
+    border: 1px solid hsl(var(--border));
+    border-radius: var(--radius);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+.chat-history {
+    padding: 1.5rem;
+    height: 400px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem; /* Adds space between message bubbles */
+}
+.chat-message-wrapper {
+    display: flex;
+    max-width: 80%; /* Prevent bubbles from being too wide */
+}
+.sent-wrapper {
+    justify-content: flex-end;
+    align-self: flex-end; /* This is key to push the bubble to the right */
+}
+.received-wrapper {
+    justify-content: flex-start;
+    align-self: flex-start; /* This keeps the bubble on the left */
+}
+.chat-message {
+    padding: 10px 15px;
+    border-radius: 18px; /* More rounded bubbles */
+}
+.sent {
+    border-bottom-right-radius: 4px; /* Sharp corner for sent messages */
+}
+.chat-message p { margin: 0 0 5px 0; }
+.chat-message small { font-size: 0.75em; color: hsl(var(--muted-foreground)); opacity: 0.8; }
+.sent { background-color: hsl(var(--accent)); color: hsl(var(--accent-foreground)); }
+.received { background-color: hsl(var(--secondary)); }
+.system-message {
+    text-align: center;
+    color: hsl(var(--muted-foreground));
+    font-style: italic;
+    padding: 1rem;
+}
+.chat-input-area {
+    border-top: 1px solid hsl(var(--border));
+    padding: 0.75rem;
+}
+.chat-input-area form {
+    display: flex;
+    gap: 0.5rem;
+}
+.chat-input-area textarea {
+    flex-grow: 1;
+    resize: none;
+    height: 40px; /* Start with a smaller height */
+}
+.chat-input-area textarea:focus {
+    outline: none;
+    box-shadow: 0 0 0 2px hsl(var(--accent));
+}
+
+/* Custom Scrollbar for Chat History */
+.chat-history::-webkit-scrollbar {
+    width: 8px;
+}
+.chat-history::-webkit-scrollbar-track {
+    background: hsl(var(--background));
+}
+.chat-history::-webkit-scrollbar-thumb {
+    background-color: hsl(var(--muted));
+    border-radius: 10px;
+    border: 2px solid hsl(var(--background));
+}
+
+/* --- Dealer Profile Page --- */
+/* Add margin to the top of the hero section to clear the fixed nav bar */
+.dealer-profile-hero {
+    margin-top: 2rem;
+}
+
+/* Add margin to the admin controls on the dealer profile page to clear the fixed nav bar */
+.dealer-profile-page .admin-actions {
+    margin-top: 2rem;
+}
+
+/* --- Modern Dashboard Full-Width Wrappers --- */
+.dashboard-header-wrapper {
+    padding: 2rem 0;
+    background-color: hsl(var(--card));
+    border-bottom: 1px solid hsl(var(--border));
+}
+.dashboard-stats-wrapper {
+    padding: 2rem 0;
+    background-color: hsl(var(--background));
+}
+
+/* --- Modern Dealer Dashboard --- */
+.dashboard-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    flex-wrap: wrap;
+    gap: 1rem;
+}
+.dashboard-header h1 {
+    margin: 0;
+}
+.dashboard-header p {
+    margin: 0.25rem 0 0;
+    color: hsl(var(--muted-foreground));
+    font-size: 1.1rem;
+}
+.header-actions {
+    display: flex;
+    gap: 0.75rem;
+    align-items: center;
+}
+
+.dashboard-stat-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1.5rem;
+}
+.dashboard-stat-grid .stat-card {
+    background-color: hsl(var(--card));
+    padding: 1.5rem;
+    text-align: left;
+}
+.dashboard-stat-grid .stat-card h3 {
+    font-size: 2.5rem;
+    margin: 0;
+}
+.dashboard-stat-grid .stat-card p {
+    margin: 0;
+    color: hsl(var(--muted-foreground));
+    font-weight: 500;
+}
+
+.request-grid, .question-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+    gap: 1.5rem;
+    margin-top: 1.5rem;
+}
+
+.request-card, .question-card {
+    background-color: hsl(var(--card));
+    border: 1px solid hsl(var(--border));
+    border-radius: var(--radius);
+    display: flex;
+    flex-direction: column;
+    transition: all 0.2s ease-in-out;
+}
+.request-card:hover {
+    transform: translateY(-3px);
+    box-shadow: var(--shadow-elevated);
+}
+
+.request-card.new-request {
+    border-left: 4px solid hsl(var(--accent));
+}
+.request-card.new-request:hover {
+    border-color: hsl(var(--accent));
+}
+
+.request-card .card-main-link {
+    text-decoration: none;
+    color: inherit;
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+}
+.request-card .card-header {
+    padding: 1rem 1.25rem;
+    border-bottom: 1px solid hsl(var(--border));
+    font-weight: 600;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+.request-card .card-body {
+    padding: 1rem 1.25rem;
+    flex-grow: 1;
+}
+.request-card .card-footer, .question-card .card-footer {
+    padding: 1rem 1.25rem;
+    border-top: 1px solid hsl(var(--border));
+    background-color: hsl(var(--secondary));
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1rem;
+}
+.request-card .footer-stat, .question-card .footer-stat {
+    text-align: left;
+}
+.request-card .footer-stat span, .question-card .footer-stat span {
+    font-size: 0.8em;
+    color: hsl(var(--muted-foreground));
+    display: block;
+}
+.request-card .footer-stat strong, .question-card .footer-stat strong {
+    font-weight: 600;
+}
+
+.question-card .card-body { padding: 1.25rem; }
+.question-card .question-text { font-style: italic; margin: 0 0 1rem 0; }
+.question-card .question-meta { font-size: 0.9em; color: hsl(var(--muted-foreground)); }
+
+/* --- Dashboard Tabs --- */
+.dashboard-tabs {
+    display: flex;
+    border-bottom: 2px solid hsl(var(--border));
+    margin-bottom: 2rem;
+}
+.tab-link {
+    padding: 0.75rem 1.5rem;
+    cursor: pointer;
+    font-weight: 500;
+    color: hsl(var(--muted-foreground));
+    border-bottom: 2px solid transparent;
+    margin-bottom: -2px; /* Align with the container's border */
+    transition: all 0.2s ease-in-out;
+}
+.tab-link:hover {
+    color: hsl(var(--foreground));
+    text-decoration: none;
+}
+.tab-link.active {
+    color: hsl(var(--accent));
+    border-color: hsl(var(--accent));
+    font-weight: 600;
+}
+.tab-content:not(.active) { display: none; }
+
+.dealer-profile-hero {
+    background-color: hsl(var(--card));
+    border: 1px solid hsl(var(--border));
+    border-radius: var(--radius);
+    padding: 2rem;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 2rem;
+    align-items: center;
+}
+.dealer-info {
+    display: flex;
+    gap: 1.5rem;
+    align-items: center;
+    flex-grow: 1;
+}
+.dealer-logo-placeholder {
+    width: 100px;
+    height: 100px;
+    border-radius: 50%;
+    background-color: hsl(var(--accent));
+    color: hsl(var(--accent-foreground));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 3rem;
+    font-weight: 700;
+    flex-shrink: 0;
+}
+.dealer-details h1 {
+    margin: 0;
+    font-size: 2.2rem;
+}
+.dealer-name-verified {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+.verified-badge {
+    background-color: hsl(var(--success));
+    color: hsl(var(--destructive-foreground));
+    padding: 4px 10px;
+    border-radius: var(--radius);
+    font-size: 0.8em;
+    font-weight: 600;
+}
+.dealer-tagline {
+    font-size: 1.1rem;
+    color: hsl(var(--muted-foreground));
+    margin: 0.25rem 0 0.5rem 0;
+}
+.dealer-rating-summary .star { font-size: 1.5rem; }
+.dealer-rating-summary .star.filled { color: hsl(var(--warning)); }
+.dealer-rating-summary .rating-text { margin-left: 0.5rem; font-weight: 500; }
+.dealer-location {
+    flex-basis: 300px; /* Give the map a base width */
+    flex-grow: 1;
+}
+.map-placeholder {
+    width: 100%;
+    height: 150px;
+    background-color: hsl(var(--muted));
+    border-radius: var(--radius);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: hsl(var(--muted-foreground));
+    border: 1px dashed hsl(var(--border));
+}
+
+@media (max-width: 768px) {
+    .dealer-profile-hero {
+        padding: 1.5rem;
+        flex-direction: column;
+    }
+    .dealer-info {
+        flex-direction: column;
+        text-align: center;
+    }
+    .dealer-name-verified {
+        justify-content: center;
+    }
+    .dealer-logo-placeholder {
+        width: 80px;
+        height: 80px;
+        font-size: 2.5rem;
+    }
+}
+
+/* --- Dealer Reviews --- */
+.review-list {
+    display: grid;
+    gap: 1.5rem;
+}
+.review-card {
+    background-color: hsl(var(--card));
+    border: 1px solid hsl(var(--border));
+    border-radius: var(--radius);
+    padding: 1.5rem;
+}
+.review-header {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+.review-text {
+    font-style: italic;
+    color: hsl(var(--muted-foreground));
+    border-left: 3px solid hsl(var(--border));
+    padding-left: 1rem;
+    margin: 0 0 1rem 0;
+}
+
+/* --- Rating Submission --- */
+.rating-submission-section {
+    max-width: 900px;
+    margin: 2rem auto;
+}
+.star-rating-input {
+    display: flex;
+    flex-direction: row-reverse; /* This is the trick to make the hover effect work correctly */
+    justify-content: flex-end;
+    gap: 0.25rem;
+}
+.star-rating-input input[type="radio"] { display: none; }
+.star-rating-input label {
+    font-size: 2rem;
+    color: hsl(var(--muted-foreground));
+    cursor: pointer;
+    transition: color 0.2s;
+}
+.star-rating-input label:hover,
+.star-rating-input label:hover ~ label,
+.star-rating-input input[type="radio"]:checked ~ label {
+    color: hsl(var(--warning));
+}
+
+/* --- RESPONSIVE DESIGN (Mobile First Approach) --- */
+
+/* Medium screens (tablets) */
+@media (max-width: 1024px) {
+    .stat-grid {
+        grid-template-columns: repeat(3, 1fr);
+    }
+}
+
+/* Small screens (tablets and large phones) */
+@media (max-width: 768px) {
+    /* --- General Layout --- */
+    .container {
+        padding: 0 15px;
+    }
+    h1 { font-size: 1.8rem; }
+    h2 { font-size: 1.5rem; }
+
+    /* --- Navigation --- */
+    .mobile-nav-toggle {
+        display: block;
+    }
+    .nav-menu {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: hsl(var(--background));
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        z-index: 1000;
+        padding-top: 60px; /* Space for header */
+    }
+    .nav-menu.active {
+        display: flex;
+    }
+    nav ul {
+        flex-direction: column;
+        text-align: center;
+        gap: 1.5rem;
+    }
+    .nav-right {
+        flex-direction: column;
+        margin-top: 2rem;
+        gap: 1rem;
+    }
+    /* Make text in the mobile dropdown menu larger */
+    .nav-menu.active a {
+        font-size: 2rem; /* Double the default text size */
+    }
+    /* Hamburger animation */
+    .mobile-nav-toggle.active .hamburger-icon {
+        background-color: transparent;
+    }
+    .mobile-nav-toggle.active .hamburger-icon::before {
+        transform: translateY(8px) rotate(45deg);
+    }
+    .mobile-nav-toggle.active .hamburger-icon::after {
+        transform: translateY(-8px) rotate(-45deg);
+    }
+
+    /* Mobile Notification Bell Icon */
+    .mobile-nav-icons {
+        display: flex; /* Show on mobile */
+    }
+    .mobile-notification-bell-link .notification-badge {
+        position: absolute;
+        top: -5px;
+        right: -5px;
+    }
+    /* Hide the desktop notification link on mobile */
+    .desktop-notification-link { display: none; }
+    /* Hide desktop username on mobile */
+    .desktop-username { display: none; }
+    
+    /* Hide the icons inside the mobile dropdown menu, as they are already in the top bar */
+    .nav-menu.active .desktop-icon-link {
+        display: none;
+    }
+
+
+    /* --- Grids --- */
+    .auction-grid {
+        grid-template-columns: 1fr;
+    }
+    .stat-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    .trust-grid {
+        grid-template-columns: 1fr;
+        gap: 2.5rem;
+    }
+    .form-grid {
+        grid-template-columns: 1fr;
+    }
+
+    /* --- Detail Page Layout --- */
+    .detail-page-container {
+        flex-direction: column;
+    }
+    .sidebar {
+        border-left: none;
+        border-top: 1px solid hsl(var(--border));
+        padding-left: 0;
+        padding-top: 30px;
+    }
+
+    /* --- Hero Section --- */
+    .search-hero {
+        padding: 3rem 0;
+    }
+    .search-bar {
+        flex-direction: column;
+    }
+    .search-bar button {
+        border-left: none;
+        border-top: 1px solid hsl(var(--border));
+        padding: 15px;
+    }
+
+    /* --- Tables --- */
+    /* Hide the actions column on mobile for a cleaner look */
+    .notification-item {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+    .notification-action {
+        margin-top: 0.5rem;
+    }
+    .actions-column {
+        display: none;
+    }
+    .clickable-row { 
+        cursor: pointer; 
+    }
+
+    /* --- Image Gallery --- */
+    .main-image-container img {
+        max-height: 45vh; /* Set max height to 45% of the viewport height */
+    }
+    .thumbnails {
+        flex-wrap: wrap; /* Allow thumbnails to wrap onto the next line */
+        justify-content: center; /* Center them when they wrap */
+    }
+
+    /* --- Offer Cards on Request Detail Page --- */
+    .offer-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 1rem;
+    }
+    .offer-meta {
+        text-align: left;
+    }
+    .offer-footer {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 1rem;
+    }
+    .accept-offer-form {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 1rem;
+        width: 100%;
+    }
+    .accept-offer-form button {
+        width: 100%;
+    }
+
+    /* --- Featured Slider --- */
+    .featured-image-grid {
+        grid-template-columns: 1fr;
+        height: auto;
+    }
+    .featured-large-image {
+        height: 250px;
+    }
+    .featured-small-images {
+        grid-template-columns: repeat(4, 1fr);
+        height: 80px;
+    }
+
+    /* --- Deal Summary --- */
+    .deal-parties {
+        grid-template-columns: 1fr;
+    }
+
+    /* --- Tables --- */
+    .table-responsive-wrapper {
+        display: block;
+        width: 100%;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch; /* Smoother scrolling on iOS */
+        border: 1px solid hsl(var(--border));
+        border-radius: var(--radius);
+    }
+
+    /* --- Image Gallery --- */
+    .gallery-nav {
+        display: none; /* Hide nav buttons on mobile, swipe is enabled */
+    }
+
+    /* --- Footer --- */
+    .footer-content-grid {
+        text-align: center;
+    }
+}
+
+/* This should apply on all screen sizes to make tables horizontally scrollable when needed */
+.table-responsive-wrapper {
+    display: block;
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch; /* Smoother scrolling on iOS */
+    border: 1px solid hsl(var(--border));
+    border-radius: var(--radius);
+}
+
+/* --- Visibility Control Wrapper --- */
+.visibility-control {
+    display: contents; /* This prevents the div from interfering with flex/grid layouts */
+}
+/* --- Dealer Dashboard Mobile Friendliness --- */
+@media (max-width: 768px) {
+    .dashboard-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.5rem;
+    }
+    .header-actions {
+        width: 100%;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+    }
+    .dashboard-stat-grid {
+        grid-template-columns: 1fr 1fr; /* 2 columns on mobile */
+    }
+    .dashboard-stat-grid .stat-card h3 {
+        font-size: 1.8rem; /* Smaller font for stats */
+    }
+    .request-grid, .question-grid {
+        grid-template-columns: 1fr; /* 1 column for cards on mobile */
+    }
+
+    /* Transform "My Listings" table into cards */
+    #listings .dashboard-table thead {
+        display: none; /* Hide desktop headers */
+    }
+    #listings .dashboard-table tr {
+        display: block;
+        border: 1px solid hsl(var(--border));
+        border-radius: var(--radius);
+        margin-bottom: 1rem;
+        padding: 1rem;
+        background-color: hsl(var(--card));
+    }
+    #listings .dashboard-table td {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 0.75rem 0;
+        border-bottom: 1px solid hsl(var(--border));
+    }
+    #listings .dashboard-table td:last-child {
+        border-bottom: none;
+    }
+    #listings .dashboard-table td::before {
+        content: attr(data-label);
+        font-weight: 600;
+        color: hsl(var(--muted-foreground));
+    }
+
+    /* Transform "My Requests" table into cards */
+    .my-requests-page .dashboard-table thead {
+        display: none;
+    }
+    .my-requests-page .dashboard-table tr {
+        display: block;
+        border: 1px solid hsl(var(--border));
+        border-radius: var(--radius);
+        margin-bottom: 1rem;
+        padding: 1rem;
+        background-color: hsl(var(--card));
+    }
+    .my-requests-page .dashboard-table td {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 0.75rem 0;
+        border-bottom: 1px solid hsl(var(--border));
+    }
+    .my-requests-page .dashboard-table td:last-child { border-bottom: none; }
+    .my-requests-page .dashboard-table td::before {
+        content: attr(data-label);
+        font-weight: 600;
+        color: hsl(var(--muted-foreground));
+    }
+}

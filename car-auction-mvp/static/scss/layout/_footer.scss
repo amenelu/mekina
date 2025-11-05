@@ -1,0 +1,48 @@
+    /* 8. Footer */
+.site-footer {
+    background-color: hsl(var(--secondary));
+    border-top: 1px solid hsl(var(--border));
+    padding: 3rem 0;
+    font-size: 0.9rem;
+}
+.footer-brand p {
+    color: hsl(var(--muted-foreground));
+    margin-top: 1rem;
+}
+.footer-links h4 {
+    margin-bottom: 1rem;
+    font-weight: 600;
+}
+.footer-links ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    space-y: 0.5rem;
+}
+.footer-links a {
+    color: hsl(var(--muted-foreground));
+}
+.footer-links a:hover {
+    color: hsl(var(--accent));
+    text-decoration: none;
+}
+.footer-bottom {
+    margin-top: 3rem;
+    padding-top: 2rem;
+    border-top: 1px solid hsl(var(--border));
+    text-align: center;
+    color: hsl(var(--muted-foreground));
+}
+
+.footer-content-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 2rem;
+}
+
+@media (max-width: 768px) {
+    .footer-content-grid {
+        text-align: center;
+    }
+}
+

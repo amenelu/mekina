@@ -1,0 +1,50 @@
+.btn, .button-group button, .button-group a {
+    border: none;
+    padding: 8px 12px;
+    border-radius: var(--radius);
+    cursor: pointer;
+    font-weight: 500;
+    text-decoration: none;
+    display: inline-block;
+    text-align: center;
+    transition: all 0.2s ease-in-out;
+}
+
+.btn.approve, .button-group .approve { background-color: hsl(var(--accent)); color: hsl(var(--accent-foreground)); }
+.btn.edit, .button-group .edit { background-color: hsl(var(--info)); color: hsl(var(--foreground)); }
+.btn.delete, .button-group .delete { background-color: hsl(var(--destructive)); color: hsl(var(--destructive-foreground)); }
+
+.btn:hover, .button-group button:hover, .button-group a:hover {
+    transform: translateY(-1px);
+}
+
+.nav-button {
+    background-color: hsl(var(--info));
+    color: hsl(var(--foreground)); /* Light text for dark button */
+    padding: 8px 15px;
+    border-radius: var(--radius);
+    font-weight: 500;
+}
+.nav-button:hover {
+    background-color: hsl(var(--info) / 0.9);
+    text-decoration: none;
+}
+
+.filter-btn {
+    background-color: hsl(var(--secondary) / 0.2);
+    color: hsl(var(--secondary-foreground));
+    border: 1px solid hsl(var(--border));
+    padding: 8px 15px;
+    border-radius: var(--radius);
+    cursor: pointer;
+    transition: all 0.2s;
+}
+.filter-btn:hover {
+    background-color: hsl(var(--secondary) / 0.4);
+}
+.filter-btn.active {
+    background-color: hsl(var(--accent));
+    color: hsl(var(--accent-foreground));
+    border-color: hsl(var(--accent));
+}
+

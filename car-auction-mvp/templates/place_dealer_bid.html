@@ -29,7 +29,7 @@
 
     {% if bids %}
         <h3>Current Offers on This Request</h3>
-        <div class="table-responsive-wrapper">
+        <div class="offer-table-wrapper">
             <table class="dashboard-table">
                 <thead>
                     <tr>
@@ -43,7 +43,7 @@
                 <tbody>
                     {% for bid in bids %}
                         <tr {% if bid.dealer_id == current_user.id %}class="my-bid-highlight"{% endif %}>
-                            <td>
+                            <td data-label="Dealer">
                                 <strong>
                                     {% if bid.dealer_id == current_user.id %}
                                         Your Offer
@@ -52,16 +52,16 @@
                                     {% endif %}
                                 </strong>
                             </td>
-                            <td>{{ bid.car_year }} {{ bid.make }} {{ bid.model }}</td>
-                            <td>{{ '{:,.2f}'.format(bid.price) }} ETB</td>
-                            <td>
+                            <td data-label="Car Details">{{ bid.car_year }} {{ bid.make }} {{ bid.model }}</td>
+                            <td data-label="Cash Price">{{ '{:,.2f}'.format(bid.price) }} ETB</td>
+                            <td data-label="Loan Price">
                                 {% if bid.price_with_loan %}
                                     {{ '{:,.2f}'.format(bid.price_with_loan) }} ETB
                                 {% else %}
                                     <span class="text-muted">N/A</span>
                                 {% endif %}
                             </td>
-                            <td>{{ bid.valid_until.strftime('%b %d, %Y') }}</td>
+                            <td data-label="Valid Until">{{ bid.valid_until.strftime('%b %d, %Y') }}</td>
                         </tr>
                     {% endfor %}
                 </tbody>

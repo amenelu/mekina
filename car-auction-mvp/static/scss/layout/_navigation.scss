@@ -1,0 +1,175 @@
+nav {
+    position: fixed; /* Make the navigation bar stick to the top */
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 100; /* Ensure it stays on top of other content */
+    background-color: hsl(var(--background));
+    border-bottom: 1px solid hsl(var(--border));
+    padding: 10px 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+.nav-brand {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: hsl(var(--foreground));
+    text-decoration: none;
+}
+nav ul {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    gap: 20px;
+}
+nav a {
+    color: hsl(var(--foreground));
+    font-weight: 500;
+}
+nav a:hover {
+    color: hsl(var(--accent));
+    text-decoration: none;
+}
+nav a.active {
+    color: hsl(var(--accent));
+    font-weight: 700;
+}
+.nav-right {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+.desktop-icon-link.active,
+.mobile-notification-bell-link.active {
+    color: hsl(var(--accent)); /* Highlight the icon color */
+}
+/* Hide desktop notification link by default, show on desktop */
+.desktop-notification-link {
+    display: inline-block;
+}
+
+/* --- Desktop Navigation Layout --- */
+.nav-menu {
+    flex-grow: 1;
+    display: contents; /* This makes the children of nav-menu direct children of nav for flex layout */
+}
+
+/* --- Mobile Navigation --- */
+.mobile-nav-toggle {
+    display: none; /* Hidden on desktop */
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 10px; /* Increase the clickable area */
+    z-index: 1001;
+    margin: -10px; /* Counteract the padding to maintain layout */
+}
+.hamburger-icon {
+    display: block;
+    width: 24px;
+    height: 2px;
+    background-color: hsl(var(--foreground));
+    position: relative;
+    transition: background-color 0.2s ease-in-out;
+}
+.hamburger-icon::before,
+.hamburger-icon::after {
+    content: '';
+    position: absolute;
+    width: 100%;
+    height: 2px;
+    background-color: hsl(var(--foreground));
+    left: 0;
+    transition: transform 0.2s ease-in-out;
+}
+.hamburger-icon::before { top: -8px; }
+.hamburger-icon::after { bottom: -8px; }
+
+/* Mobile Notification Bell Icon */
+.mobile-nav-icons {
+    display: none; /* Hidden by default on desktop */
+    align-items: center;
+    gap: 10px; /* Space between bell and hamburger */
+}
+.mobile-notification-bell-link {
+    position: relative;
+    color: hsl(var(--foreground));
+    padding: 5px;
+    display: flex; /* To center the SVG */
+    align-items: center;
+}
+.mobile-notification-bell-link svg {
+    width: 24px;
+    height: 24px;
+}
+
+.mobile-notification-bell-link .notification-badge {
+    position: absolute;
+}
+
+/* --- Responsive Mobile Navigation --- */
+@media (max-width: 768px) {
+    .mobile-nav-toggle {
+        display: block;
+    }
+
+    .nav-menu {
+        /* Start hidden and prepare for animation */
+        display: flex;
+        opacity: 0;
+        visibility: hidden;
+        pointer-events: none;
+        transition: opacity 0.3s ease, visibility 0.3s ease;
+
+        position: fixed;
+        top: 0; /* Force to the very top of the viewport */
+        left: 0;
+        width: 100%;
+        height: 100vh; /* Use viewport height for an exact fit */
+        background-color: hsl(var(--background) / 0.95); /* Slightly transparent background */
+        backdrop-filter: blur(5px); /* Frosted glass effect */
+        flex-direction: column;
+        justify-content: flex-start; /* Align items to the top */
+        align-items: center;
+        z-index: 1000;
+        padding-top: 120px; /* Push content down below the nav bar */
+    }
+
+    .nav-menu.active {
+        opacity: 1;
+        visibility: visible;
+        pointer-events: auto;
+    }
+
+    nav ul {
+        flex-direction: column;
+        text-align: center;
+        gap: 1.5rem;
+    }
+
+    .nav-menu.active a {
+        font-size: 2rem;
+    }
+
+    /* Hamburger animation */
+    .mobile-nav-toggle.active .hamburger-icon {
+        background-color: transparent;
+    }
+    .mobile-nav-toggle.active .hamburger-icon::before {
+        transform: translateY(8px) rotate(45deg);
+    }
+    .mobile-nav-toggle.active .hamburger-icon::after {
+        transform: translateY(-8px) rotate(-45deg);
+    }
+
+    .mobile-nav-icons {
+        display: flex; /* Show on mobile */
+    }
+
+    /* Hide the desktop version of the icon link inside the expanded mobile menu */
+    .nav-menu.active .desktop-icon-link {
+        display: none;
+    }
+}

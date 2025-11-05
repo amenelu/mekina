@@ -1,0 +1,200 @@
+/* --- Search Bar --- */
+.search-bar {
+    display: flex;
+    max-width: 600px;
+    margin: 0 auto;
+    border-radius: var(--radius);
+    overflow: hidden;
+    box-shadow: var(--shadow-elevated);
+    border: 1px solid hsl(var(--border));
+}
+.search-bar input {
+    flex-grow: 1;
+    border: none;
+    padding: 15px 20px;
+    font-size: 1.1rem;
+    transition: box-shadow 0.2s;
+    background-color: hsl(var(--input));
+    color: hsl(var(--foreground));
+}
+.search-bar input:focus {
+    outline: none;
+    box-shadow: inset 0 0 0 2px hsl(var(--ring));
+}
+.search-bar button {
+    background-color: hsl(var(--accent));
+    color: hsl(var(--accent-foreground));
+    border: none;
+    border-left: 1px solid hsl(var(--border));
+    padding: 0 25px;
+    cursor: pointer;
+    font-weight: 600;
+    transition: background-color 0.2s;
+}
+.search-bar button:hover {
+    background-color: hsl(var(--accent) / 0.9);
+}
+
+/* --- Search Suggestions --- */
+.search-wrapper {
+    position: relative; /* New parent for positioning the suggestions */
+    max-width: 600px; /* Match the search-bar width */
+    margin: 0 auto;
+}
+.search-suggestions-container {
+    display: none; /* Hidden by default */
+    position: absolute;
+    top: 100%; /* Position it right below the search-and-filters block */
+    left: 0;
+    right: 0;
+    width: 100%; /* Ensure it matches the wrapper width */
+    background-color: hsl(var(--card));
+    border: 1px solid hsl(var(--border));
+    border-top: none;
+    border-radius: 0 0 var(--radius) var(--radius);
+    z-index: 10;
+    max-height: 300px;
+    overflow-y: auto;
+}
+.suggestion-item {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    padding: 12px 20px;
+    cursor: pointer;
+    text-align: left;
+    text-decoration: none;
+    color: hsl(var(--card-foreground));
+}
+.suggestion-item:hover {
+    background-color: hsl(var(--accent) / 0.1);
+    text-decoration: none;
+}
+.suggestion-image {
+    width: 60px;
+    height: 45px;
+    object-fit: cover;
+    border-radius: calc(var(--radius) / 2);
+    flex-shrink: 0;
+}
+.suggestion-title {
+    font-weight: 500;
+    font-size: 1.1rem; /* Make suggestion text larger */
+}
+
+/* --- General Form Styles --- */
+.form-group {
+    margin-bottom: 1.5rem;
+}
+.form-group label {
+    display: block;
+    font-weight: 500;
+    margin-bottom: 0.5rem;
+}
+.form-group input, .form-group select, .form-group textarea {
+    width: 100%;
+    box-sizing: border-box; /* Ensures padding doesn't affect width */
+}
+.form-error {
+    color: hsl(var(--destructive));
+    font-size: 0.875rem;
+    margin-top: 0.25rem;
+}
+
+input[type="text"],
+input[type="number"],
+input[type="password"],
+input[type="email"],
+input[type="date"],
+input[type="datetime-local"],
+select,
+textarea {
+    padding: 10px;
+    margin: 0;
+    border: 1px solid hsl(var(--muted-foreground) / 0.5);
+    border-radius: var(--radius);
+    font-family: 'Inter', sans-serif;
+    font-size: 1rem;
+    background-color: hsl(var(--input));
+    color: hsl(var(--foreground));
+    transition: box-shadow 0.2s, border-color 0.2s;
+}
+
+input[type="text"]:focus,
+input[type="number"]:focus,
+input[type="password"]:focus,
+input[type="email"]:focus,
+input[type="date"]:focus,
+input[type="datetime-local"]:focus,
+select:focus,
+textarea:focus {
+    outline: none;
+    border-color: hsl(var(--ring));
+    box-shadow: 0 0 0 2px hsl(var(--ring) / 0.5);
+}
+
+/* --- Custom Radio/Checkbox Buttons --- */
+.checkbox-style {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+.checkbox-style input {
+    width: auto;
+}
+.checkbox-style label {
+    margin-bottom: 0;
+}
+
+.radio-button-group, .checkbox-group {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+}
+.radio-button-input, .checkbox-input {
+    display: none; /* Hide the actual radio/checkbox input */
+}
+.radio-button-label, .checkbox-label {
+    display: block;
+    padding: 1rem;
+    border: 2px solid hsl(var(--border));
+    border-radius: var(--radius);
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s ease-in-out;
+    font-weight: 500;
+}
+.radio-button-label:hover, .checkbox-label:hover {
+    border-color: hsl(var(--accent));
+    background-color: hsl(var(--accent) / 0.1);
+}
+
+.radio-button-label.with-icon {
+    min-height: 140px; /* Apply height only to icon cards */
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem;
+}
+
+.radio-button-input:checked + .radio-button-label,
+.checkbox-input:checked + .checkbox-label {
+    background-color: hsl(var(--accent));
+    color: hsl(var(--accent-foreground));
+    border-color: hsl(var(--accent));
+}
+.radio-button-input:checked + .radio-button-label {
+    cursor: wait;
+}
+
+.radio-button-label.with-icon img {
+    height: 70px; /* Increase image size */
+}
+
+@media (max-width: 768px) {
+    .radio-button-group, .checkbox-group {
+        grid-template-columns: 1fr;
+    }
+}
+

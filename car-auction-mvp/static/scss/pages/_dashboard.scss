@@ -1,0 +1,107 @@
+/* --- Modern Dashboard Full-Width Wrappers --- */
+.dashboard-header-wrapper {
+    padding: 2rem 0;
+    background-color: hsl(var(--card));
+    border-bottom: 1px solid hsl(var(--border));
+}
+.dashboard-stats-wrapper {
+    padding: 2rem 0;
+    background-color: hsl(var(--background));
+}
+
+/* --- Modern Dealer Dashboard --- */
+.dashboard-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    flex-wrap: wrap;
+    gap: 1rem;
+}
+.dashboard-header h1 {
+    margin: 0;
+}
+.dashboard-header p {
+    margin: 0.25rem 0 0;
+    color: hsl(var(--muted-foreground));
+    font-size: 1.1rem;
+}
+.header-actions {
+    display: flex;
+    gap: 0.75rem;
+    align-items: center;
+}
+
+.dashboard-stat-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1.5rem;
+}
+.dashboard-stat-grid .stat-card {
+    background-color: hsl(var(--card));
+    padding: 1.5rem;
+    text-align: left;
+}
+.dashboard-stat-grid .stat-card h3 {
+    font-size: 2.5rem;
+    margin: 0;
+}
+.dashboard-stat-grid .stat-card p {
+    margin: 0;
+    color: hsl(var(--muted-foreground));
+    font-weight: 500;
+}
+
+.request-grid, .question-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+    gap: 1.5rem;
+    margin-top: 1.5rem;
+}
+
+/* --- Dashboard Tabs --- */
+.dashboard-tabs {
+    display: flex;
+    border-bottom: 2px solid hsl(var(--border));
+    margin-bottom: 2rem;
+}
+.tab-link {
+    padding: 0.75rem 1.5rem;
+    cursor: pointer;
+    font-weight: 500;
+    color: hsl(var(--muted-foreground));
+    border-bottom: 2px solid transparent;
+    margin-bottom: -2px; /* Align with the container's border */
+    transition: all 0.2s ease-in-out;
+}
+.tab-link:hover {
+    color: hsl(var(--foreground));
+    text-decoration: none;
+}
+.tab-link.active {
+    color: hsl(var(--accent));
+    border-color: hsl(var(--accent));
+    font-weight: 600;
+}
+.tab-content:not(.active) { display: none; }
+
+@media (max-width: 768px) {
+    .dashboard-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.5rem;
+    }
+    .header-actions {
+        width: 100%;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+    }
+    .dashboard-stat-grid {
+        grid-template-columns: 1fr 1fr; /* 2 columns on mobile */
+    }
+    .dashboard-stat-grid .stat-card h3 {
+        font-size: 1.8rem; /* Smaller font for stats */
+    }
+    .request-grid, .question-grid {
+        grid-template-columns: 1fr; /* 1 column for cards on mobile */
+    }
+}

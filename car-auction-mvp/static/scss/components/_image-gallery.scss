@@ -1,0 +1,89 @@
+/* Image Gallery on Detail Pages */
+.image-gallery {
+    margin-bottom: 20px; /* Add some space below the gallery */
+}
+.main-image-container {
+    position: relative;
+    max-width: 100%;
+}
+.main-image-container img {
+    width: 100%;
+    max-height: 500px; /* Max height on desktop */
+    object-fit: contain; /* Changed to contain to show the whole car */
+    border-radius: var(--radius);
+    cursor: pointer;
+}
+.gallery-nav {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    background-color: hsla(0, 0%, 0%, 0.5);
+    color: white;
+    border: none;
+    font-size: 24px;
+    cursor: pointer;
+    padding: 5px 10px;
+    border-radius: 50%;
+    z-index: 2;
+}
+.gallery-nav.prev { left: 10px; }
+.gallery-nav.next { right: 10px; }
+.thumbnails {
+    display: flex;
+    gap: 10px;
+    margin-top: 10px;
+    flex-wrap: wrap;
+}
+.thumbnails img {
+    width: 100px;
+    height: 75px;
+    object-fit: cover;
+    cursor: pointer;
+    border-radius: calc(var(--radius) / 2);
+    border: 2px solid transparent;
+    transition: border-color 0.2s;
+}
+.thumbnails img.active {
+    border-color: hsl(var(--accent));
+}
+
+/* Fullscreen Image Viewer Modal */
+.image-viewer-modal {
+    display: none; /* Hidden by default */
+    position: fixed; /* Stay in place */
+    z-index: 1000; /* Sit on top */
+    padding-top: 50px;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    overflow: auto; /* Enable scroll if needed */
+    background-color: hsl(var(--background) / 0.95); /* Dark overlay */
+    cursor: pointer;
+}
+
+.image-viewer-content {
+    margin: auto;
+    display: block;
+    width: auto;
+    height: 80vh; /* Take 80% of the viewport height */
+    max-width: 90vw;
+    object-fit: contain;
+}
+
+.close-image-viewer {
+    position: absolute;
+    top: 15px;
+    right: 35px;
+    color: hsl(var(--muted-foreground));
+    font-size: 40px;
+    font-weight: bold;
+    transition: 0.3s;
+    cursor: pointer;
+}
+
+.close-image-viewer:hover,
+.close-image-viewer:focus {
+    color: hsl(var(--foreground));
+    text-decoration: none;
+}

@@ -1,0 +1,46 @@
+.container {
+    max-width: 1200px;
+    margin: 2rem auto;
+    padding: 0 20px;
+}
+
+.auction-grid {
+    display: grid;
+    grid-template-columns: 1fr; /* 1 column on small screens */
+    gap: 20px; /* Adds space between the cards */
+    margin-top: 20px;
+}
+
+.form-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem 1.5rem;
+}
+
+.form-grid .form-group {
+    margin-bottom: 0.5rem;
+}
+
+.form-grid .full-width {
+    grid-column: 1 / -1; /* Span the full width */
+}
+
+/* Responsive Adjustments */
+@media (min-width: 768px) {
+    .auction-grid {
+        grid-template-columns: repeat(2, 1fr); /* 2 columns on medium screens */
+    }
+}
+
+@media (min-width: 1024px) {
+    .auction-grid {
+        grid-template-columns: repeat(3, 1fr); /* 3 columns on large screens */
+    }
+}
+
+/* Make form grids stack on mobile */
+@media (max-width: 768px) {
+    .form-grid {
+        grid-template-columns: 1fr;
+    }
+}

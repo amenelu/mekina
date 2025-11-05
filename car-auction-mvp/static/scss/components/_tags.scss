@@ -1,0 +1,65 @@
+/* --- CONSOLIDATED TAG STYLING --- */
+
+/* 1. Base styles for all tags */
+.role-badge,
+.listing-type-tag,
+.featured-tag,
+.status-tag,
+.availability-tag,
+.payment-method-tag,
+.new-item-tag,
+.verified-badge {
+    padding: 0.2em 0.6em;
+    border-radius: var(--radius);
+    font-size: 0.8em;
+    font-weight: 600;
+    white-space: nowrap;
+    display: inline-block;
+}
+
+/* 2. Specific colors */
+.role-badge { color: hsl(var(--accent-foreground)); }
+.role-badge.admin { background-color: hsl(var(--destructive)); }
+.role-badge.dealer { background-color: hsl(var(--success)); }
+.role-badge.rental { background-color: hsl(var(--info)); color: hsl(var(--primary)); }
+
+.listing-type-tag { background-color: hsl(var(--accent)); color: hsl(var(--accent-foreground)); }
+.listing-type-tag.sale { background-color: hsl(var(--success)); color: hsl(var(--destructive-foreground)); }
+.listing-type-tag.rental { background-color: hsl(var(--info)); color: hsl(var(--foreground)); }
+
+.featured-tag { background-color: hsl(var(--warning)); color: hsl(var(--background)); font-weight: 700; }
+
+.status-tag { background-color: hsl(var(--muted)); color: hsl(var(--muted-foreground)); }
+.status-tag.status-active { background-color: hsl(var(--success)); color: hsl(var(--destructive-foreground)); }
+.status-tag.status-completed { background-color: hsl(var(--info)); color: hsl(var(--foreground)); }
+.status-tag.status-pending { background-color: hsl(var(--warning)); color: hsl(var(--background)); }
+
+.availability-tag { background-color: hsl(var(--success)); color: hsl(var(--destructive-foreground)); }
+.availability-tag.unavailable { background-color: hsl(var(--muted)); color: hsl(var(--muted-foreground)); }
+
+.payment-method-tag { background-color: hsl(var(--secondary)); }
+
+.new-item-tag { background-color: hsl(var(--warning)); color: hsl(var(--background)); }
+
+.verified-badge { background-color: hsl(var(--success)); color: hsl(var(--destructive-foreground)); }
+
+/* 3. Context-specific positioning and sizing */
+
+/* For small cards with image overlays */
+.card-image-container .role-badge,
+.card-image-container .listing-type-tag,
+.card-image-container .featured-tag {
+    position: absolute;
+    z-index: 1;
+}
+.card-image-container .role-badge { top: 10px; left: 10px; }
+.card-image-container .listing-type-tag { top: 10px; right: 10px; }
+.card-image-container .featured-tag { bottom: 10px; left: 10px; }
+
+/* For large tags next to H1 on detail pages */
+.title-with-tag .role-badge.large,
+.title-with-tag .listing-type-tag.large,
+.title-with-tag .featured-tag.large {
+    font-size: 1rem;
+    padding: 6px 12px;
+}

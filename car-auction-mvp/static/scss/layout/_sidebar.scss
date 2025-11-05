@@ -1,0 +1,24 @@
+.detail-page-container {
+    display: flex;
+    gap: 30px;
+}
+
+.main-content {
+    flex: 3;
+}
+
+.sidebar {
+    flex: 1;
+    border-left: 1px solid hsl(var(--border));
+    padding-left: 30px;
+}
+
+.sidebar .auction-card-link {
+    display: block;
+    margin-bottom: 20px;
+}
+
+@media (max-width: 768px) {
+    .detail-page-container { flex-direction: column; }
+    .sidebar { border-left: none; border-top: 1px solid hsl(var(--border)); padding-left: 0; padding-top: 30px; }
+}

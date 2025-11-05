@@ -1,0 +1,138 @@
+.title-with-tag {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    flex-wrap: wrap;
+}
+
+/* Admin & Seller Actions */
+.admin-actions, .question-context {
+    background-color: hsl(var(--secondary));
+    border: 1px solid hsl(var(--border));
+    padding: 20px;
+    margin-bottom: 20px;
+    border-radius: var(--radius);
+}
+.admin-actions h3, .question-context h3 {
+    margin-top: 0;
+}
+.admin-actions.pending {
+    background-color: hsl(var(--warning) / 0.1);
+    border-color: hsl(var(--warning));
+}
+.admin-actions .button-group {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+
+/* Q&A Section */
+.qna-section .question-item {
+    border: 1px solid hsl(var(--border));
+    padding: 15px;
+    border-radius: var(--radius);
+    margin-bottom: 15px;
+}
+.qna-section .question-item p { margin: 0.25rem 0; }
+.qna-section .question-item .meta {
+    font-size: 0.9em;
+    color: hsl(var(--muted-foreground));
+}
+.qna-section .answer-item {
+    border-left: 3px solid hsl(var(--success));
+    margin-top: 10px;
+    padding-left: 15px;
+    background-color: hsl(var(--success) / 0.05);
+}
+.qna-section .awaiting-answer {
+    font-style: italic;
+    color: hsl(var(--muted-foreground));
+}
+.ask-question-container { margin-top: 20px; }
+#ask-question-form-div { display: none; margin-top: 10px; }
+#question-success { color: hsl(var(--success)); margin-left: 10px; }
+#question-error { color: hsl(var(--destructive)); }
+
+/* Owner Actions on Detail Pages */
+.owner-actions {
+    background-color: hsl(var(--secondary));
+    border: 1px solid hsl(var(--border));
+    padding: 20px;
+    margin-bottom: 20px;
+    border-radius: var(--radius);
+}
+.owner-actions h4 { margin-top: 0; }
+
+/* Offer Cards */
+.offer-card {
+    background-color: hsl(var(--card));
+    border: 1px solid hsl(var(--border));
+    border-radius: var(--radius);
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+}
+.offer-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid hsl(var(--border));
+}
+.offer-price { font-size: 1.5rem; font-weight: 700; }
+.offer-price-options {
+    display: flex;
+    gap: 1.5rem;
+    align-items: center;
+}
+.offer-price.cash, .offer-price.loan {
+    padding: 0.5rem 1rem;
+    border-radius: var(--radius);
+    text-align: center;
+}
+.offer-price.cash {
+    background-color: hsl(var(--success) / 0.1);
+    border: 1px solid hsl(var(--success));
+}
+.offer-price.loan {
+    background-color: hsl(var(--info) / 0.1);
+    border: 1px solid hsl(var(--info));
+}
+.offer-price span { display: block; font-size: 0.8em; font-weight: 500; color: hsl(var(--muted-foreground)); }
+.offer-meta { text-align: right; color: hsl(var(--muted-foreground)); font-size: 0.9em; }
+.offer-meta span { display: block; }
+.offer-details-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 0.5rem 1.5rem;
+    margin-bottom: 1rem;
+}
+.offer-footer {
+    margin-top: 1.5rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid hsl(var(--border));
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+.offer-card.lowest-bid-highlight {
+    border: 2px solid hsl(var(--accent));
+    background-color: hsl(var(--accent) / 0.1);
+    box-shadow: 0 0 15px hsl(var(--accent) / 0.2);
+    transform: scale(1.01);
+}
+.valid-until { font-size: 0.9em; color: hsl(var(--muted-foreground)); }
+
+/* --- Responsive Offer Table on Mobile --- */
+@media (max-width: 768px) {
+    .offer-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 1rem;
+    }
+    .offer-footer {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 1rem;
+    }
+}

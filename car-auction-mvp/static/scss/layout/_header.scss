@@ -1,0 +1,15 @@
+.search-hero {
+    background: var(--gradient-primary);
+    padding: 4rem 0;
+    text-align: center;
+}
+.search-hero h1 {
+    color: hsl(var(--foreground));
+    font-size: 2.5rem;
+    margin-bottom: 0.5rem;
+}
+.search-hero p {
+    color: hsl(var(--muted-foreground));
+    font-size: 1.1rem;
+    margin-bottom: 2rem;
+}

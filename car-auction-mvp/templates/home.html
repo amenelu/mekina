@@ -2,6 +2,9 @@
 
 {% block title %}Welcome - Mekina Auction{% endblock %}
 
+{# Override the main_content block to prevent the default <main> tag from rendering on the homepage #}
+{% block main_content %}{% endblock %}
+
 {% block after_content %} {# Use this block to go full-width #}
     <div class="search-hero">
         <div class="container">

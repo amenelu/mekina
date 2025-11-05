@@ -1,0 +1,106 @@
+/* --- Quick Filters on Home Page --- */
+.quick-filters {
+    margin-top: 2.5rem;
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    transition: margin-top 0.2s ease-in-out; /* Smooth transition for push-down effect */
+}
+
+/* --- Trust Section --- */
+.trust-section {
+    background: var(--gradient-primary);
+    color: hsl(var(--foreground));
+    padding: 4rem 0;
+}
+.trust-section .section-header {
+    margin-bottom: 2.5rem;
+    text-align: center;
+}
+.trust-section .section-header h2 {
+    font-size: 2rem;
+    font-weight: 700;
+    margin-bottom: 0.5rem;
+    color: hsl(var(--foreground));
+}
+.trust-section .section-header p {
+    color: rgba(255, 255, 255, 0.8);
+    max-width: 600px;
+    margin: 0 auto;
+}
+.trust-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 2rem;
+    max-width: 900px;
+    margin: 0 auto;
+    text-align: center;
+}
+.trust-grid .stat .value {
+    font-size: 2.5rem;
+    font-weight: 700;
+    color: hsl(var(--accent));
+}
+.trust-grid .stat .label {
+    font-size: 1rem;
+}
+
+/* --- Featured Slider Section --- */
+.featured-section {
+    background-color: hsl(var(--background));
+    padding: 2rem 0; /* Reduced vertical padding */
+}
+
+@media (max-width: 768px) {
+    .trust-grid {
+        grid-template-columns: 1fr;
+        gap: 2.5rem;
+    }
+}
+
+/* --- "Find It For Me" CTA on Home Page --- */
+.find-car-link {
+    margin-top: 2rem;
+    text-align: center;
+}
+.find-car-link span {
+    display: block;
+    font-size: 1.1rem;
+    color: hsl(var(--foreground));
+    margin-bottom: 0.75rem;
+}
+.find-car-link a {
+    color: hsl(var(--accent));
+    font-weight: 500;
+    text-decoration: none;
+}
+.find-car-link a:hover {
+    text-decoration: underline;
+}
+.find-car-link .find-car-cta {
+    display: inline-block;
+    background: var(--gradient-accent); /* Use eye-catching gradient */
+    color: hsl(var(--accent-foreground));
+    padding: 16px 32px; /* Increase padding for a larger button */
+    border-radius: var(--radius);
+    font-size: 1.1rem; /* Slightly larger font */
+    font-weight: 700; /* Bolder text */
+    text-decoration: none;
+    transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+    box-shadow: var(--shadow-elevated);
+    margin-top: 0.5rem;
+    border: 1px solid hsl(var(--accent) / 0.5); /* Add a subtle border */
+}
+
+.find-car-link .find-car-cta:hover {
+    transform: translateY(-3px) scale(1.02); /* Add a slight scale effect on hover */
+    box-shadow: 0 15px 25px -5px hsl(0 0% 0% / 0.4);
+    text-decoration: none;
+}
+
+/* --- "View All" Button Container --- */
+.view-all-container {
+    text-align: center;
+    margin-top: 2.5rem;
+}

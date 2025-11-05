@@ -1,0 +1,159 @@
+.auction-card {
+    border: 1px solid hsl(var(--border));
+    border-radius: var(--radius);
+    overflow: hidden; /* Ensures image corners are rounded */
+    box-shadow: var(--shadow-card);
+    transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+    position: relative;
+    background-color: hsl(var(--card));
+    display: flex;
+    flex-direction: column;
+}
+.auction-card .card-footer {
+    padding: 15px;
+    border-top: 1px solid hsl(var(--border));
+    margin-top: auto; /* Pushes footer to the bottom */
+}
+.auction-card-link:hover .auction-card {
+    transform: translateY(-5px);
+    box-shadow: var(--shadow-elevated);
+}
+.auction-card img {
+    width: 100%;
+    height: 180px;
+    object-fit: cover;
+}
+.auction-card .card-content {
+    padding: 15px;
+    text-align: left;
+}
+.auction-card .card-content h3 {
+    font-size: 1.1em;
+    margin: 0 0 10px 0;
+    line-height: 1.3;
+}
+.auction-card .card-content p {
+    margin: 0;
+    font-size: 1em;
+    font-weight: 600;
+    color: hsl(var(--foreground));
+}
+.auction-card .bid-count {
+    font-size: 0.9em;
+    font-weight: 500;
+    color: hsl(var(--muted-foreground));
+    margin-left: 10px;
+}
+.auction-card .card-details {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 10px;
+}
+.auction-card h3 {
+    font-size: 1.1em;
+    margin: 0 0 10px 0;
+}
+.auction-card .time-left {
+    font-size: 0.9em;
+    font-weight: 500;
+    color: hsl(var(--accent));
+    margin-top: 8px;
+}
+.auction-card-link {
+    text-decoration: none; /* Remove underline from links */
+    color: inherit; /* Make the link text color the same as normal text */
+    display: block; /* Make the link a block-level element */
+}
+
+.auction-card-link:hover {
+    text-decoration: none;
+}
+
+/* For small cards with image overlays */
+.card-image-container {
+    position: relative;
+    width: 100%;
+    height: 180px;
+    overflow: hidden;
+}
+
+.stat-card {
+    border: 1px solid hsl(var(--border));
+    padding: 20px;
+    text-align: center;
+    border-radius: var(--radius);
+    background-color: hsl(var(--secondary));
+}
+
+.review-card {
+    background-color: hsl(var(--card));
+    border: 1px solid hsl(var(--border));
+    border-radius: var(--radius);
+    padding: 1.5rem;
+}
+
+.request-card, .question-card {
+    background-color: hsl(var(--card));
+    border: 1px solid hsl(var(--border));
+    border-radius: var(--radius);
+    display: flex;
+    flex-direction: column;
+    transition: all 0.2s ease-in-out;
+}
+.request-card:hover {
+    transform: translateY(-3px);
+    box-shadow: var(--shadow-elevated);
+}
+
+.request-card.new-request {
+    border-left: 4px solid hsl(var(--accent));
+}
+.request-card.new-request:hover {
+    border-color: hsl(var(--accent));
+}
+
+.request-card .card-main-link {
+    text-decoration: none;
+    color: inherit;
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+}
+.request-card .card-header {
+    padding: 1rem 1.25rem;
+    border-bottom: 1px solid hsl(var(--border));
+    font-weight: 600;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+.request-card .card-body {
+    padding: 1rem 1.25rem;
+    flex-grow: 1;
+}
+.request-card .card-footer, .question-card .card-footer {
+    padding: 1rem 1.25rem;
+    border-top: 1px solid hsl(var(--border));
+    background-color: hsl(var(--secondary));
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1rem;
+}
+.request-card .footer-stat, .question-card .footer-stat {
+    text-align: left;
+}
+.request-card .footer-stat span, .question-card .footer-stat span {
+    font-size: 0.8em;
+    color: hsl(var(--muted-foreground));
+    display: block;
+}
+.request-card .footer-stat strong, .question-card .footer-stat strong {
+    font-weight: 600;
+}
+
+.question-card .card-body { padding: 1.25rem; }
+.question-card .question-text { font-style: italic; margin: 0 0 1rem 0; }
+.question-card .question-meta { font-size: 0.9em; color: hsl(var(--muted-foreground)); }
+
