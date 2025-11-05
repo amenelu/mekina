@@ -440,7 +440,10 @@ def deal_summary(deal_id):
     if current_user.id not in [deal.customer_id, deal.dealer_id] and not current_user.is_admin:
         abort(403)
     
-    return render_template('deal_summary.html', deal=deal)
+    # Check if a rating already exists for this deal
+    existing_rating = DealerRating.query.filter_by(deal_id=deal.id).first()
+    form = DealerRatingForm()
+    return render_template('deal_summary.html', deal=deal, rating=existing_rating, form=form)
 
 @request_bp.route('/deal/<int:deal_id>/rate', methods=['POST'])
 @login_required
@@ -451,7 +454,7 @@ def rate_dealer(deal_id):
     # Security checks
     if deal.customer_id != current_user.id:
         abort(403) # Only the buyer from the deal can rate
-    if deal.rating:
+    if DealerRating.query.filter_by(deal_id=deal.id).first():
         flash("You have already submitted a review for this deal.", "warning")
         return redirect(url_for('request.deal_summary', deal_id=deal.id))
 

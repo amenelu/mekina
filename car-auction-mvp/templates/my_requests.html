@@ -1,5 +1,7 @@
 {% extends "base.html" %}
 
+{% block body_class %}my-requests-page{% endblock %}
+
 {% block title %}My Car Requests{% endblock %}
 
 {% block content %}
@@ -7,28 +9,38 @@
     <p>Here are the requests you've submitted. Click "View Offers" to see bids from our dealer network.</p>
 
     {% if requests %}
-        <table>
-            <thead>
-                <tr>
-                    <th>Request Details</th>
-                    <th>Date Submitted</th>
-                    <th>Status</th>
-                    <th>Offers</th>
-                    <th>Actions</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for req in requests %}
-                <tr>
-                    <td>{{ req.notes or (req.make ~ ' ' ~ req.model) }}</td>
-                    <td>{{ req.created_at.strftime('%Y-%m-%d') }}</td>
-                    <td>{{ req.status|capitalize }}</td>
-                    <td>{{ req.dealer_bids.count() }}</td>
-                    <td><a href="{{ url_for('request.request_detail', request_id=req.id) }}" class="btn edit">View Offers</a></td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+        <div class="request-grid">
+            {% for req in requests %}
+            <div class="request-card">
+                <a href="{{ url_for('request.request_detail', request_id=req.id) }}" class="card-main-link">
+                    <div class="card-header">
+                        {% if req.make and req.model %}
+                            <strong>{{ req.make }} {{ req.model }}</strong>
+                        {% else %}
+                            <em>General Request</em>
+                        {% endif %}
+                        <span class="status-tag status-{{ req.status|lower }}">{{ req.status|capitalize }}</span>
+                    </div>
+                    <div class="card-body">
+                        <blockquote class="compact">{{ req.notes|truncate(120) }}</blockquote>
+                    </div>
+                </a>
+                <div class="card-footer">
+                    <div class="footer-stat">
+                        <span>Submitted</span>
+                        <strong>{{ req.created_at.strftime('%b %d, %Y') }}</strong>
+                    </div>
+                    <div class="footer-stat">
+                        <span>Offers</span>
+                        <strong>{{ req.dealer_bids.count() }}</strong>
+                    </div>
+                    <div class="footer-action">
+                        <a href="{{ url_for('request.request_detail', request_id=req.id) }}" class="btn approve small">View Offers</a>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
     {% else %}
         <p>You have not made any car requests yet. <a href="{{ url_for('request.start_request') }}">Find a car now!</a></p>
     {% endif %}

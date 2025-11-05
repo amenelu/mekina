@@ -44,4 +44,30 @@
         </div>
     </div>
 
+    {% if current_user.id == deal.customer_id %}
+        <div class="rating-submission-section">
+            <hr>
+            <h2>Rate Your Experience with {{ deal.dealer.username }}</h2>
+            {% if deal.rating %}
+                <div class="already-rated">
+                    <p><strong>Thank you! You've already reviewed this deal.</strong></p>
+                    <div class="star-rating">
+                        {% for i in range(5) %}
+                            <span class="star {% if i < deal.rating.rating %}filled{% endif %}">&#9733;</span>
+                        {% endfor %}
+                    </div>
+                    {% if deal.rating.review_text %}<p>"{{ deal.rating.review_text }}"</p>{% endif %}
+                </div>
+            {% else %}
+                <form action="{{ url_for('request.rate_dealer', deal_id=deal.id) }}" method="POST">
+                    {{ form.hidden_tag() }}
+                    <div class="form-group star-rating-input">
+                        {{ form.rating.label }} {{ form.rating }}
+                    </div>
+                    <div class="form-group">{{ form.review_text.label }} {{ form.review_text(rows=4) }}</div>
+                    {{ form.submit(class='btn approve') }}
+                </form>
+            {% endif %}
+        </div>
+    {% endif %}
 {% endblock %}

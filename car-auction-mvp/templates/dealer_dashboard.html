@@ -39,6 +39,7 @@
                 </div>
                 <div class="header-actions">
                     <a href="{{ url_for('seller.submit_car') }}" class="btn approve">+ List a New Car</a>
+                    <a href="{{ url_for('dealer.profile', dealer_id=current_user.id) }}" class="btn">View Public Profile</a>
                     <a href="{{ url_for('dealer.list_messages') }}" class="btn">My Messages</a>
                 </div>
             </div>

@@ -1252,6 +1252,20 @@ td .role-badge {
     margin-right: 5px;
 }
 
+/* --- Status Tags --- */
+.status-tag {
+    padding: 0.2em 0.6em;
+    border-radius: var(--radius);
+    font-size: 0.8em;
+    font-weight: 600;
+    white-space: nowrap;
+    background-color: hsl(var(--muted));
+    color: hsl(var(--muted-foreground));
+}
+.status-tag.status-active { background-color: hsl(var(--success)); color: hsl(var(--destructive-foreground)); }
+.status-tag.status-completed { background-color: hsl(var(--info)); color: hsl(var(--foreground)); }
+.status-tag.status-pending { background-color: hsl(var(--warning)); color: hsl(var(--background)); }
+
 
 /* 16. Owner Actions on Detail Pages */
 .owner-actions {
@@ -1971,14 +1985,6 @@ td .role-badge {
     }
 
     /* --- Tables --- */
-    .table-responsive-wrapper {
-        display: block;
-        width: 100%;
-        overflow-x: auto;
-        -webkit-overflow-scrolling: touch; /* Smoother scrolling on iOS */
-        border: 1px solid hsl(var(--border));
-        border-radius: var(--radius);
-    }
     /* Hide the actions column on mobile for a cleaner look */
     .notification-item {
         flex-direction: column;
@@ -2001,6 +2007,97 @@ td .role-badge {
     .thumbnails {
         flex-wrap: wrap; /* Allow thumbnails to wrap onto the next line */
         justify-content: center; /* Center them when they wrap */
+    }
+}
+
+/* This should apply on all screen sizes to make tables horizontally scrollable when needed */
+.table-responsive-wrapper {
+    display: block;
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch; /* Smoother scrolling on iOS */
+    border: 1px solid hsl(var(--border));
+    border-radius: var(--radius);
+}
+
+/* --- Visibility Control Wrapper --- */
+.visibility-control {
+    display: contents; /* This prevents the div from interfering with flex/grid layouts */
+}
+/* --- Dealer Dashboard Mobile Friendliness --- */
+@media (max-width: 768px) {
+    .dashboard-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.5rem;
+    }
+    .header-actions {
+        width: 100%;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+    }
+    .dashboard-stat-grid {
+        grid-template-columns: 1fr 1fr; /* 2 columns on mobile */
+    }
+    .dashboard-stat-grid .stat-card h3 {
+        font-size: 1.8rem; /* Smaller font for stats */
+    }
+    .request-grid, .question-grid {
+        grid-template-columns: 1fr; /* 1 column for cards on mobile */
+    }
+
+    /* Transform "My Listings" table into cards */
+    #listings .dashboard-table thead {
+        display: none; /* Hide desktop headers */
+    }
+    #listings .dashboard-table tr {
+        display: block;
+        border: 1px solid hsl(var(--border));
+        border-radius: var(--radius);
+        margin-bottom: 1rem;
+        padding: 1rem;
+        background-color: hsl(var(--card));
+    }
+    #listings .dashboard-table td {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 0.75rem 0;
+        border-bottom: 1px solid hsl(var(--border));
+    }
+    #listings .dashboard-table td:last-child {
+        border-bottom: none;
+    }
+    #listings .dashboard-table td::before {
+        content: attr(data-label);
+        font-weight: 600;
+        color: hsl(var(--muted-foreground));
+    }
+
+    /* Transform "My Requests" table into cards */
+    .my-requests-page .dashboard-table thead {
+        display: none;
+    }
+    .my-requests-page .dashboard-table tr {
+        display: block;
+        border: 1px solid hsl(var(--border));
+        border-radius: var(--radius);
+        margin-bottom: 1rem;
+        padding: 1rem;
+        background-color: hsl(var(--card));
+    }
+    .my-requests-page .dashboard-table td {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 0.75rem 0;
+        border-bottom: 1px solid hsl(var(--border));
+    }
+    .my-requests-page .dashboard-table td:last-child { border-bottom: none; }
+    .my-requests-page .dashboard-table td::before {
+        content: attr(data-label);
+        font-weight: 600;
+        color: hsl(var(--muted-foreground));
     }
 }
 
@@ -2120,12 +2217,6 @@ td .role-badge {
         -webkit-overflow-scrolling: touch; /* Smoother scrolling on iOS */
     }
     .table-responsive-wrapper {
-        width: 100%;
-        overflow-x: auto;
-        -webkit-overflow-scrolling: touch;
-        border: 1px solid hsl(var(--border));
-        border-radius: var(--radius);
-    }
     .admin-table th, .admin-table td,
     .dashboard-table th, .dashboard-table td {
         white-space: normal; /* Allow text to wrap within the cell */
@@ -2163,146 +2254,5 @@ td .role-badge {
     .thumbnails {
         flex-wrap: wrap; /* Allow thumbnails to wrap onto the next line */
         justify-content: center; /* Center them when they wrap */
-    }
-}
-
-/* --- RESPONSIVE DESIGN --- */
-
-/* Medium screens (tablets) */
-@media (max-width: 1024px) {
-    .footer-grid {
-        grid-template-columns: repeat(2, 1fr);
-    }
-    .stat-grid {
-        grid-template-columns: repeat(3, 1fr);
-    }
-}
-
-/* Small screens (tablets and large phones) */
-@media (max-width: 768px) {
-    /* --- General Layout --- */
-    .container {
-        padding: 0 15px;
-    }
-    h1 { font-size: 1.8rem; }
-    h2 { font-size: 1.5rem; }
-
-    /* --- Navigation --- */
-    .mobile-nav-toggle {
-        display: block;
-    }
-    /* Hide the desktop menu container by default on mobile */
-    .nav-menu {
-        display: none;
-    }
-    /* This rule shows the menu only when it's active (opened via hamburger) */
-    .nav-menu.active {
-        display: flex;
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background-color: hsl(var(--background));
-        flex-direction: column;
-        justify-content: center;
-        align-items: center;
-        z-index: 1000;
-        padding-top: 60px; /* Space for header */
-    }
-    /* Restore the styles for the content INSIDE the active mobile menu */
-    .nav-menu.active ul {
-        flex-direction: column;
-        text-align: center;
-        gap: 1.5rem;
-    }
-    .nav-menu.active .nav-right {
-        flex-direction: column;
-        margin-top: 2rem;
-        gap: 1rem;
-    }
-    /* Hamburger animation */
-    .mobile-nav-toggle.active .hamburger-icon {
-        background-color: transparent;
-    }
-    .mobile-nav-toggle.active .hamburger-icon::before {
-        transform: translateY(8px) rotate(45deg);
-    }
-    .mobile-nav-toggle.active .hamburger-icon::after {
-        transform: translateY(-8px) rotate(-45deg);
-    }
-
-    /* --- Grids --- */
-    .auction-grid {
-        grid-template-columns: 1fr;
-    }
-    .stat-grid {
-        grid-template-columns: repeat(2, 1fr);
-    }
-    .trust-grid {
-        grid-template-columns: 1fr;
-        gap: 2.5rem;
-    }
-    .form-grid {
-        grid-template-columns: 1fr;
-    }
-
-    /* --- Detail Page Layout --- */
-    .detail-page-container {
-        flex-direction: column;
-    }
-    .sidebar {
-        border-left: none;
-        border-top: 1px solid hsl(var(--border));
-        padding-left: 0;
-        padding-top: 30px;
-    }
-
-    /* --- Hero Section --- */
-    .search-hero {
-        padding: 3rem 0;
-    }
-    .search-bar {
-        flex-direction: column;
-    }
-    .search-bar button {
-        border-left: none;
-        border-top: 1px solid hsl(var(--border));
-        padding: 15px;
-    }
-
-    /* --- Footer --- */
-    .footer-grid {
-        grid-template-columns: 1fr;
-        text-align: center;
-    }
-
-    /* --- Tables --- */
-    .table-responsive-wrapper {
-        display: block;
-        width: 100%;
-        overflow-x: auto;
-        -webkit-overflow-scrolling: touch; /* Smoother scrolling on iOS */
-        border: 1px solid hsl(var(--border));
-        border-radius: var(--radius);
-    }
-    .table-responsive-wrapper table {
-        width: auto; /* Allow table to expand beyond 100% */
-    }
-    .admin-table th, .admin-table td,
-    .dashboard-table th, .dashboard-table td {
-        white-space: normal; /* Allow text to wrap */
-        word-break: break-word; /* Force long text to wrap */
-        min-width: 120px; /* Prevent columns from becoming too narrow */
-    }
-    .dashboard-table .button-group {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 5px;
-    }
-
-    /* --- Image Gallery --- */
-    .gallery-nav {
-        display: none; /* Hide nav buttons on mobile, swipe is enabled */
     }
 }
