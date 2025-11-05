@@ -2,14 +2,23 @@
 
 {% block title %}Offers for Your Request{% endblock %}
 
-{% macro offer_card(bid, loop_index, is_lowest=false) %}
+{% macro offer_card(bid, is_lowest=false) %}
 <div class="offer-card {% if is_lowest %}lowest-bid-highlight{% endif %}">
     <div class="offer-header">
-        <div class="offer-price">
-            {{ '{:,.2f}'.format(bid.price) }} ETB
+        <div class="offer-price-options">
+            <div class="offer-price cash">
+                <span>Cash Price</span>
+                {{ '{:,.2f}'.format(bid.price) }} ETB
+            </div>
+            {% if bid.price_with_loan %}
+            <div class="offer-price loan">
+                <span>With Loan</span>
+                {{ '{:,.2f}'.format(bid.price_with_loan) }} ETB
+            </div>
+            {% endif %}
         </div>
         <div class="offer-meta">
-            <span>From: <strong>Dealer #{{ loop_index }}</strong></span>
+            <span>From: <strong>{{ bid.dealer.username }}</strong></span>
             <span>Received: {{ bid.timestamp.strftime('%b %d, %Y') }}</span>
         </div>
     </div>
@@ -68,8 +77,20 @@
     <div class="offer-footer">
         <span class="valid-until">Offer valid until: {{ bid.valid_until.strftime('%b %d, %Y') }}</span>
         {% if car_request.status == 'active' %}
-        <form action="{{ url_for('request.accept_offer', bid_id=bid.id) }}" method="POST" style="display: inline;">
-            <button type="submit" class="btn approve" onclick="return confirm('Are you sure you want to accept this offer? This will close the request to other offers.');">Accept Offer</button>
+        <form action="{{ url_for('request.accept_offer', bid_id=bid.id) }}" method="POST" class="accept-offer-form" onsubmit="return confirm('Are you sure you want to accept this offer? This will close the request to other offers.');">
+            <div class="accept-options">
+                <label class="accept-radio">
+                    <input type="radio" name="payment_method" value="cash" checked>
+                    Accept Cash Price
+                </label>
+                {% if bid.price_with_loan %}
+                <label class="accept-radio">
+                    <input type="radio" name="payment_method" value="loan">
+                    Accept Loan Price
+                </label>
+                {% endif %}
+            </div>
+            <button type="submit" class="btn approve">Accept This Offer</button>
         </form>
         {% elif bid.status == 'accepted' %}
             <span class="status-approved">Offer Accepted</span>
@@ -102,7 +123,7 @@
         
         <div class="offer-list">
             {% for bid in bids %}
-                {{ offer_card(bid, loop.index, is_lowest=loop.first) }}
+                {{ offer_card(bid, is_lowest=loop.first) }}
             {% endfor %}
         </div>
     {% else %}

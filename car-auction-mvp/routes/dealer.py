@@ -10,7 +10,8 @@ from models.auction import Auction
 from models.conversation import Conversation
 from models.chat_message import ChatMessage
 from models.notification import Notification 
-from models.dealer_rating import DealerRating
+from models.dealer_review import DealerReview
+from models.dealer_request_view import DealerRequestView
 from extensions import db, socketio
 from sqlalchemy import func
 from functools import wraps
@@ -36,7 +37,8 @@ def dealer_required(f):
     return decorated_function
 
 class DealerBidForm(FlaskForm):
-    price = FloatField('Offer Price (ETB)', validators=[DataRequired(), NumberRange(min=1)])
+    price = FloatField('Cash Offer Price (ETB)', validators=[DataRequired(), NumberRange(min=1)])
+    price_with_loan = FloatField('Offer Price with Bank Loan (ETB)', validators=[Optional(), NumberRange(min=1)])
     make = StringField('Car Make', validators=[DataRequired()])
     model = StringField('Car Model', validators=[DataRequired()])
     car_year = IntegerField('Car Year', validators=[DataRequired(), NumberRange(min=1900, max=datetime.now().year + 1)])
@@ -74,7 +76,18 @@ def dashboard():
         func.min(DealerBid.price).label('lowest_offer')
     ).group_by(DealerBid.request_id).subquery()
 
-    active_requests = db.session.query(CarRequest, bid_count_subquery.c.bid_count, lowest_offer_subquery.c.lowest_offer).\
+    # Subquery to get all request IDs that the current dealer has already viewed.
+    viewed_requests_subquery = db.session.query(
+        DealerRequestView.request_id
+    ).filter(DealerRequestView.dealer_id == current_user.id).subquery()
+
+    active_requests = db.session.query(
+        CarRequest, 
+        bid_count_subquery.c.bid_count, 
+        lowest_offer_subquery.c.lowest_offer,
+        # This will be True if the request has been viewed, otherwise False.
+        (CarRequest.id.in_(db.select(viewed_requests_subquery))).label('has_been_viewed')
+    ).\
         outerjoin(bid_count_subquery, CarRequest.id == bid_count_subquery.c.request_id).\
         outerjoin(lowest_offer_subquery, CarRequest.id == lowest_offer_subquery.c.request_id).\
         filter(CarRequest.status == 'active').order_by(CarRequest.created_at.desc()).all()
@@ -127,7 +140,7 @@ def profile(dealer_id):
     active_listings = Car.query.filter_by(owner_id=dealer.id, is_approved=True, is_active=True).order_by(Car.id.desc()).all()
 
     # Calculate average rating
-    ratings = dealer.ratings_received.all()
+    ratings = dealer.reviews_received.all()
     avg_rating = 0
     if ratings:
         avg_rating = sum(r.rating for r in ratings) / len(ratings)
@@ -215,6 +228,17 @@ def unlock_conversation(conversation_id):
 @dealer_required
 def place_bid(request_id):
     car_request = CarRequest.query.get_or_404(request_id)
+
+    # --- Mark the request as viewed by the dealer ---
+    # This is idempotent due to the unique constraint on the model.
+    view_exists = DealerRequestView.query.filter_by(
+        dealer_id=current_user.id,
+        request_id=car_request.id
+    ).first()
+    if not view_exists:
+        new_view = DealerRequestView(dealer_id=current_user.id, request_id=car_request.id)
+        db.session.add(new_view)
+        db.session.commit()
     # Get existing bids to show the history
     existing_bids = car_request.dealer_bids.order_by(DealerBid.price.asc()).all()
 
@@ -230,6 +254,7 @@ def place_bid(request_id):
 
         new_bid = DealerBid(
             price=form.price.data,
+            price_with_loan=form.price_with_loan.data,
             make=form.make.data,
             model=form.model.data,
             car_year=form.car_year.data,

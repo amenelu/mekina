@@ -56,8 +56,8 @@ def dashboard():
 @login_required
 @admin_required
 def user_management():
-    """Displays a list of all users for the admin."""
-    users = User.query.order_by(User.id.asc()).all()
+    """Displays a list of all non-dealer users for the admin."""
+    users = User.query.filter_by(is_dealer=False).order_by(User.id.asc()).all()
     return render_template('user_management.html', users=users)
 
 
@@ -84,6 +84,10 @@ def edit_user(user_id):
 
         db.session.commit()
         flash(f'User {user_to_edit.username} has been updated.', 'success')
+
+        # If the user is a dealer, redirect to their profile. Otherwise, go to the user list.
+        if user_to_edit.is_dealer:
+            return redirect(url_for('dealer.profile', dealer_id=user_to_edit.id))
         return redirect(url_for('admin.user_management'))
 
     return render_template('edit_user.html', form=form, user=user_to_edit)

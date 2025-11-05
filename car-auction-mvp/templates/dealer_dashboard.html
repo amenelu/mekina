@@ -55,8 +55,8 @@
                     </tr>
                 </thead>
                 <tbody>
-                    {% for car_request, bid_count, lowest_offer in requests %}
-                    <tr class="clickable-row" data-href="{{ url_for('dealer.place_bid', request_id=car_request.id) }}">
+                    {% for car_request, bid_count, lowest_offer, has_been_viewed in requests %}
+                    <tr class="clickable-row {% if not has_been_viewed %}new-request{% endif %}" data-href="{{ url_for('dealer.place_bid', request_id=car_request.id) }}">
                         <td>{{ car_request.created_at.strftime('%b %d, %Y') }}</td>
                         <td>
                             {% if car_request.make and car_request.model %}

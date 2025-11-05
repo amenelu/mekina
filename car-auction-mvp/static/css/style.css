@@ -662,6 +662,18 @@ tbody tr:hover {
     background-color: hsl(var(--secondary));
 }
 
+/* Highlight for new/unread items in tables */
+tbody tr.new-request {
+    background-color: hsl(var(--secondary)) !important;
+    border-left: 3px solid hsl(var(--accent));
+}
+
+/* Highlight for a user's own items in a list */
+tbody tr.my-bid-highlight {
+    background-color: hsl(var(--accent) / 0.1) !important;
+    border-left: 3px solid hsl(var(--accent));
+}
+
 /* 6. Sections */
 .section {
     padding: 4rem 0;
@@ -1250,6 +1262,25 @@ td .role-badge {
     border-bottom: 1px solid hsl(var(--border));
 }
 .offer-price { font-size: 1.5rem; font-weight: 700; }
+.offer-price-options {
+    display: flex;
+    gap: 1.5rem;
+    align-items: center;
+}
+.offer-price.cash, .offer-price.loan {
+    padding: 0.5rem 1rem;
+    border-radius: var(--radius);
+    text-align: center;
+}
+.offer-price.cash {
+    background-color: hsl(var(--success) / 0.1);
+    border: 1px solid hsl(var(--success));
+}
+.offer-price.loan {
+    background-color: hsl(var(--info) / 0.1);
+    border: 1px solid hsl(var(--info));
+}
+.offer-price span { display: block; font-size: 0.8em; font-weight: 500; color: hsl(var(--muted-foreground)); }
 .offer-meta { text-align: right; color: hsl(var(--muted-foreground)); font-size: 0.9em; }
 .offer-meta span { display: block; }
 .offer-details-grid {
@@ -1282,9 +1313,24 @@ td .role-badge {
     transform: scale(1.01); /* Slightly enlarge the card to make it pop */
 }
 .offer-card.lowest-bid-highlight .offer-price {
-    color: hsl(var(--accent));
+    /* color: hsl(var(--accent)); */ /* Removed to allow individual price colors */
 }
 .valid-until { font-size: 0.9em; color: hsl(var(--muted-foreground)); }
+
+.accept-offer-form {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+.accept-options {
+    display: flex;
+    gap: 1rem;
+}
+.accept-radio {
+    font-size: 0.9em;
+    cursor: pointer;
+}
+
 
 /* 19. Deal Summary Page */
 .deal-summary-card {

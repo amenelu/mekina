@@ -18,3 +18,5 @@ from .conversation import Conversation
 from .chat_message import ChatMessage
 from .lead_score import LeadScore
 from .dealer_rating import DealerRating
+from .dealer_request_view import DealerRequestView
+from .dealer_review import DealerReview

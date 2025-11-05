@@ -362,6 +362,14 @@ def accept_offer(bid_id):
     if car_request.status != 'active':
         flash('This request is already closed.', 'warning')
         return redirect(url_for('request.request_detail', request_id=car_request.id))
+        
+    # Get the chosen payment method from the form
+    payment_method = request.form.get('payment_method', 'cash')
+    if payment_method == 'loan' and not bid_to_accept.price_with_loan:
+        flash('Invalid payment method selected for this offer.', 'danger')
+        return redirect(url_for('request.request_detail', request_id=car_request.id))
+
+    final_price = bid_to_accept.price_with_loan if payment_method == 'loan' else bid_to_accept.price
 
     # --- Transactional Logic ---
     try:
@@ -378,11 +386,12 @@ def accept_offer(bid_id):
 
         # 4. Generate a “deal summary” record
         new_deal = Deal(
-            final_price=bid_to_accept.price,
+            final_price=final_price,
             customer_id=car_request.user_id,
             dealer_id=bid_to_accept.dealer_id,
             car_request_id=car_request.id,
-            accepted_bid_id=bid_to_accept.id
+            accepted_bid_id=bid_to_accept.id,
+            payment_method=payment_method
         )
         db.session.add(new_deal)
 
