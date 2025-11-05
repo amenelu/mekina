@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 
 {% block title %}
-    {% if form.submit.label.text == 'Update Offer' %}
+    {% if 'Update' in form.submit.label.text %}
         Edit Offer for Request #{{ car_request.id }}
     {% else %}
         Place Offer on Request #{{ car_request.id }}
@@ -9,106 +9,121 @@
 {% endblock %}
 
 {% block content %}
-    <h1>
-        {% if form.submit.label.text == 'Update Offer' %}
-            Edit Your Offer
-        {% else %}
-            Place an Offer
-        {% endif %}
-    </h1>
+<div class="detail-page-container">
+    <div class="main-content">
+        <h1>
+            {% if 'Update' in form.submit.label.text %}
+                Edit Your Offer
+            {% else %}
+                Place an Offer
+            {% endif %}
+        </h1>
+        <p>Submitting an offer will cost 1 point from your account balance.</p>
 
-    <div class="question-context">
-        <h3>Customer's Request Details</h3>
-        {% if car_request.make %}
-            <p><strong>Make:</strong> {{ car_request.make }}</p>
-            <p><strong>Model:</strong> {{ car_request.model or 'Any' }}</p>
-            <p><strong>Minimum Year:</strong> {{ car_request.min_year or 'Any' }}</p>
-        {% endif %}
-        <p><strong>Notes:</strong> {{ car_request.notes or 'None' }}</p>
+        <form method="POST" novalidate class="offer-form-container">
+            {{ form.hidden_tag() }}
+
+            <fieldset>
+                <legend>Pricing</legend>
+                <div class="form-grid">
+                    <div class="form-group">
+                        {{ form.price.label }}
+                        {{ form.price(class="form-control") }}
+                        {% for error in form.price.errors %}<span class="form-error">{{ error }}</span>{% endfor %}
+                    </div>
+                    <div class="form-group">
+                        {{ form.price_with_loan.label }}
+                        {{ form.price_with_loan(class="form-control", placeholder="Optional") }}
+                        {% for error in form.price_with_loan.errors %}<span class="form-error">{{ error }}</span>{% endfor %}
+                    </div>
+                </div>
+            </fieldset>
+
+            <fieldset>
+                <legend>Vehicle Details</legend>
+                <div class="form-grid">
+                    <div class="form-group">{{ form.make.label }}{{ form.make(class="form-control") }}{% for error in form.make.errors %}<span class="form-error">{{ error }}</span>{% endfor %}</div>
+                    <div class="form-group">{{ form.model.label }}{{ form.model(class="form-control") }}{% for error in form.model.errors %}<span class="form-error">{{ error }}</span>{% endfor %}</div>
+                    <div class="form-group">{{ form.car_year.label }}{{ form.car_year(class="form-control") }}{% for error in form.car_year.errors %}<span class="form-error">{{ error }}</span>{% endfor %}</div>
+                    <div class="form-group">{{ form.condition.label }}{{ form.condition(class="form-control") }}{% for error in form.condition.errors %}<span class="form-error">{{ error }}</span>{% endfor %}</div>
+                    <div class="form-group">{{ form.mileage.label }}{{ form.mileage(class="form-control") }}{% for error in form.mileage.errors %}<span class="form-error">{{ error }}</span>{% endfor %}</div>
+                    <div class="form-group">{{ form.availability.label }}{{ form.availability(class="form-control") }}{% for error in form.availability.errors %}<span class="form-error">{{ error }}</span>{% endfor %}</div>
+                </div>
+            </fieldset>
+
+            <fieldset>
+                <legend>Additional Information</legend>
+                <div class="form-group">{{ form.valid_until.label }}{{ form.valid_until(class="form-control") }}{% for error in form.valid_until.errors %}<span class="form-error">{{ error }}</span>{% endfor %}</div>
+                <div class="form-group">
+                    {{ form.extras.label }}
+                    {{ form.extras(class="form-control", rows=3) }}
+                    {% for error in form.extras.errors %}<span class="form-error">{{ error }}</span>{% endfor %}
+                </div>
+                <div class="form-group">
+                    {{ form.message.label }}
+                    {{ form.message(class="form-control", rows=4) }}
+                    {% for error in form.message.errors %}<span class="form-error">{{ error }}</span>{% endfor %}
+                </div>
+            </fieldset>
+
+            {{ form.submit(class="btn approve") }}
+        </form>
     </div>
 
-    {% if bids %}
-        <h3>Current Offers on This Request</h3>
-        <div class="offer-table-wrapper">
-            <table class="dashboard-table">
-                <thead>
-                    <tr>
-                        <th>Dealer</th>
-                        <th>Car Details</th>
-                        <th>Cash Price</th>
-                        <th>Loan Price</th>
-                        <th>Offer Valid Until</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for bid in bids %}
-                        <tr {% if bid.dealer_id == current_user.id %}class="my-bid-highlight"{% endif %}>
-                            <td data-label="Dealer">
-                                <strong>
-                                    {% if bid.dealer_id == current_user.id %}
-                                        Your Offer
-                                    {% else %}
-                                        Dealer #{{ loop.index }}
-                                    {% endif %}
-                                </strong>
-                            </td>
-                            <td data-label="Car Details">{{ bid.car_year }} {{ bid.make }} {{ bid.model }}</td>
-                            <td data-label="Cash Price">{{ '{:,.2f}'.format(bid.price) }} ETB</td>
-                            <td data-label="Loan Price">
-                                {% if bid.price_with_loan %}
-                                    {{ '{:,.2f}'.format(bid.price_with_loan) }} ETB
-                                {% else %}
-                                    <span class="text-muted">N/A</span>
-                                {% endif %}
-                            </td>
-                            <td data-label="Valid Until">{{ bid.valid_until.strftime('%b %d, %Y') }}</td>
+    <div class="sidebar">
+        <div class="sidebar-section">
+            <h3>Customer's Request</h3>
+            <div class="request-details-sidebar">
+                {% if car_request.make %}
+                    <p><strong>Make:</strong> {{ car_request.make }}</p>
+                    <p><strong>Model:</strong> {{ car_request.model or 'Any' }}</p>
+                    <p><strong>Min Year:</strong> {{ car_request.min_year or 'Any' }}</p>
+                {% endif %}
+                <p><strong>Notes:</strong> {{ car_request.notes or 'None' }}</p>
+            </div>
+        </div>
+
+        {% if bids %}
+        <div class="sidebar-section">
+            <h3>Current Offers</h3>
+            <div class="offer-table-wrapper">
+                <table class="dashboard-table">
+                    <thead>
+                        <tr>
+                            <th>Dealer</th>
+                            <th>Cash Price</th>
+                            <th>Loan Price</th>
                         </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
-    {% endif %}
-
-    <hr>
-
-    <form method="POST" novalidate>
-        {{ form.hidden_tag() }}
-        <h3>Your Offer Details</h3>
-        <p>Submitting an offer will cost 1 point.</p>
-
-        <div class="form-grid">
-            <div class="form-group">
-                {{ form.price.label }}
-                {{ form.price(class="form-control") }}
-                {% for error in form.price.errors %}<span class="form-error">{{ error }}</span>{% endfor %}
+                    </thead>
+                    <tbody>
+                        {% for bid in bids %}
+                            <tr {% if bid.dealer_id == current_user.id %}class="my-bid-highlight"{% endif %}>
+                                <td data-label="Dealer">
+                                    <strong>
+                                        {% if bid.dealer_id == current_user.id %}
+                                            Your Offer
+                                        {% else %}
+                                            Dealer #{{ loop.index }}
+                                        {% endif %}
+                                    </strong>
+                                </td>
+                                <td data-label="Cash Price">{{ '{:,.2f}'.format(bid.price) }} ETB</td>
+                                <td data-label="Loan Price">
+                                    {% if bid.price_with_loan %}
+                                        {{ '{:,.2f}'.format(bid.price_with_loan) }} ETB
+                                    {% else %}
+                                        <span class="text-muted">N/A</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
             </div>
-            <div class="form-group">
-                {{ form.price_with_loan.label }}
-                {{ form.price_with_loan(class="form-control", placeholder="Optional") }}
-                {% for error in form.price_with_loan.errors %}<span class="form-error">{{ error }}</span>{% endfor %}
-            </div>
-            <div class="form-group">{{ form.make.label }}{{ form.make(class="form-control") }}{% for error in form.make.errors %}<span class="form-error">{{ error }}</span>{% endfor %}</div>
-            <div class="form-group">{{ form.model.label }}{{ form.model(class="form-control") }}{% for error in form.model.errors %}<span class="form-error">{{ error }}</span>{% endfor %}</div>
-            <div class="form-group">{{ form.car_year.label }}{{ form.car_year(class="form-control") }}{% for error in form.car_year.errors %}<span class="form-error">{{ error }}</span>{% endfor %}</div>
-            <div class="form-group">{{ form.condition.label }}{{ form.condition(class="form-control") }}{% for error in form.condition.errors %}<span class="form-error">{{ error }}</span>{% endfor %}</div>
-            <div class="form-group">{{ form.mileage.label }}{{ form.mileage(class="form-control") }}{% for error in form.mileage.errors %}<span class="form-error">{{ error }}</span>{% endfor %}</div>
-            <div class="form-group">{{ form.availability.label }}{{ form.availability(class="form-control") }}{% for error in form.availability.errors %}<span class="form-error">{{ error }}</span>{% endfor %}</div>
-            <div class="form-group full-width">{{ form.valid_until.label }}{{ form.valid_until(class="form-control") }}{% for error in form.valid_until.errors %}<span class="form-error">{{ error }}</span>{% endfor %}</div>
         </div>
-
-        <div class="form-group">
-            {{ form.extras.label }}
-            {{ form.extras(class="form-control", rows=3) }}
-            {% for error in form.extras.errors %}<span class="form-error">{{ error }}</span>{% endfor %}
-        </div>
-        <div class="form-group">
-            {{ form.message.label }}
-            {{ form.message(class="form-control", rows=4) }}
-            {% for error in form.message.errors %}<span class="form-error">{{ error }}</span>{% endfor %}
-        </div>
-
-        {{ form.submit(class="btn approve") }}
-    </form>
+        {% endif %}
+    </div>
+</div>
 {% endblock %}
 ```
 

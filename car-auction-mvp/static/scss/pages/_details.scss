@@ -26,6 +26,17 @@
     align-items: center;
 }
 
+.offer-form-container fieldset {
+    border: 1px solid hsl(var(--border));
+    padding: 1.5rem;
+    border-radius: var(--radius);
+    margin-bottom: 2rem;
+}
+.offer-form-container legend {
+    padding: 0 0.5rem;
+    font-weight: 600;
+}
+
 /* Q&A Section */
 .qna-section .question-item {
     border: 1px solid hsl(var(--border));
@@ -169,4 +180,123 @@
         flex-direction: column;
         gap: 0.5rem;
     }
+
+    /* --- Responsive Dealer Bid Page --- */
+    .sidebar-section {
+        margin-bottom: 2rem;
+    }
+    .sidebar-section:last-child {
+        margin-bottom: 0;
+    }
+    .sidebar-section h3 {
+        margin-top: 0;
+    }
+    .request-details-sidebar {
+        background-color: hsl(var(--secondary));
+        padding: 1rem;
+        border-radius: var(--radius);
+    }
+}
+
+/* --- Deal Summary Page --- */
+.deal-summary-card {
+    background-color: hsl(var(--card));
+    border: 1px solid hsl(var(--border));
+    border-radius: var(--radius);
+    max-width: 900px;
+    margin: 2rem auto;
+    overflow: hidden; /* To contain the header background */
+}
+
+.deal-header {
+    text-align: center;
+    padding: 2rem;
+    background: var(--gradient-primary);
+}
+.deal-header h2 {
+    margin: 0;
+    font-size: 2.5rem;
+    color: hsl(var(--accent));
+    font-weight: 700;
+}
+.deal-header span {
+    color: hsl(var(--muted-foreground));
+    font-size: 1.1rem;
+}
+
+.deal-body {
+    padding: 2rem;
+}
+
+.deal-parties {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 2rem;
+    margin-bottom: 2rem;
+    padding-bottom: 2rem;
+    border-bottom: 1px solid hsl(var(--border));
+}
+.party {
+    background-color: hsl(var(--secondary));
+    padding: 1.5rem;
+    border-radius: var(--radius);
+}
+.party h3 {
+    margin-top: 0;
+    border-bottom: 1px solid hsl(var(--border));
+    padding-bottom: 0.5rem;
+    margin-bottom: 1rem;
+}
+.party p {
+    margin: 0.25rem 0;
+}
+
+/* --- Responsive Deal Summary --- */
+@media (max-width: 768px) {
+    .deal-parties {
+        grid-template-columns: 1fr;
+    }
+    .deal-header h2 {
+        font-size: 2rem;
+    }
+}
+
+/* --- Rating Submission Section --- */
+.rating-submission-section {
+    padding-top: 2rem;
+    margin-top: 2rem;
+    border-top: 1px solid hsl(var(--border));
+}
+.rating-submission-section h2 {
+    margin-top: 0;
+}
+
+.star-rating-input {
+    display: flex;
+    flex-direction: row-reverse; /* This is the trick to make the hover effect work correctly */
+    justify-content: flex-end;
+    gap: 0.25rem;
+}
+.star-rating-input input[type="radio"] { display: none; }
+.star-rating-input label {
+    font-size: 1.5rem; /* Reduced star size */
+    color: hsl(var(--muted-foreground));
+    cursor: pointer;
+    transition: color 0.2s;
+}
+.star-rating-input label:hover,
+.star-rating-input label:hover ~ label,
+.star-rating-input input[type="radio"]:checked ~ label {
+    color: hsl(var(--warning));
+}
+
+.already-rated .star-rating {
+    font-size: 1.5rem;
+    margin-bottom: 1rem;
+}
+.already-rated .star {
+    color: hsl(var(--muted-foreground));
+}
+.already-rated .star.filled {
+    color: hsl(var(--warning));
 }

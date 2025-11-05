@@ -145,8 +145,8 @@
                     <tbody>
                         {% for car in my_cars %}
                         <tr>
-                            <td>{{ car.year }} {{ car.make }} {{ car.model }}</td>
-                            <td>
+                            <td data-label="Car">{{ car.year }} {{ car.make }} {{ car.model }}</td>
+                            <td data-label="Status">
                                 {% if car.is_approved %}
                                     <span style="color: hsl(var(--success)); font-weight: bold;">Approved</span>
                                 {% else %}

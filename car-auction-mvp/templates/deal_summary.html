@@ -13,61 +13,62 @@
             <span>Deal confirmed on: {{ deal.deal_date.strftime('%b %d, %Y') }}</span>
         </div>
 
-        <div class="deal-parties">
-            <div class="party">
-                <h3>Customer</h3>
-                <p><strong>Username:</strong> {{ deal.customer.username }}</p>
-                <p><strong>Email:</strong> {{ deal.customer.email }}</p>
-                <p><strong>Phone:</strong> {{ deal.customer.phone_number or 'Not provided' }}</p>
+        <div class="deal-body">
+            <div class="deal-parties">
+                <div class="party">
+                    <h3>Customer</h3>
+                    <p><strong>Username:</strong> {{ deal.customer.username }}</p>
+                    <p><strong>Email:</strong> {{ deal.customer.email }}</p>
+                    <p><strong>Phone:</strong> {{ deal.customer.phone_number or 'Not provided' }}</p>
+                </div>
+                <div class="party">
+                    <h3>Dealer</h3>
+                    <p>
+                        <strong>Username:</strong> <a href="{{ url_for('dealer.profile', dealer_id=deal.dealer.id) }}">{{ deal.dealer.username }}</a>
+                    </p>
+                    <p><strong>Email:</strong> {{ deal.dealer.email }}</p>
+                    <p><strong>Phone:</strong> {{ deal.dealer.phone_number or 'Not provided' }}</p>
+                </div>
             </div>
-            <div class="party">
-                <h3>Dealer</h3>
-                <p>
-                    <strong>Username:</strong> <a href="{{ url_for('dealer.profile', dealer_id=deal.dealer.id) }}">{{ deal.dealer.username }}</a>
-                </p>
-                <p><strong>Email:</strong> {{ deal.dealer.email }}</p>
-                <p><strong>Phone:</strong> {{ deal.dealer.phone_number or 'Not provided' }}</p>
-            </div>
-        </div>
 
-        <div class="offer-details">
-            <h3>Accepted Offer Details</h3>
-            <div class="offer-details-grid">
-                <div><strong>Car Year:</strong> {{ deal.accepted_bid.car_year }}</div>
-                <div><strong>Condition:</strong> {{ deal.accepted_bid.condition }}</div>
-                <div><strong>Mileage:</strong> {{ '{:,}'.format(deal.accepted_bid.mileage) }} km</div>
-                <div><strong>Availability:</strong> {{ deal.accepted_bid.availability }}</div>
+            <div class="offer-details">
+                <h3>Accepted Offer Details</h3>
+                <div class="offer-details-grid">
+                    <div><strong>Car Year:</strong> {{ deal.accepted_bid.car_year }}</div>
+                    <div><strong>Condition:</strong> {{ deal.accepted_bid.condition }}</div>
+                    <div><strong>Mileage:</strong> {{ '{:,}'.format(deal.accepted_bid.mileage) }} km</div>
+                    <div><strong>Availability:</strong> {{ deal.accepted_bid.availability }}</div>
+                </div>
+                {% if deal.accepted_bid.extras %}
+                    <p><strong>Extras:</strong> {{ deal.accepted_bid.extras }}</p>
+                {% endif %}
             </div>
-            {% if deal.accepted_bid.extras %}
-                <p><strong>Extras:</strong> {{ deal.accepted_bid.extras }}</p>
+
+            {% if current_user.id == deal.customer_id %}
+                <div class="rating-submission-section">
+                    <h2>Rate Your Experience with {{ deal.dealer.username }}</h2>
+                    {% if deal.rating %}
+                        <div class="already-rated">
+                            <p><strong>Thank you! You've already reviewed this deal.</strong></p>
+                            <div class="star-rating">
+                                {% for i in range(5) %}
+                                    <span class="star {% if i < deal.rating.rating %}filled{% endif %}">&#9733;</span>
+                                {% endfor %}
+                            </div>
+                            {% if deal.rating.review_text %}<p>"{{ deal.rating.review_text }}"</p>{% endif %}
+                        </div>
+                    {% else %}
+                        <form action="{{ url_for('request.rate_dealer', deal_id=deal.id) }}" method="POST">
+                            {{ form.hidden_tag() }}
+                            <div class="form-group star-rating-input">
+                                {{ form.rating.label }} {{ form.rating }}
+                            </div>
+                            <div class="form-group">{{ form.review_text.label }} {{ form.review_text(rows=3) }}</div>
+                            {{ form.submit(class='btn approve') }}
+                        </form>
+                    {% endif %}
+                </div>
             {% endif %}
         </div>
     </div>
-
-    {% if current_user.id == deal.customer_id %}
-        <div class="rating-submission-section">
-            <hr>
-            <h2>Rate Your Experience with {{ deal.dealer.username }}</h2>
-            {% if deal.rating %}
-                <div class="already-rated">
-                    <p><strong>Thank you! You've already reviewed this deal.</strong></p>
-                    <div class="star-rating">
-                        {% for i in range(5) %}
-                            <span class="star {% if i < deal.rating.rating %}filled{% endif %}">&#9733;</span>
-                        {% endfor %}
-                    </div>
-                    {% if deal.rating.review_text %}<p>"{{ deal.rating.review_text }}"</p>{% endif %}
-                </div>
-            {% else %}
-                <form action="{{ url_for('request.rate_dealer', deal_id=deal.id) }}" method="POST">
-                    {{ form.hidden_tag() }}
-                    <div class="form-group star-rating-input">
-                        {{ form.rating.label }} {{ form.rating }}
-                    </div>
-                    <div class="form-group">{{ form.review_text.label }} {{ form.review_text(rows=4) }}</div>
-                    {{ form.submit(class='btn approve') }}
-                </form>
-            {% endif %}
-        </div>
-    {% endif %}
 {% endblock %}
