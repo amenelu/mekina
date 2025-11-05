@@ -1568,6 +1568,32 @@ td .role-badge {
     margin-top: 2rem;
 }
 
+/* --- Dashboard Tabs --- */
+.dashboard-tabs {
+    display: flex;
+    border-bottom: 2px solid hsl(var(--border));
+    margin-bottom: 2rem;
+}
+.tab-link {
+    padding: 0.75rem 1.5rem;
+    cursor: pointer;
+    font-weight: 500;
+    color: hsl(var(--muted-foreground));
+    border-bottom: 2px solid transparent;
+    margin-bottom: -2px; /* Align with the container's border */
+    transition: all 0.2s ease-in-out;
+}
+.tab-link:hover {
+    color: hsl(var(--foreground));
+    text-decoration: none;
+}
+.tab-link.active {
+    color: hsl(var(--accent));
+    border-color: hsl(var(--accent));
+    font-weight: 600;
+}
+.tab-content:not(.active) { display: none; }
+
 .dealer-profile-hero {
     background-color: hsl(var(--card));
     border: 1px solid hsl(var(--border));
