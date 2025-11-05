@@ -6,57 +6,51 @@
 <h1>Dealer Management</h1>
 <p>View and manage all dealer accounts on the platform.</p>
 
-<div class="table-container">
-    <table>
+<div class="table-responsive-wrapper">
+    <table class="dashboard-table">
         <thead>
             <tr>
                 <th>Username</th>
                 <th>Email</th>
-                <th>Status</th>
                 <th>Active Listings</th>
                 <th>Avg. Rating</th>
-                <th>Actions</th>
             </tr>
         </thead>
         <tbody>
             {% for user, active_listings, avg_rating, review_count in dealers_with_stats %}
-                <tr>
+                <tr class="clickable-row" data-href="{{ url_for('dealer.profile', dealer_id=user.id) }}">
                     <td>
-                        <a href="{{ url_for('dealer.profile', dealer_id=user.id) }}"><strong>{{ user.username }}</strong></a>
-                    </td>
-                    <td>{{ user.email }}</td>
-                    <td>
+                        <strong>{{ user.username }}</strong>
                         {% if user.is_verified %}
-                            <span class="status-approved">Verified</span>
+                            <span class="status-approved small-tag">Verified</span>
                         {% else %}
-                            <span class="status-pending">Not Verified</span>
+                            <span class="status-pending small-tag">Not Verified</span>
                         {% endif %}
                     </td>
+                    <td>{{ user.email }}</td>
                     <td>{{ active_listings }}</td>
                     <td>
                         {% if review_count > 0 %}
                             {{ "%.1f"|format(avg_rating) }} / 5.0 ({{ review_count }} reviews)
                         {% else %}
-                            <span class="text-muted">No reviews</span>
+                            <span class="text-muted">No Reviews</span>
                         {% endif %}
-                    </td>
-                    <td>
-                        <div class="button-group-small">
-                            <a href="{{ url_for('dealer.profile', dealer_id=user.id) }}" class="btn small">View Profile</a>
-                            <a href="{{ url_for('admin.edit_user', user_id=user.id) }}" class="btn small">Edit</a>
-                            {# Assuming a route exists to toggle verification #}
-                            <form action="{{ url_for('dealer.toggle_verification', dealer_id=user.id) }}" method="post" style="display: inline;">
-                                {% if user.is_verified %}
-                                    <button type="submit" class="btn small delete">Un-verify</button>
-                                {% else %}
-                                    <button type="submit" class="btn small approve">Verify</button>
-                                {% endif %}
-                            </form>
-                        </div>
                     </td>
                 </tr>
             {% endfor %}
         </tbody>
     </table>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('tr.clickable-row').forEach(row => {
+        row.addEventListener('click', function(e) {
+            // Don't navigate if a link or button inside the row was clicked
+            if (e.target.closest('a, button')) return;
+            window.location.href = this.dataset.href;
+        });
+    });
+});
+</script>
 {% endblock %}

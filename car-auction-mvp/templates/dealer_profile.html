@@ -2,7 +2,24 @@
 
 {% block title %}{{ dealer.username }}'s Profile{% endblock %}
 
+{% block body_class %}dealer-profile-page{% endblock %}
+
 {% block content %}
+    {% if current_user.is_authenticated and current_user.is_admin %}
+    <div class="admin-actions pending">
+        <h3>Admin Controls</h3>
+        <div class="button-group">
+            <a href="{{ url_for('admin.edit_user', user_id=dealer.id) }}" class="btn edit">Edit User Details</a>
+            <form action="{{ url_for('dealer.toggle_verification', dealer_id=dealer.id) }}" method="post" style="display: inline;">
+                {% if dealer.is_verified %}
+                    <button type="submit" class="btn delete">Revoke Verification</button>
+                {% else %}
+                    <button type="submit" class="btn approve">Verify Dealer</button>
+                {% endif %}
+            </form>
+        </div>
+    </div>
+    {% endif %}
     <div class="dealer-profile-hero">
         <div class="dealer-info">
             <div class="dealer-logo-placeholder">
@@ -11,7 +28,7 @@
             <div class="dealer-details">
                 <div class="dealer-name-verified">
                     <h1>{{ dealer.username }}</h1>
-                    <span class="verified-badge">&#10003; Verified Dealer</span>
+                    {% if dealer.is_verified %}<span class="verified-badge">&#10003; Verified Dealer</span>{% endif %}
                 </div>
                 <p class="dealer-tagline">Trusted Importer of Quality Vehicles since 2018.</p>
                 <div class="dealer-rating-summary">

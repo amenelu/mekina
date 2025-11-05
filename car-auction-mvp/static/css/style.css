@@ -1499,6 +1499,11 @@ td .role-badge {
     margin-top: 2rem;
 }
 
+/* Add margin to the admin controls on the dealer profile page to clear the fixed nav bar */
+.dealer-profile-page .admin-actions {
+    margin-top: 2rem;
+}
+
 .dealer-profile-hero {
     background-color: hsl(var(--card));
     border: 1px solid hsl(var(--border));

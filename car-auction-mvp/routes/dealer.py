@@ -156,7 +156,7 @@ def toggle_verification(dealer_id):
 
     status = "verified" if dealer.is_verified else "un-verified"
     flash(f"Dealer '{dealer.username}' has been {status}.", "success")
-    return redirect(url_for('admin.dealer_management'))
+    return redirect(url_for('dealer.profile', dealer_id=dealer.id))
 
 @dealer_bp.route('/messages/<int:conversation_id>', methods=['GET', 'POST'])
 @login_required
