@@ -1,5 +1,5 @@
-from flask import Blueprint, render_template, redirect, url_for, flash, request
-from flask_login import login_required, current_user
+from flask import Blueprint, render_template, redirect, url_for, flash, request, abort
+from flask_login import login_required, current_user, AnonymousUserMixin
 from models.car_request import CarRequest
 from models.dealer_bid import DealerBid
 from models.car import Car
@@ -11,7 +11,7 @@ from models.conversation import Conversation
 from models.chat_message import ChatMessage
 from models.notification import Notification 
 from models.dealer_rating import DealerRating
-from extensions import db
+from extensions import db, socketio
 from sqlalchemy import func
 from functools import wraps
 from datetime import datetime
@@ -19,9 +19,6 @@ from flask_wtf import FlaskForm
 from wtforms import StringField, IntegerField, TextAreaField, SelectField, DateField, FloatField, SubmitField
 from wtforms.validators import DataRequired, NumberRange, Optional, Length, ValidationError
 from routes.main import mark_notification_as_read
-
-# Import socketio instance from the new extensions.py file
-from extensions import socketio
 
 dealer_bp = Blueprint('dealer', __name__, url_prefix='/dealer')
 
@@ -31,8 +28,10 @@ def dealer_required(f):
     def decorated_function(*args, **kwargs):
         # Admins should also have access to dealer pages
         if not current_user.is_authenticated or not (current_user.is_dealer or current_user.is_admin):
-            from flask import abort
             abort(403) # Forbidden
+        # A non-admin dealer should not be able to access other dealers' pages if they guess the URL
+        if not current_user.is_admin and 'dealer_id' in kwargs and kwargs['dealer_id'] != current_user.id:
+            abort(403)
         return f(*args, **kwargs)
     return decorated_function
 
@@ -139,6 +138,26 @@ def profile(dealer_id):
                            ratings=ratings,
                            avg_rating=avg_rating)
 
+@dealer_bp.route('/toggle_verification/<int:dealer_id>', methods=['POST'])
+@login_required
+def toggle_verification(dealer_id):
+    """Allows an admin to verify or un-verify a dealer."""
+    # This is a critical admin function, so we must check for admin status explicitly.
+    if not current_user.is_admin:
+        abort(403)
+
+    dealer = User.query.get_or_404(dealer_id)
+    if not dealer.is_dealer:
+        flash("This user is not a dealer.", "warning")
+        return redirect(url_for('admin.dealer_management'))
+
+    dealer.is_verified = not dealer.is_verified
+    db.session.commit()
+
+    status = "verified" if dealer.is_verified else "un-verified"
+    flash(f"Dealer '{dealer.username}' has been {status}.", "success")
+    return redirect(url_for('admin.dealer_management'))
+
 @dealer_bp.route('/messages/<int:conversation_id>', methods=['GET', 'POST'])
 @login_required
 @dealer_required
@@ -148,7 +167,6 @@ def view_conversation(conversation_id):
 
     # Security check: ensure dealer is part of this conversation
     if conversation.dealer_id != current_user.id:
-        from flask import abort
         abort(403)
 
     # Mark messages from buyer as read and emit a real-time update

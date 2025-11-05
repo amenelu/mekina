@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+
+{% block title %}Admin Dashboard{% endblock %}
+
+{% block content %}
+    <h1>Admin Dashboard</h1>
+    <div style="margin-bottom: 20px;">
+        <a href="{{ url_for('admin.add_car') }}" class="btn approve" style="text-decoration: none;">+ Add New Car</a>
+        <a href="{{ url_for('admin.dealer_management') }}" class="btn" style="text-decoration: none;">Manage Dealers</a>
+    </div>
+
+    <h2>At a Glance</h2>
+    <div class="stat-grid">
+        <div class="stat-card">
+            <h3>{{ stats.user_count }}</h3>
+            <p>Total Users</p>
+        </div>
+        <div class="stat-card">
+            <h3>{{ stats.active_auction_count }}</h3>
+            <p>Active Auctions</p>
+        </div>
+        <div class="stat-card">
+            <h3>{{ stats.for_sale_count }}</h3>
+            <p>Cars For Sale</p>
+        </div>
+        <div class="stat-card">
+            <h3>{{ stats.for_rent_count }}</h3>
+            <p>Cars For Rent</p>
+        </div>
+        <div class="stat-card">
+            <h3>{{ stats.pending_approval_count }}</h3>
+            <p>Cars Pending Approval</p>
+        </div>
+    </div>
+
+    <h2>Cars Pending Approval</h2>
+
+    {% if cars %}
+        <div class="table-container">
+            {# This could be a table or a grid like in the original #}
+            <p>Found {{ cars|length }} car(s) pending approval.</p>
+            {# You can add the full grid display here if needed #}
+        </div>
+    {% else %}
+        <p>No cars are currently pending approval.</p>
+    {% endif %}
+{% endblock %}

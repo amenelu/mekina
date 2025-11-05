@@ -17,6 +17,7 @@
                 {% if current_user.is_authenticated and current_user.is_admin %}
                     <li><a href="{{ url_for('admin.dashboard') }}" class="{{ 'active' if request.endpoint == 'admin.dashboard' }}">Dashboard</a></li>
                     <li><a href="{{ url_for('admin.rental_management') }}" class="{{ 'active' if request.endpoint == 'admin.rental_management' }}">Manage Rentals</a></li>
+                    <li><a href="{{ url_for('admin.dealer_management') }}" class="{{ 'active' if request.endpoint == 'admin.dealer_management' }}">Manage Dealers</a></li>
                     <li><a href="{{ url_for('admin.user_management') }}" class="{{ 'active' if request.endpoint == 'admin.user_management' }}">Users</a></li>
                     <li><a href="{{ url_for('auctions.list_auctions') }}" class="{{ 'active' if request.endpoint == 'auctions.list_auctions' }}">Manage Listings</a></li>
                 {% elif current_user.is_authenticated and current_user.is_rental_company %}

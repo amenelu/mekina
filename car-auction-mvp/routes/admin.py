@@ -1,12 +1,13 @@
 from flask import Blueprint, render_template, redirect, url_for, flash, abort, request
 from flask_login import login_required, current_user
 from extensions import db, socketio
+from sqlalchemy import func
 from models.rental_listing import RentalListing
 from models.user import User
 from models.car import Car
 from models.auction import Auction
 from models.notification import Notification
-from models.equipment import Equipment
+from models.dealer_review import DealerReview
 from models.car_image import CarImage
 from routes.seller import CarSubmissionForm, save_seller_document
 from datetime import datetime
@@ -96,6 +97,34 @@ def edit_user(user_id):
 def add_car():
     flash('Add car functionality not implemented yet.', 'info')
     return redirect(url_for('admin.dashboard'))
+
+@admin_bp.route('/dealers')
+@login_required
+@admin_required
+def dealer_management():
+    """Displays a list of all dealers with statistics."""
+    # Subquery for active listings count per dealer
+    active_listings_sub = db.session.query(
+        Car.owner_id, func.count(Car.id).label('active_listings')
+    ).filter(Car.is_active == True, Car.is_approved == True).group_by(Car.owner_id).subquery()
+
+    # Subquery for review stats per dealer
+    review_stats_sub = db.session.query(
+        DealerReview.dealer_id,
+        func.avg(DealerReview.rating).label('avg_rating'),
+        func.count(DealerReview.id).label('review_count')
+    ).group_by(DealerReview.dealer_id).subquery()
+
+    dealers_with_stats = db.session.query(
+        User,
+        func.coalesce(active_listings_sub.c.active_listings, 0).label('active_listings'),
+        func.coalesce(review_stats_sub.c.avg_rating, 0).label('avg_rating'),
+        func.coalesce(review_stats_sub.c.review_count, 0).label('review_count')
+    ).outerjoin(active_listings_sub, User.id == active_listings_sub.c.owner_id)\
+     .outerjoin(review_stats_sub, User.id == review_stats_sub.c.dealer_id)\
+     .filter(User.is_dealer == True).order_by(User.username).all()
+
+    return render_template('dealer_management.html', dealers_with_stats=dealers_with_stats)
 
 @admin_bp.route('/rentals')
 @login_required
