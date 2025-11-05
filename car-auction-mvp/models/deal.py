@@ -11,6 +11,7 @@ class Deal(db.Model):
     dealer_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     car_request_id = db.Column(db.Integer, db.ForeignKey('car_requests.id'), nullable=False)
     accepted_bid_id = db.Column(db.Integer, db.ForeignKey('dealer_bid.id'), nullable=False)
+    payment_method = db.Column(db.String(50), nullable=False, default='cash')
 
     customer = db.relationship('User', foreign_keys=[customer_id])
     dealer = db.relationship('User', foreign_keys=[dealer_id])

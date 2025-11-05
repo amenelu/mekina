@@ -4,6 +4,7 @@ from . import db
 class DealerBid(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     price = db.Column(db.Float, nullable=False)
+    price_with_loan = db.Column(db.Float, nullable=True)
     timestamp = db.Column(db.DateTime, index=True, default=datetime.utcnow)
     status = db.Column(db.String(20), nullable=False, default='pending') # e.g., pending, accepted, rejected
     

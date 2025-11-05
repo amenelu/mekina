@@ -9,6 +9,7 @@
     <div class="deal-summary-card">
         <div class="deal-header">
             <h2>Final Price: {{ '{:,.2f}'.format(deal.final_price) }} ETB</h2>
+            <span class="payment-method-tag">Payment Method: <strong>{{ deal.payment_method|capitalize }}</strong></span>
             <span>Deal confirmed on: {{ deal.deal_date.strftime('%b %d, %Y') }}</span>
         </div>
 

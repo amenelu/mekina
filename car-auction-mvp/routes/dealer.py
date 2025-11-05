@@ -63,6 +63,9 @@ class RequestAnswerForm(FlaskForm):
 @login_required
 @dealer_required
 def dashboard():
+    # Get filter from request args
+    filter_new = request.args.get('filter_new', 'false').lower() == 'true'
+
     # --- Dealer Functionality: Fetch customer requests ---
     # OPTIMIZATION: Use a single query with subqueries to avoid the N+1 problem.
     # This calculates bid counts and lowest offers in the database, not in a Python loop.
@@ -81,7 +84,7 @@ def dashboard():
         DealerRequestView.request_id
     ).filter(DealerRequestView.dealer_id == current_user.id).subquery()
 
-    active_requests = db.session.query(
+    query = db.session.query(
         CarRequest, 
         bid_count_subquery.c.bid_count, 
         lowest_offer_subquery.c.lowest_offer,
@@ -90,8 +93,13 @@ def dashboard():
     ).\
         outerjoin(bid_count_subquery, CarRequest.id == bid_count_subquery.c.request_id).\
         outerjoin(lowest_offer_subquery, CarRequest.id == lowest_offer_subquery.c.request_id).\
-        filter(CarRequest.status == 'active').order_by(CarRequest.created_at.desc()).all()
+        filter(CarRequest.status == 'active')
 
+    # Apply the filter if requested
+    if filter_new:
+        query = query.filter(CarRequest.id.notin_(db.select(viewed_requests_subquery)))
+
+    active_requests = query.order_by(CarRequest.created_at.desc()).all()
     # --- Seller Functionality: Fetch dealer's own listings and questions ---
     my_cars = Car.query.filter_by(owner_id=current_user.id).order_by(Car.id.desc()).all()
     my_car_ids = [car.id for car in my_cars]
@@ -115,7 +123,8 @@ def dashboard():
         my_cars=my_cars,
         unanswered_questions=unanswered_questions,
         unanswered_request_questions=unanswered_request_questions,
-        now=datetime.utcnow()
+        now=datetime.utcnow(),
+        filter_new=filter_new
     )
 
 @dealer_bp.route('/messages')

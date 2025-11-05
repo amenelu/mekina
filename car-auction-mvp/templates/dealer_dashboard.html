@@ -41,6 +41,11 @@
 
     <div class="dashboard-section">
         <h2>Active Customer Requests</h2>
+        <div class="filter-bar">
+            <a href="{{ url_for('dealer.dashboard') }}" class="filter-btn {% if not filter_new %}active{% endif %}">All Requests</a>
+            <a href="{{ url_for('dealer.dashboard', filter_new='true') }}" class="filter-btn {% if filter_new %}active{% endif %}">New Only</a>
+        </div>
+
         {% if requests %}
             <p>The following customers are looking for a car. You can view their request and place an offer.</p>
             <div class="table-responsive-wrapper">
