@@ -21,7 +21,9 @@
             </div>
             <div class="party">
                 <h3>Dealer</h3>
-                <p><strong>Username:</strong> {{ deal.dealer.username }}</p>
+                <p>
+                    <strong>Username:</strong> <a href="{{ url_for('dealer.profile', dealer_id=deal.dealer.id) }}">{{ deal.dealer.username }}</a>
+                </p>
                 <p><strong>Email:</strong> {{ deal.dealer.email }}</p>
                 <p><strong>Phone:</strong> {{ deal.dealer.phone_number or 'Not provided' }}</p>
             </div>

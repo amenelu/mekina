@@ -4,13 +4,14 @@ from models.car_request import CarRequest
 from models.dealer_bid import DealerBid
 from models.deal import Deal
 from extensions import db, socketio
+from models.dealer_rating import DealerRating
 from models.notification import Notification
 from models.request_question import RequestQuestion
 from routes.main import mark_notification_as_read
 
 from flask_wtf import FlaskForm
 from wtforms import StringField, IntegerField, TextAreaField, SubmitField, RadioField, SelectField, SelectMultipleField, widgets, validators
-from wtforms.validators import DataRequired, NumberRange, Optional
+from wtforms.validators import DataRequired, NumberRange, Optional, Length
 
 request_bp = Blueprint('request', __name__, url_prefix='/requests')
 
@@ -84,6 +85,11 @@ class RequestGuided_Equipment(FlaskForm):
 class RequestQuestionForm(FlaskForm):
     question_text = TextAreaField('Your Question', validators=[DataRequired(), validators.Length(min=10, max=500)])
     submit_question = SubmitField('Ask Question')
+
+class DealerRatingForm(FlaskForm):
+    rating = RadioField('Your Rating', choices=[(1, '1'), (2, '2'), (3, '3'), (4, '4'), (5, '5')], coerce=int, validators=[DataRequired()])
+    review_text = TextAreaField('Your Review (Optional)', validators=[Length(max=1000)])
+    submit = SubmitField('Submit Review')
 
 
 @request_bp.route('/start')
@@ -426,3 +432,33 @@ def deal_summary(deal_id):
         abort(403)
     
     return render_template('deal_summary.html', deal=deal)
+
+@request_bp.route('/deal/<int:deal_id>/rate', methods=['POST'])
+@login_required
+def rate_dealer(deal_id):
+    """Handles a buyer submitting a rating for a dealer after a deal."""
+    deal = Deal.query.get_or_404(deal_id)
+
+    # Security checks
+    if deal.customer_id != current_user.id:
+        abort(403) # Only the buyer from the deal can rate
+    if deal.rating:
+        flash("You have already submitted a review for this deal.", "warning")
+        return redirect(url_for('request.deal_summary', deal_id=deal.id))
+
+    form = DealerRatingForm()
+    if form.validate_on_submit():
+        new_rating = DealerRating(
+            rating=form.rating.data,
+            review_text=form.review_text.data,
+            dealer_id=deal.dealer_id,
+            buyer_id=deal.customer_id,
+            deal_id=deal.id
+        )
+        db.session.add(new_rating)
+        db.session.commit()
+        flash("Thank you for your review! Your feedback helps our community.", "success")
+    else:
+        flash("There was an error with your submission. Please select a rating.", "danger")
+
+    return redirect(url_for('request.deal_summary', deal_id=deal.id))

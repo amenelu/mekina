@@ -1588,6 +1588,31 @@ td .role-badge {
     }
 }
 
+/* --- Dealer Reviews --- */
+.review-list {
+    display: grid;
+    gap: 1.5rem;
+}
+.review-card {
+    background-color: hsl(var(--card));
+    border: 1px solid hsl(var(--border));
+    border-radius: var(--radius);
+    padding: 1.5rem;
+}
+.review-header {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+.review-text {
+    font-style: italic;
+    color: hsl(var(--muted-foreground));
+    border-left: 3px solid hsl(var(--border));
+    padding-left: 1rem;
+    margin: 0 0 1rem 0;
+}
+
 /* --- RESPONSIVE DESIGN (Mobile First Approach) --- */
 
 /* Medium screens (tablets) */
