@@ -674,8 +674,14 @@ tbody tr:hover {
 
 /* Highlight for new/unread items in tables */
 tbody tr.new-request {
-    background-color: hsl(var(--secondary)) !important;
+    background-color: hsl(var(--accent) / 0.1);
     border-left: 3px solid hsl(var(--accent));
+    transition: background-color 0.2s ease-in-out;
+}
+
+/* Add a specific hover effect for new/unread rows */
+tbody tr.new-request:hover {
+    background-color: hsl(var(--accent) / 0.2);
 }
 
 /* Highlight for a user's own items in a list */
@@ -1567,6 +1573,130 @@ td .role-badge {
 .dealer-profile-page .admin-actions {
     margin-top: 2rem;
 }
+
+/* --- Modern Dashboard Full-Width Wrappers --- */
+.dashboard-header-wrapper {
+    padding: 2rem 0;
+    background-color: hsl(var(--card));
+    border-bottom: 1px solid hsl(var(--border));
+}
+.dashboard-stats-wrapper {
+    padding: 2rem 0;
+    background-color: hsl(var(--background));
+}
+
+/* --- Modern Dealer Dashboard --- */
+.dashboard-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    flex-wrap: wrap;
+    gap: 1rem;
+}
+.dashboard-header h1 {
+    margin: 0;
+}
+.dashboard-header p {
+    margin: 0.25rem 0 0;
+    color: hsl(var(--muted-foreground));
+    font-size: 1.1rem;
+}
+.header-actions {
+    display: flex;
+    gap: 0.75rem;
+    align-items: center;
+}
+
+.dashboard-stat-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1.5rem;
+}
+.dashboard-stat-grid .stat-card {
+    background-color: hsl(var(--card));
+    padding: 1.5rem;
+    text-align: left;
+}
+.dashboard-stat-grid .stat-card h3 {
+    font-size: 2.5rem;
+    margin: 0;
+}
+.dashboard-stat-grid .stat-card p {
+    margin: 0;
+    color: hsl(var(--muted-foreground));
+    font-weight: 500;
+}
+
+.request-grid, .question-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+    gap: 1.5rem;
+    margin-top: 1.5rem;
+}
+
+.request-card, .question-card {
+    background-color: hsl(var(--card));
+    border: 1px solid hsl(var(--border));
+    border-radius: var(--radius);
+    display: flex;
+    flex-direction: column;
+    transition: all 0.2s ease-in-out;
+}
+.request-card:hover {
+    transform: translateY(-3px);
+    box-shadow: var(--shadow-elevated);
+}
+
+.request-card.new-request {
+    border-left: 4px solid hsl(var(--accent));
+}
+.request-card.new-request:hover {
+    border-color: hsl(var(--accent));
+}
+
+.request-card .card-main-link {
+    text-decoration: none;
+    color: inherit;
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+}
+.request-card .card-header {
+    padding: 1rem 1.25rem;
+    border-bottom: 1px solid hsl(var(--border));
+    font-weight: 600;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+.request-card .card-body {
+    padding: 1rem 1.25rem;
+    flex-grow: 1;
+}
+.request-card .card-footer, .question-card .card-footer {
+    padding: 1rem 1.25rem;
+    border-top: 1px solid hsl(var(--border));
+    background-color: hsl(var(--secondary));
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1rem;
+}
+.request-card .footer-stat, .question-card .footer-stat {
+    text-align: left;
+}
+.request-card .footer-stat span, .question-card .footer-stat span {
+    font-size: 0.8em;
+    color: hsl(var(--muted-foreground));
+    display: block;
+}
+.request-card .footer-stat strong, .question-card .footer-stat strong {
+    font-weight: 600;
+}
+
+.question-card .card-body { padding: 1.25rem; }
+.question-card .question-text { font-style: italic; margin: 0 0 1rem 0; }
+.question-card .question-meta { font-size: 0.9em; color: hsl(var(--muted-foreground)); }
 
 /* --- Dashboard Tabs --- */
 .dashboard-tabs {

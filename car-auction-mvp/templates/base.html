@@ -97,18 +97,20 @@
             </button>
         </div>
     </nav>
-    <main class="container">
-        {% with messages = get_flashed_messages() %}
-        {% if messages %}
-            <ul class=flashes>
-            {% for message in messages %}
-                <li>{{ message }}</li>
-            {% endfor %}
-            </ul>
-        {% endif %}
-        {% endwith %}
-        {% block content %}{% endblock %}
-    </main>
+    {% block main_content %}
+        <main class="container">
+            {% with messages = get_flashed_messages() %}
+            {% if messages %}
+                <ul class=flashes>
+                {% for message in messages %}
+                    <li>{{ message }}</li>
+                {% endfor %}
+                </ul>
+            {% endif %}
+            {% endwith %}
+            {% block content %}{% endblock %}
+        </main>
+    {% endblock %}
 
     {% block after_content %}{% endblock %}
 

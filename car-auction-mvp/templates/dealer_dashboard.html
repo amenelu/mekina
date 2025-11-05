@@ -28,195 +28,202 @@
 
 {% endblock %}
 
-{% block content %}
-    <h1>Dealer Dashboard</h1>
-    <div style="margin-bottom: 20px;">
-        <div class="stat-card" style="margin-bottom: 1rem; text-align: right;">
-            <strong>Your Points:</strong> {{ current_user.points }}
-            {# You can add a link here to a future "buy points" page #}
-        </div>
-        <a href="{{ url_for('seller.submit_car') }}" class="nav-button" style="background-color: hsl(var(--success)); text-decoration: none;">+ List a New Car</a>
-        <a href="{{ url_for('dealer.list_messages') }}" class="nav-button" style="text-decoration: none;">My Messages</a>
-    </div>
-
-    <div class="dashboard-tabs">
-        <a href="#requests" class="tab-link active" data-tab="requests">Customer Requests</a>
-        <a href="#listings" class="tab-link" data-tab="listings">My Listings</a>
-        <a href="#questions" class="tab-link" data-tab="questions">Unanswered Questions {% if unanswered_request_questions %}<span class="notification-badge">{{ unanswered_request_questions|length }}</span>{% endif %}</a>
-    </div>
-
-    <div id="requests" class="tab-content active">
-        <div class="dashboard-section">
-            <h2>Active Customer Requests</h2>
-            <div class="filter-bar">
-                <a href="{{ url_for('dealer.dashboard') }}" class="filter-btn {% if not filter_new %}active{% endif %}">All Requests</a>
-                <a href="{{ url_for('dealer.dashboard', filter_new='true') }}" class="filter-btn {% if filter_new %}active{% endif %}">New Only</a>
+{% block main_content %}
+<div class="dashboard-full-width-container">
+    <div class="dashboard-header-wrapper">
+        <div class="container">
+            <div class="dashboard-header">
+                <div class="header-main">
+                    <h1>Dealer Dashboard</h1>
+                    <p>Welcome back, {{ current_user.username }}! Here's what's new.</p>
+                </div>
+                <div class="header-actions">
+                    <a href="{{ url_for('seller.submit_car') }}" class="btn approve">+ List a New Car</a>
+                    <a href="{{ url_for('dealer.list_messages') }}" class="btn">My Messages</a>
+                </div>
             </div>
-    
-            {% if requests %}
-                <p>The following customers are looking for a car. You can view their request and place an offer.</p>
-                <div class="table-responsive-wrapper">
-                    <table class="dashboard-table">
+        </div>
+    </div>
+    <div class="dashboard-stats-wrapper">
+        <div class="container">
+            <div class="dashboard-stat-grid">
+                <div class="stat-card">
+                    <h3>{{ current_user.points }}</h3>
+                    <p>Your Points</p>
+                </div>
+                <div class="stat-card">
+                    <h3>{{ my_cars|length }}</h3>
+                    <p>Active Listings</p>
+                </div>
+                <div class="stat-card">
+                    <h3>{{ requests|selectattr('3', 'false')|list|length }}</h3>
+                    <p>New Requests</p>
+                </div>
+                <div class="stat-card">
+                    <h3>{{ unanswered_request_questions|length }}</h3>
+                    <p>Unanswered Questions</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="dashboard-tabs">
+            <a href="#requests" class="tab-link active" data-tab="requests">Customer Requests</a>
+            <a href="#listings" class="tab-link" data-tab="listings">My Listings</a>
+            <a href="#questions" class="tab-link" data-tab="questions">Unanswered Questions {% if unanswered_request_questions %}<span class="notification-badge">{{ unanswered_request_questions|length }}</span>{% endif %}</a>
+        </div>
+
+        <div id="requests" class="tab-content active">
+            <div class="dashboard-section">
+                <h2>Active Customer Requests</h2>
+                <div class="filter-bar">
+                    <a href="{{ url_for('dealer.dashboard') }}" class="filter-btn {% if not filter_new %}active{% endif %}">All Requests</a>
+                    <a href="{{ url_for('dealer.dashboard', filter_new='true') }}" class="filter-btn {% if filter_new %}active{% endif %}">New Only</a>
+                </div>
+        
+                {% if requests %}
+                    <p>The following customers are looking for a car. You can view their request and place an offer.</p>
+                    <div class="request-grid">
+                        {% for car_request, bid_count, lowest_offer, has_been_viewed in requests %}
+                        <div class="request-card {% if not has_been_viewed %}new-request{% endif %}">
+                            <a href="{{ url_for('dealer.place_bid', request_id=car_request.id) }}" class="card-main-link">
+                                <div class="card-header">
+                                    {% if car_request.make and car_request.model %}
+                                        <strong>{{ car_request.make }} {{ car_request.model }}</strong> ({{ car_request.min_year or 'Any' }}+)
+                                    {% else %}
+                                        <em>General Request</em>
+                                    {% endif %}
+                                    {% if not has_been_viewed %}<span class="new-item-tag">New</span>{% endif %}
+                                </div>
+                                <div class="card-body">
+                                    {% if car_request.make and car_request.model %}
+                                        <blockquote class="compact">{{ car_request.notes|truncate(100) }}</blockquote>
+                                    {% else %}
+                                        {{ display_request_notes(car_request.notes) }}
+                                    {% endif %}
+                                </div>
+                            </a>
+                            <div class="card-footer">
+                                <div class="footer-stat">
+                                    <span>Bidders</span>
+                                    <strong>{{ bid_count or 0 }}</strong>
+                                </div>
+                                <div class="footer-stat">
+                                    <span>Lowest Offer</span>
+                                    <strong>{% if lowest_offer %}{{ '{:,.0f}'.format(lowest_offer) }} ETB{% else %}N/A{% endif %}</strong>
+                                </div>
+                                <div class="footer-action">
+                                    <a href="{{ url_for('dealer.place_bid', request_id=car_request.id) }}" class="btn approve small">Place Offer</a>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <p>There are no active customer requests at the moment.</p>
+                {% endif %}
+            </div>
+        </div>
+
+        <div id="listings" class="tab-content">
+            <div class="dashboard-section">
+                <h2>My Listings</h2>
+                {% if my_cars %}
+                    <div class="table-responsive-wrapper">
+                        <table class="dashboard-table">
                     <thead>
                         <tr>
-                            <th>Request Date</th>
-                            <th>Customer Request</th>
-                            <th>Bidders</th>
-                            <th>Lowest Offer</th>
-                            <th class="actions-column"></th>
+                            <th>Car</th>
+                            <th>Status</th>
+                            <th>Visibility</th>
+                            <th>Auction Status</th>
+                            <th>Actions</th>
                         </tr>
                     </thead>
                     <tbody>
-                        {% for car_request, bid_count, lowest_offer, has_been_viewed in requests %}
-                        <tr class="clickable-row {% if not has_been_viewed %}new-request{% endif %}" data-href="{{ url_for('dealer.place_bid', request_id=car_request.id) }}">
-                            <td>{{ car_request.created_at.strftime('%b %d, %Y') }}</td>
+                        {% for car in my_cars %}
+                        <tr>
+                            <td>{{ car.year }} {{ car.make }} {{ car.model }}</td>
                             <td>
-                                {% if car_request.make and car_request.model %}
-                                    <strong>{{ car_request.make }} {{ car_request.model }}</strong> ({{ car_request.min_year or 'Any' }}+)
+                                {% if car.is_approved %}
+                                    <span style="color: hsl(var(--success)); font-weight: bold;">Approved</span>
                                 {% else %}
-                                    <em>General Request</em>
-                                {% endif %}
-                                {% if car_request.make and car_request.model %}
-                                    <blockquote class="compact">{{ car_request.notes|truncate(100) }}</blockquote>
-                                {% else %}
-                                    {# This is a "help me decide" request, so format the notes #}
-                                    {{ display_request_notes(car_request.notes) }}
+                                    <span style="color: hsl(var(--warning)); font-weight: bold;">Pending Approval</span>
                                 {% endif %}
                             </td>
                             <td>
-                                {% if bid_count and bid_count > 0 %}
-                                    {{ bid_count }} dealer(s)
-                                {% else %}
-                                    <span class="text-muted">None yet</span>
+                                {% if car.is_approved %}
+                                <label class="switch">
+                                    <input type="checkbox" class="visibility-toggle" data-car-id="{{ car.id }}" {% if car.is_active %}checked{% endif %}>
+                                    <span class="slider round"></span>
+                                </label>
+                                <span id="status-text-{{ car.id }}" class="availability-text">{% if car.is_active %}Active{% else %}Inactive{% endif %}</span>
                                 {% endif %}
                             </td>
                             <td>
-                                {% if lowest_offer %}
-                                    {{ '{:,.2f}'.format(lowest_offer) }} ETB
+                                {% if car.auction and car.auction.end_time > now %}
+                                    Active (Ends: {{ car.auction.end_time.strftime('%Y-%m-%d %H:%M') }})
+                                {% elif car.listing_type == 'auction' and car.auction and car.auction.end_time <= now %}
+                                    Expired
+                                {% elif car.listing_type == 'sale' or car.listing_type == 'rental' %}
+                                    Live
                                 {% else %}
-                                    <span class="text-muted">N/A</span>
+                                    No Auction Yet
                                 {% endif %}
                             </td>
-                            <td class="actions-column">
-                                <a href="{{ url_for('dealer.place_bid', request_id=car_request.id) }}" class="btn">Place Offer</a>
+                            <td>
+                                <div class="button-group">
+                                    {% if not car.is_approved %}<a href="{{ url_for('seller.edit_car', car_id=car.id) }}" class="btn edit small">Edit</a>{% endif %}
+                                    <form action="{{ url_for('seller.delete_car', car_id=car.id) }}" method="post" onsubmit="return confirm('Are you sure you want to permanently delete this listing?');">
+                                        <button type="submit" class="btn delete small">Delete</button>
+                                    </form>
+                                </div>
                             </td>
                         </tr>
                         {% endfor %}
                     </tbody>
                 </table>
-                </div>
-            {% else %}
-                <p>There are no active customer requests at the moment.</p>
-            {% endif %}
+                    </div>
+                {% else %}
+                    <p>You have not submitted any cars yet.</p>
+                {% endif %}
+            </div>
         </div>
-    </div>
 
-    <div id="listings" class="tab-content">
-        <div class="dashboard-section">
-            <h2>My Listings</h2>
-            {% if my_cars %}
-                <div class="table-responsive-wrapper">
-                    <table class="dashboard-table">
-                <thead>
-                    <tr>
-                        <th>Car</th>
-                        <th>Status</th>
-                        <th>Visibility</th>
-                        <th>Auction Status</th>
-                        <th>Actions</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for car in my_cars %}
-                    <tr>
-                        <td>{{ car.year }} {{ car.make }} {{ car.model }}</td>
-                        <td>
-                            {% if car.is_approved %}
-                                <span style="color: hsl(var(--success)); font-weight: bold;">Approved</span>
-                            {% else %}
-                                <span style="color: hsl(var(--warning)); font-weight: bold;">Pending Approval</span>
-                            {% endif %}
-                        </td>
-                        <td>
-                            {% if car.is_approved %}
-                            <label class="switch">
-                                <input type="checkbox" class="visibility-toggle" data-car-id="{{ car.id }}" {% if car.is_active %}checked{% endif %}>
-                                <span class="slider round"></span>
-                            </label>
-                            <span id="status-text-{{ car.id }}" class="availability-text">{% if car.is_active %}Active{% else %}Inactive{% endif %}</span>
-                            {% endif %}
-                        </td>
-                        <td>
-                            {% if car.auction and car.auction.end_time > now %}
-                                Active (Ends: {{ car.auction.end_time.strftime('%Y-%m-%d %H:%M') }})
-                            {% elif car.listing_type == 'auction' and car.auction and car.auction.end_time <= now %}
-                                Expired
-                            {% elif car.listing_type == 'sale' or car.listing_type == 'rental' %}
-                                Live
-                            {% else %}
-                                No Auction Yet
-                            {% endif %}
-                        </td>
-                        <td>
-                            <div class="button-group">
-                                {% if not car.is_approved %}<a href="{{ url_for('seller.edit_car', car_id=car.id) }}" class="btn edit small">Edit</a>{% endif %}
-                                <form action="{{ url_for('seller.delete_car', car_id=car.id) }}" method="post" onsubmit="return confirm('Are you sure you want to permanently delete this listing?');">
-                                    <button type="submit" class="btn delete small">Delete</button>
-                                </form>
+        <div id="questions" class="tab-content">
+            <div class="dashboard-section">
+                <h2>Unanswered Questions on Your Offers</h2>
+                {% if unanswered_request_questions %}
+                    <div class="question-grid">
+                        {% for q in unanswered_request_questions %}
+                        <div class="question-card">
+                            <div class="card-body">
+                                <p class="question-text">"{{ q.question_text }}"</p>
+                                <span class="question-meta">
+                                    Regarding your offer for 
+                                    <a href="{{ url_for('dealer.place_bid', request_id=q.dealer_bid.request_id) }}">
+                                        Request #{{ q.dealer_bid.request_id }}
+                                    </a>
+                                </span>
                             </div>
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-                </div>
-            {% else %}
-                <p>You have not submitted any cars yet.</p>
-            {% endif %}
+                            <div class="card-footer">
+                                <div class="footer-stat">
+                                    <span>Your Offer</span>
+                                    <strong>{{ '{:,.0f}'.format(q.dealer_bid.price) }} ETB</strong>
+                                </div>
+                                <a href="{{ url_for('dealer.answer_request_question', question_id=q.id) }}" class="btn approve small">Answer</a>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <p>You have no unanswered questions on your offers.</p>
+                {% endif %}
+            </div>
         </div>
     </div>
-
-    <div id="questions" class="tab-content">
-        <div class="dashboard-section">
-            <h2>Unanswered Questions on Your Offers</h2>
-            {% if unanswered_request_questions %}
-                <div class="table-responsive-wrapper">
-                    <table class="dashboard-table">
-                 <thead>
-                    <tr>
-                        <th>Customer Request</th>
-                        <th>Question</th>
-                        <th>Your Offer</th>
-                        <th>Action</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for q in unanswered_request_questions %}
-                    <tr>
-                        <td>
-                            <a href="{{ url_for('dealer.place_bid', request_id=q.dealer_bid.request_id) }}"><strong>Request #{{ q.dealer_bid.request_id }}</strong></a>
-                            {% if q.dealer_bid.car_request.make and q.dealer_bid.car_request.model %}
-                                <p>{{ q.dealer_bid.car_request.make }} {{ q.dealer_bid.car_request.model }}</p>
-                            {% else %}
-                                <p class="text-muted">{{ q.dealer_bid.car_request.notes|truncate(50) }}</p>
-                            {% endif %}
-                        </td>
-                        <td>
-                            <span class="new-item-tag">New</span>
-                            {{ q.question_text }}
-                        </td>
-                        <td><strong>{{ '{:,.2f}'.format(q.dealer_bid.price) }} ETB</strong></td>
-                        <td><a href="{{ url_for('dealer.answer_request_question', question_id=q.id) }}">Answer</a></td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-                </div>
-            {% else %}
-                <p>You have no unanswered questions on your offers.</p>
-            {% endif %}
-        </div>
-    </div>
+</div>
 {% endblock %}
 
 {% block after_content %}
