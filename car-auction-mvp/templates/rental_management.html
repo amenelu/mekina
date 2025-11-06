@@ -1,74 +1,83 @@
 {% extends "base.html" %}
 
-{% block title %}Rental Management{% endblock %}
+{% block title %}Manage Rental Listings{% endblock %}
 
-{% block content %}
-    <h1>Rental Listing Management</h1>
+{% block body_class %}rental-management-page{% endblock %}
 
-    <table>
-        <thead>
-            <tr>
-                <th>Car</th>
-                <th>Owner</th>
-                <th>Status</th>
-                <th>Price per Day</th>
-                <th>Actions</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for car in cars.items %}
-            <tr data-href="{{ url_for('rentals.rental_detail', listing_id=car.rental_listing.id) if car.rental_listing else '#' }}" style="cursor: pointer;">
-                <td>{{ car.year }} {{ car.make }} {{ car.model }}</td>
-                <td>
-                    <strong>{{ car.owner.username }}</strong><br>
-                    <small>{{ car.owner.email }}</small><br>
-                    <small>{{ car.owner.phone_number or 'No phone' }}</small>
-                </td>
-                <td>
-                    {% if car.is_approved %}
-                        <span style="color: hsl(var(--success)); font-weight: bold;">Approved</span>
-                    {% else %}
-                        <span style="color: hsl(var(--warning)); font-weight: bold;">Pending Approval</span>
-                    {% endif %}
-                </td>
-                <td>
-                    {% if car.rental_listing %}
-                        {{ '{:,.2f}'.format(car.rental_listing.price_per_day) }} ETB
-                    {% else %}
-                        N/A
-                    {% endif %}
-                </td>
-                <td class="button-group">
-                    {% if not car.is_approved %}
-                    <form action="{{ url_for('admin.approve_car', car_id=car.id) }}" method="post" style="display:inline;">
-                        <button type="submit" class="btn approve">Approve</button>
-                    </form>
-                    {% endif %}
-                    <a href="{{ url_for('admin.edit_listing', car_id=car.id) }}" class="btn edit">Edit</a>
-                    <form action="{{ url_for('admin.delete_listing', car_id=car.id) }}" method="post" onsubmit="return confirm('Are you sure you want to delete this listing? This cannot be undone.');">
-                        <button type="submit" class="btn delete">Delete</button>
-                    </form>
-                </td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
-
-    <div class="pagination">
-        {% if cars.has_prev %}<a href="{{ url_for('admin.rental_management', page=cars.prev_num) }}">&laquo; Previous</a>{% endif %}
-        <span>Page {{ cars.page }} of {{ cars.pages }}</span>
-        {% if cars.has_next %}<a href="{{ url_for('admin.rental_management', page=cars.next_num) }}">Next &raquo;</a>{% endif %}
+{% block main_content %}
+<div class="dashboard-full-width-container">
+    <div class="dashboard-header-wrapper">
+        <div class="container">
+            <div class="dashboard-header">
+                <div class="header-main">
+                    <h1>Manage Rental Listings</h1>
+                    <p>Review, edit, and manage all rental cars on the platform.</p>
+                </div>
+            </div>
+        </div>
     </div>
 
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    document.querySelectorAll('tr[data-href]').forEach(row => {
-        row.addEventListener('click', function(e) {
-            // Don't navigate if a button or link inside the row was clicked
-            if (e.target.closest('a, button, .switch')) return;
-            window.location.href = this.dataset.href;
-        });
-    });
-});
-</script>
+    <div class="container">
+        <div class="dashboard-section">
+            {% if cars.items %}
+                <div class="table-responsive-wrapper">
+                    <table class="dashboard-table">
+                        <thead>
+                            <tr>
+                                <th>Car</th>
+                                <th>Owner</th>
+                                <th>Price/Day</th>
+                                <th>Status</th>
+                                <th>Visibility</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for car in cars.items %}
+                            <tr>
+                                <td data-label="Car">{{ car.year }} {{ car.make }} {{ car.model }}</td>
+                                <td data-label="Owner">{{ car.owner.username }}</td>
+                                <td data-label="Price/Day">{{ '{:,.2f}'.format(car.rental_listing.price_per_day) }} ETB</td>
+                                <td data-label="Status">
+                                    {% if car.is_approved %}
+                                        <span class="status-tag status-active">Approved</span>
+                                    {% else %}
+                                        <span class="status-tag status-pending">Pending</span>
+                                    {% endif %}
+                                </td>
+                                <td data-label="Visibility">
+                                    {% if car.is_approved %}
+                                        <span class="availability-tag {% if not car.is_active %}unavailable{% endif %}">
+                                            {% if car.is_active %}Active{% else %}Inactive{% endif %}
+                                        </span>
+                                    {% else %}
+                                        <span class="text-muted">-</span>
+                                    {% endif %}
+                                </td>
+                                <td data-label="Actions">
+                                    <div class="button-group">
+                                        <a href="{{ url_for('admin.edit_listing', car_id=car.id) }}" class="btn edit small">Edit</a>
+                                        <form action="{{ url_for('admin.delete_listing', car_id=car.id) }}" method="POST" onsubmit="return confirm('Are you sure you want to permanently delete this listing?');">
+                                            <button type="submit" class="btn delete small">Delete</button>
+                                        </form>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Pagination -->
+                <div class="pagination">
+                    {% if cars.has_prev %}<a href="{{ url_for('admin.rental_management', page=cars.prev_num) }}" class="btn">&laquo; Previous</a>{% endif %}
+                    <span>Page {{ cars.page }} of {{ cars.pages }}</span>
+                    {% if cars.has_next %}<a href="{{ url_for('admin.rental_management', page=cars.next_num) }}" class="btn">Next &raquo;</a>{% endif %}
+                </div>
+            {% else %}
+                <p>There are no rental listings on the platform yet.</p>
+            {% endif %}
+        </div>
+    </div>
+</div>
 {% endblock %}

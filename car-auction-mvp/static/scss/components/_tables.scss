@@ -1,0 +1,62 @@
+.dashboard-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 1.5rem;
+    font-size: 0.95em;
+    background-color: hsl(var(--card));
+    border: 1px solid hsl(var(--border));
+    border-radius: var(--radius);
+    overflow: hidden; /* To respect border-radius on thead */
+}
+
+.dashboard-table thead th {
+    background-color: hsl(var(--secondary));
+    font-weight: 600;
+    text-align: left;
+    padding: 12px 15px;
+    color: hsl(var(--muted-foreground));
+    text-transform: uppercase;
+    font-size: 0.8em;
+    letter-spacing: 0.5px;
+}
+
+.dashboard-table tbody td {
+    padding: 15px;
+    border-bottom: 1px solid hsl(var(--border));
+    vertical-align: middle;
+}
+
+.dashboard-table tbody tr:last-child td {
+    border-bottom: none;
+}
+
+.dashboard-table tbody tr {
+    transition: background-color 0.2s ease-in-out;
+}
+
+.dashboard-table tbody tr:hover {
+    background-color: hsl(var(--secondary));
+}
+
+.dashboard-table .button-group {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+    justify-content: flex-end;
+}
+.dashboard-table .button-group .btn {
+    padding: 6px 10px; /* Smaller buttons for table actions */
+}
+
+/* --- Pagination Styles --- */
+.pagination {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 1rem;
+    margin-top: 2rem;
+}
+
+.pagination .btn {
+    padding: 8px 15px;
+}

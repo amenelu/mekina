@@ -2,72 +2,82 @@
 
 {% block title %}Admin Dashboard{% endblock %}
 
-{% block content %}
-    <h1>Admin Dashboard</h1>
-    <div style="margin-bottom: 20px;">
-        <a href="{{ url_for('admin.add_car') }}" class="nav-button" style="background-color: hsl(var(--success)); text-decoration: none;">+ Add New Car</a>
-    </div>
+{% block body_class %}admin-dashboard-page{% endblock %}
 
-    <h2>At a Glance</h2>
-    <div class="stat-grid">
-        <div class="stat-card">
-            <h3>{{ stats.user_count }}</h3>
-            <p>Total Users</p>
-        </div>
-        <div class="stat-card">
-            <h3>{{ stats.active_auction_count }}</h3>
-            <p>Active Auctions</p>
-        </div>
-        <div class="stat-card">
-            <h3>{{ stats.for_sale_count }}</h3>
-            <p>Cars For Sale</p>
-        </div>
-        <div class="stat-card">
-            <h3>{{ stats.for_rent_count }}</h3>
-            <p>Cars For Rent</p>
-        </div>
-        <div class="stat-card">
-            <h3>{{ stats.pending_approval_count }}</h3>
-            <p>Cars Pending Approval</p>
-        </div>
-    </div>
-
-    <h2>Cars Pending Approval</h2>
-
-    {% if cars %}
-        <div class="auction-grid">
-            {% for car in cars %}
-            <div class="auction-card">
-                <span class="listing-type-tag small {{ car.listing_type.lower() }}">{{ car.listing_type|title }}</span>
-                <img src="{{ car.primary_image_url or url_for('static', filename='img/default_car.png') }}" alt="Car Image">
-                <div class="card-content">
-                    <h3>{{ car.year }} {{ car.make }} {{ car.model }}</h3>
-                    <p>Submitted by: <strong>{{ car.owner.username }}</strong></p>
-                </div>
-                <div class="card-footer button-group">
-                    <form action="{{ url_for('admin.approve_car', car_id=car.id) }}" method="post" style="flex-grow: 1;">
-                        <button type="submit" class="btn approve" style="width: 100%;">Approve</button>
-                    </form>
-                    
-                    {% set view_url = '' %}
-                    {% if car.listing_type == 'auction' and car.auction %}
-                        {% set view_url = url_for('auctions.auction_detail', auction_id=car.auction.id) %}
-                    {% elif car.listing_type == 'sale' %}
-                        {% set view_url = url_for('main.car_detail', car_id=car.id) %}
-                    {% elif car.listing_type == 'rental' and car.rental_listing %}
-                        {% set view_url = url_for('rentals.rental_detail', listing_id=car.rental_listing.id) %}
-                    {% endif %}
-
-                    {% if view_url %}
-                        <a href="{{ view_url }}" class="btn edit">View</a>
-                    {% endif %}
-                    
-                    <a href="{{ url_for('admin.edit_listing', car_id=car.id) }}" class="btn edit">Edit</a>
+{% block main_content %}
+<div class="dashboard-full-width-container">
+    <div class="dashboard-header-wrapper">
+        <div class="container">
+            <div class="dashboard-header">
+                <div class="header-main">
+                    <h1>Admin Dashboard</h1>
+                    <p>Site overview and management.</p>
                 </div>
             </div>
-            {% endfor %}
         </div>
-    {% else %}
-        <p>No cars are currently pending approval.</p>
-    {% endif %}
+    </div>
+    <div class="dashboard-stats-wrapper">
+        <div class="container">
+            <div class="dashboard-stat-grid">
+                <div class="stat-card">
+                    <h3>{{ stats.user_count }}</h3>
+                    <p>Total Users</p>
+                </div>
+                <div class="stat-card">
+                    <h3>{{ stats.active_auction_count }}</h3>
+                    <p>Active Auctions</p>
+                </div>
+                <div class="stat-card">
+                    <h3>{{ stats.for_sale_count }}</h3>
+                    <p>Cars For Sale</p>
+                </div>
+                <div class="stat-card">
+                    <h3>{{ stats.for_rent_count }}</h3>
+                    <p>Cars For Rent</p>
+                </div>
+                <div class="stat-card">
+                    <h3>{{ stats.pending_approval_count }}</h3>
+                    <p>Pending Approvals</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="dashboard-section">
+            <h2>Listings Pending Approval</h2>
+            {% if cars %}
+                <div class="table-responsive-wrapper">
+                    <table class="dashboard-table">
+                        <thead>
+                            <tr>
+                                <th>Car</th>
+                                <th>Seller</th>
+                                <th>Listing Type</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for car in cars %}
+                            <tr>
+                                <td data-label="Car">{{ car.year }} {{ car.make }} {{ car.model }}</td>
+                                <td data-label="Seller">{{ car.owner.username }}</td>
+                                <td data-label="Listing Type">{{ car.listing_type|title }}</td>
+                                <td data-label="Actions">
+                                    <div class="button-group">
+                                        <a href="{{ url_for('admin.edit_listing', car_id=car.id) }}" class="btn edit small">Review & Edit</a>
+                                        <form action="{{ url_for('admin.approve_car', car_id=car.id) }}" method="POST" style="display: inline;"><button type="submit" class="btn approve small">Approve</button></form>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <p>There are no listings pending approval.</p>
+            {% endif %}
+        </div>
+    </div>
+</div>
 {% endblock %}

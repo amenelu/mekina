@@ -92,7 +92,6 @@
                         <tr>
                             <th>Dealer</th>
                             <th>Cash Price</th>
-                            <th>Loan Price</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -108,13 +107,6 @@
                                     </strong>
                                 </td>
                                 <td data-label="Cash Price">{{ '{:,.2f}'.format(bid.price) }} ETB</td>
-                                <td data-label="Loan Price">
-                                    {% if bid.price_with_loan %}
-                                        {{ '{:,.2f}'.format(bid.price_with_loan) }} ETB
-                                    {% else %}
-                                        <span class="text-muted">N/A</span>
-                                    {% endif %}
-                                </td>
                             </tr>
                         {% endfor %}
                     </tbody>

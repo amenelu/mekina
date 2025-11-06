@@ -196,6 +196,10 @@
         padding: 1rem;
         border-radius: var(--radius);
     }
+
+    .dealer-profile-page .detail-page-container {
+        flex-direction: column;
+    }
 }
 
 /* --- Deal Summary Page --- */
@@ -300,3 +304,44 @@
 .already-rated .star.filled {
     color: hsl(var(--warning));
 }
+
+/* --- Dealer Profile Page Enhancements --- */
+.dealer-profile-hero {
+    background-color: hsl(var(--card));
+    border: 1px solid hsl(var(--border));
+    border-radius: var(--radius);
+    padding: 2rem;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 2rem;
+    align-items: center;
+}
+.dealer-info {
+    display: flex;
+    gap: 1.5rem;
+    align-items: center;
+    flex-grow: 1;
+}
+.dealer-logo-placeholder {
+    width: 100px;
+    height: 100px;
+    border-radius: 50%;
+    background-color: hsl(var(--accent));
+    color: hsl(var(--accent-foreground));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 3rem;
+    font-weight: 700;
+    flex-shrink: 0;
+}
+.dealer-details h1 { margin: 0; font-size: 2.2rem; }
+.dealer-name-verified { display: flex; align-items: center; gap: 1rem; }
+.dealer-tagline { font-size: 1.1rem; color: hsl(var(--muted-foreground)); margin: 0.25rem 0 0.5rem 0; }
+.dealer-rating-summary .star { font-size: 1.5rem; }
+.dealer-rating-summary .star.filled { color: hsl(var(--warning)); }
+.dealer-rating-summary .rating-text { margin-left: 0.5rem; font-weight: 500; }
+
+.review-list { display: grid; gap: 1.5rem; }
+.review-header { display: flex; align-items: center; gap: 1rem; margin-bottom: 1rem; }
+.review-text { font-style: italic; color: hsl(var(--muted-foreground)); border-left: 3px solid hsl(var(--border)); padding-left: 1rem; margin: 0 0 1rem 0; }

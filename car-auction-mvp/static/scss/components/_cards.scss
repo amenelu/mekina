@@ -23,6 +23,22 @@
     height: 180px;
     object-fit: cover;
 }
+.dealer-card-info {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.8em;
+    color: hsl(var(--muted-foreground));
+    margin-bottom: 0.5rem;
+}
+.dealer-card-info .verified-badge.small {
+    padding: 2px 5px;
+    font-size: 0.9em;
+}
+.dealer-rating-card {
+    font-weight: 600;
+    color: hsl(var(--warning));
+}
 .auction-card .card-content {
     padding: 15px;
     text-align: left;
@@ -156,4 +172,3 @@
 .question-card .card-body { padding: 1.25rem; }
 .question-card .question-text { font-style: italic; margin: 0 0 1rem 0; }
 .question-card .question-meta { font-size: 0.9em; color: hsl(var(--muted-foreground)); }
-

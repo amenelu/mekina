@@ -188,6 +188,25 @@ a:hover {
   object-fit: cover;
 }
 
+.dealer-card-info {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.8em;
+  color: hsl(var(--muted-foreground));
+  margin-bottom: 0.5rem;
+}
+
+.dealer-card-info .verified-badge.small {
+  padding: 2px 5px;
+  font-size: 0.9em;
+}
+
+.dealer-rating-card {
+  font-weight: 600;
+  color: hsl(var(--warning));
+}
+
 .auction-card .card-content {
   padding: 15px;
   text-align: left;
@@ -985,6 +1004,70 @@ textarea:focus {
   padding: 6px 12px;
 }
 
+.dashboard-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 1.5rem;
+  font-size: 0.95em;
+  background-color: hsl(var(--card));
+  border: 1px solid hsl(var(--border));
+  border-radius: var(--radius);
+  overflow: hidden; /* To respect border-radius on thead */
+}
+
+.dashboard-table thead th {
+  background-color: hsl(var(--secondary));
+  font-weight: 600;
+  text-align: left;
+  padding: 12px 15px;
+  color: hsl(var(--muted-foreground));
+  text-transform: uppercase;
+  font-size: 0.8em;
+  letter-spacing: 0.5px;
+}
+
+.dashboard-table tbody td {
+  padding: 15px;
+  border-bottom: 1px solid hsl(var(--border));
+  vertical-align: middle;
+}
+
+.dashboard-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.dashboard-table tbody tr {
+  transition: background-color 0.2s ease-in-out;
+}
+
+.dashboard-table tbody tr:hover {
+  background-color: hsl(var(--secondary));
+}
+
+.dashboard-table .button-group {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+.dashboard-table .button-group .btn {
+  padding: 6px 10px; /* Smaller buttons for table actions */
+}
+
+/* --- Pagination Styles --- */
+.pagination {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 1rem;
+  margin-top: 2rem;
+}
+
+.pagination .btn {
+  padding: 8px 15px;
+}
+
 nav {
   position: fixed; /* Make the navigation bar stick to the top */
   top: 0;
@@ -1474,6 +1557,16 @@ nav a.active {
   align-items: center;
 }
 
+.dashboard-search-form {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.dashboard-search-form input {
+  min-width: 300px;
+  padding: 8px 12px;
+}
+
 .dashboard-stat-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
@@ -1555,6 +1648,114 @@ nav a.active {
   }
   .request-grid, .question-grid {
     grid-template-columns: 1fr; /* 1 column for cards on mobile */
+  }
+  /* Transform "Pending Listings" table into cards on mobile */
+  .admin-dashboard-page .dashboard-table thead {
+    display: none; /* Hide desktop headers */
+  }
+  .admin-dashboard-page .dashboard-table tr {
+    display: block;
+    border: 1px solid hsl(var(--border));
+    border-radius: var(--radius);
+    margin-bottom: 1rem;
+    padding: 1rem;
+    background-color: hsl(var(--card));
+  }
+  .admin-dashboard-page .dashboard-table td {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.75rem 0;
+    border-bottom: 1px solid hsl(var(--border));
+  }
+  .admin-dashboard-page .dashboard-table td:last-child {
+    border-bottom: none;
+  }
+  .admin-dashboard-page .dashboard-table td::before {
+    content: attr(data-label);
+    font-weight: 600;
+    color: hsl(var(--muted-foreground));
+  }
+  /* Transform "Rental Management" table into cards on mobile */
+  .rental-management-page .dashboard-table thead {
+    display: none; /* Hide desktop headers */
+  }
+  .rental-management-page .dashboard-table tr {
+    display: block;
+    border: 1px solid hsl(var(--border));
+    border-radius: var(--radius);
+    margin-bottom: 1rem;
+    background-color: hsl(var(--card));
+    box-shadow: var(--shadow-card);
+  }
+  .rental-management-page .dashboard-table td {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid hsl(var(--border));
+  }
+  .rental-management-page .dashboard-table td:last-child {
+    border-bottom: none;
+  }
+  .rental-management-page .dashboard-table td::before {
+    content: attr(data-label);
+    font-weight: 600;
+    color: hsl(var(--muted-foreground));
+  }
+  /* Transform "User Management" table into cards on mobile */
+  .user-management-page .dashboard-table thead {
+    display: none; /* Hide desktop headers */
+  }
+  .user-management-page .dashboard-table tr {
+    display: block;
+    border: 1px solid hsl(var(--border));
+    border-radius: var(--radius);
+    margin-bottom: 1rem;
+    background-color: hsl(var(--card));
+    box-shadow: var(--shadow-card);
+  }
+  .user-management-page .dashboard-table td {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid hsl(var(--border));
+  }
+  .user-management-page .dashboard-table td:last-child {
+    border-bottom: none;
+  }
+  .user-management-page .dashboard-table td::before {
+    content: attr(data-label);
+    font-weight: 600;
+    color: hsl(var(--muted-foreground));
+  }
+  /* Transform "Listing Management" table into cards on mobile */
+  .listing-management-page .dashboard-table thead {
+    display: none; /* Hide desktop headers */
+  }
+  .listing-management-page .dashboard-table tr {
+    display: block;
+    border: 1px solid hsl(var(--border));
+    border-radius: var(--radius);
+    margin-bottom: 1rem;
+    background-color: hsl(var(--card));
+    box-shadow: var(--shadow-card);
+  }
+  .listing-management-page .dashboard-table td {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid hsl(var(--border));
+  }
+  .listing-management-page .dashboard-table td:last-child {
+    border-bottom: none;
+  }
+  .listing-management-page .dashboard-table td::before {
+    content: attr(data-label);
+    font-weight: 600;
+    color: hsl(var(--muted-foreground));
   }
 }
 .title-with-tag {
@@ -1807,6 +2008,9 @@ nav a.active {
     padding: 1rem;
     border-radius: var(--radius);
   }
+  .dealer-profile-page .detail-page-container {
+    flex-direction: column;
+  }
 }
 /* --- Deal Summary Page --- */
 .deal-summary-card {
@@ -1921,6 +2125,89 @@ nav a.active {
 
 .already-rated .star.filled {
   color: hsl(var(--warning));
+}
+
+/* --- Dealer Profile Page Enhancements --- */
+.dealer-profile-hero {
+  background-color: hsl(var(--card));
+  border: 1px solid hsl(var(--border));
+  border-radius: var(--radius);
+  padding: 2rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2rem;
+  align-items: center;
+}
+
+.dealer-info {
+  display: flex;
+  gap: 1.5rem;
+  align-items: center;
+  flex-grow: 1;
+}
+
+.dealer-logo-placeholder {
+  width: 100px;
+  height: 100px;
+  border-radius: 50%;
+  background-color: hsl(var(--accent));
+  color: hsl(var(--accent-foreground));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 3rem;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.dealer-details h1 {
+  margin: 0;
+  font-size: 2.2rem;
+}
+
+.dealer-name-verified {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.dealer-tagline {
+  font-size: 1.1rem;
+  color: hsl(var(--muted-foreground));
+  margin: 0.25rem 0 0.5rem 0;
+}
+
+.dealer-rating-summary .star {
+  font-size: 1.5rem;
+}
+
+.dealer-rating-summary .star.filled {
+  color: hsl(var(--warning));
+}
+
+.dealer-rating-summary .rating-text {
+  margin-left: 0.5rem;
+  font-weight: 500;
+}
+
+.review-list {
+  display: grid;
+  gap: 1.5rem;
+}
+
+.review-header {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.review-text {
+  font-style: italic;
+  color: hsl(var(--muted-foreground));
+  border-left: 3px solid hsl(var(--border));
+  padding-left: 1rem;
+  margin: 0 0 1rem 0;
 }
 
 /*# sourceMappingURL=style.css.map */
