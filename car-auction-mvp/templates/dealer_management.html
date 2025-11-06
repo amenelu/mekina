@@ -1,56 +1,171 @@
 {% extends "base.html" %}
 
-{% block title %}Dealer Management{% endblock %}
+{% block title %}Manage Dealers{% endblock %}
 
-{% block content %}
-<h1>Dealer Management</h1>
-<p>View and manage all dealer accounts on the platform.</p>
+{% block body_class %}dealer-management-page{% endblock %}
 
-<div class="table-responsive-wrapper">
-    <table class="dashboard-table">
-        <thead>
-            <tr>
-                <th>Username</th>
-                <th>Email</th>
-                <th>Active Listings</th>
-                <th>Avg. Rating</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for user, active_listings, avg_rating, review_count in dealers_with_stats %}
-                <tr class="clickable-row" data-href="{{ url_for('dealer.profile', dealer_id=user.id) }}">
-                    <td>
-                        <strong>{{ user.username }}</strong>
-                        {% if user.is_verified %}
-                            <span class="status-approved small-tag">Verified</span>
-                        {% else %}
-                            <span class="status-pending small-tag">Not Verified</span>
-                        {% endif %}
-                    </td>
-                    <td>{{ user.email }}</td>
-                    <td>{{ active_listings }}</td>
-                    <td>
-                        {% if review_count > 0 %}
-                            {{ "%.1f"|format(avg_rating) }} / 5.0 ({{ review_count }} reviews)
-                        {% else %}
-                            <span class="text-muted">No Reviews</span>
-                        {% endif %}
-                    </td>
-                </tr>
-            {% endfor %}
-        </tbody>
-    </table>
+{% block main_content %}
+<div class="dashboard-full-width-container">
+    <div class="dashboard-header-wrapper">
+        <div class="container">
+            <div class="dashboard-header">
+                <div class="header-main">
+                    <h1>Manage Dealers</h1>
+                    <p>Review and manage all dealers on the platform.</p>
+                </div>
+                <div class="header-actions">
+                    <form method="GET" action="{{ url_for('admin.dealer_management') }}" class="dashboard-search-form" onsubmit="return false;">
+                        <input type="search" id="search-input" name="q" placeholder="Search dealers..." value="{{ request.args.get('q', '') }}">
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="dashboard-section" id="dealers-container">
+            {% if dealers_with_stats %}
+                <div class="table-responsive-wrapper">
+                    <table class="dashboard-table" id="dealers-table">
+                        <thead>
+                            <tr>
+                                <th>Dealer</th>
+                                <th>Email</th>
+                                <th>Active Listings</th>
+                                <th>Avg. Rating</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="dealers-tbody">
+                            {% for dealer, active_listings, avg_rating, review_count in dealers_with_stats %}
+                            <tr>
+                                <td data-label="Dealer">{{ dealer.username }}</td>
+                                <td data-label="Email">{{ dealer.email }}</td>
+                                <td data-label="Active Listings">{{ active_listings }}</td>
+                                <td data-label="Avg. Rating">
+                                    {% if review_count > 0 %}
+                                        <span class="dealer-rating-card">★ {{ '%.1f'|format(avg_rating) }}</span>
+                                        <span class="text-muted">({{ review_count }} reviews)</span>
+                                    {% else %}
+                                        <span class="text-muted">No reviews</span>
+                                    {% endif %}
+                                </td>
+                                <td data-label="Actions">
+                                    <div class="button-group">
+                                        <a href="{{ url_for('dealer.profile', dealer_id=dealer.id) }}" class="btn edit small">View Profile</a>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Pagination will be handled by JS, but we need a container -->
+                <div class="pagination" id="pagination-container"></div>
+
+            {% else %}
+                <p id="no-results-message">There are no dealers on the platform yet.</p>
+            {% endif %}
+        </div>
+    </div>
 </div>
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    document.querySelectorAll('tr.clickable-row').forEach(row => {
-        row.addEventListener('click', function(e) {
-            // Don't navigate if a link or button inside the row was clicked
-            if (e.target.closest('a, button')) return;
-            window.location.href = this.dataset.href;
-        });
+    const searchInput = document.getElementById('search-input');
+    const tableBody = document.getElementById('dealers-tbody');
+    const paginationContainer = document.getElementById('pagination-container');
+    const dealersContainer = document.getElementById('dealers-container');
+    let noResultsMessage = document.getElementById('no-results-message');
+
+    function debounce(func, delay) {
+        let timeout;
+        return function(...args) {
+            const context = this;
+            clearTimeout(timeout);
+            timeout = setTimeout(() => func.apply(context, args), delay);
+        };
+    }
+
+    function fetchDealers(query = '', page = 1) {
+        const params = new URLSearchParams({ q: query, page: page });
+        const url = `{{ url_for('admin.api_admin_list_dealers') }}?${params.toString()}`;
+
+        fetch(url)
+            .then(response => response.json())
+            .then(data => {
+                updateTable(data.dealers);
+                updatePagination(data.pagination, query);
+            })
+            .catch(error => console.error('Error fetching dealers:', error));
+    }
+
+    function updateTable(dealers) {
+        tableBody.innerHTML = ''; // Clear existing rows
+
+        if (dealers.length === 0) {
+            if (!noResultsMessage) {
+                noResultsMessage = document.createElement('p');
+                noResultsMessage.id = 'no-results-message';
+                dealersContainer.appendChild(noResultsMessage);
+            }
+            noResultsMessage.textContent = 'No dealers found matching your search criteria.';
+            noResultsMessage.style.display = 'block';
+            document.getElementById('dealers-table').style.display = 'none';
+        } else {
+            if (noResultsMessage) noResultsMessage.style.display = 'none';
+            document.getElementById('dealers-table').style.display = '';
+
+            dealers.forEach(dealer => {
+                const ratingHtml = dealer.review_count > 0
+                    ? `<span class="dealer-rating-card">★ ${dealer.avg_rating.toFixed(1)}</span> <span class="text-muted">(${dealer.review_count} reviews)</span>`
+                    : '<span class="text-muted">No reviews</span>';
+
+                const row = `
+                    <tr>
+                        <td data-label="Dealer">${dealer.username}</td>
+                        <td data-label="Email">${dealer.email}</td>
+                        <td data-label="Active Listings">${dealer.active_listings}</td>
+                        <td data-label="Avg. Rating">${ratingHtml}</td>
+                        <td data-label="Actions">
+                            <div class="button-group">
+                                <a href="${dealer.profile_url}" class="btn edit small">View Profile</a>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+                tableBody.insertAdjacentHTML('beforeend', row);
+            });
+        }
+    }
+
+    function updatePagination(pagination, query) {
+        paginationContainer.innerHTML = '';
+        if (pagination.pages > 1) {
+            let paginationHTML = '';
+            if (pagination.has_prev) paginationHTML += `<a href="#" data-page="${pagination.prev_num}" class="btn">&laquo; Previous</a>`;
+            paginationHTML += `<span>Page ${pagination.page} of ${pagination.pages}</span>`;
+            if (pagination.has_next) paginationHTML += `<a href="#" data-page="${pagination.next_num}" class="btn">Next &raquo;</a>`;
+            paginationContainer.innerHTML = paginationHTML;
+        }
+    }
+
+    const debouncedFetch = debounce(fetchDealers, 300);
+
+    searchInput.addEventListener('input', (e) => {
+        debouncedFetch(e.target.value, 1);
     });
+
+    paginationContainer.addEventListener('click', (e) => {
+        if (e.target.tagName === 'A' && e.target.dataset.page) {
+            e.preventDefault();
+            fetchDealers(searchInput.value, e.target.dataset.page);
+        }
+    });
+
+    // Initial fetch to enable pagination on the pre-loaded data
+    fetchDealers('', 1);
 });
 </script>
 {% endblock %}

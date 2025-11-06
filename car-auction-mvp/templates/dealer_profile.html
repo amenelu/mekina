@@ -1,25 +1,9 @@
 {% extends "base.html" %}
-{% from "_macros.html" import render_car_card %}
 
 {% block title %}{{ dealer.username }}'s Profile{% endblock %}
 
-{% block body_class %}dealer-profile-page{% endblock %}
-
-{% block content %}
-    {% if current_user.is_admin %}
-    <div class="admin-actions">
-        <h3>Admin Controls</h3>
-        <div class="button-group">
-            <a href="{{ url_for('admin.edit_user', user_id=dealer.id) }}" class="btn edit">Edit User Roles</a>
-            <form action="{{ url_for('dealer.toggle_verification', dealer_id=dealer.id) }}" method="POST" style="display: inline;">
-                <button type="submit" class="btn approve">
-                    {% if dealer.is_verified %}Un-verify Dealer{% else %}Verify Dealer{% endif %}
-                </button>
-            </form>
-        </div>
-    </div>
-    {% endif %}
-
+{% block main_content %}
+<div class="container">
     <div class="dealer-profile-hero">
         <div class="dealer-info">
             <div class="dealer-logo-placeholder">
@@ -32,59 +16,78 @@
                         <span class="verified-badge">Verified</span>
                     {% endif %}
                 </div>
-                <p class="dealer-tagline">{{ dealer.tagline or 'Trusted seller on Mekina Auction.' }}</p>
-                {% if ratings %}
+                {% if dealer.tagline %}
+                    <p class="dealer-tagline">{{ dealer.tagline }}</p>
+                {% endif %}
                 <div class="dealer-rating-summary">
-                    {% for i in range(5) %}
-                        <span class="star {% if i < avg_rating %}filled{% endif %}">&#9733;</span>
-                    {% endfor %}
-                    <span class="rating-text">{{ "%.1f"|format(avg_rating) }} average from {{ ratings|length }} review(s)</span>
-                </div>
-                {% endif %}
-            </div>
-        </div>
-    </div>
-
-    <div class="detail-page-container" style="margin-top: 2rem;">
-        <div class="main-content">
-            <h2>Active Listings from {{ dealer.username }}</h2>
-            {% if listings %}
-                <div class="auction-grid">
-                    {% for car in listings %}
-                        {{ render_car_card(car) }}
-                    {% endfor %}
-                </div>
-            {% else %}
-                <p>{{ dealer.username }} has no active listings at the moment.</p>
-            {% endif %}
-        </div>
-
-        <div class="sidebar">
-            <div class="sidebar-section">
-                <h3>Customer Reviews</h3>
-                {% if ratings %}
-                    <div class="review-list">
-                        {% for rating in ratings %}
-                            <div class="review-card">
-                                <div class="review-header">
-                                    <div class="star-rating">
-                                        {% for i in range(5) %}
-                                            <span class="star {% if i < rating.rating %}filled{% endif %}">&#9733;</span>
-                                        {% endfor %}
-                                    </div>
-                                    <strong>{{ rating.buyer.username }}</strong>
-                                </div>
-                                {% if rating.review_text %}
-                                    <p class="review-text">"{{ rating.review_text }}"</p>
-                                {% endif %}
-                                <small class="text-muted">Reviewed on: {{ rating.timestamp.strftime('%b %d, %Y') }}</small>
-                            </div>
+                    {% if avg_rating > 0 %}
+                        {% for i in range(5) %}
+                            <span class="star {% if i < avg_rating|round(0, 'floor') %}filled{% endif %}">★</span>
                         {% endfor %}
-                    </div>
+                        <span class="rating-text">{{ '%.1f'|format(avg_rating) }} ({{ ratings|length }} reviews)</span>
+                    {% else %}
+                        <span class="text-muted">No reviews yet</span>
+                    {% endif %}
+                </div>
+                <p>Email: {{ dealer.email }}</p>
+                {% if can_view_phone %}
+                    <p>Phone: {{ dealer.phone_number }}</p>
                 {% else %}
-                    <p>This dealer has not received any reviews yet.</p>
+                    <p>Phone: <span class="text-muted">Contact dealer via message</span></p>
                 {% endif %}
             </div>
         </div>
+        {# Add any other dealer profile actions or info here #}
     </div>
+
+    <div class="dashboard-section">
+        <h2>Active Listings</h2>
+        {% if listings %}
+            <div class="auction-grid"> {# Assuming you have an auction-grid style for cards #}
+                {% for car in listings %}
+                    {# Render car card here, similar to how you do in all_listings.html #}
+                    {# Example: #}
+                    <a href="{{ url_for('main.car_detail', car_id=car.id) }}" class="auction-card-link">
+                        <div class="auction-card">
+                            <div class="card-image-container">
+                                <img src="{{ car.primary_image_url or url_for('static', filename='img/default_car.png') }}" alt="{{ car.make }} {{ car.model }}">
+                                {% if car.is_featured %}<span class="featured-tag">Featured</span>{% endif %}
+                                <span class="listing-type-tag {{ car.listing_type }}">{{ car.listing_type|title }}</span>
+                            </div>
+                            <div class="card-content">
+                                <h3>{{ car.year }} {{ car.make }} {{ car.model }}</h3>
+                                <p>Price: {{ car.fixed_price or car.auction.current_price or car.rental_listing.price_per_day }} ETB</p>
+                            </div>
+                        </div>
+                    </a>
+                {% endfor %}
+            </div>
+        {% else %}
+            <p>{{ dealer.username }} currently has no active listings.</p>
+        {% endif %}
+    </div>
+
+    <div class="dashboard-section">
+        <h2>Dealer Reviews</h2>
+        {% if ratings %}
+            <div class="review-list">
+                {% for review in ratings %}
+                    <div class="review-card">
+                        <div class="review-header">
+                            {% for i in range(5) %}
+                                <span class="star {% if i < review.rating %}filled{% endif %}">★</span>
+                            {% endfor %}
+                            <span class="text-muted">{{ review.buyer.username }} on {{ review.timestamp.strftime('%b %d, %Y') }}</span>
+                        </div>
+                        {% if review.review_text %}
+                            <p class="review-text">{{ review.review_text }}</p>
+                        {% endif %}
+                    </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <p>No reviews yet for {{ dealer.username }}.</p>
+        {% endif %}
+    </div>
+</div>
 {% endblock %}

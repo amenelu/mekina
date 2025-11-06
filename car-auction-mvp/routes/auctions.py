@@ -46,12 +46,23 @@ class BidForm(FlaskForm):
 @auctions_bp.route('/')
 def list_auctions():
     page = request.args.get('page', 1, type=int)
+    query = request.args.get('q', '')
 
     if current_user.is_authenticated and current_user.is_admin:
         # Admin view: show all auctions, ordered by end time
         # Change: Fetch all approved cars, not just auctions.
         # Admin sees all cars, regardless of active status
-        cars = Car.query.order_by(Car.id.desc()).paginate(page=page, per_page=10)
+        cars_query = Car.query.order_by(Car.id.desc())
+
+        if query:
+            search_term = f"%{query}%"
+            cars_query = cars_query.filter(or_(
+                Car.make.ilike(search_term),
+                Car.model.ilike(search_term),
+                Car.year.like(search_term)
+            ))
+
+        cars = cars_query.paginate(page=page, per_page=10)
         return render_template(
             'listing_management.html', 
             cars=cars, 
@@ -278,3 +289,44 @@ def all_listings_api():
         results.append(listing_data)
 
     return jsonify(results)
+
+@auctions_bp.route('/api/admin/listings')
+@login_required
+def api_admin_list_cars():
+    """API endpoint for admin to search/filter all car listings."""
+    if not current_user.is_admin:
+        from flask import abort
+        abort(403)
+
+    page = request.args.get('page', 1, type=int)
+    query = request.args.get('q', '')
+
+    cars_query = Car.query.order_by(Car.id.desc())
+
+    if query:
+        search_term = f"%{query}%"
+        cars_query = cars_query.filter(or_(
+            Car.make.ilike(search_term),
+            Car.model.ilike(search_term),
+            Car.year.like(search_term)
+        ))
+
+    paginated_cars = cars_query.paginate(page=page, per_page=10)
+
+    cars_data = [{
+        'id': car.id,
+        'year': car.year,
+        'make': car.make,
+        'model': car.model,
+        'owner_username': car.owner.username,
+        'listing_type': car.listing_type,
+        'is_approved': car.is_approved,
+        'is_active': car.is_active,
+        'edit_url': url_for('admin.edit_listing', car_id=car.id),
+        'delete_url': url_for('admin.delete_listing', car_id=car.id)
+    } for car in paginated_cars.items]
+
+    return jsonify({
+        'cars': cars_data,
+        'pagination': { 'page': paginated_cars.page, 'pages': paginated_cars.pages, 'has_prev': paginated_cars.has_prev, 'prev_num': paginated_cars.prev_num, 'has_next': paginated_cars.has_next, 'next_num': paginated_cars.next_num }
+    })

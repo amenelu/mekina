@@ -154,11 +154,15 @@ def profile(dealer_id):
     if ratings:
         avg_rating = sum(r.rating for r in ratings) / len(ratings)
 
+    is_profile_owner = current_user.is_authenticated and current_user.id == dealer.id
+    can_view_phone = is_profile_owner or (current_user.is_authenticated and current_user.is_admin)
+
     return render_template('dealer_profile.html', 
                            dealer=dealer, 
                            listings=active_listings, 
                            ratings=ratings,
-                           avg_rating=avg_rating)
+                           avg_rating=avg_rating,
+                           can_view_phone=can_view_phone)
 
 @dealer_bp.route('/toggle_verification/<int:dealer_id>', methods=['POST'])
 @login_required

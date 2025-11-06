@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}User Management{% endblock %}
+{% block title %}Manage Users{% endblock %}
 
 {% block body_class %}user-management-page{% endblock %}
 
@@ -10,13 +10,12 @@
         <div class="container">
             <div class="dashboard-header">
                 <div class="header-main">
-                    <h1>User Management</h1>
-                    <p>Manage non-dealer user accounts on the platform.</p>
+                    <h1>Manage Users</h1>
+                    <p>Review and manage all non-dealer users on the platform.</p>
                 </div>
                 <div class="header-actions">
-                    <form method="GET" action="{{ url_for('admin.user_management') }}" class="dashboard-search-form">
-                        <input type="search" name="q" placeholder="Search by username or email..." value="{{ request.args.get('q', '') }}">
-                        <button type="submit" class="btn">Search</button>
+                    <form method="GET" action="{{ url_for('admin.user_management') }}" class="dashboard-search-form" onsubmit="return false;">
+                        <input type="search" id="search-input" name="q" placeholder="Search users..." value="{{ request.args.get('q', '') }}">
                     </form>
                 </div>
             </div>
@@ -24,41 +23,33 @@
     </div>
 
     <div class="container">
-        <div class="dashboard-section">
-            {% if users %}
-                <div>
-                    <table class="dashboard-table">
+        <div class="dashboard-section" id="users-container">
+            {% if users.items %}
+                <div class="table-responsive-wrapper">
+                    <table class="dashboard-table" id="users-table">
                         <thead>
                             <tr>
-                                <th>Username</th>
+                                <th>User</th>
                                 <th>Email</th>
-                                <th>Phone</th>
                                 <th>Roles</th>
-                                <th>Joined</th>
+                                <th>Points</th>
                                 <th>Actions</th>
                             </tr>
                         </thead>
-                        <tbody>
-                            {% for user in users %}
+                        <tbody id="users-tbody">
+                            {% for user in users.items %}
                             <tr>
-                                <td data-label="Username">{{ user.username }}</td>
+                                <td data-label="User">{{ user.username }}</td>
                                 <td data-label="Email">{{ user.email }}</td>
-                                <td data-label="Phone">{{ user.phone_number or 'N/A' }}</td>
                                 <td data-label="Roles">
-                                    {% if user.is_admin %}
-                                        <span class="role-badge admin">Admin</span>
-                                    {% endif %}
-                                    {% if user.is_rental_company %}
-                                        <span class="role-badge rental">Rental Co.</span>
-                                    {% endif %}
-                                    {% if not user.is_admin and not user.is_rental_company %}
-                                        <span class="text-muted">Standard</span>
-                                    {% endif %}
+                                    {% if user.is_admin %}<span class="role-badge admin">Admin</span>{% endif %}
+                                    {% if user.is_rental_company %}<span class="role-badge rental">Rental</span>{% endif %}
+                                    {% if not user.is_admin and not user.is_rental_company %}-{% endif %}
                                 </td>
-                                <td data-label="User ID">{{ user.id }}</td>
+                                <td data-label="Points">{{ user.points or 0 }}</td>
                                 <td data-label="Actions">
                                     <div class="button-group">
-                                        <a href="{{ url_for('admin.edit_user', user_id=user.id) }}" class="btn edit small">Edit Roles</a>
+                                        <a href="{{ url_for('admin.edit_user', user_id=user.id) }}" class="btn edit small">Edit</a>
                                     </div>
                                 </td>
                             </tr>
@@ -67,21 +58,106 @@
                     </table>
                 </div>
 
+                <!-- Pagination -->
                 {% if users.pages > 1 %}
-                <div class="pagination">
-                    {% if users.has_prev %}
-                        <a href="{{ url_for('admin.user_management', page=users.prev_num, q=request.args.get('q', '')) }}" class="btn">&laquo; Previous</a>
-                    {% endif %}
+                <div class="pagination" id="pagination-container">
+                    {% if users.has_prev %}<a href="{{ url_for('admin.user_management', page=users.prev_num, q=request.args.get('q', '')) }}" class="btn">&laquo; Previous</a>{% endif %}
                     <span>Page {{ users.page }} of {{ users.pages }}</span>
-                    {% if users.has_next %}
-                        <a href="{{ url_for('admin.user_management', page=users.next_num, q=request.args.get('q', '')) }}" class="btn">Next &raquo;</a>
-                    {% endif %}
+                    {% if users.has_next %}<a href="{{ url_for('admin.user_management', page=users.next_num, q=request.args.get('q', '')) }}" class="btn">Next &raquo;</a>{% endif %}
                 </div>
                 {% endif %}
             {% else %}
-                <p>No users found matching your search criteria.</p>
+                <p id="no-results-message">No users found matching your search criteria.</p>
             {% endif %}
         </div>
     </div>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const searchInput = document.getElementById('search-input');
+    const tableBody = document.getElementById('users-tbody');
+    const paginationContainer = document.getElementById('pagination-container');
+    const usersContainer = document.getElementById('users-container');
+    let noResultsMessage = document.getElementById('no-results-message');
+
+    function debounce(func, delay) {
+        let timeout;
+        return function(...args) {
+            const context = this;
+            clearTimeout(timeout);
+            timeout = setTimeout(() => func.apply(context, args), delay);
+        };
+    }
+
+    function fetchUsers(query = '', page = 1) {
+        const params = new URLSearchParams({ q: query, page: page });
+        const url = `{{ url_for('admin.api_admin_list_users') }}?${params.toString()}`;
+
+        fetch(url)
+            .then(response => response.json())
+            .then(data => {
+                updateTable(data.users);
+                updatePagination(data.pagination, query);
+            })
+            .catch(error => console.error('Error fetching users:', error));
+    }
+
+    function updateTable(users) {
+        tableBody.innerHTML = ''; // Clear existing rows
+
+        if (users.length === 0) {
+            if (!noResultsMessage) {
+                noResultsMessage = document.createElement('p');
+                noResultsMessage.id = 'no-results-message';
+                usersContainer.appendChild(noResultsMessage);
+            }
+            noResultsMessage.textContent = 'No users found matching your search criteria.';
+            noResultsMessage.style.display = 'block';
+            document.getElementById('users-table').style.display = 'none';
+        } else {
+            if (noResultsMessage) noResultsMessage.style.display = 'none';
+            document.getElementById('users-table').style.display = '';
+
+            users.forEach(user => {
+                const roles = `${user.is_admin ? '<span class="role-badge admin">Admin</span>' : ''} ${user.is_rental_company ? '<span class="role-badge rental">Rental</span>' : ''}`;
+                const row = `
+                    <tr>
+                        <td data-label="User">${user.username}</td>
+                        <td data-label="Email">${user.email}</td>
+                        <td data-label="Roles">${roles.trim() || '-'}</td>
+                        <td data-label="Points">${user.points}</td>
+                        <td data-label="Actions"><div class="button-group"><a href="${user.edit_url}" class="btn edit small">Edit</a></div></td>
+                    </tr>
+                `;
+                tableBody.insertAdjacentHTML('beforeend', row);
+            });
+        }
+    }
+
+    function updatePagination(pagination, query) {
+        paginationContainer.innerHTML = '';
+        if (pagination.pages > 1) {
+            let paginationHTML = '';
+            if (pagination.has_prev) paginationHTML += `<a href="#" data-page="${pagination.prev_num}" class="btn">&laquo; Previous</a>`;
+            paginationHTML += `<span>Page ${pagination.page} of ${pagination.pages}</span>`;
+            if (pagination.has_next) paginationHTML += `<a href="#" data-page="${pagination.next_num}" class="btn">Next &raquo;</a>`;
+            paginationContainer.innerHTML = paginationHTML;
+        }
+    }
+
+    const debouncedFetch = debounce(fetchUsers, 300);
+
+    searchInput.addEventListener('input', (e) => {
+        debouncedFetch(e.target.value, 1);
+    });
+
+    paginationContainer.addEventListener('click', (e) => {
+        if (e.target.tagName === 'A' && e.target.dataset.page) {
+            e.preventDefault();
+            fetchUsers(searchInput.value, e.target.dataset.page);
+        }
+    });
+});
+</script>
 {% endblock %}

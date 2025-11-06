@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}Listing Management{% endblock %}
+{% block title %}Manage All Listings{% endblock %}
 
 {% block body_class %}listing-management-page{% endblock %}
 
@@ -10,55 +10,55 @@
         <div class="container">
             <div class="dashboard-header">
                 <div class="header-main">
-                    <h1>All Listings Management</h1>
-                    <p>Review, edit, and manage all car listings on the platform.</p>
+                    <h1>Manage All Listings</h1>
+                    <p>Review, edit, and manage all cars on the platform.</p>
+                </div>
+                <div class="header-actions">
+                    <form method="GET" action="{{ url_for('auctions.list_auctions') }}" class="dashboard-search-form" onsubmit="return false;">
+                        <input type="search" id="search-input" name="q" placeholder="Search all listings..." value="{{ request.args.get('q', '') }}">
+                    </form>
                 </div>
             </div>
         </div>
     </div>
 
     <div class="container">
-        <div class="dashboard-section">
+        <div class="dashboard-section" id="listings-container">
             {% if cars.items %}
                 <div class="table-responsive-wrapper">
-                    <table class="dashboard-table">
+                    <table class="dashboard-table" id="listings-table">
                         <thead>
                             <tr>
                                 <th>Car</th>
                                 <th>Owner</th>
-                                <th>Listing Type</th>
+                                <th>Type</th>
+                                <th>Status</th>
                                 <th>Visibility</th>
-                                <th>Price / Status</th>
                                 <th>Actions</th>
                             </tr>
                         </thead>
-                        <tbody>
+                        <tbody id="listings-tbody">
                             {% for car in cars.items %}
                             <tr>
                                 <td data-label="Car">{{ car.year }} {{ car.make }} {{ car.model }}</td>
                                 <td data-label="Owner">{{ car.owner.username }}</td>
-                                <td data-label="Listing Type"><span class="listing-type-tag {{ car.listing_type.lower() }}">{{ car.listing_type|title }}</span></td>
-                                <td data-label="Visibility">
-                                    <label class="switch">
-                                        <input type="checkbox" class="visibility-toggle" data-car-id="{{ car.id }}" {% if car.is_active %}checked{% endif %}>
-                                        <span class="slider round"></span>
-                                    </label>
-                                    <span id="status-text-{{ car.id }}" class="availability-text">{% if car.is_active %}Active{% else %}Inactive{% endif %}</span>
-                                </td>
-                                <td data-label="Price / Status">
-                                    {% if car.listing_type == 'auction' and car.auction %}
-                                        {{ '{:,.2f}'.format(car.auction.current_price) }} ETB
-                                        <br><small>{% if car.auction.end_time > now %}Ends: {{ car.auction.end_time.strftime('%b %d, %H:%M') }}{% else %}Ended{% endif %}</small>
-                                    {% elif car.listing_type == 'sale' %}
-                                        {{ '{:,.2f}'.format(car.fixed_price) }} ETB
-                                    {% elif car.listing_type == 'rental' and car.rental_listing %}
-                                        {{ '{:,.2f}'.format(car.rental_listing.price_per_day) }} ETB/day
+                                <td data-label="Type"><span class="listing-type-tag {{ car.listing_type }}">{{ car.listing_type|title }}</span></td>
+                                <td data-label="Status">
+                                    {% if car.is_approved %}
+                                        <span class="status-tag status-active">Approved</span>
+                                    {% else %}
+                                        <span class="status-tag status-pending">Pending</span>
                                     {% endif %}
+                                </td>
+                                <td data-label="Visibility">
+                                    <span class="availability-tag {% if not car.is_active %}unavailable{% endif %}">
+                                        {% if car.is_active %}Active{% else %}Inactive{% endif %}
+                                    </span>
                                 </td>
                                 <td data-label="Actions">
                                     <div class="button-group">
                                         <a href="{{ url_for('admin.edit_listing', car_id=car.id) }}" class="btn edit small">Edit</a>
-                                        <form action="{{ url_for('admin.delete_listing', car_id=car.id) }}" method="post" onsubmit="return confirm('Are you sure you want to delete this listing? This cannot be undone.');">
+                                        <form action="{{ url_for('admin.delete_listing', car_id=car.id) }}" method="POST" onsubmit="return confirm('Are you sure you want to permanently delete this listing?');">
                                             <button type="submit" class="btn delete small">Delete</button>
                                         </form>
                                     </div>
@@ -69,15 +69,130 @@
                     </table>
                 </div>
 
-                <div class="pagination">
-                    {% if cars.has_prev %}<a href="{{ url_for('auctions.list_auctions', page=cars.prev_num) }}" class="btn">&laquo; Previous</a>{% endif %}
+                <!-- Pagination -->
+                {% if cars.pages > 1 %}
+                <div class="pagination" id="pagination-container">
+                    {% if cars.has_prev %}<a href="{{ url_for('auctions.list_auctions', page=cars.prev_num, q=request.args.get('q', '')) }}" class="btn">&laquo; Previous</a>{% endif %}
                     <span>Page {{ cars.page }} of {{ cars.pages }}</span>
-                    {% if cars.has_next %}<a href="{{ url_for('auctions.list_auctions', page=cars.next_num) }}" class="btn">Next &raquo;</a>{% endif %}
+                    {% if cars.has_next %}<a href="{{ url_for('auctions.list_auctions', page=cars.next_num, q=request.args.get('q', '')) }}" class="btn">Next &raquo;</a>{% endif %}
                 </div>
+                {% endif %}
             {% else %}
-                <p>There are no listings on the platform yet.</p>
+                <p id="no-results-message">No listings found matching your search criteria.</p>
             {% endif %}
         </div>
     </div>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const searchInput = document.getElementById('search-input');
+    const tableBody = document.getElementById('listings-tbody');
+    const paginationContainer = document.getElementById('pagination-container');
+    const listingsContainer = document.getElementById('listings-container');
+    let noResultsMessage = document.getElementById('no-results-message');
+
+    function debounce(func, delay) {
+        let timeout;
+        return function(...args) {
+            const context = this;
+            clearTimeout(timeout);
+            timeout = setTimeout(() => func.apply(context, args), delay);
+        };
+    }
+
+    function fetchListings(query = '', page = 1) {
+        const params = new URLSearchParams({ q: query, page: page });
+        const url = `{{ url_for('auctions.api_admin_list_cars') }}?${params.toString()}`;
+
+        fetch(url)
+            .then(response => response.json())
+            .then(data => {
+                updateTable(data.cars);
+                updatePagination(data.pagination, query);
+            })
+            .catch(error => console.error('Error fetching listings:', error));
+    }
+
+    function updateTable(cars) {
+        tableBody.innerHTML = ''; // Clear existing rows
+
+        if (cars.length === 0) {
+            if (!noResultsMessage) {
+                noResultsMessage = document.createElement('p');
+                noResultsMessage.id = 'no-results-message';
+                listingsContainer.appendChild(noResultsMessage);
+            }
+            noResultsMessage.textContent = 'No listings found matching your search criteria.';
+            noResultsMessage.style.display = 'block';
+            document.getElementById('listings-table').style.display = 'none';
+        } else {
+            if (noResultsMessage) {
+                noResultsMessage.style.display = 'none';
+            }
+            document.getElementById('listings-table').style.display = '';
+
+            cars.forEach(car => {
+                const row = `
+                    <tr>
+                        <td data-label="Car">${car.year} ${car.make} ${car.model}</td>
+                        <td data-label="Owner">${car.owner_username}</td>
+                        <td data-label="Type"><span class="listing-type-tag ${car.listing_type}">${car.listing_type.charAt(0).toUpperCase() + car.listing_type.slice(1)}</span></td>
+                        <td data-label="Status">
+                            ${car.is_approved 
+                                ? '<span class="status-tag status-active">Approved</span>' 
+                                : '<span class="status-tag status-pending">Pending</span>'}
+                        </td>
+                        <td data-label="Visibility">
+                            <span class="availability-tag ${!car.is_active ? 'unavailable' : ''}">
+                                ${car.is_active ? 'Active' : 'Inactive'}
+                            </span>
+                        </td>
+                        <td data-label="Actions">
+                            <div class="button-group">
+                                <a href="${car.edit_url}" class="btn edit small">Edit</a>
+                                <form action="${car.delete_url}" method="POST" onsubmit="return confirm('Are you sure you want to permanently delete this listing?');">
+                                    <button type="submit" class="btn delete small">Delete</button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+                tableBody.insertAdjacentHTML('beforeend', row);
+            });
+        }
+    }
+
+    function updatePagination(pagination, query) {
+        paginationContainer.innerHTML = ''; // Clear existing pagination
+
+        if (pagination.pages > 1) {
+            let paginationHTML = '';
+            if (pagination.has_prev) {
+                paginationHTML += `<a href="#" data-page="${pagination.prev_num}" class="btn">&laquo; Previous</a>`;
+            }
+            paginationHTML += `<span>Page ${pagination.page} of ${pagination.pages}</span>`;
+            if (pagination.has_next) {
+                paginationHTML += `<a href="#" data-page="${pagination.next_num}" class="btn">Next &raquo;</a>`;
+            }
+            paginationContainer.innerHTML = paginationHTML;
+        }
+    }
+
+    const debouncedFetch = debounce(fetchListings, 300);
+
+    searchInput.addEventListener('input', (e) => {
+        debouncedFetch(e.target.value, 1);
+    });
+
+    paginationContainer.addEventListener('click', (e) => {
+        if (e.target.tagName === 'A' && e.target.dataset.page) {
+            e.preventDefault();
+            const page = e.target.dataset.page;
+            const query = searchInput.value;
+            fetchListings(query, page);
+        }
+    });
+});
+</script>
 {% endblock %}

@@ -13,15 +13,20 @@
                     <h1>Manage Rental Listings</h1>
                     <p>Review, edit, and manage all rental cars on the platform.</p>
                 </div>
+                <div class="header-actions">
+                    <form method="GET" action="{{ url_for('admin.rental_management') }}" class="dashboard-search-form" onsubmit="return false;">
+                        <input type="search" id="search-input" name="q" placeholder="Search rentals..." value="{{ request.args.get('q', '') }}">
+                    </form>
+                </div>
             </div>
         </div>
     </div>
 
     <div class="container">
-        <div class="dashboard-section">
+        <div class="dashboard-section" id="rentals-container">
             {% if cars.items %}
                 <div class="table-responsive-wrapper">
-                    <table class="dashboard-table">
+                    <table class="dashboard-table" id="rentals-table">
                         <thead>
                             <tr>
                                 <th>Car</th>
@@ -32,7 +37,7 @@
                                 <th>Actions</th>
                             </tr>
                         </thead>
-                        <tbody>
+                        <tbody id="rentals-tbody">
                             {% for car in cars.items %}
                             <tr>
                                 <td data-label="Car">{{ car.year }} {{ car.make }} {{ car.model }}</td>
@@ -69,15 +74,137 @@
                 </div>
 
                 <!-- Pagination -->
+                {% if cars.pages > 1 %}
                 <div class="pagination">
                     {% if cars.has_prev %}<a href="{{ url_for('admin.rental_management', page=cars.prev_num) }}" class="btn">&laquo; Previous</a>{% endif %}
                     <span>Page {{ cars.page }} of {{ cars.pages }}</span>
                     {% if cars.has_next %}<a href="{{ url_for('admin.rental_management', page=cars.next_num) }}" class="btn">Next &raquo;</a>{% endif %}
                 </div>
+                {% endif %}
             {% else %}
-                <p>There are no rental listings on the platform yet.</p>
+                <p id="no-results-message">There are no rental listings on the platform yet.</p>
             {% endif %}
         </div>
     </div>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const searchInput = document.getElementById('search-input');
+    const tableBody = document.getElementById('rentals-tbody');
+    const paginationContainer = document.getElementById('pagination-container');
+    const rentalsContainer = document.getElementById('rentals-container');
+    let noResultsMessage = document.getElementById('no-results-message');
+
+    function debounce(func, delay) {
+        let timeout;
+        return function(...args) {
+            const context = this;
+            clearTimeout(timeout);
+            timeout = setTimeout(() => func.apply(context, args), delay);
+        };
+    }
+
+    function fetchRentals(query = '', page = 1) {
+        const params = new URLSearchParams({ q: query, page: page });
+        const url = `{{ url_for('admin.api_admin_list_rentals') }}?${params.toString()}`;
+
+        fetch(url)
+            .then(response => response.json())
+            .then(data => {
+                updateTable(data.cars);
+                updatePagination(data.pagination, query);
+            })
+            .catch(error => console.error('Error fetching rental listings:', error));
+    }
+
+    function updateTable(cars) {
+        tableBody.innerHTML = ''; // Clear existing rows
+
+        if (cars.length === 0) {
+            if (!noResultsMessage) {
+                noResultsMessage = document.createElement('p');
+                noResultsMessage.id = 'no-results-message';
+                rentalsContainer.appendChild(noResultsMessage);
+            }
+            noResultsMessage.textContent = 'No rental listings found matching your search criteria.';
+            noResultsMessage.style.display = 'block';
+            document.getElementById('rentals-table').style.display = 'none';
+        } else {
+            if (noResultsMessage) noResultsMessage.style.display = 'none';
+            document.getElementById('rentals-table').style.display = '';
+
+            cars.forEach(car => {
+                const row = `
+                    <tr>
+                        <td data-label="Car">${car.year} ${car.make} ${car.model}</td>
+                        <td data-label="Owner">${car.owner_username}</td>
+                        <td data-label="Price/Day">${car.price_per_day} ETB</td>
+                        <td data-label="Status">
+                            ${car.is_approved 
+                                ? '<span class="status-tag status-active">Approved</span>' 
+                                : '<span class="status-tag status-pending">Pending</span>'}
+                        </td>
+                        <td data-label="Visibility">
+                            ${car.is_approved 
+                                ? `<span class="availability-tag ${!car.is_active ? 'unavailable' : ''}">
+                                      ${car.is_active ? 'Active' : 'Inactive'}
+                                   </span>`
+                                : '<span class="text-muted">-</span>'
+                            }
+                        </td>
+                        <td data-label="Actions">
+                            <div class="button-group">
+                                <a href="${car.edit_url}" class="btn edit small">Edit</a>
+                                <form action="${car.delete_url}" method="POST" onsubmit="return confirm('Are you sure you want to permanently delete this listing?');">
+                                    <button type="submit" class="btn delete small">Delete</button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+                tableBody.insertAdjacentHTML('beforeend', row);
+            });
+        }
+    }
+
+    function updatePagination(pagination, query) {
+        paginationContainer.innerHTML = ''; // Clear existing pagination
+
+        if (pagination.pages > 1) {
+            let paginationHTML = '';
+            if (pagination.has_prev) {
+                paginationHTML += `<a href="#" data-page="${pagination.prev_num}" class="btn">&laquo; Previous</a>`;
+            }
+            paginationHTML += `<span>Page ${pagination.page} of ${pagination.pages}</span>`;
+            if (pagination.has_next) {
+                paginationHTML += `<a href="#" data-page="${pagination.next_num}" class="btn">Next &raquo;</a>`;
+            }
+            paginationContainer.innerHTML = paginationHTML;
+        }
+    }
+
+    const debouncedFetch = debounce(fetchRentals, 300);
+
+    searchInput.addEventListener('input', (e) => {
+        debouncedFetch(e.target.value, 1);
+    });
+
+    paginationContainer.addEventListener('click', (e) => {
+        if (e.target.tagName === 'A' && e.target.dataset.page) {
+            e.preventDefault();
+            const page = e.target.dataset.page;
+            const query = searchInput.value;
+            fetchRentals(query, page);
+        }
+    });
+
+    // Initial setup if there's a query in the URL on page load
+    const initialQuery = new URLSearchParams(window.location.search).get('q');
+    if (initialQuery) {
+        searchInput.value = initialQuery;
+        fetchRentals(initialQuery, 1);
+    }
+});
+</script>
 {% endblock %}
