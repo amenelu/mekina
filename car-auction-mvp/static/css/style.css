@@ -1325,31 +1325,26 @@ nav a.active {
 
 @media (max-width: 768px) {
   .footer-content-grid {
-    grid-template-columns: 1fr;
-    gap: 1rem;
-    margin-bottom: 1rem; /* Reduced space above copyright */
+    display: block; /* Change from grid to simple block stacking */
+    text-align: center;
   }
   .site-footer {
-    padding: 1.5rem 0 1rem; /* Significantly reduced top and bottom padding */
+    padding: 1.5rem 0;
+    overflow-x: hidden; /* Absolutely prevent horizontal overflow */
+  }
+  .site-footer .container {
+    padding: 0 15px; /* Ensure container padding is consistent */
+  }
+  .footer-brand, .footer-links {
+    margin-bottom: 1.5rem; /* Add space between the stacked sections */
   }
   .footer-bottom {
-    padding-top: 1rem; /* Reduced space below links */
+    padding-top: 1.5rem;
     font-size: 0.8em; /* Make copyright text smaller */
   }
   .footer-links ul li {
-    margin-bottom: 0; /* Removed space between links */
+    margin-bottom: 0.5rem;
   }
-  .footer-brand p {
-    display: none; /* Hide the descriptive paragraph on mobile */
-  }
-  .footer-links h4 {
-    margin-bottom: 0.25rem; /* Tighter heading spacing */
-  }
-}
-.container {
-  max-width: 1200px;
-  margin: 2rem auto;
-  padding: 0 20px;
 }
 
 .auction-grid {
