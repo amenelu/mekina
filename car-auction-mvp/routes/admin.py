@@ -1,12 +1,13 @@
 from flask import Blueprint, render_template, redirect, url_for, flash, abort, request
 from flask_login import login_required, current_user
 from extensions import db, socketio
-from sqlalchemy import func
+from sqlalchemy import func, or_
 from models.rental_listing import RentalListing
 from models.user import User
 from models.car import Car
 from models.auction import Auction
 from models.notification import Notification
+from models.equipment import Equipment
 from models.dealer_review import DealerReview
 from models.car_image import CarImage
 from routes.seller import CarSubmissionForm, save_seller_document
@@ -57,8 +58,19 @@ def dashboard():
 @admin_required
 def user_management():
     """Displays a list of all non-dealer users for the admin."""
-    users = User.query.filter_by(is_dealer=False).order_by(User.id.asc()).all()
-    return render_template('user_management.html', users=users)
+    query = request.args.get('q', '')
+    page = request.args.get('page', 1, type=int)
+
+    users_query = User.query.filter_by(is_dealer=False).order_by(User.id.asc())
+
+    if query:
+        search_term = f"%{query}%"
+        users_query = users_query.filter(
+            or_(User.username.ilike(search_term), User.email.ilike(search_term))
+        )
+
+    paginated_users = users_query.paginate(page=page, per_page=20)
+    return render_template('user_management.html', users=paginated_users)
 
 
 @admin_bp.route('/users/edit/<int:user_id>', methods=['GET', 'POST'])
