@@ -1,17 +1,162 @@
 {% extends "base.html" %}
-{% from "_macros.html" import render_car_card %}
 
-{% block title %}Cars For Rent{% endblock %}
+{% block title %}Rent a Car - Mekina Auction{% endblock %}
 
-{% block content %}
-    <h1>Cars For Rent</h1>
-    <p>Browse our selection of vehicles available for daily rental.</p>
-
-    {% if listings %}
-        <div class="auction-grid" style="margin-top: 2rem;">
-            {% for listing in listings %}{{ render_car_card(listing.car) }}{% endfor %}
+{% block main_content %}
+<div class="dashboard-full-width-container">
+    <div class="dashboard-header-wrapper">
+        <div class="container">
+            <div class="dashboard-header">
+                <div class="header-main">
+                    <h1>Rent a Car</h1>
+                    <p>Find the perfect vehicle for your needs from our trusted rental partners.</p>
+                </div>
+            </div>
         </div>
-    {% else %}
-        <p>There are currently no cars available for rent. Please check back later.</p>
-    {% endif %}
+    </div>
+
+    <div class="container">
+        <div class="filter-page-container">
+            <aside class="filter-sidebar">
+                <h3>Filters</h3>
+                <div class="filter-group">
+                    <label for="search-input">Search</label>
+                    <input type="search" id="search-input" placeholder="Make, model, year...">
+                </div>
+                <div class="filter-group">
+                    <label for="max-price-filter">Max Price (per day)</label>
+                    <select id="max-price-filter" class="filter-select">
+                        <option value="">Any Price</option>
+                        <option value="2000">Under 2,000 ETB</option>
+                        <option value="4000">Under 4,000 ETB</option>
+                        <option value="6000">Under 6,000 ETB</option>
+                        <option value="8000">Under 8,000 ETB</option>
+                        <option value="10000">Under 10,000 ETB</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label for="body-type-filter">Body Type</label>
+                    <select id="body-type-filter" class="filter-select">
+                        <option value="">All Body Types</option>
+                        <option value="Sedan">Sedan</option>
+                        <option value="SUV">SUV</option>
+                        <option value="Hatchback">Hatchback</option>
+                        <option value="Minivan">Minivan</option>
+                        <option value="Pickup">Pickup</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label for="transmission-filter">Transmission</label>
+                    <select id="transmission-filter" class="filter-select">
+                        <option value="">Any</option>
+                        <option value="Automatic">Automatic</option>
+                        <option value="Manual">Manual</option>
+                    </select>
+                </div>
+                <button id="reset-filters" class="btn delete small" style="width: 100%; margin-top: 1rem;">Reset Filters</button>
+            </aside>
+            <main class="filter-results-content">
+                <div class="results-wrapper">
+                    <div id="rental-grid-container" class="auction-grid">
+                        <!-- Rental cars will be loaded here by JavaScript -->
+                    </div>
+                    <div class="loading-spinner" id="loading-spinner" style="display: none;"></div>
+                </div>
+                <p id="no-results-message" style="display: none;">No rental cars match your filter criteria.</p>
+            </main>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const gridContainer = document.getElementById('rental-grid-container');
+    const noResultsMessage = document.getElementById('no-results-message');
+    const loadingSpinner = document.getElementById('loading-spinner');
+
+    const searchInput = document.getElementById('search-input');
+    const maxPriceFilter = document.getElementById('max-price-filter');
+    const bodyTypeFilter = document.getElementById('body-type-filter');
+    const transmissionFilter = document.getElementById('transmission-filter');
+    const resetBtn = document.getElementById('reset-filters');
+
+    const allFilters = [searchInput, maxPriceFilter, bodyTypeFilter, transmissionFilter];
+
+    function debounce(func, delay) {
+        let timeout;
+        return function(...args) {
+            const context = this;
+            clearTimeout(timeout);
+            timeout = setTimeout(() => func.apply(context, args), delay);
+        };
+    }
+
+    function fetchRentals() {
+        loadingSpinner.style.display = 'block';
+        gridContainer.style.opacity = '0.5';
+
+        const params = new URLSearchParams();
+        if (searchInput.value) params.append('q', searchInput.value);
+        if (maxPriceFilter.value) params.append('max_price', maxPriceFilter.value);
+        if (bodyTypeFilter.value) params.append('body_type', bodyTypeFilter.value);
+        if (transmissionFilter.value) params.append('transmission', transmissionFilter.value);
+
+        fetch(`{{ url_for('rentals.api_filter_rentals') }}?${params.toString()}`)
+            .then(response => response.json())
+            .then(data => {
+                loadingSpinner.style.display = 'none';
+                gridContainer.style.opacity = '1';
+                gridContainer.innerHTML = '';
+                if (data.length === 0) {
+                    noResultsMessage.style.display = 'block';
+                } else {
+                    noResultsMessage.style.display = 'none';
+                    data.forEach(listing => {
+                        const cardLink = document.createElement('a');
+                        cardLink.href = listing.detail_url;
+                        cardLink.className = 'auction-card-link';
+                        cardLink.innerHTML = `
+                            <div class="auction-card">
+                                <div class="card-image-container">
+                                    <img src="${listing.image_url}" alt="Car Image">
+                                    ${listing.is_featured ? `<span class="featured-tag">Featured</span>` : ''}
+                                    <span class="listing-type-tag rental">${listing.listing_type}</span>
+                                </div>
+                                <div class="card-content">
+                                    <h3>${listing.year} ${listing.make} ${listing.model}</h3>
+                                    <div class="card-details">
+                                        <p>${listing.price_display}</p>
+                                    </div>
+                                </div>
+                            </div>`;
+                        gridContainer.appendChild(cardLink);
+                    });
+                }
+            })
+            .catch(error => {
+                loadingSpinner.style.display = 'none';
+                gridContainer.style.opacity = '1';
+                console.error('Error fetching rentals:', error);
+            });
+    }
+
+    const debouncedFetch = debounce(fetchRentals, 300);
+
+    allFilters.forEach(filter => {
+        filter.addEventListener('input', debouncedFetch);
+        filter.addEventListener('change', debouncedFetch);
+    });
+
+    resetBtn.addEventListener('click', () => {
+        searchInput.value = '';
+        maxPriceFilter.value = '';
+        bodyTypeFilter.value = '';
+        transmissionFilter.value = '';
+        fetchRentals();
+    });
+
+    // Initial load
+    fetchRentals();
+});
+</script>
 {% endblock %}

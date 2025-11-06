@@ -1326,7 +1326,24 @@ nav a.active {
 @media (max-width: 768px) {
   .footer-content-grid {
     grid-template-columns: 1fr;
-    text-align: center;
+    gap: 1rem;
+    margin-bottom: 1rem; /* Reduced space above copyright */
+  }
+  .site-footer {
+    padding: 1.5rem 0 1rem; /* Significantly reduced top and bottom padding */
+  }
+  .footer-bottom {
+    padding-top: 1rem; /* Reduced space below links */
+    font-size: 0.8em; /* Make copyright text smaller */
+  }
+  .footer-links ul li {
+    margin-bottom: 0; /* Removed space between links */
+  }
+  .footer-brand p {
+    display: none; /* Hide the descriptive paragraph on mobile */
+  }
+  .footer-links h4 {
+    margin-bottom: 0.25rem; /* Tighter heading spacing */
   }
 }
 .container {
@@ -1373,6 +1390,53 @@ nav a.active {
     grid-template-columns: 1fr;
   }
 }
+.filter-page-container {
+  display: grid;
+  grid-template-columns: 250px 1fr; /* Sidebar and main content */
+  gap: 2rem;
+  align-items: start;
+}
+
+.filter-sidebar {
+  background-color: hsl(var(--card));
+  padding: 1.5rem;
+  border-radius: var(--radius);
+  border: 1px solid hsl(var(--border));
+  position: sticky;
+  top: 80px; /* Adjust based on your fixed nav height */
+}
+
+.filter-sidebar h3 {
+  margin-top: 0;
+  border-bottom: 1px solid hsl(var(--border));
+  padding-bottom: 0.75rem;
+  margin-bottom: 1.5rem;
+}
+
+.filter-group {
+  margin-bottom: 1.5rem;
+}
+
+.filter-group label {
+  display: block;
+  font-weight: 500;
+  margin-bottom: 0.5rem;
+  font-size: 0.9em;
+  color: hsl(var(--muted-foreground));
+}
+
+.filter-group input[type="search"],
+.filter-group .filter-select {
+  width: 100%;
+  padding: 8px 12px;
+}
+
+@media (max-width: 768px) {
+  .filter-page-container {
+    grid-template-columns: 1fr; /* Stack on mobile */
+  }
+}
+
 .detail-page-container {
   display: flex;
   gap: 30px;
@@ -1796,6 +1860,19 @@ nav a.active {
   padding: 20px;
   margin-bottom: 20px;
   border-radius: var(--radius);
+}
+
+.contact-seller-box {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: stretch; /* Make children fill the width */
+  background-color: hsl(var(--card)); /* Consistent with other card-like elements */
+  border: 1px solid hsl(var(--border));
+  padding: 20px;
+  margin-bottom: 20px; /* Add some space below the box */
+  border-radius: var(--radius);
+  text-align: center; /* Center all content within the box */
 }
 
 .admin-actions h3, .question-context h3 {

@@ -27,6 +27,7 @@
                     <li><a href="{{ url_for('dealer.dashboard') }}" class="{{ 'active' if request.endpoint == 'dealer.dashboard' }}">Dealer Dashboard</a></li>
                 {% elif current_user.is_authenticated %}
                     <li><a href="{{ url_for('main.all_listings') }}" class="{{ 'active' if request.endpoint == 'main.all_listings' }}">All Listings</a></li>
+                    <li><a href="{{ url_for('rentals.list_rentals') }}" class="{{ 'active' if request.endpoint == 'rentals.list_rentals' }}">Rentals</a></li>
                     <li><a href="{{ url_for('request.my_requests') }}" class="{{ 'active' if request.endpoint == 'request.my_requests' }}">My Requests</a></li>
                     <li><a href="{{ url_for('seller.dashboard') }}" class="{{ 'active' if request.endpoint == 'seller.dashboard' }}">Seller Dashboard</a></li>
                 {% else %}
