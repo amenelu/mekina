@@ -22,7 +22,7 @@
         <div class="form-grid">
             <div class="form-section">
                 <h2>Your Offer Details</h2>
-                <form method="POST" class="offer-form-container">
+                <form method="POST" class="offer-form-container" enctype="multipart/form-data">
                     {{ form.hidden_tag() }}
                     <fieldset>
                         <legend>Car Details</legend>
@@ -89,6 +89,11 @@
                             {{ form.message(class="form-control") }}
                             {% for error in form.message.errors %}<span class="form-error">{{ error }}</span>{% endfor %}
                         </div>
+                        <div class="form-group full-width">
+                            {{ form.photo.label }}
+                            {{ form.photo(class="form-control-file") }}
+                            {% for error in form.photo.errors %}<span class="form-error">{{ error }}</span>{% endfor %}
+                        </div>
                     </fieldset>
 
                     {{ form.submit(class="btn approve") }}
@@ -121,6 +126,11 @@
                 <div class="offer-card">
                     <p><strong>Price:</strong> {{ '{:,.2f}'.format(bid.price) if bid.price is not none else 'N/A' }} ETB</p>
                     {% if bid.price_with_loan is defined and bid.price_with_loan is not none %}<p><strong>Loan Price:</strong> {{ '{:,.2f}'.format(bid.price_with_loan) }} ETB</p>{% endif %}
+                    {% if bid.image_url %}
+                        <div class="offer-photo" style="margin: 1rem 0;">
+                            <img src="{{ bid.image_url }}" alt="Car offered by {{ bid.dealer.username }}" style="max-width: 100%; height: auto; border-radius: var(--radius);">
+                        </div>
+                    {% endif %}
                     <p><strong>Car:</strong> {{ bid.car_year }} {{ bid.make }} {{ bid.model }}</p>
                     <p><strong>Condition:</strong> {{ bid.condition }}</p>
                     <p><strong>Valid Until:</strong> {{ bid.valid_until.strftime('%Y-%m-%d') }}</p>

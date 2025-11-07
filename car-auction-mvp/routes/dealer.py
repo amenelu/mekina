@@ -1,6 +1,7 @@
-from flask import Blueprint, render_template, redirect, url_for, flash, request, abort
+from flask import Blueprint, render_template, redirect, url_for, flash, request, abort, current_app
 from flask_login import login_required, current_user, AnonymousUserMixin
-from models.car_request import CarRequest
+from models.car_request import CarRequest 
+from werkzeug.utils import secure_filename
 from models.dealer_bid import DealerBid
 from models.car import Car
 from models.user import User
@@ -8,6 +9,7 @@ from models.request_question import RequestQuestion
 from models.question import Question
 from models.auction import Auction
 from models.conversation import Conversation
+import os # Import the os module
 from models.chat_message import ChatMessage
 from models.notification import Notification 
 from models.dealer_review import DealerReview
@@ -16,9 +18,12 @@ from extensions import db, socketio
 from sqlalchemy import func, or_
 from functools import wraps
 from datetime import datetime
-from flask_wtf import FlaskForm
+from datetime import datetime, timedelta
+from flask_wtf import FlaskForm # Import timedelta
 from wtforms import StringField, IntegerField, TextAreaField, SelectField, DateField, FloatField, SubmitField
-from wtforms.validators import DataRequired, NumberRange, Optional, Length, ValidationError
+from wtforms.validators import DataRequired, NumberRange, Optional, Length, ValidationError # Import FileField and FileAllowed
+from wtforms import FileField
+from flask_wtf.file import FileAllowed
 from routes.main import mark_notification_as_read
 
 dealer_bp = Blueprint('dealer', __name__, url_prefix='/dealer')
@@ -48,6 +53,7 @@ class DealerBidForm(FlaskForm):
     valid_until = DateField('Offer Valid Until', format='%Y-%m-%d', validators=[DataRequired()])
     extras = TextAreaField('Extras (e.g., free service, floor mats)', validators=[Optional(), Length(max=500)])
     message = TextAreaField('Message to Customer (Optional)', validators=[Optional(), Length(max=1000)])
+    photo = FileField('Car Photo (Optional)', validators=[FileAllowed(['jpg', 'png', 'jpeg', 'gif'], 'Images only!')]) # New photo field
     submit = SubmitField('Submit Offer')
 
     def validate_valid_until(self, field):
@@ -59,6 +65,10 @@ class DealerBidForm(FlaskForm):
         """Custom validator to make mileage required only for used cars."""
         if self.condition.data == 'Used' and field.data is None:
             raise ValidationError('Mileage is required for used cars.')
+
+# Define the grace period for free edits (e.g., 30 minutes)
+EDIT_GRACE_PERIOD_MINUTES = 30
+BID_PHOTO_UPLOAD_FOLDER = 'static/uploads/dealer_bids' # Define upload folder
 
 class RequestAnswerForm(FlaskForm):
     answer_text = TextAreaField('Your Answer', validators=[DataRequired(), Length(min=5)])
@@ -264,6 +274,18 @@ def place_bid(request_id):
 
     if form.validate_on_submit():
         # --- Point System Logic ---
+        # Handle photo upload
+        photo_filename = None
+        if form.photo.data:
+            filename = secure_filename(form.photo.data.filename)
+            # Construct the absolute path to the upload directory
+            upload_dir_abs = os.path.join(current_app.root_path, BID_PHOTO_UPLOAD_FOLDER)
+            os.makedirs(upload_dir_abs, exist_ok=True) # Ensure the directory exists
+
+            # Construct the full absolute path to save the file
+            file_path_abs = os.path.join(upload_dir_abs, filename)
+            form.photo.data.save(file_path_abs)
+            photo_filename = os.path.join('/', BID_PHOTO_UPLOAD_FOLDER, filename).replace(os.sep, '/') # Store relative path for web access, ensure forward slashes
         # Check if the dealer has enough points to place a bid.
         if current_user.points <= 0:
             flash('You do not have enough points to place an offer. Please purchase more points.', 'danger')
@@ -281,7 +303,8 @@ def place_bid(request_id):
             availability=form.availability.data,
             valid_until=form.valid_until.data,
             extras=form.extras.data,
-            message=form.message.data,
+            message=form.message.data, 
+            image_url=photo_filename, # Save the image URL
             dealer_id=current_user.id,
             request_id=car_request.id
         )
@@ -338,6 +361,18 @@ def edit_bid(bid_id):
     form.submit.label.text = 'Update Offer' # Change button text
 
     if form.validate_on_submit():
+        # Handle photo upload on edit
+        photo_filename = bid.image_url # Keep existing photo if no new one is uploaded
+        if form.photo.data:
+            filename = secure_filename(form.photo.data.filename)            
+            upload_dir_abs = os.path.join(current_app.root_path, BID_PHOTO_UPLOAD_FOLDER)
+            os.makedirs(upload_dir_abs, exist_ok=True)
+
+            file_path_abs = os.path.join(upload_dir_abs, filename)
+            form.photo.data.save(file_path_abs)
+
+            photo_filename = os.path.join('/', BID_PHOTO_UPLOAD_FOLDER, filename).replace(os.sep, '/')
+
         # Update the bid object with the new form data
         form.populate_obj(bid)
         db.session.commit()
@@ -349,7 +384,8 @@ def edit_bid(bid_id):
         'place_dealer_bid.html',
         form=form,
         car_request=bid.car_request,
-        bids=bid.car_request.dealer_bids.order_by(DealerBid.price.asc()).all()
+        bids=bid.car_request.dealer_bids.order_by(DealerBid.price.asc()).all(),
+        now=datetime.utcnow() # Pass now for the edit button logic
     )
 
 @dealer_bp.route('/request_question/<int:question_id>/answer', methods=['GET', 'POST'])

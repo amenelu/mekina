@@ -19,6 +19,11 @@
             <span>Received: {{ bid.timestamp.strftime('%b %d, %Y') }}</span>
         </div>
     </div>
+    {% if bid.image_url %}
+    <div class="offer-photo" style="margin: 1rem 0; text-align: center;">
+        <img src="{{ bid.image_url }}" alt="Car offered by {{ bid.dealer.username }}" style="max-width: 100%; height: auto; border-radius: var(--radius);">
+    </div>
+    {% endif %}
     <div class="offer-details-grid">
         <div><strong>Car:</strong> {{ bid.make }} {{ bid.model }}</div>
         <div><strong>Year:</strong> {{ bid.car_year }}</div>

@@ -19,7 +19,9 @@ class DealerBid(db.Model):
     extras = db.Column(db.Text, nullable=True)
     valid_until = db.Column(db.Date, nullable=False)
     message = db.Column(db.Text, nullable=True)
+    image_url = db.Column(db.String(255), nullable=True) # New field for bid photo
 
+    edit_point_deducted = db.Column(db.Boolean, default=False, nullable=False)
     dealer_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     request_id = db.Column(db.Integer, db.ForeignKey('car_requests.id'), nullable=False)
 
