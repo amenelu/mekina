@@ -124,7 +124,13 @@
                     <p><strong>Car:</strong> {{ bid.car_year }} {{ bid.make }} {{ bid.model }}</p>
                     <p><strong>Condition:</strong> {{ bid.condition }}</p>
                     <p><strong>Valid Until:</strong> {{ bid.valid_until.strftime('%Y-%m-%d') }}</p>
-                    <a href="{{ url_for('dealer.edit_bid', bid_id=bid.id) }}" class="btn edit small">Edit Offer</a>
+                    {% set seconds_left = 300 - (now - bid.timestamp).total_seconds() %}
+                    {% if seconds_left > 0 %}
+                        <a href="{{ url_for('dealer.edit_bid', bid_id=bid.id) }}" class="btn edit small">Edit Offer</a>
+                    {% else %}
+                        <button class="btn edit small disabled" title="You can only edit offers within 5 minutes of submission." disabled>Edit Offer</button>
+                    {% endif %}
+
                 </div>
                 {% endfor %}
                 {% endif %}

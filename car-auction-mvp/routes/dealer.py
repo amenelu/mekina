@@ -13,7 +13,7 @@ from models.notification import Notification
 from models.dealer_review import DealerReview
 from models.dealer_request_view import DealerRequestView
 from extensions import db, socketio
-from sqlalchemy import func
+from sqlalchemy import func, or_
 from functools import wraps
 from datetime import datetime
 from flask_wtf import FlaskForm
@@ -317,7 +317,7 @@ def place_bid(request_id):
         flash(f'Your offer of {form.price.data:,.2f} ETB has been sent to the customer!', 'success')
         return redirect(url_for('dealer.dashboard'))
 
-    return render_template('place_dealer_bid.html', form=form, car_request=car_request, bids=existing_bids)
+    return render_template('place_dealer_bid.html', form=form, car_request=car_request, bids=existing_bids, now=datetime.utcnow())
 
 @dealer_bp.route('/bid/<int:bid_id>/edit', methods=['GET', 'POST'])
 @login_required
