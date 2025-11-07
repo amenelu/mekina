@@ -2,69 +2,72 @@
 
 {% block title %}Conversation with {{ conversation.buyer.username }}{% endblock %}
 
-{% block content %}
-    <a href="{{ url_for('dealer.list_messages') }}">&larr; Back to All Messages</a>
-    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; margin-bottom: 1rem;">
-        <h1>Chat about {{ conversation.car.year }} {{ conversation.car.make }} {{ conversation.car.model }}</h1>
-        {% set car = conversation.car %}
-        <a href="{{ url_for('auctions.auction_detail', auction_id=car.auction.id) if car.listing_type == 'auction' and car.auction else 
-                   (url_for('main.car_detail', car_id=car.id) if car.listing_type == 'sale' else 
-                   (url_for('rentals.rental_detail', listing_id=car.rental_listing.id) if car.listing_type == 'rental' and car.rental_listing else '#')) }}" 
-           class="btn">View Listing
-        </a>
-    </div>
-    
-    <!-- Unlock Prompt for Dealer -->
-    {% if not conversation.is_unlocked %}
-    {# Check if any message body contains the masked text. If so, show the prompt on page load. #}
-    {% set has_masked_info = conversation.messages.filter(ChatMessage.body.contains('[Contact Info Hidden]')).first() %}
-    <div id="unlock-prompt" class="admin-actions pending" 
-         style="display: {% if has_masked_info %}block{% else %}none{% endif %};">
-        <h3>Serious Buyer Detected!</h3>
-        <p>This buyer has shared contact information. Unlock their full messages and contact details to close the deal.</p>
-        <form id="unlock-form" method="POST" action="{{ url_for('dealer.unlock_conversation', conversation_id=conversation.id) }}">
-            <button type="submit" class="btn approve">Unlock Contact Info (1 Credit)</button>
-        </form>
-    </div>
-    {% endif %}
-
-    <div class="chat-container">
-        <div class="chat-history" id="chat-history">
-            {% for message in conversation.messages.order_by('timestamp') %}
-                <div class="chat-message-wrapper {% if message.sender_id == current_user.id %}sent-wrapper{% else %}received-wrapper{% endif %}">
-                    <div class="chat-message {% if message.sender_id == current_user.id %}sent{% else %}received{% endif %}">
-                        <p class="message-body">
-                            {# If unlocked and an original body exists, show it. Otherwise, show the default body. #}
-                            {{ message.original_body if conversation.is_unlocked and message.original_body else message.body }}
-                        </p>
-                        <small class="message-time">{{ message.timestamp.strftime('%b %d, %H:%M') }}</small>
-                    </div>
+{% block main_content %}
+<div class="dashboard-full-width-container">
+    <div class="dashboard-header-wrapper">
+        <div class="container">
+            <div class="dashboard-header">
+                <div class="header-main">
+                    <h1>Conversation with {{ conversation.buyer.username }}</h1>
+                    <p>Regarding your listing: <a href="{{ url_for('main.car_detail', car_id=conversation.car.id) }}">{{ conversation.car.year }} {{ conversation.car.make }} {{ conversation.car.model }}</a></p>
                 </div>
-            {% else %}
-                <p class="system-message">No messages yet.</p>
-            {% endfor %}
-        </div>
-        <div class="chat-input-area">
-            <form id="chat-form" data-car-id="{{ conversation.car.id }}">
-                <textarea name="message" id="chat-message-input" placeholder="Type your reply..." required></textarea>
-                <button type="submit" class="btn">Send Reply</button>
-            </form>
+                <div class="header-actions">
+                    <a href="{{ url_for('dealer.list_messages') }}" class="btn">&larr; Back to All Messages</a>
+                </div>
+            </div>
         </div>
     </div>
+
+    <div class="container">
+        <div class="chat-container">
+            <div class="chat-history" id="chat-history">
+                {% for message in conversation.messages.order_by('timestamp') %}
+                    {% if message.sender_id == current_user.id %}
+                        <div class="chat-message-wrapper sent-wrapper">
+                            <div class="chat-message sent">
+                                <p>{{ message.body }}</p>
+                                <small>{{ message.timestamp.strftime('%b %d, %H:%M') }}</small>
+                            </div>
+                        </div>
+                    {% else %}
+                        <div class="chat-message-wrapper received-wrapper">
+                            <div class="chat-message received">
+                                <p>{{ message.body }}</p>
+                                <small>{{ message.timestamp.strftime('%b %d, %H:%M') }}</small>
+                            </div>
+                        </div>
+                    {% endif %}
+                {% else %}
+                    <p class="system-message">This is the beginning of your conversation.</p>
+                {% endfor %}
+            </div>
+            <div class="chat-input-area">
+                <form id="chat-form" data-car-id="{{ conversation.car.id }}">
+                    <textarea name="message" id="chat-message-input" placeholder="Type your reply..." required></textarea>
+                    <button type="submit" class="btn">Send</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
 {% endblock %}
 
 {% block after_content %}
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // --- Chat Message Sending Logic (same as buyer's page) ---
     const socket = io();
-    const conversationId = "{{ conversation.id }}";
     const currentUserId = "{{ current_user.id }}";
-
+    const chatHistory = document.getElementById('chat-history');
     const chatForm = document.getElementById('chat-form');
     const messageInput = document.getElementById('chat-message-input');
-    const chatHistory = document.getElementById('chat-history');
 
+    // Scroll to the bottom on initial load
+    chatHistory.scrollTop = chatHistory.scrollHeight;
+
+    // Join the conversation room
+    socket.emit('join_conversation', { 'conversation_id': "{{ conversation.id }}" });
+
+    // --- Chat Message Sending Logic ---
     if (chatForm) {
         chatForm.addEventListener('submit', function(e) {
             e.preventDefault();
@@ -80,59 +83,33 @@ document.addEventListener('DOMContentLoaded', function() {
             })
             .then(response => response.json())
             .then(data => {
-                if (data.status !== 'success') {
-                    // If the message limit is reached, disable the form
-                    if (response.status === 403) {
-                        messageInput.value = data.message;
-                        messageInput.disabled = true;
-                        chatForm.querySelector('button').disabled = true;
-                    } else {
-                        alert(data.message || 'Failed to send message.');
-                    }
+                if (data.status === 'success') {
+                    messageInput.value = ''; // Clear input
                 } else {
-                    messageInput.value = ''; // Clear input on success
+                    alert(data.message || 'Failed to send message.');
                 }
             }).catch(err => console.error('Chat send error:', err));
         });
     }
 
-    // --- Real-time Message Receiving Logic ---
-    socket.emit('join_conversation', { 'conversation_id': conversationId });
-
-    socket.on('new_chat_message', function(data) {
+    function appendMessage(data) {
         const isSentByMe = data.sender_id == currentUserId;
         const wrapperClass = isSentByMe ? 'sent-wrapper' : 'received-wrapper';
         const messageClass = isSentByMe ? 'sent' : 'received';
 
-        const messageWrapper = document.createElement('div');
-        messageWrapper.classList.add('chat-message-wrapper', wrapperClass);
-
-        const messageEl = document.createElement('div');
-        messageEl.classList.add('chat-message', messageClass);
-
-        const bodyEl = document.createElement('p');
-        bodyEl.classList.add('message-body');
-        bodyEl.textContent = data.body;
-
-        const timeEl = document.createElement('small');
-        timeEl.classList.add('message-time');
-        timeEl.textContent = new Date(data.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-
-        messageEl.appendChild(bodyEl);
-        messageEl.appendChild(timeEl);
-        messageWrapper.appendChild(messageEl);
-        chatHistory.appendChild(messageWrapper);
-
-        // Scroll to the bottom
+        const messageHTML = `
+            <div class="chat-message-wrapper ${wrapperClass}">
+                <div class="chat-message ${messageClass}">
+                    <p>${data.body}</p>
+                    <small>${new Date(data.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</small>
+                </div>
+            </div>`;
+        chatHistory.insertAdjacentHTML('beforeend', messageHTML);
         chatHistory.scrollTop = chatHistory.scrollHeight;
-    });
+    }
 
-    // Listen for the event that a serious buyer has been detected
-    socket.on('serious_buyer_detected', function(data) {
-        if (data.conversation_id == conversationId) {
-            const unlockPrompt = document.getElementById('unlock-prompt');
-            if (unlockPrompt) unlockPrompt.style.display = 'block';
-        }
+    socket.on('new_chat_message', function(data) {
+        appendMessage(data);
     });
 });
 </script>

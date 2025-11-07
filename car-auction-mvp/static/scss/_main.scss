@@ -1460,68 +1460,18 @@ td .role-badge {
     gap: 1rem;
 }
 
-/* --- Chat System --- */
-.chat-container {
-    border: 1px solid hsl(var(--border));
-    border-radius: var(--radius);
-    overflow: hidden;
-    display: flex;
-    flex-direction: column;
-}
-.chat-history {
-    padding: 1.5rem;
-    height: 400px;
-    overflow-y: auto;
-    display: flex;
-    flex-direction: column;
-    gap: 0.75rem; /* Adds space between message bubbles */
-}
-.chat-message-wrapper {
-    display: flex;
-    max-width: 80%; /* Prevent bubbles from being too wide */
-}
-.sent-wrapper {
-    justify-content: flex-end;
-    align-self: flex-end; /* This is key to push the bubble to the right */
-}
-.received-wrapper {
-    justify-content: flex-start;
-    align-self: flex-start; /* This keeps the bubble on the left */
-}
-.chat-message {
-    padding: 10px 15px;
-    border-radius: 18px; /* More rounded bubbles */
-}
-.sent {
-    border-bottom-right-radius: 4px; /* Sharp corner for sent messages */
-}
-.chat-message p { margin: 0 0 5px 0; }
-.chat-message small { font-size: 0.75em; color: hsl(var(--muted-foreground)); opacity: 0.8; }
-.sent { background-color: hsl(var(--accent)); color: hsl(var(--accent-foreground)); }
-.received { background-color: hsl(var(--secondary)); }
+
 .system-message {
     text-align: center;
     color: hsl(var(--muted-foreground));
     font-style: italic;
-    padding: 1rem;
+    padding: 0.5rem 1rem; /* Reduced padding */
+    margin: 0.5rem auto; /* Center it and give some vertical margin */
+    max-width: 70%; /* Limit width for system messages too */
+    border-radius: var(--radius);
+    background-color: hsl(var(--muted)); /* Give it a subtle background */
 }
-.chat-input-area {
-    border-top: 1px solid hsl(var(--border));
-    padding: 0.75rem;
-}
-.chat-input-area form {
-    display: flex;
-    gap: 0.5rem;
-}
-.chat-input-area textarea {
-    flex-grow: 1;
-    resize: none;
-    height: 40px; /* Start with a smaller height */
-}
-.chat-input-area textarea:focus {
-    outline: none;
-    box-shadow: 0 0 0 2px hsl(var(--accent));
-}
+
 
 /* Custom Scrollbar for Chat History */
 .chat-history::-webkit-scrollbar {

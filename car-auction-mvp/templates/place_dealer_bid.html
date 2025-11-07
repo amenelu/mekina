@@ -1,127 +1,150 @@
 {% extends "base.html" %}
 
-{% block title %}
-    {% if 'Update' in form.submit.label.text %}
-        Edit Offer for Request #{{ car_request.id }}
-    {% else %}
-        Place Offer on Request #{{ car_request.id }}
-    {% endif %}
-{% endblock %}
+{% block title %}Place Offer for Request #{{ car_request.id }}{% endblock %}
 
-{% block content %}
-<div class="detail-page-container">
-    <div class="main-content">
-        <h1>
-            {% if 'Update' in form.submit.label.text %}
-                Edit Your Offer
-            {% else %}
-                Place an Offer
-            {% endif %}
-        </h1>
-        <p>Submitting an offer will cost 1 point from your account balance.</p>
-
-        <form method="POST" novalidate class="offer-form-container">
-            {{ form.hidden_tag() }}
-
-            <fieldset>
-                <legend>Pricing</legend>
-                <div class="form-grid">
-                    <div class="form-group">
-                        {{ form.price.label }}
-                        {{ form.price(class="form-control") }}
-                        {% for error in form.price.errors %}<span class="form-error">{{ error }}</span>{% endfor %}
-                    </div>
-                    <div class="form-group">
-                        {{ form.price_with_loan.label }}
-                        {{ form.price_with_loan(class="form-control", placeholder="Optional") }}
-                        {% for error in form.price_with_loan.errors %}<span class="form-error">{{ error }}</span>{% endfor %}
-                    </div>
+{% block main_content %}
+<div class="dashboard-full-width-container">
+    <div class="dashboard-header-wrapper">
+        <div class="container">
+            <div class="dashboard-header">
+                <div class="header-main">
+                    <h1>Place Offer for Request #{{ car_request.id }}</h1>
+                    <p>Customer is looking for a {{ car_request.make or 'any make' }} {{ car_request.model or 'any model' }} ({{ car_request.year or 'any year' }}).</p>
                 </div>
-            </fieldset>
-
-            <fieldset>
-                <legend>Vehicle Details</legend>
-                <div class="form-grid">
-                    <div class="form-group">{{ form.make.label }}{{ form.make(class="form-control") }}{% for error in form.make.errors %}<span class="form-error">{{ error }}</span>{% endfor %}</div>
-                    <div class="form-group">{{ form.model.label }}{{ form.model(class="form-control") }}{% for error in form.model.errors %}<span class="form-error">{{ error }}</span>{% endfor %}</div>
-                    <div class="form-group">{{ form.car_year.label }}{{ form.car_year(class="form-control") }}{% for error in form.car_year.errors %}<span class="form-error">{{ error }}</span>{% endfor %}</div>
-                    <div class="form-group">{{ form.condition.label }}{{ form.condition(class="form-control") }}{% for error in form.condition.errors %}<span class="form-error">{{ error }}</span>{% endfor %}</div>
-                    <div class="form-group">{{ form.mileage.label }}{{ form.mileage(class="form-control") }}{% for error in form.mileage.errors %}<span class="form-error">{{ error }}</span>{% endfor %}</div>
-                    <div class="form-group">{{ form.availability.label }}{{ form.availability(class="form-control") }}{% for error in form.availability.errors %}<span class="form-error">{{ error }}</span>{% endfor %}</div>
+                <div class="header-actions">
+                    <a href="{{ url_for('dealer.dashboard') }}" class="btn">&larr; Back to Dashboard</a>
                 </div>
-            </fieldset>
-
-            <fieldset>
-                <legend>Additional Information</legend>
-                <div class="form-group">{{ form.valid_until.label }}{{ form.valid_until(class="form-control") }}{% for error in form.valid_until.errors %}<span class="form-error">{{ error }}</span>{% endfor %}</div>
-                <div class="form-group">
-                    {{ form.extras.label }}
-                    {{ form.extras(class="form-control", rows=3) }}
-                    {% for error in form.extras.errors %}<span class="form-error">{{ error }}</span>{% endfor %}
-                </div>
-                <div class="form-group">
-                    {{ form.message.label }}
-                    {{ form.message(class="form-control", rows=4) }}
-                    {% for error in form.message.errors %}<span class="form-error">{{ error }}</span>{% endfor %}
-                </div>
-            </fieldset>
-
-            {{ form.submit(class="btn approve") }}
-        </form>
+            </div>
+        </div>
     </div>
 
-    <div class="sidebar">
-        <div class="sidebar-section">
-            <h3>Customer's Request</h3>
-            <div class="request-details-sidebar">
-                {% if car_request.make %}
-                    <p><strong>Make:</strong> {{ car_request.make }}</p>
-                    <p><strong>Model:</strong> {{ car_request.model or 'Any' }}</p>
-                    <p><strong>Min Year:</strong> {{ car_request.min_year or 'Any' }}</p>
-                {% endif %}
-                <p><strong>Notes:</strong> {{ car_request.notes or 'None' }}</p>
-            </div>
-        </div>
+    <div class="container">
+        <div class="form-grid">
+            <div class="form-section">
+                <h2>Your Offer Details</h2>
+                <form method="POST" class="offer-form-container">
+                    {{ form.hidden_tag() }}
+                    <fieldset>
+                        <legend>Car Details</legend>
+                        <div class="form-group">
+                            {{ form.make.label }}
+                            {{ form.make(class="form-control") }}
+                            {% for error in form.make.errors %}<span class="form-error">{{ error }}</span>{% endfor %}
+                        </div>
+                        <div class="form-group">
+                            {{ form.model.label }}
+                            {{ form.model(class="form-control") }}
+                            {% for error in form.model.errors %}<span class="form-error">{{ error }}</span>{% endfor %}
+                        </div>
+                        <div class="form-group">
+                            {{ form.car_year.label }}
+                            {{ form.car_year(class="form-control") }}
+                            {% for error in form.car_year.errors %}<span class="form-error">{{ error }}</span>{% endfor %}
+                        </div>
+                        <div class="form-group">
+                            {{ form.condition.label }}
+                            {{ form.condition(class="form-control") }}
+                            {% for error in form.condition.errors %}<span class="form-error">{{ error }}</span>{% endfor %}
+                        </div>
+                        <div class="form-group">
+                            {{ form.mileage.label }}
+                            {{ form.mileage(class="form-control") }}
+                            {% for error in form.mileage.errors %}<span class="form-error">{{ error }}</span>{% endfor %}
+                        </div>
+                    </fieldset>
 
-        {% if bids %}
-        <div class="sidebar-section">
-            <h3>Current Offers</h3>
-            <div class="offer-table-wrapper">
-                <table class="dashboard-table">
-                    <thead>
-                        <tr>
-                            <th>Dealer</th>
-                            <th>Cash Price</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for bid in bids %}
-                            <tr {% if bid.dealer_id == current_user.id %}class="my-bid-highlight"{% endif %}>
-                                <td data-label="Dealer">
-                                    <strong>
-                                        {% if bid.dealer_id == current_user.id %}
-                                            Your Offer
-                                        {% else %}
-                                            Dealer #{{ loop.index }}
-                                        {% endif %}
-                                    </strong>
-                                </td>
-                                <td data-label="Cash Price">{{ '{:,.2f}'.format(bid.price) }} ETB</td>
-                            </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
+                    <fieldset>
+                        <legend>Pricing & Availability</legend>
+                        <div class="form-group">
+                            {{ form.price.label }}
+                            {{ form.price(class="form-control") }}
+                            {% for error in form.price.errors %}<span class="form-error">{{ error }}</span>{% endfor %}
+                        </div>
+                        <div class="form-group">
+                            {{ form.price_with_loan.label }}
+                            {{ form.price_with_loan(class="form-control") }}
+                            {% for error in form.price_with_loan.errors %}<span class="form-error">{{ error }}</span>{% endfor %}
+                        </div>
+                        <div class="form-group">
+                            {{ form.availability.label }}
+                            {{ form.availability(class="form-control") }}
+                            {% for error in form.availability.errors %}<span class="form-error">{{ error }}</span>{% endfor %}
+                        </div>
+                        <div class="form-group">
+                            {{ form.valid_until.label }}
+                            {{ form.valid_until(class="form-control", id="valid_until_date_field") }} {# Added ID for JS targeting #}
+                            {% for error in form.valid_until.errors %}<span class="form-error">{{ error }}</span>{% endfor %}
+                        </div>
+                    </fieldset>
+
+                    <fieldset>
+                        <legend>Additional Information</legend>
+                        <div class="form-group full-width">
+                            {{ form.extras.label }}
+                            {{ form.extras(class="form-control") }}
+                            {% for error in form.extras.errors %}<span class="form-error">{{ error }}</span>{% endfor %}
+                        </div>
+                        <div class="form-group full-width">
+                            {{ form.message.label }}
+                            {{ form.message(class="form-control") }}
+                            {% for error in form.message.errors %}<span class="form-error">{{ error }}</span>{% endfor %}
+                        </div>
+                    </fieldset>
+
+                    {{ form.submit(class="btn approve") }}
+                </form>
+            </div>
+
+            <div class="form-section">
+                <h2>Customer Request Details</h2>
+                <div class="request-details-sidebar">
+                    <p><strong>Make:</strong> {{ car_request.make or 'Any' }}</p>
+                    <p><strong>Model:</strong> {{ car_request.model or 'Any' }}</p>
+                    <p><strong>Year:</strong> {{ car_request.year or 'Any' }}</p>
+                    <p><strong>Budget:</strong>
+                        {% if car_request.min_price is defined and car_request.min_price is not none and car_request.max_price is defined and car_request.max_price is not none %}
+                            {{ '{:,.2f}'.format(car_request.min_price) }} - {{ '{:,.2f}'.format(car_request.max_price) }} ETB
+                        {% else %}
+                            Not Specified
+                        {% endif %}
+                    </p>
+                    <p><strong>Condition:</strong> {{ car_request.condition or 'Any' }}</p>
+                    <p><strong>Transmission:</strong> {{ car_request.transmission or 'Any' }}</p>
+                    <p><strong>Fuel Type:</strong> {{ car_request.fuel_type or 'Any' }}</p>
+                    <p><strong>Body Type:</strong> {{ car_request.body_type or 'Any' }}</p>
+                    <p><strong>Message:</strong> {{ car_request.message or 'N/A' }}</p>
+                </div>
+
+                {% if bids %}
+                <h2>Your Previous Offers</h2>
+                {% for bid in bids %}
+                <div class="offer-card">
+                    <p><strong>Price:</strong> {{ '{:,.2f}'.format(bid.price) if bid.price is not none else 'N/A' }} ETB</p>
+                    {% if bid.price_with_loan is defined and bid.price_with_loan is not none %}<p><strong>Loan Price:</strong> {{ '{:,.2f}'.format(bid.price_with_loan) }} ETB</p>{% endif %}
+                    <p><strong>Car:</strong> {{ bid.car_year }} {{ bid.make }} {{ bid.model }}</p>
+                    <p><strong>Condition:</strong> {{ bid.condition }}</p>
+                    <p><strong>Valid Until:</strong> {{ bid.valid_until.strftime('%Y-%m-%d') }}</p>
+                    <a href="{{ url_for('dealer.edit_bid', bid_id=bid.id) }}" class="btn edit small">Edit Offer</a>
+                </div>
+                {% endfor %}
+                {% endif %}
             </div>
         </div>
-        {% endif %}
     </div>
 </div>
 {% endblock %}
-```
 
-This change ensures that when a dealer goes to place or edit a bid, they will have a complete view of all existing offers, including both cash and loan prices, allowing them to make a more informed and competitive bid.
-
-<!--
-[PROMPT_SUGGESTION]On the deal summary page, display which payment method was chosen.[/PROMPT_SUGGESTION]
-[PROMPT_SUGGESTION]Add a filter to the dealer dashboard to show only requests they haven't bid on.[/PROMPT_SUGGESTION]
--->
+{% block after_content %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const validUntilField = document.getElementById('valid_until_date_field');
+    if (validUntilField) {
+        const today = new Date();
+        const year = today.getFullYear();
+        const month = String(today.getMonth() + 1).padStart(2, '0'); // Months are 0-indexed
+        const day = String(today.getDate()).padStart(2, '0');
+        validUntilField.min = `${year}-${month}-${day}`;
+    }
+});
+</script>
+{% endblock %}

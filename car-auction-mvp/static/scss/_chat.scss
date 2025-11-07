@@ -1,0 +1,95 @@
+/* --- Chat System --- */
+.chat-container {
+    border: 1px solid hsl(var(--border));
+    border-radius: var(--radius);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    background-color: hsl(var(--card));
+}
+
+.chat-history {
+    padding: 1.5rem;
+    height: 50vh; /* Set a good default height */
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem; /* Adds space between message bubbles */
+    word-break: break-word;
+    // Ensure messages don't overflow horizontally
+    word-break: break-word;
+    overflow-wrap: break-word;
+}
+
+// Wrapper for each message bubble to control alignment
+.chat-message-wrapper {
+    display: flex;
+    max-width: 80%; /* Limit width of the bubble */
+    margin: 0; /* Reset any default margins */
+}
+
+.sent-wrapper {
+    align-self: flex-end; /* Aligns the entire wrapper to the right */
+    justify-content: flex-end; /* Pushes the message content to the right within its wrapper */
+
+}
+
+.received-wrapper {
+    align-self: flex-start; /* Aligns the entire wrapper to the left */
+    justify-content: flex-start; /* Keeps the message content to the left within its wrapper */
+}
+
+.chat-message {
+    padding: 8px 12px; /* Further reduced padding for more compact bubbles */
+    border-radius: 20px;
+    word-wrap: break-word;
+    white-space: pre-wrap;
+}
+
+.sent {
+    background-color: hsl(var(--accent));
+    color: hsl(var(--accent-foreground));
+    border-bottom-right-radius: 4px; /* Sharp corner for sent messages */
+}
+
+.received {
+    background-color: hsl(var(--muted));
+    color: hsl(var(--foreground));
+    border-bottom-left-radius: 4px; /* Sharp corner for received messages */
+}
+
+.chat-message p {
+    margin: 0; /* Remove bottom margin from message text */
+}
+.chat-message small {
+    font-size: 0.7em;
+    color: hsl(var(--muted-foreground));
+    display: block;
+    margin-top: 4px; /* Reduced space between text and timestamp */
+}
+.sent small { text-align: right; }
+.received small { text-align: left; }
+
+.system-message {
+    text-align: center;
+    color: hsl(var(--muted-foreground));
+    font-style: italic;
+    padding: 0.5rem 1rem;
+    margin: 0.5rem auto;
+}
+
+.chat-input-area {
+    border-top: 1px solid hsl(var(--border));
+    padding: 0.75rem;
+}
+.chat-input-area form {
+    display: flex;
+    gap: 0.5rem;
+}
+.chat-input-area textarea {
+    flex-grow: 1;
+    resize: vertical;
+    min-height: 48px;
+    max-height: 150px;
+    padding: 10px;
+}

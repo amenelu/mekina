@@ -50,6 +50,11 @@ class DealerBidForm(FlaskForm):
     message = TextAreaField('Message to Customer (Optional)', validators=[Optional(), Length(max=1000)])
     submit = SubmitField('Submit Offer')
 
+    def validate_valid_until(self, field):
+        """Custom validator to ensure 'Offer Valid Until' is not a past date."""
+        if field.data and field.data < datetime.utcnow().date():
+            raise ValidationError('The offer valid until date cannot be in the past.')
+
     def validate_mileage(self, field):
         """Custom validator to make mileage required only for used cars."""
         if self.condition.data == 'Used' and field.data is None:
