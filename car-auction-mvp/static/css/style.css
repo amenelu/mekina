@@ -2181,6 +2181,61 @@ nav a.active {
     font-size: 2rem;
   }
 }
+/* --- Comparison Tool --- */
+.compare-container {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin-top: 10px;
+}
+
+.compare-description {
+  font-size: 0.8em;
+  color: hsl(var(--muted-foreground));
+  margin-left: 5px;
+}
+
+.compare-container label {
+  font-size: 0.9em;
+  color: hsl(var(--muted-foreground));
+  cursor: pointer;
+  vertical-align: middle; /* Align with larger checkbox */
+}
+
+.compare-checkbox {
+  accent-color: hsl(var(--accent));
+  width: 1.2em; /* Make checkbox slightly larger */
+  height: 1.2em;
+  vertical-align: middle;
+}
+.comparison-bar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  background-color: hsl(var(--card));
+  border-top: 1px solid hsl(var(--border));
+  padding: 0.25rem 0; /* Further reduced padding */
+  z-index: 999;
+  box-shadow: 0 -4px 15px hsl(var(--background)/0.5);
+  transition: all 0.3s ease-in-out; /* Smooth appearance */
+}
+
+.comparison-content #comparison-count {
+  font-weight: 500;
+  font-size: 0.8rem; /* Further reduced font size */
+}
+
+.comparison-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem; /* Further reduced gap */
+}
+
+.comparison-actions .btn {
+  padding: 4px 10px;
+  font-size: 0.8rem;
+}
 /* --- Rating Submission Section --- */
 .rating-submission-section {
   padding-top: 2rem;

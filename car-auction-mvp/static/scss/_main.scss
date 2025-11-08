@@ -1442,22 +1442,30 @@ td .role-badge {
     width: 100%;
     background-color: hsl(var(--card));
     border-top: 1px solid hsl(var(--border));
-    padding: 1rem 0;
+    padding: 0.5rem 0; /* Reduced padding */
     z-index: 999;
     box-shadow: 0 -4px 15px hsl(var(--background) / 0.5);
+    transition: all 0.3s ease-in-out; /* Smooth appearance */
 }
 .comparison-content {
     display: flex;
     justify-content: space-between;
     align-items: center;
 }
-.comparison-content span {
-    font-weight: 600;
-    font-size: 1.1rem;
+.comparison-content #comparison-count {
+    font-weight: 500;
+    font-size: 0.9rem; /* Reduced font size */
 }
 .comparison-actions {
     display: flex;
-    gap: 1rem;
+    align-items: center;
+    gap: 0.75rem; /* Reduced gap */
+}
+
+/* Make buttons in comparison bar smaller */
+.comparison-actions .btn {
+    padding: 6px 12px;
+    font-size: 0.9rem;
 }
 
 
