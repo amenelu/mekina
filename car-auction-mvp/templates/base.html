@@ -352,6 +352,19 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
+    // Prevent card link navigation when clicking on the compare container,
+    // but still allow the checkbox and its label to function.
+    document.body.addEventListener('click', function(e) {
+        // Check if the click is inside the compare container but NOT on the checkbox or its label.
+        if (e.target.closest('.compare-container') && !e.target.closest('.compare-checkbox') && !e.target.closest('label[for^="compare-"]')) {
+            // Prevent the link from navigating.
+            e.preventDefault();
+            // Stop the event from bubbling up to other listeners.
+            e.stopPropagation();
+        }
+    }, true); // Use capture phase to catch the event early.
+
+
     clearBtn.addEventListener('click', function() {
         selectedCars = [];
         localStorage.removeItem('compareCars');

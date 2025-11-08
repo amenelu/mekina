@@ -2186,7 +2186,9 @@ nav a.active {
   display: flex;
   align-items: center;
   gap: 5px;
-  margin-top: 10px;
+  margin-top: 5px; /* Adjust margin */
+  padding: 5px; /* Add padding to increase clickable area */
+  border-radius: calc(var(--radius) / 2);
 }
 
 .compare-description {
