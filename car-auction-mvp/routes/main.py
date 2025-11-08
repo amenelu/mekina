@@ -241,7 +241,48 @@ def compare():
     # Sort the final list based on the original ID order
     sorted_cars = [cars_dict.get(id) for id in car_ids if cars_dict.get(id)]
 
-    return render_template('compare.html', cars=sorted_cars)
+    # --- Logic to find the best values ---
+    best_values = {
+        'price': {'value': float('inf'), 'ids': []},
+        'mileage': {'value': float('inf'), 'ids': []},
+        'year': {'value': float('-inf'), 'ids': []}
+    }
+
+    if sorted_cars:
+        # First pass: find the best values
+        for car in sorted_cars:
+            # Determine the display price for comparison
+            price = car.fixed_price if car.listing_type == 'sale' else (car.auction.current_price if car.auction else float('inf'))
+            car.display_price = price # Attach for easy access in template
+
+            # Compare price (lower is better)
+            if price < best_values['price']['value']:
+                best_values['price']['value'] = price
+                best_values['price']['ids'] = [car.id]
+            elif price == best_values['price']['value']:
+                best_values['price']['ids'].append(car.id)
+
+            # Compare mileage (lower is better)
+            mileage = car.mileage if car.mileage is not None else float('inf')
+            if mileage < best_values['mileage']['value']:
+                best_values['mileage']['value'] = mileage
+                best_values['mileage']['ids'] = [car.id]
+            elif mileage == best_values['mileage']['value']:
+                best_values['mileage']['ids'].append(car.id)
+
+            # Compare year (higher is better)
+            year = car.year or float('-inf')
+            if year > best_values['year']['value']:
+                best_values['year']['value'] = year
+                best_values['year']['ids'] = [car.id]
+            elif year == best_values['year']['value']:
+                best_values['year']['ids'].append(car.id)
+
+    return render_template(
+        'compare.html',
+        cars=sorted_cars,
+        best_values=best_values
+    )
 
 @main_bp.route('/chat/send', methods=['POST'])
 @login_required

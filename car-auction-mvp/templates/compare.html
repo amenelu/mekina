@@ -1,97 +1,109 @@
 {% extends "base.html" %}
 
-{% block title %}Car Comparison{% endblock %}
+{% block title %}Compare Cars{% endblock %}
 
 {% block content %}
-    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; margin-bottom: 1rem;">
-        <h1>Car Comparison</h1>
-        <a href="{{ url_for('main.all_listings') }}" id="exit-comparison-btn" class="btn delete">Exit Comparison & Clear</a>
-    </div>
-    
-    {% if cars %}
-        <div class="table-responsive-wrapper">
-            <table class="dashboard-table comparison-table">
-                <thead>
-                    <tr>
-                        <th>Feature</th>
-                        {% for car in cars %}
-                            <th>
-                                <a href="{{ url_for('auctions.auction_detail', auction_id=car.auction.id) if car.listing_type == 'auction' and car.auction else url_for('main.car_detail', car_id=car.id) }}">
-                                    {{ car.year }} {{ car.make }} {{ car.model }}
-                                </a>
-                            </th>
-                        {% endfor %}
-                    </tr>
-                </thead>
-                <tbody>
-                    <!-- Image Row -->
-                    <tr>
-                        <td></td>
-                        {% for car in cars %}
-                            <td>
-                                <a href="{{ url_for('auctions.auction_detail', auction_id=car.auction.id) if car.listing_type == 'auction' and car.auction else url_for('main.car_detail', car_id=car.id) }}">
-                                    <img src="{{ car.primary_image_url or url_for('static', filename='img/default_car.png') }}" alt="{{ car.make }} {{ car.model }}" style="width: 100%; height: 150px; object-fit: cover; border-radius: var(--radius);">
-                                </a>
-                            </td>
-                        {% endfor %}
-                    </tr>
-                    <!-- Price Row -->
-                    <tr>
-                        <td><strong>Price</strong></td>
-                        {% for car in cars %}
-                            <td><strong>
-                                {% if car.listing_type == 'auction' and car.auction %}
-                                    {{ '{:,.2f}'.format(car.auction.current_price) }} ETB (Auction)
-                                {% elif car.listing_type == 'sale' %}
-                                    {{ '{:,.2f}'.format(car.fixed_price) }} ETB
-                                {% else %}
-                                    N/A
-                                {% endif %}
-                            </strong></td>
-                        {% endfor %}
-                    </tr>
-                    <!-- Other Rows -->
-                    <tr><td><strong>Condition</strong></td>{% for car in cars %}<td>{{ car.condition or 'N/A' }}</td>{% endfor %}</tr>
-                    <tr><td><strong>Mileage</strong></td>{% for car in cars %}<td>{{ '{:,}'.format(car.mileage) if car.mileage is not none else 'N/A' }} km</td>{% endfor %}</tr>
-                    <tr><td><strong>Body Type</strong></td>{% for car in cars %}<td>{{ car.body_type or 'N/A' }}</td>{% endfor %}</tr>
-                    <tr><td><strong>Transmission</strong></td>{% for car in cars %}<td>{{ car.transmission or 'N/A' }}</td>{% endfor %}</tr>
-                    <tr><td><strong>Drivetrain</strong></td>{% for car in cars %}<td>{{ car.drivetrain or 'N/A' }}</td>{% endfor %}</tr>
-                    <tr><td><strong>Fuel Type</strong></td>{% for car in cars %}<td>{{ car.fuel_type or 'N/A' }}</td>{% endfor %}</tr>
-                    <!-- Equipment Row -->
-                    <tr>
-                        <td><strong>Features</strong></td>
-                        {% for car in cars %}
-                            <td>
-                                {% if car.equipment %}
-                                    <ul>
-                                    {% for item in car.equipment %}
-                                        <li>{{ item.name|replace('_', ' ')|title }}</li>
-                                    {% endfor %}
-                                    </ul>
-                                {% else %}
-                                    <span class="text-muted">None listed</span>
-                                {% endif %}
-                            </td>
-                        {% endfor %}
-                    </tr>
-                </tbody>
-            </table>
-        </div>
-    {% else %}
-        <p>No cars selected for comparison. Go to a <a href="{{ url_for('main.all_listings') }}">listing page</a> and select some cars to compare.</p>
-    {% endif %}
-{% endblock %}
+<div class="container">
+    <h1>Compare Vehicles</h1>
+    <p>Here's a side-by-side comparison of your selected vehicles. The best value in each category is highlighted.</p>
 
-{% block after_content %}
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    const exitBtn = document.getElementById('exit-comparison-btn');
-    if (exitBtn) {
-        exitBtn.addEventListener('click', function() {
-            // Clear the comparison list from storage before navigating away
-            localStorage.removeItem('compareCars');
-        });
-    }
-});
-</script>
+    {% if cars %}
+    <div class="table-responsive-wrapper">
+        <table class="comparison-table">
+            <thead>
+                <tr>
+                    <th>Feature</th>
+                    {% for car in cars %}
+                    <th> {# --- FIX: Add a check for car.auction to prevent error --- #}
+                        {% set detail_url = url_for('main.car_detail', car_id=car.id) if car.listing_type == 'sale' else
+                                           url_for('auctions.auction_detail', auction_id=car.auction.id) if car.auction else
+                                           url_for('main.all_listings') %}
+                        <a href="{{ detail_url }}">
+                            <img src="{{ car.primary_image_url or url_for('static', filename='img/default_car.png') }}" alt="Image of {{ car.make }} {{ car.model }}" class="comparison-image">
+                            {{ car.year }} {{ car.make }} {{ car.model }}
+                        </a>
+                    </th>
+                    {% endfor %}
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>Price</td>
+                    {% for car in cars %}
+                        {% set is_best = car.id in best_values.price.ids %}
+                        <td class="{{ 'best-value' if is_best }}">
+                            {{ '{:,.0f}'.format(car.display_price) }} ETB
+                            {% if is_best %}<span class="best-value-badge">Best Price</span>{% endif %}
+                        </td>
+                    {% endfor %}
+                </tr>
+                <tr>
+                    <td>Year</td>
+                    {% for car in cars %}
+                        {% set is_best = car.id in best_values.year.ids %}
+                        <td class="{{ 'best-value' if is_best }}">
+                            {{ car.year }}
+                            {% if is_best %}<span class="best-value-badge">Newest</span>{% endif %}
+                        </td>
+                    {% endfor %}
+                </tr>
+                <tr>
+                    <td>Mileage</td>
+                    {% for car in cars %}
+                        {% set is_best = car.id in best_values.mileage.ids %}
+                        <td class="{{ 'best-value' if is_best }}">
+                            {{ '{:,}'.format(car.mileage) if car.mileage is not none else 'N/A' }} km
+                            {% if is_best %}<span class="best-value-badge">Lowest</span>{% endif %}
+                        </td>
+                    {% endfor %}
+                </tr>
+                <tr>
+                    <td>Condition</td>
+                    {% for car in cars %}
+                        <td>{{ car.condition }}</td>
+                    {% endfor %}
+                </tr>
+                <tr>
+                    <td>Transmission</td>
+                    {% for car in cars %}
+                        <td>{{ car.transmission }}</td>
+                    {% endfor %}
+                </tr>
+                <tr>
+                    <td>Fuel Type</td>
+                    {% for car in cars %}
+                        <td>{{ car.fuel_type }}</td>
+                    {% endfor %}
+                </tr>
+                <tr>
+                    <td>Body Type</td>
+                    {% for car in cars %}
+                        <td>{{ car.body_type }}</td>
+                    {% endfor %}
+                </tr>
+                <tr>
+                    <td>Drivetrain</td>
+                    {% for car in cars %}
+                        <td>{{ car.drivetrain }}</td>
+                    {% endfor %}
+                </tr>
+                <tr>
+                    <td>Bank Loan</td>
+                    {% for car in cars %}
+                        <td>
+                            {% if car.is_bank_loan_available %}
+                                <span style="color: hsl(var(--success));">✔ Available</span>
+                            {% else %}
+                                <span style="color: hsl(var(--destructive));">✘ Not Available</span>
+                            {% endif %}
+                        </td>
+                    {% endfor %}
+                </tr>
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <p>No cars selected for comparison. <a href="{{ url_for('main.all_listings') }}">Browse listings</a> to add cars.</p>
+    {% endif %}
+</div>
 {% endblock %}

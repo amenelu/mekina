@@ -1470,6 +1470,42 @@ td .role-badge {
     font-size: 0.9rem;
 }
 
+/* --- Comparison Page --- */
+.comparison-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 2rem;
+    font-size: 0.95em;
+}
+.comparison-table th, .comparison-table td {
+    padding: 1rem;
+    text-align: center;
+    border: 1px solid hsl(var(--border));
+    vertical-align: middle;
+}
+.comparison-table th {
+    background-color: hsl(var(--secondary));
+    font-weight: 600;
+}
+.comparison-table thead th:first-child {
+    text-align: left;
+    background-color: transparent;
+    border: none;
+}
+.comparison-table tbody td:first-child {
+    text-align: left;
+    font-weight: 600;
+}
+.comparison-image {
+    width: 150px;
+    height: 110px;
+    object-fit: cover;
+    border-radius: var(--radius);
+    margin-bottom: 0.5rem;
+    display: block;
+    margin-left: auto;
+    margin-right: auto;
+}
 
 .system-message {
     text-align: center;
