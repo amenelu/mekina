@@ -45,5 +45,46 @@ class Car(db.Model):
             return self.images[0].image_url
         return None
 
+    def to_dict(self, include_owner=False):
+        """Serializes the Car object to a dictionary for API responses."""
+        car_dict = {
+            'id': self.id,
+            'make': self.make,
+            'model': self.model,
+            'year': self.year,
+            'description': self.description,
+            'is_approved': self.is_approved,
+            'is_active': self.is_active,
+            'is_featured': self.is_featured,
+            'is_bank_loan_available': self.is_bank_loan_available,
+            'transmission': self.transmission,
+            'drivetrain': self.drivetrain,
+            'mileage': self.mileage,
+            'fuel_type': self.fuel_type,
+            'condition': self.condition,
+            'body_type': self.body_type,
+            'listing_type': self.listing_type,
+            'primary_image_url': self.primary_image_url,
+            'image_urls': [img.image_url for img in self.images],
+            'equipment': [eq.name for eq in self.equipment]
+        }
+
+        if self.listing_type == 'auction' and self.auction:
+            car_dict['auction_details'] = self.auction.to_dict()
+        elif self.listing_type == 'sale':
+            car_dict['fixed_price'] = self.fixed_price
+        elif self.listing_type == 'rental' and self.rental_listing:
+            car_dict['rental_details'] = {
+                'price_per_day': self.rental_listing.price_per_day,
+                'is_available': self.rental_listing.is_available
+            }
+
+        if include_owner and self.owner:
+            car_dict['owner'] = {
+                'id': self.owner.id,
+                'username': self.owner.username
+            }
+        return car_dict
+
     def __repr__(self):
         return f'<Car {self.year} {self.make} {self.model}>'

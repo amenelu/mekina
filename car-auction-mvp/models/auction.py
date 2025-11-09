@@ -16,6 +16,16 @@ class Auction(db.Model):
     bids = db.relationship('Bid', backref='auction', lazy='dynamic', cascade="all, delete-orphan")
     questions = db.relationship('Question', back_populates='auction', lazy='dynamic', cascade="all, delete-orphan")
 
+    def to_dict(self):
+        """Serializes the Auction object to a dictionary."""
+        return {
+            'id': self.id,
+            'start_time': self.start_time.isoformat() + 'Z',
+            'end_time': self.end_time.isoformat() + 'Z',
+            'start_price': self.start_price,
+            'current_price': self.current_price,
+            'bid_count': self.bids.count()
+        }
 
     def __repr__(self):
         return f'<Auction for Car ID {self.car_id}>'

@@ -28,5 +28,24 @@ class User(UserMixin, db.Model):
     def check_password(self, password):
         return check_password_hash(self.password_hash, password)
 
+    def to_dict(self, detail_level='public'):
+        """
+        Serializes the User object to a dictionary.
+        'public': Basic info for display.
+        'owner': Full details for the user themselves.
+        """
+        data = {
+            'id': self.id,
+            'username': self.username,
+            'is_dealer': self.is_dealer,
+            'is_verified': self.is_verified,
+            'is_rental_company': self.is_rental_company,
+        }
+        if detail_level == 'owner':
+            data['email'] = self.email
+            data['phone_number'] = self.phone_number
+            data['points'] = self.points
+        return data
+
     def __repr__(self):
         return f'<User {self.username}>'

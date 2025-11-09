@@ -90,6 +90,13 @@ def home():
     featured_cars = Car.query.filter_by(is_featured=True, is_approved=True, is_active=True).all()
     return render_template('home.html', featured_cars=featured_cars)
 
+@main_bp.route('/api/home')
+def api_home():
+    """API endpoint for home screen data."""
+    featured_cars = Car.query.filter_by(is_featured=True, is_approved=True, is_active=True).all()
+    featured_cars_json = [car.to_dict() for car in featured_cars]
+    return jsonify(featured_cars=featured_cars_json)
+
 @main_bp.route('/notifications')
 @login_required
 def notifications():
@@ -241,7 +248,7 @@ def compare():
     # Sort the final list based on the original ID order
     sorted_cars = [cars_dict.get(id) for id in car_ids if cars_dict.get(id)]
 
-    # --- Logic to find the best values ---
+     # --- Logic to find the best values ---
     best_values = {
         'price': {'value': float('inf'), 'ids': []},
         'mileage': {'value': float('inf'), 'ids': []},
