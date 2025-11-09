@@ -9,5 +9,14 @@ class Bid(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     auction_id = db.Column(db.Integer, db.ForeignKey('auction.id'), nullable=False)
 
+    def to_dict(self):
+        """Serializes the Bid object to a dictionary."""
+        return {
+            'id': self.id,
+            'amount': self.amount,
+            'timestamp': self.timestamp.isoformat() + 'Z',
+            'bidder': self.bidder.to_dict() if self.bidder else None
+        }
+
     def __repr__(self):
         return f'<Bid {self.amount} by User ID {self.user_id}>'

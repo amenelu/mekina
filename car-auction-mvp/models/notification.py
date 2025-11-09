@@ -9,3 +9,13 @@ class Notification(db.Model):
     link = db.Column(db.String(255), nullable=True)
     is_read = db.Column(db.Boolean, default=False, nullable=False)
     timestamp = db.Column(db.DateTime, default=datetime.utcnow, index=True)
+
+    def to_dict(self):
+        """Serializes the Notification object to a dictionary."""
+        return {
+            'id': self.id,
+            'message': self.message,
+            'link': self.link,
+            'is_read': self.is_read,
+            'timestamp': self.timestamp.isoformat() + 'Z'
+        }

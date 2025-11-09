@@ -112,12 +112,41 @@ def notifications():
     user_notifications = Notification.query.filter_by(user_id=current_user.id).order_by(Notification.timestamp.desc()).limit(50).all()
     return render_template('notifications.html', notifications=user_notifications)
 
+@main_bp.route('/api/notifications')
+@login_required
+def api_notifications():
+    """API endpoint to get user notifications and mark them as read."""
+    # This endpoint both fetches and marks as read, simplifying client logic.
+    unread_notifications = Notification.query.filter_by(user_id=current_user.id, is_read=False).all()
+    for notification in unread_notifications:
+        notification.is_read = True
+    db.session.commit()
+
+    all_notifications = Notification.query.filter_by(user_id=current_user.id).order_by(Notification.timestamp.desc()).limit(50).all()
+    return jsonify(notifications=[n.to_dict() for n in all_notifications])
+
 @main_bp.route('/my-messages')
 @login_required
 def my_messages():
     """Lists all conversations for the current buyer."""
     conversations = Conversation.query.filter_by(buyer_id=current_user.id).order_by(Conversation.created_at.desc()).all()
     return render_template('buyer_messages.html', conversations=conversations)
+
+@main_bp.route('/api/my-messages')
+@login_required
+def api_my_messages():
+    """API endpoint to list all conversations for the current user (buyer or dealer)."""
+    if current_user.is_dealer:
+        conversations_query = Conversation.query.filter_by(dealer_id=current_user.id)
+    else:
+        conversations_query = Conversation.query.filter_by(buyer_id=current_user.id)
+    
+    conversations = conversations_query.order_by(Conversation.created_at.desc()).all()
+
+    return jsonify(conversations=[
+        convo.to_dict(current_user.id) for convo in conversations
+    ])
+
 
 @main_bp.route('/my-messages/<int:conversation_id>')
 @login_required
@@ -130,19 +159,41 @@ def view_buyer_conversation(conversation_id):
     if conversation.buyer_id != current_user.id:
         from flask import abort
         abort(403)
+    # The logic to mark messages as read is now handled by the API endpoint, which the frontend can call.
 
-    # Mark messages from dealer as read and emit a real-time update
-    unread_messages = conversation.messages.filter_by(sender_id=conversation.dealer_id, is_read=False).all()
+    return render_template('buyer_conversation_detail.html', conversation=conversation)
+
+@main_bp.route('/api/my-messages/<int:conversation_id>')
+@login_required
+def api_view_buyer_conversation(conversation_id):
+    """API endpoint for a single conversation's details and messages."""
+    conversation = Conversation.query.get_or_404(conversation_id)
+
+    # Security check: ensure user is part of this conversation
+    if current_user.id not in [conversation.buyer_id, conversation.dealer_id]:
+        return jsonify({'error': 'Permission denied'}), 403
+
+    # Mark messages from the other party as read and emit a real-time update
+    other_party_id = conversation.dealer_id if current_user.id == conversation.buyer_id else conversation.buyer_id
+    unread_messages = conversation.messages.filter_by(sender_id=other_party_id, is_read=False).all()
     if unread_messages:
         for msg in unread_messages:
             msg.is_read = True
         db.session.commit()
-
-        # Recalculate the total unread count and emit an update
-        total_unread = db.session.query(ChatMessage.id).join(Conversation, ChatMessage.conversation_id == Conversation.id).filter(Conversation.buyer_id == current_user.id, ChatMessage.sender_id != current_user.id, ChatMessage.is_read == False).count()
+        
+        # Recalculate the total unread count for the current user and emit an update to sync the UI
+        total_unread = db.session.query(ChatMessage.id).join(Conversation).filter(
+            or_(Conversation.buyer_id == current_user.id, Conversation.dealer_id == current_user.id),
+            ChatMessage.sender_id != current_user.id,
+            ChatMessage.is_read == False
+        ).count()
         socketio.emit('message_count_update', {'count': total_unread}, room=str(current_user.id))
 
-    return render_template('buyer_conversation_detail.html', conversation=conversation)
+    messages = conversation.messages.order_by(ChatMessage.timestamp.asc()).all()
+    return jsonify(
+        conversation=conversation.to_dict(current_user.id),
+        messages=[msg.to_dict() for msg in messages]
+    )
 
 @main_bp.route('/api/search_suggestions')
 def search_suggestions():
@@ -227,28 +278,32 @@ def car_detail(car_id):
         similarity_reason=similarity_reason
     )
 
-@main_bp.route('/compare')
-def compare():
-    """Displays a side-by-side comparison of selected cars."""
-    car_ids_str = request.args.get('ids')
-    if not car_ids_str:
-        return redirect(url_for('main.all_listings'))
+@main_bp.route('/api/cars/<int:car_id>')
+@mark_notification_as_read
+def api_car_detail(car_id):
+    """API endpoint for a single car's details."""
+    car = Car.query.get_or_404(car_id)
 
-    try:
-        # Sanitize input and convert to integers
-        car_ids = [int(id) for id in car_ids_str.split(',') if id.isdigit()]
-    except ValueError:
-        flash("Invalid comparison request.", "danger")
-        return redirect(url_for('main.all_listings'))
+    # Security check: Only show approved cars
+    # For the API, we can be a bit more flexible and show any listing type,
+    # not just 'sale', as the mobile app will handle the display logic.
+    if not car.is_approved and not (current_user.is_authenticated and current_user.is_admin):
+        return jsonify({'error': 'Listing not found or not approved'}), 404
 
-    # Fetch cars from the database, preserving the order of IDs
+    similar_cars, similarity_reason = get_similar_cars(car, car.listing_type)
+
+    return jsonify(
+        car=car.to_dict(include_owner=True),
+        similar_cars=[c.to_dict() for c in similar_cars],
+        similarity_reason=similarity_reason
+    )
+
+def _get_comparison_data(car_ids):
+    """Helper function to fetch cars and calculate best comparison values."""
     cars = Car.query.filter(Car.id.in_(car_ids)).all()
-    # Create a dictionary for quick lookups
     cars_dict = {car.id: car for car in cars}
-    # Sort the final list based on the original ID order
     sorted_cars = [cars_dict.get(id) for id in car_ids if cars_dict.get(id)]
 
-     # --- Logic to find the best values ---
     best_values = {
         'price': {'value': float('inf'), 'ids': []},
         'mileage': {'value': float('inf'), 'ids': []},
@@ -256,20 +311,16 @@ def compare():
     }
 
     if sorted_cars:
-        # First pass: find the best values
         for car in sorted_cars:
-            # Determine the display price for comparison
             price = car.fixed_price if car.listing_type == 'sale' else (car.auction.current_price if car.auction else float('inf'))
-            car.display_price = price # Attach for easy access in template
+            car.display_price = price  # Attach for easy access in web template
 
-            # Compare price (lower is better)
             if price < best_values['price']['value']:
                 best_values['price']['value'] = price
                 best_values['price']['ids'] = [car.id]
             elif price == best_values['price']['value']:
                 best_values['price']['ids'].append(car.id)
 
-            # Compare mileage (lower is better)
             mileage = car.mileage if car.mileage is not None else float('inf')
             if mileage < best_values['mileage']['value']:
                 best_values['mileage']['value'] = mileage
@@ -277,7 +328,6 @@ def compare():
             elif mileage == best_values['mileage']['value']:
                 best_values['mileage']['ids'].append(car.id)
 
-            # Compare year (higher is better)
             year = car.year or float('-inf')
             if year > best_values['year']['value']:
                 best_values['year']['value'] = year
@@ -285,6 +335,39 @@ def compare():
             elif year == best_values['year']['value']:
                 best_values['year']['ids'].append(car.id)
 
+    return sorted_cars, best_values
+
+@main_bp.route('/api/compare')
+def api_compare():
+    """API endpoint to get comparison data."""
+    car_ids_str = request.args.get('ids')
+    if not car_ids_str:
+        return jsonify({'error': 'No car IDs provided'}), 400
+    try:
+        car_ids = [int(id) for id in car_ids_str.split(',') if id.isdigit()]
+    except ValueError:
+        return jsonify({'error': 'Invalid car IDs format'}), 400
+
+    sorted_cars, best_values = _get_comparison_data(car_ids)
+    
+    return jsonify(
+        cars=[car.to_dict() for car in sorted_cars],
+        best_values=best_values
+    )
+
+@main_bp.route('/compare')
+def compare():
+    """Displays a side-by-side comparison of selected cars."""
+    car_ids_str = request.args.get('ids')
+    if not car_ids_str:
+        return redirect(url_for('main.all_listings'))
+    try:
+        car_ids = [int(id) for id in car_ids_str.split(',') if id.isdigit()]
+    except ValueError:
+        flash("Invalid comparison request.", "danger")
+        return redirect(url_for('main.all_listings'))
+
+    sorted_cars, best_values = _get_comparison_data(car_ids)
     return render_template(
         'compare.html',
         cars=sorted_cars,

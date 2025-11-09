@@ -111,6 +111,32 @@ def auction_detail(auction_id):
 
     return render_template('auction_detail.html', auction=auction, bid_form=bid_form, highest_bid=highest_bid, all_bids=all_bids, similar_auctions=similar_auctions, similarity_reason=similarity_reason)
 
+@auctions_bp.route('/api/auctions/<int:auction_id>')
+@mark_notification_as_read
+def api_auction_detail(auction_id):
+    """API endpoint for a single auction's details."""
+    auction = Auction.query.join(Car).filter(Auction.id == auction_id).first_or_404()
+
+    # Security check
+    if not auction.car.is_approved and (not current_user.is_authenticated or not current_user.is_admin):
+        return jsonify({'error': 'Auction not found or not approved'}), 404
+
+    highest_bid = auction.bids.order_by(Bid.amount.desc()).first()
+    all_bids = auction.bids.order_by(Bid.timestamp.desc()).all()
+    questions = auction.questions.order_by(Question.timestamp.asc()).all()
+
+    similar_cars, similarity_reason = get_similar_cars(auction.car, 'auction')
+    similar_auctions = [car.auction for car in similar_cars if car.auction]
+
+    return jsonify(
+        auction=auction.car.to_dict(include_owner=True), # The car's to_dict includes auction_details
+        highest_bid=highest_bid.to_dict() if highest_bid else None,
+        all_bids=[bid.to_dict() for bid in all_bids],
+        questions=[q.to_dict() for q in questions],
+        similar_auctions=[sa.car.to_dict() for sa in similar_auctions],
+        similarity_reason=similarity_reason
+    )
+
 @auctions_bp.route('/api/filter')
 def filter_auctions_api():
     """API endpoint to return filtered auction data as JSON."""

@@ -13,6 +13,18 @@ class ChatMessage(db.Model):
     conversation_id = db.Column(db.Integer, db.ForeignKey('conversations.id'), nullable=False)
     sender_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
 
+    def to_dict(self):
+        """Serializes the ChatMessage object to a dictionary."""
+        return {
+            'id': self.id,
+            'body': self.body,
+            'timestamp': self.timestamp.isoformat() + 'Z',
+            'is_read': self.is_read,
+            'sender': {
+                'id': self.sender_id,
+                'username': self.sender.username
+            }
+        }
     # Relationships
     conversation = db.relationship('Conversation', backref=db.backref('messages', lazy='dynamic', cascade="all, delete-orphan"))
     sender = db.relationship('User', backref='sent_chat_messages')

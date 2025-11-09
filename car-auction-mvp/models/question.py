@@ -18,3 +18,14 @@ class Question(db.Model):
     # Relationships
     auction = db.relationship('Auction', back_populates='questions')
     asker = db.relationship('User', backref='questions_asked')
+
+    def to_dict(self):
+        """Serializes the Question object to a dictionary."""
+        return {
+            'id': self.id,
+            'question_text': self.question_text,
+            'answer_text': self.answer_text,
+            'timestamp': self.timestamp.isoformat() + 'Z',
+            'answer_timestamp': self.answer_timestamp.isoformat() + 'Z' if self.answer_timestamp else None,
+            'asker': self.asker.to_dict() if self.asker else None
+        }
