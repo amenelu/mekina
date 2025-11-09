@@ -251,7 +251,11 @@ def step_guided_brand():
             f"- Important Features: {', '.join(data.get('equipment', [])) or 'None'}\n"
             f"- Preferred Brand(s): {form.brand.data or 'Any'}"
         )
-        new_req = CarRequest(notes=notes, user_id=current_user.id)
+        new_req = CarRequest(
+            notes=notes, 
+            user_id=current_user.id,
+            make=form.brand.data or None # Save the brand to the structured 'make' field
+        )
         db.session.add(new_req)
         db.session.commit()
         session.pop('car_request_data', None)
@@ -444,6 +448,49 @@ def deal_summary(deal_id):
     existing_rating = DealerRating.query.filter_by(deal_id=deal.id).first()
     form = DealerRatingForm()
     return render_template('deal_summary.html', deal=deal, rating=existing_rating, form=form)
+
+@request_bp.route('/api/requests', methods=['POST'])
+@login_required
+def api_create_request():
+    """
+    API endpoint for creating a new car request from a mobile client.
+    The client is expected to send all collected data in a single JSON payload.
+    """
+    data = request.get_json()
+    if not data:
+        return jsonify({'status': 'error', 'message': 'Invalid JSON payload.'}), 400
+    
+    # --- Logic to handle both "I know what I want" and "Help me decide" paths ---
+    is_guided_path = 'price' in data or 'body_type' in data
+
+    if is_guided_path:
+        # Construct notes from guided path data, similar to the web route
+        notes = (
+            f"Customer is looking for a car with the following preferences:\n"
+            f"- Budget: {data.get('price', 'Not specified')}\n"
+            f"- Body Type: {data.get('body_type', 'Not specified')}\n"
+            f"- Fuel Type: {data.get('fuel_type', 'Not specified')}\n"
+            f"- Important Features: {', '.join(data.get('equipment', [])) or 'None'}\n"
+            f"- Preferred Brand(s): {data.get('brand', 'Any')}"
+        )
+        new_req = CarRequest(
+            notes=notes,
+            user_id=current_user.id,
+            make=data.get('brand') or None # Save brand to the structured 'make' field
+        )
+    else: # "I know what I want" path
+        if not data.get('make') and not data.get('notes'):
+            return jsonify({'status': 'error', 'message': 'Either make/model or notes are required.'}), 400
+        new_req = CarRequest(
+            make=data.get('make'), model=data.get('model'),
+            min_year=data.get('min_year'), max_mileage=data.get('max_mileage'),
+            notes=data.get('notes'), user_id=current_user.id
+        )
+
+    db.session.add(new_req)
+    db.session.commit()
+
+    return jsonify({'status': 'success', 'message': 'Your request has been submitted successfully!', 'request': new_req.to_dict()}), 201
 
 @request_bp.route('/deal/<int:deal_id>/rate', methods=['POST'])
 @login_required

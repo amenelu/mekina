@@ -24,3 +24,19 @@ class CarRequest(db.Model):
     # Link to the winning bid
     accepted_bid_id = db.Column(db.Integer, db.ForeignKey('dealer_bid.id', use_alter=True, name='fk_car_requests_accepted_bid_id'), nullable=True)
     accepted_bid = db.relationship('DealerBid', foreign_keys=[accepted_bid_id])
+
+    def to_dict(self):
+        """Serializes the CarRequest object to a dictionary."""
+        return {
+            'id': self.id,
+            'make': self.make,
+            'model': self.model,
+            'min_year': self.min_year,
+            'max_mileage': self.max_mileage,
+            'notes': self.notes,
+            'status': self.status,
+            'created_at': self.created_at.isoformat() + 'Z',
+            'user_id': self.user_id,
+            'bid_count': self.dealer_bids.count(),
+            'accepted_bid_id': self.accepted_bid_id
+        }
