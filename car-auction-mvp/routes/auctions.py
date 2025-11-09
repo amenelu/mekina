@@ -111,6 +111,43 @@ def auction_detail(auction_id):
 
     return render_template('auction_detail.html', auction=auction, bid_form=bid_form, highest_bid=highest_bid, all_bids=all_bids, similar_auctions=similar_auctions, similarity_reason=similarity_reason)
 
+@auctions_bp.route('/api/auctions/<int:auction_id>/bid', methods=['POST'])
+@login_required
+def api_place_bid(auction_id):
+    """API endpoint for placing a bid on an auction."""
+    auction = Auction.query.get_or_404(auction_id)
+    data = request.get_json()
+
+    if not data or 'amount' not in data:
+        return jsonify({'status': 'error', 'message': 'Bid amount is required.'}), 400
+
+    try:
+        amount = float(data['amount'])
+    except (ValueError, TypeError):
+        return jsonify({'status': 'error', 'message': 'Invalid bid amount format.'}), 400
+
+    # --- Manual Validation Logic (adapted from BidForm) ---
+    highest_bid = auction.bids.order_by(Bid.amount.desc()).first()
+    if highest_bid and highest_bid.user_id == current_user.id:
+        return jsonify({'status': 'error', 'message': 'You are already the highest bidder.'}), 400
+
+    if auction.bids.first():
+        min_bid = auction.current_price + 50000
+        if amount < min_bid:
+            return jsonify({'status': 'error', 'message': f"Your bid must be at least {min_bid:,.2f} ETB."}), 400
+    else:
+        if amount < auction.start_price:
+            return jsonify({'status': 'error', 'message': f"The first bid must be at least {auction.start_price:,.2f} ETB."}), 400
+
+    # --- Create and Save the Bid ---
+    new_bid = Bid(amount=amount, user_id=current_user.id, auction_id=auction.id)
+    auction.current_price = amount
+    db.session.add(new_bid)
+    db.session.commit()
+
+    # Return the new state of the auction data
+    return jsonify({'status': 'success', 'message': 'Your bid has been placed successfully!', 'new_current_price': auction.current_price})
+
 @auctions_bp.route('/api/auctions/<int:auction_id>')
 @mark_notification_as_read
 def api_auction_detail(auction_id):
