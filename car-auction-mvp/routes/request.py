@@ -555,3 +555,31 @@ def rate_dealer(deal_id):
         flash("There was an error with your submission. Please select a rating.", "danger")
 
     return redirect(url_for('request.deal_summary', deal_id=deal.id))
+
+@request_bp.route('/api/deals/<int:deal_id>/rate', methods=['POST'])
+@login_required
+def api_rate_dealer(deal_id):
+    """API endpoint for a buyer to submit a rating for a dealer."""
+    deal = Deal.query.get_or_404(deal_id)
+
+    # Security checks
+    if deal.customer_id != current_user.id:
+        return jsonify({'status': 'error', 'message': 'Permission denied.'}), 403
+    if DealerRating.query.filter_by(deal_id=deal.id).first():
+        return jsonify({'status': 'error', 'message': 'You have already submitted a review for this deal.'}), 400
+
+    data = request.get_json()
+    if not data or 'rating' not in data:
+        return jsonify({'status': 'error', 'message': 'A rating is required.'}), 400
+
+    new_rating = DealerRating(
+        rating=data.get('rating'),
+        review_text=data.get('review_text'),
+        dealer_id=deal.dealer_id,
+        buyer_id=deal.customer_id,
+        deal_id=deal.id
+    )
+    db.session.add(new_rating)
+    db.session.commit()
+
+    return jsonify({'status': 'success', 'message': 'Thank you for your review!', 'rating': new_rating.to_dict()}), 201

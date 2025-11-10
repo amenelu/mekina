@@ -10,6 +10,8 @@ from models.car_image import CarImage
 from extensions import db, socketio
 from datetime import datetime
 from werkzeug.utils import secure_filename
+import base64
+from io import BytesIO
 
 from flask_wtf import FlaskForm
 from wtforms import (StringField, IntegerField, TextAreaField, SubmitField, FloatField, 
@@ -78,6 +80,32 @@ def save_seller_document(form_file_data):
     form_file_data.save(file_path)
     return url_for('static', filename=f'uploads/{filename}')
 
+def save_base64_image(base64_string, filename_prefix="img"):
+    """Helper function to save a base64 encoded image."""
+    if not base64_string:
+        return None
+
+    try:
+        # Extract base64 data (remove data:image/jpeg;base64, prefix if present)
+        if ';base64,' in base64_string:
+            header, base64_data = base64_string.split(';base64,', 1)
+            extension = header.split('/')[-1] # e.g., jpeg, png
+        else:
+            base64_data = base64_string
+            extension = 'png' # Default to png if no header
+
+        img_data = base64.b64decode(base64_data)
+        filename = f"{filename_prefix}_{datetime.utcnow().strftime('%Y%m%d%H%M%S%f')}.{extension}"
+        upload_path = os.path.join(current_app.root_path, 'static/uploads')
+        os.makedirs(upload_path, exist_ok=True)
+        file_path = os.path.join(upload_path, filename)
+        with open(file_path, 'wb') as f:
+            f.write(img_data)
+        return url_for('static', filename=f'uploads/{filename}')
+    except Exception as e:
+        current_app.logger.error(f"Error saving base664 image: {e}")
+        return None
+
 
 @seller_bp.route('/dashboard')
 @login_required
@@ -98,6 +126,29 @@ def dashboard():
     ).order_by(Question.timestamp.desc()).all()
 
     return render_template('seller_dashboard.html', my_cars=my_cars, unanswered_questions=unanswered_questions, now=datetime.utcnow())
+
+@seller_bp.route('/api/dashboard')
+@login_required
+def api_seller_dashboard():
+    """API endpoint for seller dashboard data."""
+    my_cars = Car.query.filter_by(owner_id=current_user.id).order_by(Car.id.desc()).all()
+    my_car_ids = [car.id for car in my_cars]
+    
+    my_auctions = Auction.query.filter(Auction.car_id.in_(my_car_ids)).all()
+    my_auction_ids = [auction.id for auction in my_auctions]
+
+    unanswered_questions = Question.query.filter(
+        Question.auction_id.in_(my_auction_ids),
+        Question.answer_text == None
+    ).order_by(Question.timestamp.desc()).all()
+
+    return jsonify(
+        my_cars=[car.to_dict() for car in my_cars],
+        unanswered_questions=[q.to_dict() for q in unanswered_questions],
+        # You might want to add more stats here, like total listings, pending approvals, etc.
+        # For now, just the core data.
+    )
+
 
 @seller_bp.route('/submit_car', methods=['GET', 'POST'])
 @login_required
@@ -181,6 +232,79 @@ def submit_car():
         return redirect(url_for('seller.dashboard'))
     return render_template('submit_car.html', title='Submit Your Car', form=form)
 
+@seller_bp.route('/api/cars', methods=['POST'])
+@login_required
+def api_submit_car():
+    """API endpoint for submitting a new car listing."""
+    data = request.get_json()
+    if not data:
+        return jsonify({'status': 'error', 'message': 'Invalid JSON payload.'}), 400
+
+    # Basic validation (more comprehensive validation would be needed)
+    required_fields = ['make', 'model', 'year', 'condition', 'body_type', 'transmission', 'drivetrain', 'fuel_type', 'listing_type']
+    if not all(field in data for field in required_fields):
+        return jsonify({'status': 'error', 'message': 'Missing required car details.'}), 400
+
+    listing_type = data.get('listing_type')
+    if listing_type == 'auction' and (not data.get('start_price') or not data.get('end_time')):
+        return jsonify({'status': 'error', 'message': 'Auction requires start price and end time.'}), 400
+    if listing_type == 'sale' and not data.get('fixed_price'):
+        return jsonify({'status': 'error', 'message': 'Fixed price sale requires a price.'}), 400
+    if listing_type == 'rental' and not data.get('price_per_day'):
+        return jsonify({'status': 'error', 'message': 'Rental requires price per day.'}), 400
+
+    new_car = Car(
+        make=data.get('make'),
+        model=data.get('model'),
+        year=data.get('year'),
+        description=data.get('description'),
+        condition=data.get('condition'),
+        body_type=data.get('body_type'),
+        mileage=data.get('mileage'),
+        transmission=data.get('transmission'),
+        drivetrain=data.get('drivetrain'),
+        fuel_type=data.get('fuel_type'),
+        owner_id=current_user.id,
+        listing_type=listing_type,
+        is_bank_loan_available=data.get('is_bank_loan_available', False),
+        fixed_price=data.get('fixed_price') if listing_type == 'sale' else None,
+        is_approved=False # All seller submissions must be approved
+    )
+    db.session.add(new_car)
+    db.session.flush()
+
+    # Add equipment
+    for item_name in data.get('equipment', []):
+        equipment_item = Equipment.query.filter_by(name=item_name).first()
+        if equipment_item:
+            new_car.equipment.append(equipment_item)
+
+    # Handle images (expecting a list of base64 strings or URLs)
+    image_urls = []
+    for img_data in data.get('images', []):
+        if img_data.startswith('data:image') or len(img_data) > 200: # Heuristic for base64
+            image_url = save_base64_image(img_data, filename_prefix=f"car_{new_car.id}")
+        else: # Assume it's already a URL
+            image_url = img_data
+        if image_url:
+            new_image = CarImage(image_url=image_url, car_id=new_car.id)
+            db.session.add(new_image)
+            image_urls.append(image_url)
+
+    if listing_type == 'auction':
+        new_auction = Auction(
+            start_price=data.get('start_price'), current_price=data.get('start_price'),
+            end_time=datetime.fromisoformat(data['end_time'].replace('Z', '+00:00')), # Expect ISO format
+            car_id=new_car.id
+        )
+        db.session.add(new_auction)
+    elif listing_type == 'rental':
+        new_rental = RentalListing(price_per_day=data.get('price_per_day'), car_id=new_car.id)
+        db.session.add(new_rental)
+
+    db.session.commit()
+    return jsonify({'status': 'success', 'message': 'Car submitted for approval.', 'car': new_car.to_dict()}), 201
+
 @seller_bp.route('/edit_car/<int:car_id>', methods=['GET', 'POST'])
 @login_required
 def edit_car(car_id):
@@ -250,6 +374,93 @@ def edit_car(car_id):
         return redirect(url_for('seller.dashboard'))
 
     return render_template('submit_car.html', title=f'Edit Submission: {car.year} {car.make}', form=form)
+
+@seller_bp.route('/api/cars/<int:car_id>', methods=['GET', 'PUT', 'DELETE'])
+@login_required
+def api_manage_car(car_id):
+    """API endpoint for managing a single car listing (GET, PUT, DELETE)."""
+    car = Car.query.get_or_404(car_id)
+
+    # Security check: only owner or admin can manage
+    if car.owner_id != current_user.id and not current_user.is_admin:
+        return jsonify({'status': 'error', 'message': 'Permission denied.'}), 403
+
+    if request.method == 'GET':
+        return jsonify(car=car.to_dict())
+
+    elif request.method == 'PUT':
+        if car.is_approved and not current_user.is_admin:
+            return jsonify({'status': 'error', 'message': 'Cannot edit an approved car.'}), 403
+
+        data = request.get_json()
+        if not data:
+            return jsonify({'status': 'error', 'message': 'Invalid JSON payload.'}), 400
+
+        # Update car fields
+        car.make = data.get('make', car.make)
+        car.model = data.get('model', car.model)
+        car.year = data.get('year', car.year)
+        car.description = data.get('description', car.description)
+        car.condition = data.get('condition', car.condition)
+        car.body_type = data.get('body_type', car.body_type)
+        car.mileage = data.get('mileage', car.mileage)
+        car.transmission = data.get('transmission', car.transmission)
+        car.drivetrain = data.get('drivetrain', car.drivetrain)
+        car.fuel_type = data.get('fuel_type', car.fuel_type)
+        car.is_bank_loan_available = data.get('is_bank_loan_available', car.is_bank_loan_available)
+        car.is_featured = data.get('is_featured', car.is_featured) # Admin only
+
+        # Update listing-specific details
+        listing_type = data.get('listing_type', car.listing_type)
+        if listing_type != car.listing_type:
+            # Handle change in listing type (delete old, create new)
+            if car.auction: db.session.delete(car.auction)
+            if car.rental_listing: db.session.delete(car.rental_listing)
+            car.fixed_price = None
+
+            if listing_type == 'auction':
+                new_auction = Auction(car_id=car.id, start_price=data.get('start_price'), current_price=data.get('start_price'), end_time=datetime.fromisoformat(data['end_time'].replace('Z', '+00:00')))
+                db.session.add(new_auction)
+            elif listing_type == 'sale':
+                car.fixed_price = data.get('fixed_price')
+            elif listing_type == 'rental':
+                new_rental = RentalListing(car_id=car.id, price_per_day=data.get('price_per_day'))
+                db.session.add(new_rental)
+        else:
+            # Update existing listing details
+            if car.listing_type == 'auction' and car.auction:
+                car.auction.start_price = data.get('start_price', car.auction.start_price)
+                if not car.auction.bids: car.auction.current_price = data.get('start_price', car.auction.current_price)
+                car.auction.end_time = datetime.fromisoformat(data['end_time'].replace('Z', '+00:00')) if data.get('end_time') else car.auction.end_time
+            elif car.listing_type == 'sale':
+                car.fixed_price = data.get('fixed_price', car.fixed_price)
+            elif car.listing_type == 'rental' and car.rental_listing:
+                car.rental_listing.price_per_day = data.get('price_per_day', car.rental_listing.price_per_day)
+        car.listing_type = listing_type
+
+        # Update equipment
+        if 'equipment' in data:
+            car.equipment.clear()
+            for item_name in data['equipment']:
+                equipment_item = Equipment.query.filter_by(name=item_name).first()
+                if equipment_item: car.equipment.append(equipment_item)
+
+        # Handle images (clear existing, add new from base64 or URLs)
+        if 'images' in data:
+            CarImage.query.filter_by(car_id=car.id).delete()
+            for img_data in data['images']:
+                image_url = save_base64_image(img_data, filename_prefix=f"car_{car.id}_edit") if img_data.startswith('data:image') else img_data
+                if image_url: db.session.add(CarImage(image_url=image_url, car_id=car.id))
+
+        db.session.commit()
+        return jsonify({'status': 'success', 'message': 'Listing updated successfully.', 'car': car.to_dict()})
+
+    elif request.method == 'DELETE':
+        if car.is_approved and not current_user.is_admin:
+            return jsonify({'status': 'error', 'message': 'Cannot delete an approved car.'}), 403
+        db.session.delete(car)
+        db.session.commit()
+        return jsonify({'status': 'success', 'message': 'Listing deleted successfully.'})
 
 @seller_bp.route('/delete_car/<int:car_id>', methods=['POST'])
 @login_required

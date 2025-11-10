@@ -142,6 +142,67 @@ def dashboard():
         filter_new=filter_new
     )
 
+@dealer_bp.route('/api/dashboard')
+@login_required
+@dealer_required
+def api_dealer_dashboard():
+    """API endpoint for dealer dashboard data."""
+    filter_new = request.args.get('filter_new', 'false').lower() == 'true'
+
+    bid_count_subquery = db.session.query(
+        DealerBid.request_id,
+        func.count(DealerBid.id).label('bid_count')
+    ).group_by(DealerBid.request_id).subquery()
+
+    lowest_offer_subquery = db.session.query(
+        DealerBid.request_id,
+        func.min(DealerBid.price).label('lowest_offer')
+    ).group_by(DealerBid.request_id).subquery()
+
+    viewed_requests_subquery = db.session.query(
+        DealerRequestView.request_id
+    ).filter(DealerRequestView.dealer_id == current_user.id).subquery()
+
+    query = db.session.query(
+        CarRequest, 
+        bid_count_subquery.c.bid_count, 
+        lowest_offer_subquery.c.lowest_offer,
+        (CarRequest.id.in_(db.select(viewed_requests_subquery))).label('has_been_viewed')
+    ).\
+        outerjoin(bid_count_subquery, CarRequest.id == bid_count_subquery.c.request_id).\
+        outerjoin(lowest_offer_subquery, CarRequest.id == lowest_offer_subquery.c.request_id).\
+        filter(CarRequest.status == 'active')
+
+    if filter_new:
+        query = query.filter(CarRequest.id.notin_(db.select(viewed_requests_subquery)))
+
+    active_requests_data = []
+    for req, bid_count, lowest_offer, has_been_viewed in query.order_by(CarRequest.created_at.desc()).all():
+        req_dict = req.to_dict()
+        req_dict['bid_count'] = bid_count or 0
+        req_dict['lowest_offer'] = lowest_offer
+        req_dict['has_been_viewed'] = has_been_viewed
+        active_requests_data.append(req_dict)
+
+    my_cars = Car.query.filter_by(owner_id=current_user.id).order_by(Car.id.desc()).all()
+    my_car_ids = [car.id for car in my_cars]
+    my_auctions = Auction.query.filter(Auction.car_id.in_(my_car_ids)).all()
+    my_auction_ids = [auction.id for auction in my_auctions]
+    unanswered_questions = Question.query.filter(
+        Question.auction_id.in_(my_auction_ids), Question.answer_text == None
+    ).order_by(Question.timestamp.desc()).all()
+    unanswered_request_questions = RequestQuestion.query.join(DealerBid).filter(
+        DealerBid.dealer_id == current_user.id, RequestQuestion.answer_text == None
+    ).order_by(RequestQuestion.timestamp.desc()).all()
+
+    return jsonify(
+        active_requests=active_requests_data,
+        my_cars=[car.to_dict() for car in my_cars],
+        unanswered_questions=[q.to_dict() for q in unanswered_questions],
+        unanswered_request_questions=[q.to_dict() for q in unanswered_request_questions],
+        now=datetime.utcnow().isoformat() + 'Z'
+    )
+
 @dealer_bp.route('/messages')
 @login_required
 @dealer_required
@@ -154,6 +215,31 @@ def list_messages():
         db.joinedload(Conversation.car)
     ).filter_by(dealer_id=current_user.id).order_by(Conversation.created_at.desc()).all()
     return render_template('dealer_messages.html', conversations=conversations)
+
+@dealer_bp.route('/api/dealers/<int:dealer_id>/profile')
+def api_dealer_profile(dealer_id):
+    """API endpoint for a dealer's public profile, listings, and ratings."""
+    dealer = User.query.filter_by(id=dealer_id, is_dealer=True).first_or_404()
+
+    active_listings = Car.query.filter_by(owner_id=dealer.id, is_approved=True, is_active=True).order_by(Car.id.desc()).all()
+
+    ratings = dealer.reviews_received.all()
+    avg_rating = 0
+    if ratings:
+        avg_rating = sum(r.rating for r in ratings) / len(ratings)
+
+    # Determine if the current user can view the phone number (for API, this might be handled client-side)
+    can_view_phone = current_user.is_authenticated and (current_user.id == dealer.id or current_user.is_admin)
+
+    return jsonify(
+        dealer=dealer.to_dict(detail_level='owner' if can_view_phone else 'public'),
+        listings=[car.to_dict() for car in active_listings],
+        ratings=[r.to_dict() for r in ratings],
+        avg_rating=round(avg_rating, 2),
+        review_count=len(ratings)
+    )
+
+
 
 @dealer_bp.route('/profile/<int:dealer_id>')
 def profile(dealer_id):
@@ -214,6 +300,29 @@ def view_conversation(conversation_id):
 
     return render_template('dealer_conversation_detail.html', conversation=conversation, ChatMessage=ChatMessage)
 
+@dealer_bp.route('/api/messages/<int:conversation_id>/unlock', methods=['POST'])
+@login_required
+@dealer_required
+def api_unlock_conversation(conversation_id):
+    """API endpoint for a dealer to spend a point to unlock a conversation."""
+    conversation = Conversation.query.get_or_404(conversation_id)
+
+    if conversation.dealer_id != current_user.id:
+        return jsonify({'status': 'error', 'message': 'Permission denied.'}), 403
+
+    if current_user.points <= 0:
+        return jsonify({'status': 'error', 'message': 'You do not have enough credits to unlock this conversation.'}), 400
+
+    if not conversation.is_unlocked:
+        current_user.points -= 1
+        conversation.is_unlocked = True
+        # Masked messages need to be unmasked for the dealer
+        for msg in conversation.messages.filter(ChatMessage.sender_id == conversation.buyer_id):
+            msg.body = msg.original_body # Restore original message
+        db.session.commit()
+        return jsonify({'status': 'success', 'message': 'Conversation unlocked!', 'conversation': conversation.to_dict(current_user.id)}), 200
+    return jsonify({'status': 'info', 'message': 'This conversation is already unlocked.'}), 200
+
 @dealer_bp.route('/messages/<int:conversation_id>/unlock', methods=['POST'])
 @login_required
 @dealer_required
@@ -240,6 +349,7 @@ def unlock_conversation(conversation_id):
         flash("This conversation is already unlocked.", "info")
 
     return redirect(url_for('dealer.view_conversation', conversation_id=conversation.id))
+
 
 @dealer_bp.route('/request/<int:request_id>/bid', methods=['GET', 'POST'])
 @login_required
@@ -331,6 +441,83 @@ def place_bid(request_id):
         return redirect(url_for('dealer.dashboard'))
 
     return render_template('place_dealer_bid.html', form=form, car_request=car_request, bids=existing_bids, now=datetime.utcnow())
+
+@dealer_bp.route('/api/requests/<int:request_id>/bids', methods=['GET', 'POST'])
+@login_required
+@dealer_required
+def api_place_dealer_bid(request_id):
+    """API endpoint for getting existing bids or placing a new bid on a car request."""
+    car_request = CarRequest.query.get_or_404(request_id)
+
+    # Mark the request as viewed by the dealer
+    view_exists = DealerRequestView.query.filter_by(dealer_id=current_user.id, request_id=car_request.id).first()
+    if not view_exists:
+        new_view = DealerRequestView(dealer_id=current_user.id, request_id=car_request.id)
+        db.session.add(new_view)
+        db.session.commit()
+
+    if request.method == 'GET':
+        existing_bids = car_request.dealer_bids.order_by(DealerBid.price.asc()).all()
+        return jsonify(car_request=car_request.to_dict(), existing_bids=[bid.to_dict() for bid in existing_bids])
+
+    elif request.method == 'POST':
+        data = request.get_json()
+        if not data:
+            return jsonify({'status': 'error', 'message': 'Invalid JSON payload.'}), 400
+
+        # Basic validation
+        required_fields = ['price', 'make', 'model', 'car_year', 'condition', 'availability', 'valid_until']
+        if not all(field in data for field in required_fields):
+            return jsonify({'status': 'error', 'message': 'Missing required bid details.'}), 400
+
+        try:
+            price = float(data['price'])
+            car_year = int(data['car_year'])
+            mileage = int(data.get('mileage', 0))
+            valid_until = datetime.fromisoformat(data['valid_until'])
+        except (ValueError, TypeError):
+            return jsonify({'status': 'error', 'message': 'Invalid data format for price, year, mileage, or valid_until.'}), 400
+
+        # Check if the dealer has enough points
+        if current_user.points <= 0:
+            return jsonify({'status': 'error', 'message': 'You do not have enough points to place an offer.'}), 400
+
+        if price <= 0:
+            return jsonify({'status': 'error', 'message': 'Bid price must be positive.'}), 400
+
+        photo_filename = None
+        if data.get('image_base64'):
+            photo_filename = save_base64_image(data['image_base64'], filename_prefix=f"dealer_bid_{car_request.id}")
+        elif data.get('image_url'):
+            photo_filename = data['image_url']
+
+        new_bid = DealerBid(
+            price=price, price_with_loan=data.get('price_with_loan'),
+            make=data.get('make'), model=data.get('model'), car_year=car_year,
+            mileage=mileage, condition=data.get('condition'),
+            availability=data.get('availability'), valid_until=valid_until,
+            extras=data.get('extras'), message=data.get('message'),
+            image_url=photo_filename, dealer_id=current_user.id, request_id=car_request.id
+        )
+        db.session.add(new_bid)
+        current_user.points -= 1 # Deduct point
+        db.session.commit()
+
+        # Notify the customer
+        request_description = f"'{car_request.make} {car_request.model}'" if car_request.make else f"request #{car_request.id}"
+        notification_message = f"A dealer has placed an offer on your {request_description}."
+        notification = Notification(user_id=car_request.user_id, message=notification_message)
+        db.session.add(notification)
+        db.session.flush()
+        notification.link = url_for('request.request_detail', request_id=car_request.id, notification_id=notification.id)
+        db.session.commit()
+
+        # Real-time Notification
+        unread_count = Notification.query.filter_by(user_id=car_request.user_id, is_read=False).count()
+        notification_data = { 'message': notification.message, 'link': notification.link, 'timestamp': notification.timestamp.isoformat() + 'Z', 'count': unread_count }
+        socketio.emit('new_notification', notification_data, room=str(car_request.user_id))
+
+        return jsonify({'status': 'success', 'message': 'Your offer has been sent to the customer!', 'bid': new_bid.to_dict()}), 201
 
 @dealer_bp.route('/bid/<int:bid_id>/edit', methods=['GET', 'POST'])
 @login_required

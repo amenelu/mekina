@@ -15,5 +15,17 @@ class DealerReview(db.Model):
     dealer = db.relationship('User', foreign_keys=[dealer_id], backref=db.backref('reviews_received', lazy='dynamic'))
     buyer = db.relationship('User', foreign_keys=[buyer_id], backref=db.backref('reviews_given', lazy='dynamic'))
 
+    def to_dict(self):
+        """Serializes the DealerReview object to a dictionary."""
+        return {
+            'id': self.id,
+            'rating': self.rating,
+            'review_text': self.review_text,
+            'timestamp': self.timestamp.isoformat() + 'Z',
+            'dealer_id': self.dealer_id,
+            'buyer_id': self.buyer_id,
+            'deal_id': self.deal_id,
+            'buyer_username': self.buyer.username if self.buyer else None
+        }
     def __repr__(self):
         return f'<DealerReview {self.id} for Dealer {self.dealer_id}>'

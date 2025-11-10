@@ -17,5 +17,17 @@ class RequestQuestion(db.Model):
     asker = db.relationship('User', backref='asked_request_questions')
     dealer_bid = db.relationship('DealerBid', backref=db.backref('questions', lazy='dynamic', cascade="all, delete-orphan"))
 
+    def to_dict(self):
+        """Serializes the RequestQuestion object to a dictionary."""
+        return {
+            'id': self.id,
+            'question_text': self.question_text,
+            'answer_text': self.answer_text,
+            'timestamp': self.timestamp.isoformat() + 'Z',
+            'answer_timestamp': self.answer_timestamp.isoformat() + 'Z' if self.answer_timestamp else None,
+            'user_id': self.user_id,
+            'dealer_bid_id': self.dealer_bid_id
+        }
+
     def __repr__(self):
         return f'<RequestQuestion {self.id} for Bid {self.dealer_bid_id}>'
