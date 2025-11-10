@@ -1,4 +1,4 @@
-from flask import Blueprint, render_template, redirect, url_for, flash, session, url_for, abort, request, jsonify
+from flask import Blueprint, render_template, redirect, url_for, flash, session, abort, request, jsonify, current_app
 from flask_login import login_required, current_user
 from models.car_request import CarRequest
 from models.dealer_bid import DealerBid
@@ -292,6 +292,13 @@ def my_requests():
     requests = CarRequest.query.filter_by(user_id=current_user.id).order_by(CarRequest.created_at.desc()).all()
     return render_template('my_requests.html', requests=requests)
 
+@request_bp.route('/api/requests')
+@login_required
+def api_my_requests():
+    """API endpoint to get the current user's car requests."""
+    user_requests = CarRequest.query.filter_by(user_id=current_user.id).order_by(CarRequest.created_at.desc()).all()
+    return jsonify(requests=[req.to_dict() for req in user_requests])
+
 @request_bp.route('/<int:request_id>')
 @login_required
 @mark_notification_as_read
@@ -308,6 +315,31 @@ def request_detail(request_id):
     question_form = RequestQuestionForm()
 
     return render_template('request_detail.html', car_request=car_request, bids=bids, question_form=question_form)
+
+@request_bp.route('/api/requests/<int:request_id>')
+@login_required
+def api_request_detail(request_id):
+    """API endpoint to get a single car request with all bids."""
+    car_request = CarRequest.query.get_or_404(request_id)
+
+    # Security check - as before
+    if car_request.user_id != current_user.id and not current_user.is_admin:
+        return jsonify({'error': 'Permission denied'}), 403
+
+    bids = car_request.dealer_bids.order_by(DealerBid.price.asc()).all()
+
+    return jsonify(
+        {
+            'request': car_request.to_dict(),
+            'bids': [bid.to_dict() for bid in bids]
+        }
+    )
+
+
+
+
+
+
 
 @request_bp.route('/bid/<int:bid_id>/ask', methods=['POST'])
 @login_required
@@ -353,6 +385,46 @@ def ask_dealer_question(bid_id):
 
     return jsonify({'status': 'error', 'errors': form.errors})
 
+def _accept_offer_logic(bid_id, user_id, payment_method):
+    """
+    Core service logic for accepting a dealer's offer.
+    This is shared between the web route and the API route.
+    """
+    bid_to_accept = DealerBid.query.get_or_404(bid_id)
+    car_request = bid_to_accept.car_request
+
+    # Security & Business Logic Checks
+    if car_request.user_id != user_id:
+        raise PermissionError("User does not own this request.")
+    if car_request.status != 'active':
+        raise ValueError("This request is already closed.")
+    if payment_method == 'loan' and not bid_to_accept.price_with_loan:
+        raise ValueError("Invalid payment method for this offer.")
+
+    final_price = bid_to_accept.price_with_loan if payment_method == 'loan' else bid_to_accept.price
+
+    # Transactional Logic
+    bid_to_accept.status = 'accepted'
+    for other_bid in car_request.dealer_bids.filter(DealerBid.id != bid_to_accept.id):
+        other_bid.status = 'rejected'
+    car_request.status = 'completed'
+    car_request.accepted_bid_id = bid_to_accept.id
+
+    new_deal = Deal(
+        final_price=final_price, customer_id=car_request.user_id,
+        dealer_id=bid_to_accept.dealer_id, car_request_id=car_request.id,
+        accepted_bid_id=bid_to_accept.id, payment_method=payment_method
+    )
+    db.session.add(new_deal)
+    db.session.commit() # Commit here to get new_deal.id
+
+    # Notify the dealer
+    notification_message = f"Congratulations! Your offer for request #{car_request.id} was accepted."
+    deal_notification = Notification(user_id=bid_to_accept.dealer_id, message=notification_message, link=url_for('request.deal_summary', deal_id=new_deal.id))
+    db.session.add(deal_notification)
+    db.session.commit()
+    return new_deal, deal_notification
+
 @request_bp.route('/offer/<int:bid_id>/accept', methods=['POST'])
 @login_required
 def accept_offer(bid_id):
@@ -360,62 +432,10 @@ def accept_offer(bid_id):
     bid_to_accept = DealerBid.query.get_or_404(bid_id)
     car_request = bid_to_accept.car_request
 
-    # --- Security Checks ---
-    if car_request.user_id != current_user.id:
-        abort(403)  # User doesn't own the request
-    if car_request.status != 'active':
-        flash('This request is already closed.', 'warning')
-        return redirect(url_for('request.request_detail', request_id=car_request.id))
-        
-    # Get the chosen payment method from the form
-    payment_method = request.form.get('payment_method', 'cash')
-    if payment_method == 'loan' and not bid_to_accept.price_with_loan:
-        flash('Invalid payment method selected for this offer.', 'danger')
-        return redirect(url_for('request.request_detail', request_id=car_request.id))
-
-    final_price = bid_to_accept.price_with_loan if payment_method == 'loan' else bid_to_accept.price
-
-    # --- Transactional Logic ---
     try:
-        # 1. Update the accepted offer's status
-        bid_to_accept.status = 'accepted'
-
-        # 2. Reject all other bids for that request automatically
-        for other_bid in car_request.dealer_bids.filter(DealerBid.id != bid_to_accept.id):
-            other_bid.status = 'rejected'
-
-        # 3. Lock the buyer’s request
-        car_request.status = 'completed'
-        car_request.accepted_bid_id = bid_to_accept.id
-
-        # 4. Generate a “deal summary” record
-        new_deal = Deal(
-            final_price=final_price,
-            customer_id=car_request.user_id,
-            dealer_id=bid_to_accept.dealer_id,
-            car_request_id=car_request.id,
-            accepted_bid_id=bid_to_accept.id,
-            payment_method=payment_method
-        )
-        db.session.add(new_deal)
-
-        # We need to commit here to get the new_deal.id
-        db.session.commit()
-
-        # 5. Notify the dealer that their offer was accepted
-        if car_request.make and car_request.model:
-            request_description = f"'{car_request.make} {car_request.model}'"
-        else:
-            request_description = f"customer request #{car_request.id}"
-
-        notification_message = f"Congratulations! Your offer for {request_description} was accepted by the customer."
-        deal_notification = Notification(user_id=bid_to_accept.dealer_id, message=notification_message)
-        db.session.add(deal_notification)
-        db.session.flush() # Get ID
-        deal_notification.link = url_for('request.deal_summary', deal_id=new_deal.id, notification_id=deal_notification.id)
-
-        db.session.commit() # Commit the notification
-
+        payment_method = request.form.get('payment_method', 'cash')
+        new_deal, deal_notification = _accept_offer_logic(bid_id, current_user.id, payment_method)
+        
         # --- Real-time Notification ---
         unread_count = Notification.query.filter_by(user_id=bid_to_accept.dealer_id, is_read=False).count()
         notification_data = {
@@ -425,14 +445,17 @@ def accept_offer(bid_id):
             'count': unread_count
         }
         socketio.emit('new_notification', notification_data, room=str(bid_to_accept.dealer_id))
-
+        
         flash('Offer accepted! The dealer has been notified and you can see the deal summary below.', 'success')
         return redirect(url_for('request.deal_summary', deal_id=new_deal.id))
 
+    except (PermissionError, ValueError) as e:
+        flash(str(e), 'danger')
     except Exception as e:
         db.session.rollback()
+        current_app.logger.error(f"Error accepting offer: {e}")
         flash(f'An error occurred while accepting the offer: {e}', 'danger')
-        return redirect(url_for('request.request_detail', request_id=car_request.id))
+    return redirect(url_for('request.request_detail', request_id=car_request.id))
 
 @request_bp.route('/deal/<int:deal_id>')
 @login_required
@@ -449,7 +472,18 @@ def deal_summary(deal_id):
     form = DealerRatingForm()
     return render_template('deal_summary.html', deal=deal, rating=existing_rating, form=form)
 
-@request_bp.route('/api/requests', methods=['POST'])
+@request_bp.route('/api/deals/<int:deal_id>')
+@login_required
+def api_deal_summary(deal_id):
+    """API endpoint to get the details of a completed deal."""
+    deal = Deal.query.get_or_404(deal_id)
+    # Security check
+    if current_user.id not in [deal.customer_id, deal.dealer_id] and not current_user.is_admin:
+        return jsonify({'error': 'Permission denied'}), 403
+    
+    return jsonify(deal=deal.to_dict())
+
+@request_bp.route('/api/requests', methods=['POST']) # This path is now correct: /requests/api/requests
 @login_required
 def api_create_request():
     """
