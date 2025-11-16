@@ -259,6 +259,7 @@ def filter_auctions_api():
 def all_listings_api():
     """API endpoint to return all types of listings (auctions, rentals, etc.) as JSON."""
     query = Car.query.options(db.joinedload(Car.auction), db.joinedload(Car.rental_listing)).filter(
+        Car.listing_type != 'rental', # DEFINITIVE FIX: Exclude rentals by default.
         Car.is_approved == True,
         Car.is_active == True
     )

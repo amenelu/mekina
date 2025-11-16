@@ -18,25 +18,22 @@ def create_app(config_class=Config):
     socketio.init_app(app)
     login_manager.init_app(app)
     migrate.init_app(app, db)
-
+    
     # Register blueprints here
-    from routes.auth import auth_bp
-    from routes.main import main_bp
-    from routes.auctions import auctions_bp
-    from routes.admin import admin_bp
-    from routes.seller import seller_bp
-    from routes.request import request_bp
-    from routes.dealer import dealer_bp
-    from routes.rentals import rentals_bp
-
-    app.register_blueprint(auth_bp, url_prefix='/auth')
-    app.register_blueprint(main_bp)
-    app.register_blueprint(admin_bp, url_prefix='/admin')
-    app.register_blueprint(auctions_bp, url_prefix='/auctions')
-    app.register_blueprint(seller_bp, url_prefix='/seller')
-    app.register_blueprint(request_bp)
-    app.register_blueprint(dealer_bp)
-    app.register_blueprint(rentals_bp)
+    from routes import auth, main, auctions, admin, seller, request, dealer, rentals
+    
+    blueprints = [
+        (auth.auth_bp, '/auth'),
+        (main.main_bp, None),
+        (admin.admin_bp, '/admin'),
+        (auctions.auctions_bp, '/auctions'),
+        (seller.seller_bp, '/seller'),
+        (request.request_bp, None),
+        (dealer.dealer_bp, None),
+        (rentals.rentals_bp, '/rentals')
+    ]
+    for bp, prefix in blueprints:
+        app.register_blueprint(bp, url_prefix=prefix)
 
     # Define user loader function for Flask-Login
     from models.user import User

@@ -85,17 +85,19 @@ def mask_contact_info(message):
 
 main_bp = Blueprint('main', __name__)
 
+def _get_featured_cars():
+    """Helper function to fetch active, approved, featured cars."""
+    return Car.query.filter_by(is_featured=True, is_approved=True, is_active=True).all()
+
 @main_bp.route('/')
 def home():
-    featured_cars = Car.query.filter_by(is_featured=True, is_approved=True, is_active=True).all()
+    featured_cars = _get_featured_cars()
     return render_template('home.html', featured_cars=featured_cars)
 
 @main_bp.route('/api/home')
 def api_home():
     """API endpoint for home screen data."""
-    featured_cars = Car.query.filter_by(is_featured=True, is_approved=True, is_active=True).all()
-    featured_cars_json = [car.to_dict() for car in featured_cars]
-    return jsonify(featured_cars=featured_cars_json)
+    return jsonify(featured_cars=[car.to_dict() for car in _get_featured_cars()])
 
 @main_bp.route('/notifications')
 @login_required
@@ -198,23 +200,25 @@ def api_view_buyer_conversation(conversation_id):
 @main_bp.route('/api/search_suggestions')
 def search_suggestions():
     """Provides search suggestions for makes and models."""
+    # Base query to exclude rentals and only show active, approved cars
+    query = Car.query.filter(
+        Car.listing_type != 'rental',
+        Car.is_approved == True,
+        Car.is_active == True
+    )
+
     q = request.args.get('q', '').strip()
-    if not q or len(q) < 2:
-        return jsonify([])
+    if q and len(q) >= 2:
+        search_terms = q.lower().split()
+        conditions = []
+        for term in search_terms:
+            conditions.append(Car.make.ilike(f"%{term}%"))
+            conditions.append(Car.model.ilike(f"%{term}%"))
+            if term.isdigit():
+                conditions.append(Car.year == int(term))
 
-    search_terms = q.lower().split()
-    conditions = []
-    for term in search_terms:
-        conditions.append(Car.make.ilike(f"%{term}%"))
-        conditions.append(Car.model.ilike(f"%{term}%"))
-        if term.isdigit():
-            conditions.append(Car.year == int(term))
-
-    if not conditions:
-        return jsonify([])
-
-    # Find cars that match the search terms
-    query = Car.query.filter(or_(*conditions))
+        if conditions:
+            query = query.filter(or_(*conditions))
 
     # Apply quick filters to the suggestions
     if condition := request.args.get('condition'):
@@ -227,24 +231,32 @@ def search_suggestions():
         # This filter needs to check both fixed_price and auction price
         query = query.outerjoin(Car.auction).filter(or_(Car.fixed_price <= max_price, Car.auction.current_price <= max_price))
 
-    cars = query.limit(5).all()
+    # Limit results for suggestions, but maybe fetch more for a full listing page
+    # For now, we'll keep the limit consistent.
+    # A more advanced implementation might use pagination here.
+    cars = query.order_by(Car.created_at.desc()).limit(50).all()
 
     results = []
     for car in cars:
+        # Determine the correct price to display
+        display_price = car.fixed_price if car.listing_type == 'sale' else (car.auction.current_price if car.auction else None)
+
+        # Determine the correct detail URL
         detail_url = ''
         if car.listing_type == 'auction' and car.auction:
             detail_url = url_for('auctions.auction_detail', auction_id=car.auction.id)
         elif car.listing_type == 'sale':
             detail_url = url_for('main.car_detail', car_id=car.id)
-        elif car.listing_type == 'rental' and car.rental_listing:
-            detail_url = url_for('rentals.rental_detail', listing_id=car.rental_listing.id)
 
         results.append({
+            'id': car.id,
             'year': car.year,
             'make': car.make,
             'model': car.model,
             'image_url': car.primary_image_url or url_for('static', filename='img/default_car.png'),
-            'detail_url': detail_url
+            'detail_url': detail_url,
+            'display_price': f"{display_price:,.0f} ETB" if display_price else "N/A",
+            'listing_type': car.listing_type
         })
 
     return jsonify(results)
@@ -354,6 +366,65 @@ def api_compare():
         cars=[car.to_dict() for car in sorted_cars],
         best_values=best_values
     )
+
+@main_bp.route('/api/listings')
+def api_listings():
+    """API endpoint to return filtered car data for sale/auction as JSON."""
+    query = Car.query.filter(
+        Car.is_approved == True,
+        Car.is_active == True,
+        or_(Car.listing_type == 'sale', Car.listing_type == 'auction')
+    )
+
+    # Apply filters from request arguments
+    if q := request.args.get('q'):
+        search_term = f"%{q}%"
+        query = query.filter(or_(
+            Car.make.ilike(search_term),
+            Car.model.ilike(search_term),
+            Car.year.like(search_term)
+        ))
+
+    if condition := request.args.get('condition'):
+        query = query.filter(Car.condition == condition)
+    if transmission := request.args.get('transmission'):
+        query = query.filter(Car.transmission == transmission)
+    if fuel_type := request.args.get('fuel_type'):
+        query = query.filter(Car.fuel_type == fuel_type)
+    if body_type := request.args.get('body_type'):
+        query = query.filter(Car.body_type == body_type)
+    if max_price := request.args.get('max_price', type=float):
+        query = query.outerjoin(Car.auction).filter(or_(
+            Car.fixed_price <= max_price,
+            Car.auction.current_price <= max_price
+        ))
+
+    query = query.order_by(Car.created_at.desc())
+    cars = query.all()
+
+    results = []
+    for car in cars:
+        # CRITICAL FIX: Calculate display_price before using it.
+        # This was missing and causing the endpoint to fail silently.
+        car.display_price = car.fixed_price if car.listing_type == 'sale' else (car.auction.current_price if car.auction else None)
+
+        detail_url = ''
+        if car.listing_type == 'auction' and car.auction:
+            detail_url = url_for('auctions.auction_detail', auction_id=car.auction.id)
+        elif car.listing_type == 'sale':
+            detail_url = url_for('main.car_detail', car_id=car.id)
+
+        results.append({
+            'id': car.id,
+            'year': car.year,
+            'make': car.make,
+            'model': car.model,
+            'price_display': f"{car.display_price:,.0f} ETB" if car.display_price else "N/A",
+            'image_url': car.primary_image_url or url_for('static', filename='img/default_car.png'),
+            'detail_url': detail_url,
+            'listing_type': car.listing_type
+        })
+    return jsonify(results)
 
 @main_bp.route('/compare')
 def compare():

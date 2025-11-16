@@ -1,5 +1,6 @@
 from flask import Blueprint, render_template, request, jsonify, url_for
 from sqlalchemy import or_
+from sqlalchemy.orm import joinedload
 from models.car import Car
 from extensions import db
 
@@ -28,7 +29,7 @@ def api_filter_rentals():
     query = Car.query.filter(
         Car.is_approved == True,
         Car.is_active == True,
-        Car.listing_type == 'rental'
+        Car.listing_type == 'rental',
     )
 
     # Apply filters from request arguments
@@ -54,7 +55,10 @@ def api_filter_rentals():
         query = query.join(RentalListing).filter(RentalListing.price_per_day <= max_price)
 
     # Add sorting options if needed in the future
-    query = query.order_by(Car.id.desc())
+    query = query.order_by(Car.id.desc()).options(
+        # Eager load the rental_listing to prevent N+1 queries
+        joinedload(Car.rental_listing)
+    )
 
     cars = query.all()
 
