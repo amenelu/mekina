@@ -72,29 +72,35 @@
 <body class="{% block body_class %}{% endblock %}">
     <div class="page-wrapper">
         <nav>
+            {# --- Refactored Navigation with Macro --- #}
+            {% macro nav_link(endpoint, text, match_endpoints=None) %}
+                {% set is_active = request.endpoint == endpoint or (match_endpoints and request.endpoint in match_endpoints) %}
+                <li><a href="{{ url_for(endpoint) }}" class="{{ 'active' if is_active }}">{{ text }}</a></li>
+            {% endmacro %}
+
             <a href="{{ url_for('main.home') }}" class="nav-brand">Mekina</a>
             <div class="nav-menu" id="nav-menu">
                 <ul>
                     {% if current_user.is_authenticated and current_user.is_admin %}
-                        <li><a href="{{ url_for('admin.dashboard') }}" class="{{ 'active' if request.endpoint == 'admin.dashboard' }}">Dashboard</a></li>
-                        <li><a href="{{ url_for('admin.rental_management') }}" class="{{ 'active' if request.endpoint == 'admin.rental_management' }}">Manage Rentals</a></li>
-                        <li><a href="{{ url_for('admin.dealer_management') }}" class="{{ 'active' if request.endpoint == 'admin.dealer_management' }}">Manage Dealers</a></li>
-                        <li><a href="{{ url_for('admin.user_management') }}" class="{{ 'active' if request.endpoint == 'admin.user_management' }}">Users</a></li>
-                        <li><a href="{{ url_for('auctions.list_auctions') }}" class="{{ 'active' if request.endpoint == 'auctions.list_auctions' }}">Manage Listings</a></li>
+                        {{ nav_link('admin.dashboard', 'Dashboard') }}
+                        {{ nav_link('admin.rental_management', 'Manage Rentals') }}
+                        {{ nav_link('admin.dealer_management', 'Manage Dealers') }}
+                        {{ nav_link('admin.user_management', 'Users') }}
+                        {{ nav_link('auctions.list_auctions', 'Manage Listings') }}
                     {% elif current_user.is_authenticated and current_user.is_rental_company %}
-                        <li><a href="{{ url_for('rentals.dashboard') }}" class="{{ 'active' if request.endpoint == 'rentals.dashboard' }}">Rental Dashboard</a></li>
+                        {{ nav_link('rentals.dashboard', 'Rental Dashboard') }}
                     {% elif current_user.is_authenticated and current_user.is_dealer %}
-                        <li><a href="{{ url_for('main.all_listings') }}" class="{{ 'active' if request.endpoint == 'main.all_listings' }}">All Listings</a></li>
-                        <li><a href="{{ url_for('dealer.dashboard') }}" class="{{ 'active' if request.endpoint == 'dealer.dashboard' }}">Dealer Dashboard</a></li>
+                        {{ nav_link('main.all_listings', 'All Listings') }}
+                        {{ nav_link('dealer.dashboard', 'Dealer Dashboard') }}
                     {% elif current_user.is_authenticated %}
-                        <li><a href="{{ url_for('main.all_listings') }}" class="{{ 'active' if request.endpoint == 'main.all_listings' }}">All Listings</a></li>
-                        <li><a href="{{ url_for('rentals.list_rentals') }}" class="{{ 'active' if request.endpoint == 'rentals.list_rentals' }}">Rentals</a></li>
-                        <li><a href="{{ url_for('request.my_requests') }}" class="{{ 'active' if request.endpoint == 'request.my_requests' }}">My Requests</a></li>
-                        <li><a href="{{ url_for('seller.dashboard') }}" class="{{ 'active' if request.endpoint == 'seller.dashboard' }}">Seller Dashboard</a></li>
+                        {{ nav_link('main.all_listings', 'All Listings') }}
+                        {{ nav_link('rentals.list_rentals', 'Rentals') }}
+                        {{ nav_link('request.my_requests', 'My Requests', ['request.request_detail']) }}
+                        {{ nav_link('seller.dashboard', 'Seller Dashboard') }}
                     {% else %}
-                        <li><a href="{{ url_for('main.all_listings') }}" class="{{ 'active' if request.endpoint == 'main.all_listings' }}">All Listings</a></li>
-                        <li><a href="{{ url_for('auctions.list_auctions') }}" class="{{ 'active' if request.endpoint == 'auctions.list_auctions' }}">All Auctions</a></li>
-                        <li><a href="{{ url_for('rentals.list_rentals') }}" class="{{ 'active' if request.endpoint == 'rentals.list_rentals' }}">Rentals</a></li>
+                        {{ nav_link('main.all_listings', 'All Listings') }}
+                        {{ nav_link('auctions.list_auctions', 'All Auctions') }}
+                        {{ nav_link('rentals.list_rentals', 'Rentals') }}
                     {% endif %}
                 </ul>
                 {# This nav-right is for desktop and the mobile dropdown menu #}
