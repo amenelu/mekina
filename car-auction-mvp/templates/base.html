@@ -97,6 +97,7 @@
                         {{ nav_link('main.all_listings', 'All Listings') }}
                         {{ nav_link('rentals.list_rentals', 'Rentals') }}
                         {{ nav_link('request.my_requests', 'My Requests', ['request.request_detail']) }}
+                        {{ nav_link('tradein.submit_trade_in', 'Trade-in') }}
                         {{ nav_link('seller.dashboard', 'Seller Dashboard') }}
                     {% else %}
                         {{ nav_link('main.all_listings', 'All Listings') }}
@@ -198,6 +199,7 @@
                         <h4>Selling</h4>
                         <ul>
                             <li><a href="{{ url_for('seller.submit_car') }}">List Your Car</a></li>
+                            <li><a href="{{ url_for('tradein.submit_trade_in') }}">Trade-in Value</a></li>
                             <li><a href="#">Seller Guide</a></li>
                         </ul>
                     </div>

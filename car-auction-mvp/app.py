@@ -11,6 +11,9 @@ login_manager.login_view = 'auth.login' # Redirect to login page if user is not 
 def create_app(config_class=Config):
     """Create and configure an instance of the Flask application."""
     app = Flask(__name__)
+    # Enable the 'do' extension for Jinja2 templates
+    app.jinja_env.add_extension('jinja2.ext.do')
+
     app.config.from_object(config_class)
 
     # Initialize Flask extensions here
@@ -20,7 +23,7 @@ def create_app(config_class=Config):
     migrate.init_app(app, db)
     
     # Register blueprints here
-    from routes import auth, main, auctions, admin, seller, request, dealer, rentals
+    from routes import auth, main, auctions, admin, seller, request, dealer, rentals, tradein
     
     blueprints = [
         (auth.auth_bp, '/auth'),
@@ -30,7 +33,8 @@ def create_app(config_class=Config):
         (seller.seller_bp, '/seller'),
         (request.request_bp, None),
         (dealer.dealer_bp, None),
-        (rentals.rentals_bp, '/rentals')
+        (rentals.rentals_bp, '/rentals'),
+        (tradein.tradein_bp, None)
     ]
     for bp, prefix in blueprints:
         app.register_blueprint(bp, url_prefix=prefix)
