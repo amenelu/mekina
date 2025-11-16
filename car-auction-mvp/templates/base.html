@@ -8,145 +8,207 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css', v=now.timestamp()) }}">
+    <style>
+        /* New Comparison Bar Styles */
+        .comparison-bar {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%) translateY(200%); /* Start hidden below screen */
+            width: auto;
+            max-width: 90%;
+            background-color: #2c3e50; /* Dark blue-gray */
+            color: white;
+            border-radius: 50px; /* Pill shape */
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+            display: flex;
+            align-items: center;
+            padding: 8px 15px;
+            z-index: 1000;
+            transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            gap: 15px;
+        }
+
+        .comparison-bar.is-visible {
+            transform: translateX(-50%) translateY(0); /* Slide in from bottom */
+        }
+
+        .comparison-content {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            width: 100%;
+        }
+
+        .comparison-cars-preview {
+            display: flex;
+            align-items: center;
+        }
+
+        .comparison-preview-img {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 2px solid white;
+            margin-left: -12px; /* Create overlap */
+            background-color: #ecf0f1;
+        }
+        .comparison-preview-img:first-child {
+            margin-left: 0;
+        }
+
+        #comparison-count {
+            font-weight: 500;
+            white-space: nowrap;
+        }
+
+        .comparison-actions {
+            /* This pushes the buttons to the far right */
+            margin-left: auto;
+        }
+    </style>
 </head>
 <body class="{% block body_class %}{% endblock %}">
-    <nav>
-        <a href="{{ url_for('main.home') }}" class="nav-brand">Mekina</a>
-        <div class="nav-menu" id="nav-menu">
-            <ul>
-                {% if current_user.is_authenticated and current_user.is_admin %}
-                    <li><a href="{{ url_for('admin.dashboard') }}" class="{{ 'active' if request.endpoint == 'admin.dashboard' }}">Dashboard</a></li>
-                    <li><a href="{{ url_for('admin.rental_management') }}" class="{{ 'active' if request.endpoint == 'admin.rental_management' }}">Manage Rentals</a></li>
-                    <li><a href="{{ url_for('admin.dealer_management') }}" class="{{ 'active' if request.endpoint == 'admin.dealer_management' }}">Manage Dealers</a></li>
-                    <li><a href="{{ url_for('admin.user_management') }}" class="{{ 'active' if request.endpoint == 'admin.user_management' }}">Users</a></li>
-                    <li><a href="{{ url_for('auctions.list_auctions') }}" class="{{ 'active' if request.endpoint == 'auctions.list_auctions' }}">Manage Listings</a></li>
-                {% elif current_user.is_authenticated and current_user.is_rental_company %}
-                    <li><a href="{{ url_for('rentals.dashboard') }}" class="{{ 'active' if request.endpoint == 'rentals.dashboard' }}">Rental Dashboard</a></li>
-                {% elif current_user.is_authenticated and current_user.is_dealer %}
-                    <li><a href="{{ url_for('main.all_listings') }}" class="{{ 'active' if request.endpoint == 'main.all_listings' }}">All Listings</a></li>
-                    <li><a href="{{ url_for('dealer.dashboard') }}" class="{{ 'active' if request.endpoint == 'dealer.dashboard' }}">Dealer Dashboard</a></li>
-                {% elif current_user.is_authenticated %}
-                    <li><a href="{{ url_for('main.all_listings') }}" class="{{ 'active' if request.endpoint == 'main.all_listings' }}">All Listings</a></li>
-                    <li><a href="{{ url_for('rentals.list_rentals') }}" class="{{ 'active' if request.endpoint == 'rentals.list_rentals' }}">Rentals</a></li>
-                    <li><a href="{{ url_for('request.my_requests') }}" class="{{ 'active' if request.endpoint == 'request.my_requests' }}">My Requests</a></li>
-                    <li><a href="{{ url_for('seller.dashboard') }}" class="{{ 'active' if request.endpoint == 'seller.dashboard' }}">Seller Dashboard</a></li>
-                {% else %}
-                    <li><a href="{{ url_for('main.all_listings') }}" class="{{ 'active' if request.endpoint == 'main.all_listings' }}">All Listings</a></li>
-                    <li><a href="{{ url_for('auctions.list_auctions') }}" class="{{ 'active' if request.endpoint == 'auctions.list_auctions' }}">All Auctions</a></li>
-                    <li><a href="{{ url_for('rentals.list_rentals') }}" class="{{ 'active' if request.endpoint == 'rentals.list_rentals' }}">Rentals</a></li>
-                {% endif %}
-            </ul>
-            {# This nav-right is for desktop and the mobile dropdown menu #}
-            <div class="nav-right"> 
+    <div class="page-wrapper">
+        <nav>
+            <a href="{{ url_for('main.home') }}" class="nav-brand">Mekina</a>
+            <div class="nav-menu" id="nav-menu">
+                <ul>
+                    {% if current_user.is_authenticated and current_user.is_admin %}
+                        <li><a href="{{ url_for('admin.dashboard') }}" class="{{ 'active' if request.endpoint == 'admin.dashboard' }}">Dashboard</a></li>
+                        <li><a href="{{ url_for('admin.rental_management') }}" class="{{ 'active' if request.endpoint == 'admin.rental_management' }}">Manage Rentals</a></li>
+                        <li><a href="{{ url_for('admin.dealer_management') }}" class="{{ 'active' if request.endpoint == 'admin.dealer_management' }}">Manage Dealers</a></li>
+                        <li><a href="{{ url_for('admin.user_management') }}" class="{{ 'active' if request.endpoint == 'admin.user_management' }}">Users</a></li>
+                        <li><a href="{{ url_for('auctions.list_auctions') }}" class="{{ 'active' if request.endpoint == 'auctions.list_auctions' }}">Manage Listings</a></li>
+                    {% elif current_user.is_authenticated and current_user.is_rental_company %}
+                        <li><a href="{{ url_for('rentals.dashboard') }}" class="{{ 'active' if request.endpoint == 'rentals.dashboard' }}">Rental Dashboard</a></li>
+                    {% elif current_user.is_authenticated and current_user.is_dealer %}
+                        <li><a href="{{ url_for('main.all_listings') }}" class="{{ 'active' if request.endpoint == 'main.all_listings' }}">All Listings</a></li>
+                        <li><a href="{{ url_for('dealer.dashboard') }}" class="{{ 'active' if request.endpoint == 'dealer.dashboard' }}">Dealer Dashboard</a></li>
+                    {% elif current_user.is_authenticated %}
+                        <li><a href="{{ url_for('main.all_listings') }}" class="{{ 'active' if request.endpoint == 'main.all_listings' }}">All Listings</a></li>
+                        <li><a href="{{ url_for('rentals.list_rentals') }}" class="{{ 'active' if request.endpoint == 'rentals.list_rentals' }}">Rentals</a></li>
+                        <li><a href="{{ url_for('request.my_requests') }}" class="{{ 'active' if request.endpoint == 'request.my_requests' }}">My Requests</a></li>
+                        <li><a href="{{ url_for('seller.dashboard') }}" class="{{ 'active' if request.endpoint == 'seller.dashboard' }}">Seller Dashboard</a></li>
+                    {% else %}
+                        <li><a href="{{ url_for('main.all_listings') }}" class="{{ 'active' if request.endpoint == 'main.all_listings' }}">All Listings</a></li>
+                        <li><a href="{{ url_for('auctions.list_auctions') }}" class="{{ 'active' if request.endpoint == 'auctions.list_auctions' }}">All Auctions</a></li>
+                        <li><a href="{{ url_for('rentals.list_rentals') }}" class="{{ 'active' if request.endpoint == 'rentals.list_rentals' }}">Rentals</a></li>
+                    {% endif %}
+                </ul>
+                {# This nav-right is for desktop and the mobile dropdown menu #}
+                <div class="nav-right"> 
+                    {% if current_user.is_authenticated %}
+                        {# --- START: Integrated Real-time Notification Link --- #}
+                        <a href="{{ url_for('main.notifications') }}" class="desktop-icon-link notification-bell-link {% if request.endpoint == 'main.notifications' %}active{% endif %}">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-bell"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>
+                            <span class="notification-badge main-notification-badge" style="display: {% if unread_notifications > 0 %}inline-block{% else %}none{% endif %};">{{ unread_notifications }}</span>
+                        </a>
+                        {# --- START: Messages Link --- #}
+                        {% if current_user.is_dealer %}
+                            <a href="{{ url_for('dealer.list_messages') }}" class="desktop-icon-link {% if 'dealer.list_messages' in request.endpoint or 'dealer.view_conversation' in request.endpoint %}active{% endif %}">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-message-square"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
+                                <span class="notification-badge message-badge" style="display: {% if unread_messages_count > 0 %}inline-block{% else %}none{% endif %};">{{ unread_messages_count }}</span>
+                            </a>
+                        {% else %}
+                            <a href="{{ url_for('main.my_messages') }}" class="desktop-icon-link {% if 'main.my_messages' in request.endpoint or 'main.view_buyer_conversation' in request.endpoint %}active{% endif %}">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-message-square"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
+                                <span class="notification-badge message-badge" style="display: {% if unread_messages_count > 0 %}inline-block{% else %}none{% endif %};">{{ unread_messages_count }}</span>
+                            </a>
+                        {% endif %}
+                        {# --- END: Messages Link --- #}
+                        {# --- END: Integrated Real-time Notification Link --- #}
+                        <span class="desktop-username">Hi, {{ current_user.username }}!</span>
+                        <a href="{{ url_for('auth.logout') }}" class="nav-button">Logout</a>
+                    {% else %}
+                        <a href="{{ url_for('auth.login') }}" class="nav-button">Login</a>
+                        <a href="{{ url_for('auth.register') }}" class="nav-button">Register</a>
+                    {% endif %}
+                </div>
+            </div>
+            {# Mobile-only notification bell icon and hamburger toggle, grouped together #}
+            <div class="mobile-nav-icons">
                 {% if current_user.is_authenticated %}
-                    {# --- START: Integrated Real-time Notification Link --- #}
-                    <a href="{{ url_for('main.notifications') }}" class="desktop-icon-link notification-bell-link {% if request.endpoint == 'main.notifications' %}active{% endif %}">
+                    <a href="{{ url_for('main.notifications') }}" class="mobile-notification-bell-link notification-bell-link {% if request.endpoint == 'main.notifications' %}active{% endif %}">
                         <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-bell"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>
                         <span class="notification-badge main-notification-badge" style="display: {% if unread_notifications > 0 %}inline-block{% else %}none{% endif %};">{{ unread_notifications }}</span>
                     </a>
-                    {# --- START: Messages Link --- #}
+                    {# --- START: Mobile Messages Link --- #}
                     {% if current_user.is_dealer %}
-                        <a href="{{ url_for('dealer.list_messages') }}" class="desktop-icon-link {% if 'dealer.list_messages' in request.endpoint or 'dealer.view_conversation' in request.endpoint %}active{% endif %}">
+                        <a href="{{ url_for('dealer.list_messages') }}" class="mobile-notification-bell-link {% if 'dealer.list_messages' in request.endpoint or 'dealer.view_conversation' in request.endpoint %}active{% endif %}">
                             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-message-square"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
                             <span class="notification-badge message-badge" style="display: {% if unread_messages_count > 0 %}inline-block{% else %}none{% endif %};">{{ unread_messages_count }}</span>
                         </a>
                     {% else %}
-                        <a href="{{ url_for('main.my_messages') }}" class="desktop-icon-link {% if 'main.my_messages' in request.endpoint or 'main.view_buyer_conversation' in request.endpoint %}active{% endif %}">
+                        <a href="{{ url_for('main.my_messages') }}" class="mobile-notification-bell-link {% if 'main.my_messages' in request.endpoint or 'main.view_buyer_conversation' in request.endpoint %}active{% endif %}">
                             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-message-square"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
                             <span class="notification-badge message-badge" style="display: {% if unread_messages_count > 0 %}inline-block{% else %}none{% endif %};">{{ unread_messages_count }}</span>
                         </a>
                     {% endif %}
-                    {# --- END: Messages Link --- #}
-                    {# --- END: Integrated Real-time Notification Link --- #}
-                    <span class="desktop-username">Hi, {{ current_user.username }}!</span>
-                    <a href="{{ url_for('auth.logout') }}" class="nav-button">Logout</a>
-                {% else %}
-                    <a href="{{ url_for('auth.login') }}" class="nav-button">Login</a>
-                    <a href="{{ url_for('auth.register') }}" class="nav-button">Register</a>
+                    {# --- END: Mobile Messages Link --- #}
                 {% endif %}
+                <button class="mobile-nav-toggle" id="mobile-nav-toggle" aria-label="Toggle navigation">
+                    <span class="hamburger-icon"></span>
+                </button>
             </div>
-        </div>
-        {# Mobile-only notification bell icon and hamburger toggle, grouped together #}
-        <div class="mobile-nav-icons">
-            {% if current_user.is_authenticated %}
-                <a href="{{ url_for('main.notifications') }}" class="mobile-notification-bell-link notification-bell-link {% if request.endpoint == 'main.notifications' %}active{% endif %}">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-bell"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>
-                    <span class="notification-badge main-notification-badge" style="display: {% if unread_notifications > 0 %}inline-block{% else %}none{% endif %};">{{ unread_notifications }}</span>
-                </a>
-                {# --- START: Mobile Messages Link --- #}
-                {% if current_user.is_dealer %}
-                    <a href="{{ url_for('dealer.list_messages') }}" class="mobile-notification-bell-link {% if 'dealer.list_messages' in request.endpoint or 'dealer.view_conversation' in request.endpoint %}active{% endif %}">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-message-square"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
-                        <span class="notification-badge message-badge" style="display: {% if unread_messages_count > 0 %}inline-block{% else %}none{% endif %};">{{ unread_messages_count }}</span>
-                    </a>
-                {% else %}
-                    <a href="{{ url_for('main.my_messages') }}" class="mobile-notification-bell-link {% if 'main.my_messages' in request.endpoint or 'main.view_buyer_conversation' in request.endpoint %}active{% endif %}">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-message-square"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
-                        <span class="notification-badge message-badge" style="display: {% if unread_messages_count > 0 %}inline-block{% else %}none{% endif %};">{{ unread_messages_count }}</span>
-                    </a>
+        </nav>
+        {% block main_content %}
+            <main class="container">
+                {% with messages = get_flashed_messages() %}
+                {% if messages %}
+                    <ul class=flashes>
+                    {% for message in messages %}
+                        <li>{{ message }}</li>
+                    {% endfor %}
+                    </ul>
                 {% endif %}
-                {# --- END: Mobile Messages Link --- #}
-            {% endif %}
-            <button class="mobile-nav-toggle" id="mobile-nav-toggle" aria-label="Toggle navigation">
-                <span class="hamburger-icon"></span>
-            </button>
-        </div>
-    </nav>
-    {% block main_content %}
-        <main class="container">
-            {% with messages = get_flashed_messages() %}
-            {% if messages %}
-                <ul class=flashes>
-                {% for message in messages %}
-                    <li>{{ message }}</li>
-                {% endfor %}
-                </ul>
-            {% endif %}
-            {% endwith %}
-            {% block content %}{% endblock %}
-        </main>
-    {% endblock %}
+                {% endwith %}
+                {% block content %}{% endblock %}
+            </main>
+        {% endblock %}
 
-    {% block after_content %}{% endblock %}
+        {% block after_content %}{% endblock %}
 
-    <footer class="site-footer">
-        <div class="container">
-            <div class="footer-content-grid">
-                <div class="footer-brand">
-                    <h4>Mekina Auction</h4>
-                    <p>
-                        The premier automotive marketplace for modern vehicles in Ethiopia.
-                    </p>
+        <footer class="site-footer">
+            <div class="container">
+                <div class="footer-content-grid">
+                    <div class="footer-brand">
+                        <h4>Mekina Auction</h4>
+                        <p>
+                            The premier automotive marketplace for modern vehicles in Ethiopia.
+                        </p>
+                    </div>
+                    <div class="footer-links">
+                        <h4>Buying</h4>
+                        <ul>
+                            <li><a href="{{ url_for('main.all_listings') }}">All Listings</a></li>
+                            <li><a href="{{ url_for('main.how_it_works') }}">How It Works</a></li>
+                            <li><a href="#">FAQ</a></li>
+                        </ul>
+                    </div>
+                    <div class="footer-links">
+                        <h4>Selling</h4>
+                        <ul>
+                            <li><a href="{{ url_for('seller.submit_car') }}">List Your Car</a></li>
+                            <li><a href="#">Seller Guide</a></li>
+                        </ul>
+                    </div>
+                    <div class="footer-links">
+                        <h4>Support</h4>
+                        <ul>
+                            <li><a href="#">Contact Us</a></li>
+                            <li><a href="#">Terms & Conditions</a></li>
+                            <li><a href="#">Privacy Policy</a></li>
+                        </ul>
+                    </div>
                 </div>
-                <div class="footer-links">
-                    <h4>Buying</h4>
-                    <ul>
-                        <li><a href="{{ url_for('main.all_listings') }}">All Listings</a></li>
-                        <li><a href="{{ url_for('main.how_it_works') }}">How It Works</a></li>
-                        <li><a href="#">FAQ</a></li>
-                    </ul>
-                </div>
-                <div class="footer-links">
-                    <h4>Selling</h4>
-                    <ul>
-                        <li><a href="{{ url_for('seller.submit_car') }}">List Your Car</a></li>
-                        <li><a href="#">Seller Guide</a></li>
-                    </ul>
-                </div>
-                <div class="footer-links">
-                    <h4>Support</h4>
-                    <ul>
-                        <li><a href="#">Contact Us</a></li>
-                        <li><a href="#">Terms & Conditions</a></li>
-                        <li><a href="#">Privacy Policy</a></li>
-                    </ul>
+                <div class="footer-bottom">
+                    <p>&copy; {{ now.year }} Mekina Auction. All rights reserved.</p>
                 </div>
             </div>
-            <div class="footer-bottom">
-                <p>&copy; {{ now.year }} Mekina Auction. All rights reserved.</p>
-            </div>
-        </div>
-    </footer>
+        </footer>
+    </div>
 
     <!-- Fullscreen Image Viewer Modal -->
     <div id="image-viewer-modal" class="image-viewer-modal">
@@ -158,14 +220,13 @@
 
     <!-- Comparison Bar -->
     {% if request.endpoint != 'main.compare' %}
-    <div id="comparison-bar" class="comparison-bar" style="display: none;">
-        <div class="container">
-            <div class="comparison-content">
-                <span id="comparison-count">Comparing 0 cars</span>
-                <div class="comparison-actions">
-                    <a href="#" id="view-comparison-btn" class="btn approve">View Comparison</a>
-                    <button id="clear-comparison-btn" class="btn delete small">Clear</button>
-                </div>
+    <div id="comparison-bar" class="comparison-bar">
+        <div class="comparison-content">
+            <div id="comparison-cars-preview" class="comparison-cars-preview"></div>
+            <span id="comparison-count"></span>
+            <div class="comparison-actions">
+                <a href="#" id="view-comparison-btn" class="btn approve small">View</a>
+                <button id="clear-comparison-btn" class="btn delete small">Clear</button>
             </div>
         </div>
     </div>
@@ -296,52 +357,74 @@ document.addEventListener('DOMContentLoaded', function() {
     const comparisonCount = document.getElementById('comparison-count');
     const viewBtn = document.getElementById('view-comparison-btn');
     const clearBtn = document.getElementById('clear-comparison-btn');
+    const previewContainer = document.getElementById('comparison-cars-preview');
     const MAX_COMPARE = 4; // Set a limit for comparison
 
     // Load selected cars from localStorage
-    let selectedCars = JSON.parse(localStorage.getItem('compareCars')) || [];
+    let selectedCars = JSON.parse(sessionStorage.getItem('compareCars')) || []; // Now stores objects: {id, imageUrl}
 
     function updateComparisonBar() {
+        if (!comparisonBar) return; // Don't run on compare page
+
+        const carIds = selectedCars.map(car => car.id);
+
+        // Update preview images
+        previewContainer.innerHTML = '';
+        selectedCars.forEach(car => {
+            const img = document.createElement('img');
+            img.src = car.imageUrl;
+            img.alt = 'Selected car';
+            img.className = 'comparison-preview-img';
+            previewContainer.appendChild(img);
+        });
+
         if (selectedCars.length > 0) {
-            comparisonCount.textContent = `Comparing ${selectedCars.length} of ${MAX_COMPARE} cars`;
-            comparisonBar.style.display = 'block';
-            if (selectedCars.length > 1) {
-                viewBtn.classList.remove('disabled');
-                viewBtn.href = `{{ url_for('main.compare') }}?ids=${selectedCars.join(',')}`;
-            } else {
+            if (selectedCars.length === 1) {
+                comparisonCount.textContent = `Add more to compare...`;
                 viewBtn.classList.add('disabled');
-                viewBtn.href = '#';
+            } else {
+                comparisonCount.textContent = `Comparing ${selectedCars.length} cars`;
+                viewBtn.classList.remove('disabled');
             }
+            // Always update the href so it's correct on page load
+            viewBtn.href = `{{ url_for('main.compare') }}?ids=${carIds.join(',')}`;
+            comparisonBar.classList.add('is-visible');
         } else {
-            comparisonBar.style.display = 'none';
+            comparisonBar.classList.remove('is-visible');
         }
     }
 
     function updateCheckboxes() {
+        const carIds = selectedCars.map(car => car.id);
         document.querySelectorAll('.compare-checkbox').forEach(checkbox => {
             const carId = checkbox.dataset.carId;
-            checkbox.checked = selectedCars.includes(carId);
+            checkbox.checked = carIds.includes(carId);
         });
     }
 
     function handleCompareChange(event) {
         const checkbox = event.target;
         const carId = checkbox.dataset.carId;
+        const carCard = checkbox.closest('.car-card, .auction-card'); // Find the parent card
+        const carImage = carCard ? carCard.querySelector('img') : null;
+        const imageUrl = carImage ? carImage.src : '{{ url_for('static', filename='img/default_car.png') }}';
+
+        const carIds = selectedCars.map(car => car.id);
 
         if (checkbox.checked) {
-            if (selectedCars.length < MAX_COMPARE) {
-                if (!selectedCars.includes(carId)) {
-                    selectedCars.push(carId);
+            if (carIds.length < MAX_COMPARE) {
+                if (!carIds.includes(carId)) {
+                    selectedCars.push({ id: carId, imageUrl: imageUrl });
                 }
             } else {
                 checkbox.checked = false; // Prevent checking more than the max
                 alert(`You can only compare up to ${MAX_COMPARE} cars at a time.`);
             }
         } else {
-            selectedCars = selectedCars.filter(id => id !== carId);
+            selectedCars = selectedCars.filter(car => car.id !== carId);
         }
 
-        localStorage.setItem('compareCars', JSON.stringify(selectedCars));
+        sessionStorage.setItem('compareCars', JSON.stringify(selectedCars));
         updateComparisonBar();
     }
 
@@ -352,25 +435,33 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
-    // Prevent card link navigation when clicking on the compare container,
-    // but still allow the checkbox and its label to function.
+    // Make the entire compare container clickable and prevent card navigation.
     document.body.addEventListener('click', function(e) {
-        // Check if the click is inside the compare container but NOT on the checkbox or its label.
-        if (e.target.closest('.compare-container') && !e.target.closest('.compare-checkbox') && !e.target.closest('label[for^="compare-"]')) {
-            // Prevent the link from navigating.
+        const compareContainer = e.target.closest('.compare-container');
+        if (compareContainer) {
+            // Always prevent the parent link from navigating when clicking anywhere in the compare area.
             e.preventDefault();
-            // Stop the event from bubbling up to other listeners.
             e.stopPropagation();
+
+            // Find the checkbox within the container and toggle its state.
+            const checkbox = compareContainer.querySelector('.compare-checkbox');
+            if (checkbox) {
+                checkbox.checked = !checkbox.checked;
+                // Manually dispatch a 'change' event so our other listener picks it up.
+                checkbox.dispatchEvent(new Event('change', { bubbles: true }));
+            }
         }
     }, true); // Use capture phase to catch the event early.
 
 
-    clearBtn.addEventListener('click', function() {
-        selectedCars = [];
-        localStorage.removeItem('compareCars');
-        updateComparisonBar();
-        updateCheckboxes();
-    });
+    if (clearBtn) {
+        clearBtn.addEventListener('click', function() {
+            selectedCars = [];
+            sessionStorage.removeItem('compareCars');
+            updateComparisonBar();
+            updateCheckboxes();
+        });
+    }
 
     // Initial state setup
     updateComparisonBar();

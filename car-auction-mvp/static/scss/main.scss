@@ -10,6 +10,7 @@
 @use 'components/forms';
 @use 'components/image-gallery';
 @use 'components/notifications';
+@use 'components/comparison-bar';
 @use 'components/slider';
 @use 'components/tags';
 @use 'components/tables';
@@ -24,3 +25,5 @@
 @use 'pages/home';
 @use 'pages/dashboard';
 @use 'pages/details';
+@use 'pages/all-listings';
+@use 'pages/compare';

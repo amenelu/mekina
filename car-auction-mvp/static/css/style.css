@@ -1,3 +1,4 @@
+@charset "UTF-8";
 /* --- C&B Inspired Redesign --- */
 /* 1. Variables */
 /* Dark Theme Activated */
@@ -743,6 +744,64 @@ textarea:focus {
   flex-shrink: 0;
 }
 
+/* --- Comparison Tool --- */
+.compare-container {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin-top: 5px;
+  padding: 5px;
+  border-radius: calc(var(--radius) / 2);
+}
+
+.compare-container label {
+  font-size: 0.9em;
+  color: hsl(var(--muted-foreground));
+  cursor: pointer;
+  vertical-align: middle;
+}
+
+.compare-checkbox {
+  accent-color: hsl(var(--accent));
+  width: 1.2em;
+  height: 1.2em;
+  vertical-align: middle;
+}
+
+.comparison-bar {
+  position: fixed;
+  bottom: -100%; /* Start off-screen */
+  left: 0;
+  width: 100%;
+  background-color: hsl(var(--card));
+  border-top: 1px solid hsl(var(--border));
+  padding: 0.5rem 0;
+  z-index: 999;
+  box-shadow: 0 -4px 15px hsl(var(--background)/0.5);
+  transition: bottom 0.3s ease-in-out; /* Animate the 'bottom' property */
+}
+
+.comparison-bar.is-visible {
+  bottom: 0; /* Slide into view */
+}
+
+.comparison-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.comparison-content #comparison-count {
+  font-weight: 500;
+  font-size: 0.9rem;
+}
+
+.comparison-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
 .featured-slider {
   position: relative;
   width: 100%;
@@ -1371,6 +1430,12 @@ nav a.active {
   color: hsl(var(--muted-foreground));
   font-size: 1.1rem;
   margin-bottom: 2rem;
+}
+
+.page-wrapper {
+  display: flex;
+  flex-direction: column;
+  min-height: calc(100vh - 53px); /* Full viewport height minus the nav padding */
 }
 
 .site-footer {
@@ -2310,6 +2375,161 @@ nav a.active {
   border-left: 3px solid hsl(var(--border));
   padding-left: 1rem;
   margin: 0 0 1rem 0;
+}
+
+.all-listings-search-wrapper {
+  max-width: 800px; /* Wider search bar for this page */
+  margin-bottom: 2rem;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.filter-container {
+  margin-top: 20px; /* Add space between search bar and filter container */
+}
+
+/* Enhance the compare container for better UX */
+.compare-container {
+  transition: background-color 0.2s ease-in-out; /* Smooth transition for hover */
+}
+
+.compare-container:hover {
+  background-color: hsl(var(--secondary)); /* Subtle background change on hover */
+}
+
+/* --- Comparison Page --- */
+.comparison-wrapper {
+  margin-top: 2rem;
+}
+
+.comparison-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.95em;
+}
+
+.comparison-table th,
+.comparison-table td {
+  padding: 1rem;
+  text-align: center;
+  border: 1px solid hsl(var(--border));
+  vertical-align: middle;
+}
+
+.comparison-table thead th {
+  background-color: hsl(var(--secondary));
+  font-weight: 600;
+  padding: 1.5rem 1rem;
+}
+
+.comparison-table thead th:first-child {
+  text-align: left;
+  background-color: transparent;
+  border: none;
+  width: 15%; /* Give the feature column a fixed width */
+}
+
+.comparison-table tbody td:first-child {
+  text-align: left;
+  font-weight: 600;
+  background-color: hsl(var(--secondary));
+}
+
+.comparison-image {
+  width: 100%;
+  max-width: 200px;
+  height: auto;
+  aspect-ratio: 4/3;
+  object-fit: cover;
+  border-radius: var(--radius);
+  margin-bottom: 0.5rem;
+  display: block;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.comparison-car-title {
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+}
+
+.best-value {
+  background-color: hsl(var(--success)/0.1);
+  color: hsl(var(--success));
+  font-weight: 700;
+}
+
+.best-value::after {
+  content: " ★";
+  font-size: 0.8em;
+  vertical-align: super;
+}
+
+.no-comparison-items {
+  text-align: center;
+  padding: 4rem 1rem;
+  background-color: hsl(var(--card));
+  border: 1px dashed hsl(var(--border));
+  border-radius: var(--radius);
+}
+
+/* --- Layout Toggling --- */
+.mobile-only {
+  display: none;
+}
+
+/* --- Mobile Responsive View --- */
+@media (max-width: 768px) {
+  .desktop-only {
+    display: none;
+  }
+  .mobile-only {
+    display: block;
+  }
+  .mobile-comparison-cards {
+    display: flex;
+    flex-direction: column;
+    gap: 2rem;
+  }
+  .comparison-card {
+    background-color: hsl(var(--card));
+    border: 1px solid hsl(var(--border));
+    border-radius: var(--radius);
+    overflow: hidden;
+  }
+  .comparison-card .card-header {
+    display: block;
+    padding: 1rem;
+    background-color: hsl(var(--secondary));
+    text-align: center;
+    text-decoration: none;
+  }
+  .comparison-card .card-header:hover {
+    background-color: hsl(var(--muted));
+    text-decoration: none;
+  }
+  .comparison-card .comparison-image {
+    max-width: 150px;
+  }
+  .comparison-card .card-body {
+    padding: 1rem;
+  }
+  .spec-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 0.75rem 0;
+    border-bottom: 1px solid hsl(var(--border));
+  }
+  .spec-row:last-child {
+    border-bottom: none;
+  }
+  .spec-label {
+    color: hsl(var(--muted-foreground));
+  }
+  .spec-value {
+    font-weight: 600;
+  }
 }
 
 /*# sourceMappingURL=style.css.map */

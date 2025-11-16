@@ -1,0 +1,139 @@
+/* --- Comparison Page --- */
+.comparison-wrapper {
+    margin-top: 2rem;
+}
+
+.comparison-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.95em;
+}
+
+.comparison-table th,
+.comparison-table td {
+    padding: 1rem;
+    text-align: center;
+    border: 1px solid hsl(var(--border));
+    vertical-align: middle;
+}
+
+.comparison-table thead th {
+    background-color: hsl(var(--secondary));
+    font-weight: 600;
+    padding: 1.5rem 1rem;
+}
+
+.comparison-table thead th:first-child {
+    text-align: left;
+    background-color: transparent;
+    border: none;
+    width: 15%; /* Give the feature column a fixed width */
+}
+
+.comparison-table tbody td:first-child {
+    text-align: left;
+    font-weight: 600;
+    background-color: hsl(var(--secondary));
+}
+
+.comparison-image {
+    width: 100%;
+    max-width: 200px;
+    height: auto;
+    aspect-ratio: 4 / 3;
+    object-fit: cover;
+    border-radius: var(--radius);
+    margin-bottom: 0.5rem;
+    display: block;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.comparison-car-title {
+    font-size: 1.1rem;
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+}
+
+.best-value {
+    background-color: hsl(var(--success) / 0.1);
+    color: hsl(var(--success));
+    font-weight: 700;
+}
+
+.best-value::after {
+    content: ' ★';
+    font-size: 0.8em;
+    vertical-align: super;
+}
+
+.no-comparison-items {
+    text-align: center;
+    padding: 4rem 1rem;
+    background-color: hsl(var(--card));
+    border: 1px dashed hsl(var(--border));
+    border-radius: var(--radius);
+}
+
+/* --- Layout Toggling --- */
+.mobile-only { display: none; }
+
+/* --- Mobile Responsive View --- */
+@media (max-width: 768px) {
+    .desktop-only { display: none; }
+    .mobile-only { display: block; }
+
+    .mobile-comparison-cards {
+        display: flex;
+        flex-direction: column;
+        gap: 2rem;
+    }
+
+    .comparison-card {
+        background-color: hsl(var(--card));
+        border: 1px solid hsl(var(--border));
+        border-radius: var(--radius);
+        overflow: hidden;
+    }
+
+    .comparison-card .card-header {
+        display: block;
+        padding: 1rem;
+        background-color: hsl(var(--secondary));
+        text-align: center;
+        text-decoration: none;
+    }
+
+    .comparison-card .card-header:hover {
+        background-color: hsl(var(--muted));
+        text-decoration: none;
+    }
+
+    .comparison-card .comparison-image {
+        max-width: 150px;
+    }
+
+    .comparison-card .card-body {
+        padding: 1rem;
+    }
+
+    .spec-row {
+        display: flex;
+        justify-content: space-between;
+        padding: 0.75rem 0;
+        border-bottom: 1px solid hsl(var(--border));
+    }
+
+    .spec-row:last-child {
+        border-bottom: none;
+    }
+
+    .spec-label {
+        color: hsl(var(--muted-foreground));
+    }
+
+    .spec-value {
+        font-weight: 600;
+    }
+
+}
