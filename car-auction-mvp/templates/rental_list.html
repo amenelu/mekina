@@ -2,6 +2,64 @@
 
 {% block title %}Rent a Car - Mekina Auction{% endblock %}
 
+{% block page_styles %}
+<style>
+    /* New styles for the rental filter sidebar */
+    .filter-page-container {
+        display: flex;
+        gap: 30px;
+        align-items: flex-start;
+    }
+
+    .filter-sidebar {
+        flex: 0 0 280px; /* Sidebar width, doesn't grow or shrink */
+        position: sticky;
+        top: 20px; /* Distance from top when scrolling */
+        background-color: #f8f9fa;
+        padding: 20px;
+        border-radius: 8px;
+        border: 1px solid #dee2e6;
+    }
+    .filter-results-content {
+        flex: 1; /* Takes up the remaining space */
+    }
+    .filter-sidebar h3 {
+        margin-top: 0;
+        margin-bottom: 1rem;
+        border-bottom: 1px solid #dee2e6;
+        padding-bottom: 0.75rem;
+        font-size: 1.25rem;
+    }
+    .filter-group {
+        margin-bottom: 1rem;
+    }
+    .filter-group label {
+        display: block;
+        font-weight: 500;
+        margin-bottom: 0.5rem;
+        color: #495057;
+    }
+    .filter-group input[type="search"],
+    .filter-group select {
+        width: 100%;
+        padding: 10px;
+        border-radius: 6px;
+        border: 1px solid #ced4da;
+    }
+
+    /* Responsive adjustments for smaller screens */
+    @media (max-width: 992px) {
+        .filter-page-container {
+            flex-direction: column;
+        }
+        .filter-sidebar {
+            position: static; /* Un-stick the sidebar */
+            width: 100%;
+        }
+    }
+</style>
+{% endblock %}
+
 {% block main_content %}
 <div class="dashboard-full-width-container">
     <div class="dashboard-header-wrapper">
@@ -19,41 +77,43 @@
         <div class="filter-page-container">
             <aside class="filter-sidebar">
                 <h3>Filters</h3>
-                <div class="filter-group">
-                    <label for="search-input">Search</label>
-                    <input type="search" id="search-input" placeholder="Make, model, year...">
-                </div>
-                <div class="filter-group">
-                    <label for="max-price-filter">Max Price (per day)</label>
-                    <select id="max-price-filter" class="filter-select">
-                        <option value="">Any Price</option>
-                        <option value="2000">Under 2,000 ETB</option>
-                        <option value="4000">Under 4,000 ETB</option>
-                        <option value="6000">Under 6,000 ETB</option>
-                        <option value="8000">Under 8,000 ETB</option>
-                        <option value="10000">Under 10,000 ETB</option>
-                    </select>
-                </div>
-                <div class="filter-group">
-                    <label for="body-type-filter">Body Type</label>
-                    <select id="body-type-filter" class="filter-select">
-                        <option value="">All Body Types</option>
-                        <option value="Sedan">Sedan</option>
-                        <option value="SUV">SUV</option>
-                        <option value="Hatchback">Hatchback</option>
-                        <option value="Minivan">Minivan</option>
-                        <option value="Pickup">Pickup</option>
-                    </select>
-                </div>
-                <div class="filter-group">
-                    <label for="transmission-filter">Transmission</label>
-                    <select id="transmission-filter" class="filter-select">
-                        <option value="">Any</option>
-                        <option value="Automatic">Automatic</option>
-                        <option value="Manual">Manual</option>
-                    </select>
-                </div>
-                <button id="reset-filters" class="btn delete small" style="width: 100%; margin-top: 1rem;">Reset Filters</button>
+                <form id="filter-form">
+                    <div class="filter-group">
+                        <label for="search-input">Search</label>
+                        <input type="search" id="search-input" name="q" placeholder="Make, model, year...">
+                    </div>
+                    <div class="filter-group">
+                        <label for="max-price-filter">Max Price (per day)</label>
+                        <select id="max-price-filter" name="max_price">
+                            <option value="">Any Price</option>
+                            <option value="2000">Under 2,000 ETB</option>
+                            <option value="4000">Under 4,000 ETB</option>
+                            <option value="6000">Under 6,000 ETB</option>
+                            <option value="8000">Under 8,000 ETB</option>
+                            <option value="10000">Under 10,000 ETB</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label for="body-type-filter">Body Type</label>
+                        <select id="body-type-filter" name="body_type">
+                            <option value="">All Body Types</option>
+                            <option value="Sedan">Sedan</option>
+                            <option value="SUV">SUV</option>
+                            <option value="Hatchback">Hatchback</option>
+                            <option value="Minivan">Minivan</option>
+                            <option value="Pickup">Pickup</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label for="transmission-filter">Transmission</label>
+                        <select id="transmission-filter" name="transmission">
+                            <option value="">Any</option>
+                            <option value="Automatic">Automatic</option>
+                            <option value="Manual">Manual</option>
+                        </select>
+                    </div>
+                    <button type="button" id="reset-filters" class="btn delete small" style="width: 100%; margin-top: 1rem;">Reset Filters</button>
+                </form>
             </aside>
             <main class="filter-results-content">
                 <div class="results-wrapper">
@@ -70,17 +130,13 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+    const form = document.getElementById('filter-form');
     const gridContainer = document.getElementById('rental-grid-container');
     const noResultsMessage = document.getElementById('no-results-message');
     const loadingSpinner = document.getElementById('loading-spinner');
-
-    const searchInput = document.getElementById('search-input');
-    const maxPriceFilter = document.getElementById('max-price-filter');
-    const bodyTypeFilter = document.getElementById('body-type-filter');
-    const transmissionFilter = document.getElementById('transmission-filter');
     const resetBtn = document.getElementById('reset-filters');
 
-    const allFilters = [searchInput, maxPriceFilter, bodyTypeFilter, transmissionFilter];
+    const allFilters = form.querySelectorAll('input, select');
 
     function debounce(func, delay) {
         let timeout;
@@ -95,11 +151,14 @@ document.addEventListener('DOMContentLoaded', function() {
         loadingSpinner.style.display = 'block';
         gridContainer.style.opacity = '0.5';
 
-        const params = new URLSearchParams();
-        if (searchInput.value) params.append('q', searchInput.value);
-        if (maxPriceFilter.value) params.append('max_price', maxPriceFilter.value);
-        if (bodyTypeFilter.value) params.append('body_type', bodyTypeFilter.value);
-        if (transmissionFilter.value) params.append('transmission', transmissionFilter.value);
+        const params = new URLSearchParams(new FormData(form));
+
+        // CRITICAL FIX: Remove empty parameters so the initial fetch works correctly.
+        for (const [key, value] of [...params.entries()]) {
+            if (!value) {
+                params.delete(key);
+            }
+        }
 
         fetch(`{{ url_for('rentals.api_filter_rentals') }}?${params.toString()}`)
             .then(response => response.json())
@@ -143,15 +202,11 @@ document.addEventListener('DOMContentLoaded', function() {
     const debouncedFetch = debounce(fetchRentals, 300);
 
     allFilters.forEach(filter => {
-        filter.addEventListener('input', debouncedFetch);
-        filter.addEventListener('change', debouncedFetch);
+        filter.addEventListener('input', debouncedFetch); // 'input' works for both typing and select changes
     });
 
     resetBtn.addEventListener('click', () => {
-        searchInput.value = '';
-        maxPriceFilter.value = '';
-        bodyTypeFilter.value = '';
-        transmissionFilter.value = '';
+        form.reset();
         fetchRentals();
     });
 
