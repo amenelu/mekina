@@ -1,0 +1,25 @@
+{# This file contains macros for rendering Flask-WTF form fields. #}
+
+{% macro render_field(field) %}
+    {# Render the label for the field. #}
+    {{ field.label(class="form-label") }}
+
+    {#
+      This is the definitive fix for the 'cannot assign attribute' error.
+      Instead of modifying the field's `render_kw` in place, we create a
+      local dictionary `attrs`, populate it with the macro's kwargs and
+      the field's existing render_kw, and then pass it to the field call.
+    #}
+    {% set attrs = kwargs.copy() %}
+    {% if field.render_kw %}{% do attrs.update(field.render_kw) %}{% endif %}
+
+    {% if field.errors %}
+        {% do attrs.update({'class': (attrs.get('class', '') + ' is-invalid')|trim}) %}
+        <div class="invalid-feedback">
+            {% for error in field.errors %}
+                <span>{{ error }}</span>
+            {% endfor %}
+        </div>
+    {% endif %}
+    {{ field(**attrs) }}
+{% endmacro %}

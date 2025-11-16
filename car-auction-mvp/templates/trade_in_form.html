@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+{% from "_form_helpers.html" import render_field %}
+
+{% block title %}{{ title }} - Mekina Auction{% endblock %}
+
+{% block main_content %}
+<div class="auth-container">
+    <div class="auth-form-wrapper">
+        <div class="auth-header">
+            <h1>{{ title }}</h1>
+            <p>Tell us about your car to get a competitive trade-in offer.</p>
+        </div>
+
+        <form method="POST" enctype="multipart/form-data" novalidate>
+            {{ form.hidden_tag() }}
+
+            <div class="form-grid">
+                <div class="form-group half-width">
+                    {{ render_field(form.make, placeholder="e.g., Toyota") }}
+                </div>
+                <div class="form-group half-width">
+                    {{ render_field(form.model, placeholder="e.g., Vitz") }}
+                </div>
+                <div class="form-group half-width">
+                    {{ render_field(form.year, placeholder="e.g., 2018") }}
+                </div>
+                <div class="form-group half-width">
+                    {{ render_field(form.mileage, placeholder="e.g., 55000") }}
+                </div>
+            </div>
+
+            <div class="form-group">
+                {{ render_field(form.condition) }}
+            </div>
+
+            <div class="form-group">
+                {{ render_field(form.vin, placeholder="Enter the 17-digit VIN") }}
+            </div>
+
+            <div class="form-group">
+                {{ render_field(form.comments, rows=4, placeholder="Mention any upgrades, recent repairs, or known issues...") }}
+            </div>
+
+            <div class="form-group">
+                {{ render_field(form.images) }}
+            </div>
+
+            {{ form.submit(class="btn approve full-width") }}
+        </form>
+    </div>
+</div>
+{% endblock %}
