@@ -1,3 +1,9 @@
+.page-wrapper {
+    display: flex;
+    flex-direction: column;
+    min-height: calc(100vh - 53px); /* Full viewport height minus the nav padding */
+}
+
 .site-footer {
     background-color: hsl(var(--secondary));
     color: hsl(var(--muted-foreground));
