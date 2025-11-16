@@ -52,6 +52,24 @@ def dashboard():
     cars_pending_approval = Car.query.filter_by(is_approved=False).order_by(Car.id.desc()).all()
     return render_template('dashboard.html', stats=stats, cars=cars_pending_approval)
 
+@admin_bp.route('/api/dashboard')
+@login_required
+@admin_required
+def api_admin_dashboard():
+    """API endpoint for admin dashboard statistics and pending approvals."""
+    stats = {
+        'user_count': User.query.count(),
+        'active_auction_count': Auction.query.filter(Auction.end_time > db.func.now()).count(),
+        'pending_approval_count': Car.query.filter_by(is_approved=False).count(),
+        'for_sale_count': Car.query.filter_by(listing_type='sale', is_approved=True).count(),
+        'for_rent_count': Car.query.filter_by(listing_type='rental', is_approved=True).count(),
+    }
+    cars_pending_approval = Car.query.filter_by(is_approved=False).order_by(Car.id.desc()).all()
+    return jsonify(
+        stats=stats,
+        pending_approvals=[car.to_dict() for car in cars_pending_approval]
+    )
+
 
 @admin_bp.route('/users')
 @login_required
@@ -136,6 +154,53 @@ def edit_user(user_id):
         return redirect(url_for('admin.user_management'))
 
     return render_template('edit_user.html', form=form, user=user_to_edit)
+
+@admin_bp.route('/api/users/<int:user_id>', methods=['GET', 'PUT', 'DELETE'])
+@login_required
+@admin_required
+def api_manage_user(user_id):
+    """API endpoint for an admin to manage a single user (GET, PUT, DELETE)."""
+    user = User.query.get_or_404(user_id)
+
+    if request.method == 'GET':
+        return jsonify(user=user.to_dict(detail_level='admin'))
+
+    elif request.method == 'PUT':
+        data = request.get_json()
+        if not data:
+            return jsonify({'status': 'error', 'message': 'Invalid JSON payload.'}), 400
+
+        # Prevent admin from accidentally removing their own admin status
+        if user.id == current_user.id and not data.get('is_admin', user.is_admin):
+            return jsonify({'status': 'error', 'message': 'You cannot remove your own admin status.'}), 403
+
+        # Update fields from payload
+        user.username = data.get('username', user.username)
+        user.email = data.get('email', user.email)
+        user.is_dealer = data.get('is_dealer', user.is_dealer)
+        user.is_rental_company = data.get('is_rental_company', user.is_rental_company)
+        user.is_admin = data.get('is_admin', user.is_admin)
+        user.points = data.get('points', user.points)
+
+        # Validate to prevent duplicates if username/email changed
+        if 'username' in data and User.query.filter(User.username == user.username, User.id != user.id).first():
+            return jsonify({'status': 'error', 'message': 'Username already exists.'}), 409
+        if 'email' in data and User.query.filter(User.email == user.email, User.id != user.id).first():
+            return jsonify({'status': 'error', 'message': 'Email already exists.'}), 409
+
+        db.session.commit()
+        return jsonify({'status': 'success', 'message': 'User updated successfully.', 'user': user.to_dict(detail_level='admin')})
+
+    elif request.method == 'DELETE':
+        if user.id == current_user.id:
+            return jsonify({'status': 'error', 'message': 'You cannot delete your own account.'}), 403
+        
+        # Add any other pre-delete checks here (e.g., reassigning listings)
+        
+        db.session.delete(user)
+        db.session.commit()
+        return jsonify({'status': 'success', 'message': 'User deleted successfully.'})
+
 
 # --- Dummy routes from your templates that need to exist ---
 # You can fill these in later.
@@ -421,3 +486,122 @@ def delete_listing(car_id):
     db.session.commit()
     flash(f'The listing for "{car.year} {car.make} {car.model}" has been permanently deleted.', 'success')
     return redirect(url_for('auctions.list_auctions'))
+
+@admin_bp.route('/api/listings', methods=['POST'])
+@login_required
+@admin_required
+def api_create_listing():
+    """API endpoint for an admin to create a new car listing."""
+    data = request.get_json()
+    if not data:
+        return jsonify({'status': 'error', 'message': 'Invalid JSON payload.'}), 400
+
+    # Basic validation
+    required_fields = ['make', 'model', 'year', 'description', 'listing_type', 'owner_id']
+    if not all(field in data for field in required_fields):
+        return jsonify({'status': 'error', 'message': 'Missing required fields.'}), 400
+
+    # Create the car object
+    new_car = Car(
+        make=data['make'],
+        model=data['model'],
+        year=data['year'],
+        description=data['description'],
+        listing_type=data['listing_type'],
+        owner_id=data['owner_id'],
+        is_approved=data.get('is_approved', True), # Admins can create approved listings directly
+        is_active=data.get('is_active', True),
+        is_featured=data.get('is_featured', False),
+        condition=data.get('condition'),
+        body_type=data.get('body_type'),
+        mileage=data.get('mileage'),
+        transmission=data.get('transmission'),
+        drivetrain=data.get('drivetrain'),
+        fuel_type=data.get('fuel_type')
+    )
+    db.session.add(new_car)
+
+    # Create associated listing type
+    if new_car.listing_type == 'auction':
+        new_car.auction = Auction(start_price=data.get('start_price', 0), current_price=data.get('start_price', 0), end_time=datetime.fromisoformat(data['end_time']))
+    elif new_car.listing_type == 'sale':
+        new_car.fixed_price = data.get('fixed_price')
+    elif new_car.listing_type == 'rental':
+        new_car.rental_listing = RentalListing(price_per_day=data.get('price_per_day'))
+
+    db.session.commit()
+    return jsonify({'status': 'success', 'message': 'New listing created successfully.', 'car': new_car.to_dict()}), 201
+
+@admin_bp.route('/api/listings/<int:car_id>', methods=['GET', 'PUT', 'POST', 'DELETE'])
+@login_required
+@admin_required
+def api_manage_listing(car_id):
+    """Comprehensive API endpoint for an admin to manage a single car listing."""
+    car = Car.query.get_or_404(car_id)
+
+    if request.method == 'GET':
+        # Return detailed car info for an edit form
+        return jsonify(car=car.to_dict(include_owner=True, include_all_images=True, include_equipment=True))
+
+    elif request.method == 'PUT':
+        # Update the listing from JSON data
+        data = request.get_json()
+        if not data:
+            return jsonify({'status': 'error', 'message': 'Invalid JSON payload.'}), 400
+
+        # Update basic car fields
+        for field in ['make', 'model', 'year', 'description', 'condition', 'body_type', 'mileage', 'transmission', 'drivetrain', 'fuel_type', 'is_featured']:
+            if field in data:
+                setattr(car, field, data[field])
+
+        # Handle listing type and price changes
+        if 'listing_type' in data and data['listing_type'] != car.listing_type:
+            # Clear old listing data
+            if car.auction: db.session.delete(car.auction)
+            if car.rental_listing: db.session.delete(car.rental_listing)
+            car.fixed_price = None
+            # Set new listing type
+            car.listing_type = data['listing_type']
+
+        if car.listing_type == 'auction':
+            if not car.auction: car.auction = Auction(car_id=car.id)
+            car.auction.start_price = data.get('start_price', car.auction.start_price)
+            if not car.auction.bids: car.auction.current_price = car.auction.start_price
+            if 'end_time' in data: car.auction.end_time = datetime.fromisoformat(data['end_time'])
+        elif car.listing_type == 'sale':
+            car.fixed_price = data.get('fixed_price', car.fixed_price)
+        elif car.listing_type == 'rental':
+            if not car.rental_listing: car.rental_listing = RentalListing(car_id=car.id)
+            car.rental_listing.price_per_day = data.get('price_per_day', car.rental_listing.price_per_day)
+
+        db.session.commit()
+        return jsonify({'status': 'success', 'message': 'Listing updated successfully.', 'car': car.to_dict()})
+
+    elif request.method == 'POST':
+        # Handle actions like 'approve'
+        data = request.get_json()
+        action = data.get('action')
+
+        if action == 'approve':
+            car.is_approved = True
+            # Logic to notify the seller
+            message = f"Congratulations! Your listing for the {car.year} {car.make} {car.model} has been approved and is now live."
+            notification = Notification(user_id=car.owner_id, message=message)
+            db.session.add(notification)
+            db.session.flush()
+            notification.link = url_for('auctions.auction_detail', auction_id=car.auction.id, notification_id=notification.id) if car.auction else url_for('main.car_detail', car_id=car.id)
+            db.session.commit()
+            # Emit real-time notification
+            unread_count = Notification.query.filter_by(user_id=car.owner_id, is_read=False).count()
+            socketio.emit('new_notification', {'message': notification.message, 'link': notification.link, 'timestamp': notification.timestamp.isoformat() + 'Z', 'count': unread_count}, room=str(car.owner_id))
+            return jsonify({'status': 'success', 'message': 'Car has been approved.'})
+        
+        return jsonify({'status': 'error', 'message': 'Invalid action.'}), 400
+
+    elif request.method == 'DELETE':
+        # Permanently delete the listing
+        db.session.delete(car)
+        db.session.commit()
+        return jsonify({'status': 'success', 'message': 'Listing has been permanently deleted.'})
+
+    return jsonify({'status': 'error', 'message': 'Method not supported.'}), 405

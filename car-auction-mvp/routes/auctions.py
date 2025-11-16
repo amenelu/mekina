@@ -165,13 +165,28 @@ def api_auction_detail(auction_id):
     similar_cars, similarity_reason = get_similar_cars(auction.car, 'auction')
     similar_auctions = [car.auction for car in similar_cars if car.auction]
 
+    # --- Data for API clients (like a mobile app) ---
+    # Calculate the minimum next bid required
+    min_next_bid = auction.start_price
+    if highest_bid:
+        min_next_bid = highest_bid.amount + 50000 # Assuming 50,000 increment
+
+    is_owner = current_user.is_authenticated and current_user.id == auction.car.owner_id
+
     return jsonify(
         auction=auction.car.to_dict(include_owner=True), # The car's to_dict includes auction_details
         highest_bid=highest_bid.to_dict() if highest_bid else None,
         all_bids=[bid.to_dict() for bid in all_bids],
         questions=[q.to_dict() for q in questions],
         similar_auctions=[sa.car.to_dict() for sa in similar_auctions],
-        similarity_reason=similarity_reason
+        similarity_reason=similarity_reason,
+        bidding_rules={
+            'min_next_bid': min_next_bid,
+            'increment': 50000
+        },
+        user_context={
+            'is_owner': is_owner
+        }
     )
 
 @auctions_bp.route('/api/filter')
