@@ -35,9 +35,12 @@ def get_engine_url():
 # add your model's MetaData object here
 # for 'autogenerate' support
 # from myapp import mymodel
+# --- Import all models here for Alembic 'autogenerate' to work ---
+from models import *
+
 # target_metadata = mymodel.Base.metadata
-config.set_main_option('sqlalchemy.url', get_engine_url())
 target_db = current_app.extensions['migrate'].db
+target_metadata = target_db.metadata
 
 # other values from the config, defined by the needs of env.py,
 # can be acquired:
@@ -47,7 +50,7 @@ target_db = current_app.extensions['migrate'].db
 
 def get_metadata():
     if hasattr(target_db, 'metadatas'):
-        return target_db.metadatas[None]
+        return target_db.metadatas[None]  # pragma: no cover
     return target_db.metadata
 
 
@@ -64,9 +67,7 @@ def run_migrations_offline():
 
     """
     url = config.get_main_option("sqlalchemy.url")
-    context.configure(
-        url=url, target_metadata=get_metadata(), literal_binds=True
-    )
+    context.configure(url=url, target_metadata=target_metadata, literal_binds=True)
 
     with context.begin_transaction():
         context.run_migrations()
@@ -95,7 +96,7 @@ def run_migrations_online():
     with connectable.connect() as connection:
         context.configure(
             connection=connection,
-            target_metadata=get_metadata(),
+            target_metadata=target_metadata,
             process_revision_directives=process_revision_directives,
             **current_app.extensions['migrate'].configure_args
         )

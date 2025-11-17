@@ -1,4 +1,4 @@
-from . import db
+from extensions import db
 from datetime import datetime
 from .dealer_bid import DealerBid
 

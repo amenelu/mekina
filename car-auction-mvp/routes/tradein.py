@@ -7,10 +7,11 @@ from flask_wtf.file import FileAllowed
 from werkzeug.utils import secure_filename
 import os
 from datetime import datetime
+import base64
+import uuid
 
 from extensions import db
-# We will assume these models will be created
-# from models.trade_in import TradeInRequest, TradeInPhoto
+from models.trade_in import TradeInRequest, TradeInPhoto
 
 tradein_bp = Blueprint('tradein', __name__, url_prefix='/trade-in')
 
@@ -53,6 +54,28 @@ def save_trade_in_photo(file):
     # Return the relative path for web access
     return os.path.join('/', TRADE_IN_UPLOAD_FOLDER, unique_filename).replace(os.sep, '/')
 
+def save_base64_image(base64_string, filename_prefix="trade_in"):
+    """Decodes a base64 string and saves it as an image file, returning its web path."""
+    if not base64_string:
+        return None
+    
+    try:
+        # Split the header from the data (e.g., "data:image/jpeg;base64,")
+        header, encoded = base64_string.split(",", 1)
+        image_data = base64.b64decode(encoded)
+        
+        # Create a unique filename
+        unique_filename = f"{filename_prefix}_{uuid.uuid4().hex}.jpeg"
+        upload_dir = os.path.join(current_app.root_path, TRADE_IN_UPLOAD_FOLDER)
+        os.makedirs(upload_dir, exist_ok=True)
+        file_path = os.path.join(upload_dir, unique_filename)
+        with open(file_path, "wb") as f:
+            f.write(image_data)
+        return os.path.join('/', TRADE_IN_UPLOAD_FOLDER, unique_filename).replace(os.sep, '/')
+    except Exception as e:
+        current_app.logger.error(f"Could not save base64 image: {e}")
+        return None
+
 @tradein_bp.route('/', methods=['GET', 'POST'])
 @login_required
 def submit_trade_in():
@@ -62,29 +85,28 @@ def submit_trade_in():
         # NOTE: The following lines are commented out as the models do not exist yet.
         # You would uncomment this when you create the TradeInRequest and TradeInPhoto models.
         
-        # new_request = TradeInRequest(
-        #     user_id=current_user.id,
-        #     make=form.make.data,
-        #     model=form.model.data,
-        #     year=form.year.data,
-        #     mileage=form.mileage.data,
-        #     condition=form.condition.data,
-        #     vin=form.vin.data,
-        #     comments=form.comments.data,
-        #     status='pending'
-        # )
-        # db.session.add(new_request)
-        # db.session.flush() # To get the ID for the new_request
+        new_request = TradeInRequest(
+            user_id=current_user.id,
+            make=form.make.data,
+            model=form.model.data,
+            year=form.year.data,
+            mileage=form.mileage.data,
+            condition=form.condition.data,
+            vin=form.vin.data,
+            comments=form.comments.data,
+            status='pending'
+        )
+        db.session.add(new_request)
+        db.session.flush() # To get the ID for the new_request
 
-        # for image_file in form.images.data:
-        #     image_url = save_trade_in_photo(image_file)
-        #     if image_url:
-        #         new_photo = TradeInPhoto(image_url=image_url, trade_in_request_id=new_request.id)
-        #         db.session.add(new_photo)
+        for image_file in form.images.data:
+            image_url = save_trade_in_photo(image_file)
+            if image_url:
+                new_photo = TradeInPhoto(image_url=image_url, trade_in_request_id=new_request.id)
+                db.session.add(new_photo)
         
-        # db.session.commit()
+        db.session.commit()
 
-        # For now, we will just flash a success message.
         flash('Thank you! Your trade-in request has been submitted. Our team will review it and get back to you shortly.', 'success')
         return redirect(url_for('main.home'))
 
@@ -98,7 +120,36 @@ def api_submit_trade_in():
     if not data:
         return jsonify({'status': 'error', 'message': 'Invalid JSON payload.'}), 400
 
-    # Here you would add validation and logic similar to the web form,
-    # handling base64 encoded images, etc.
+    # --- Validation similar to the web form ---
+    required_fields = ['make', 'model', 'year', 'mileage', 'condition', 'images']
+    if not all(field in data for field in required_fields):
+        return jsonify({'status': 'error', 'message': 'Missing required fields.'}), 400
+    
+    if not isinstance(data['images'], list) or not data['images']:
+        return jsonify({'status': 'error', 'message': 'At least one image is required.'}), 400
 
-    return jsonify({'status': 'success', 'message': 'Trade-in request received.'}), 201
+    # NOTE: The following lines are commented out as the models do not exist yet.
+    new_request = TradeInRequest(
+        user_id=current_user.id,
+        make=data.get('make'),
+        model=data.get('model'),
+        year=data.get('year'),
+        mileage=data.get('mileage'),
+        condition=data.get('condition'),
+        vin=data.get('vin'),
+        comments=data.get('comments'),
+        status='pending'
+    )
+    db.session.add(new_request)
+    db.session.flush()
+
+    # In a real API, you'd decode base64 images and save them.
+    for image_data in data['images']:
+        image_url = save_base64_image(image_data) # A helper function to handle base64
+        if image_url:
+            new_photo = TradeInPhoto(image_url=image_url, trade_in_request_id=new_request.id)
+            db.session.add(new_photo)
+    
+    db.session.commit()
+
+    return jsonify({'status': 'success', 'message': 'Your trade-in request has been submitted successfully.', 'request': new_request.to_dict()}), 201

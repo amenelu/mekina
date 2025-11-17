@@ -1,4 +1,4 @@
-from . import db
+from extensions import db
 
 from .car_image import CarImage # Import the CarImage model
 from .equipment import Equipment
