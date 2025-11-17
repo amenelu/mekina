@@ -1,4 +1,4 @@
-from . import db
+from extensions import db
 
 class DealerBidImage(db.Model):
     __tablename__ = 'dealer_bid_image'

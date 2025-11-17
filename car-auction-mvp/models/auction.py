@@ -1,5 +1,5 @@
 from datetime import datetime
-from . import db
+from extensions import db
 from .question import Question
 
 class Auction(db.Model):

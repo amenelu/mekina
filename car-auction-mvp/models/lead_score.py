@@ -1,4 +1,4 @@
-from . import db
+from extensions import db
 
 class LeadScore(db.Model):
     __tablename__ = 'lead_scores'

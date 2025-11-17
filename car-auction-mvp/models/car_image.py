@@ -1,4 +1,4 @@
-from . import db
+from extensions import db
 
 class CarImage(db.Model):
     """Model for storing multiple images for a car."""
