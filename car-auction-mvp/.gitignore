@@ -18,3 +18,7 @@ static/uploads/
 # IDE specific
 .vscode/
 .idea/
+__pycache__/
+*.pyc
+instance/database.db
+.env
