@@ -4,6 +4,7 @@ from models.car_request import CarRequest
 from werkzeug.utils import secure_filename
 from models.dealer_bid import DealerBid
 from models.car import Car
+from models.dealer_bid_image import DealerBidImage
 from models.user import User
 from models.request_question import RequestQuestion
 from models.question import Question
@@ -304,14 +305,19 @@ def place_bid(request_id):
             valid_until=form.valid_until.data,
             extras=form.extras.data,
             message=form.message.data, 
-            image_url=photo_filename, # Save the image URL
             dealer_id=current_user.id,
             request_id=car_request.id
         )
         db.session.add(new_bid)
 
+        # If a photo was uploaded, create a DealerBidImage and associate it
+        if photo_filename:
+            new_image = DealerBidImage(image_url=photo_filename)
+            new_bid.images.append(new_image)
+
         # Deduct one point from the dealer's account
         current_user.points -= 1
+
 
         # --- Notify the customer who made the request ---
         request_description = f"'{car_request.make} {car_request.model}'" if car_request.make else f"request #{car_request.id}"
@@ -342,6 +348,91 @@ def place_bid(request_id):
 
     return render_template('place_dealer_bid.html', form=form, car_request=car_request, bids=existing_bids, now=datetime.utcnow())
 
+<<<<<<< HEAD
+=======
+@dealer_bp.route('/api/requests/<int:request_id>/bids', methods=['GET', 'POST'])
+@login_required
+@dealer_required
+def api_place_dealer_bid(request_id):
+    """API endpoint for getting existing bids or placing a new bid on a car request."""
+    car_request = CarRequest.query.get_or_404(request_id)
+
+    # Mark the request as viewed by the dealer
+    view_exists = DealerRequestView.query.filter_by(dealer_id=current_user.id, request_id=car_request.id).first()
+    if not view_exists:
+        new_view = DealerRequestView(dealer_id=current_user.id, request_id=car_request.id)
+        db.session.add(new_view)
+        db.session.commit()
+
+    if request.method == 'GET':
+        existing_bids = car_request.dealer_bids.order_by(DealerBid.price.asc()).all()
+        return jsonify(car_request=car_request.to_dict(), existing_bids=[bid.to_dict() for bid in existing_bids])
+
+    elif request.method == 'POST':
+        data = request.get_json()
+        if not data:
+            return jsonify({'status': 'error', 'message': 'Invalid JSON payload.'}), 400
+
+        # Basic validation
+        required_fields = ['price', 'make', 'model', 'car_year', 'condition', 'availability', 'valid_until']
+        if not all(field in data for field in required_fields):
+            return jsonify({'status': 'error', 'message': 'Missing required bid details.'}), 400
+
+        try:
+            price = float(data['price'])
+            car_year = int(data['car_year'])
+            mileage = int(data.get('mileage', 0))
+            valid_until = datetime.fromisoformat(data['valid_until'])
+        except (ValueError, TypeError):
+            return jsonify({'status': 'error', 'message': 'Invalid data format for price, year, mileage, or valid_until.'}), 400
+
+        # Check if the dealer has enough points
+        if current_user.points <= 0:
+            return jsonify({'status': 'error', 'message': 'You do not have enough points to place an offer.'}), 400
+
+        if price <= 0:
+            return jsonify({'status': 'error', 'message': 'Bid price must be positive.'}), 400
+
+        photo_filename = None
+        if data.get('image_base64'):
+            photo_filename = save_base64_image(data['image_base64'], filename_prefix=f"dealer_bid_{car_request.id}")
+        elif data.get('image_url'):
+            photo_filename = data['image_url']
+
+        new_bid = DealerBid(
+            price=price, price_with_loan=data.get('price_with_loan'),
+            make=data.get('make'), model=data.get('model'), car_year=car_year,
+            mileage=mileage, condition=data.get('condition'),
+            availability=data.get('availability'), valid_until=valid_until,
+            extras=data.get('extras'), message=data.get('message'), dealer_id=current_user.id, request_id=car_request.id
+        )
+        db.session.add(new_bid)
+
+        # If a photo was uploaded, create a DealerBidImage and associate it
+        if photo_filename:
+            new_image = DealerBidImage(image_url=photo_filename)
+            new_bid.images.append(new_image)
+
+        current_user.points -= 1 # Deduct point
+        db.session.commit()
+
+        # Notify the customer
+        request_description = f"'{car_request.make} {car_request.model}'" if car_request.make else f"request #{car_request.id}"
+        notification_message = f"A dealer has placed an offer on your {request_description}."
+        notification = Notification(user_id=car_request.user_id, message=notification_message)
+        db.session.add(notification)
+        db.session.flush()
+        notification.link = url_for('request.request_detail', request_id=car_request.id, notification_id=notification.id)
+        db.session.commit()
+
+        # Real-time Notification
+        unread_count = Notification.query.filter_by(user_id=car_request.user_id, is_read=False).count()
+        notification_data = { 'message': notification.message, 'link': notification.link, 'timestamp': notification.timestamp.isoformat() + 'Z', 'count': unread_count }
+        socketio.emit('new_notification', notification_data, room=str(car_request.user_id))
+
+        return jsonify({'status': 'success', 'message': 'Your offer has been sent to the customer!', 'bid': new_bid.to_dict()}), 201
+
+>>>>>>> de330f91 (fix(dealer): Correct dealer bid image handling and model relationships)
 @dealer_bp.route('/bid/<int:bid_id>/edit', methods=['GET', 'POST'])
 @login_required
 @dealer_required
