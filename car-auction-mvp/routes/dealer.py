@@ -4,6 +4,7 @@ from models.car_request import CarRequest
 from werkzeug.utils import secure_filename
 from models.dealer_bid import DealerBid
 from models.car import Car
+from models.dealer_bid_image import DealerBidImage
 from models.user import User
 from models.request_question import RequestQuestion
 from models.question import Question
@@ -404,14 +405,19 @@ def place_bid(request_id):
             valid_until=form.valid_until.data,
             extras=form.extras.data,
             message=form.message.data, 
-            image_url=photo_filename, # Save the image URL
             dealer_id=current_user.id,
             request_id=car_request.id
         )
         db.session.add(new_bid)
 
+        # If a photo was uploaded, create a DealerBidImage and associate it
+        if photo_filename:
+            new_image = DealerBidImage(image_url=photo_filename)
+            new_bid.images.append(new_image)
+
         # Deduct one point from the dealer's account
         current_user.points -= 1
+
 
         # --- Notify the customer who made the request ---
         request_description = f"'{car_request.make} {car_request.model}'" if car_request.make else f"request #{car_request.id}"
@@ -496,10 +502,15 @@ def api_place_dealer_bid(request_id):
             make=data.get('make'), model=data.get('model'), car_year=car_year,
             mileage=mileage, condition=data.get('condition'),
             availability=data.get('availability'), valid_until=valid_until,
-            extras=data.get('extras'), message=data.get('message'),
-            image_url=photo_filename, dealer_id=current_user.id, request_id=car_request.id
+            extras=data.get('extras'), message=data.get('message'), dealer_id=current_user.id, request_id=car_request.id
         )
         db.session.add(new_bid)
+
+        # If a photo was uploaded, create a DealerBidImage and associate it
+        if photo_filename:
+            new_image = DealerBidImage(image_url=photo_filename)
+            new_bid.images.append(new_image)
+
         current_user.points -= 1 # Deduct point
         db.session.commit()
 
