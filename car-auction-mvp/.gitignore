@@ -18,3 +18,27 @@ static/uploads/
 # IDE specific
 .vscode/
 .idea/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Virtual Environment
+venv/
+.venv/
+env/
+.env
+
+# Database
+instance/
+*.db
+*.sqlite3
+
+# Uploads
+static/uploads/
+
+# IDE / Editor specific
+.vscode/
+.idea/
