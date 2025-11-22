@@ -22,3 +22,5 @@ __pycache__/
 *.pyc
 instance/database.db
 .env
+
+node_modules/
