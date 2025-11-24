@@ -11,6 +11,8 @@ login_manager.login_view = 'auth.login' # Redirect to login page if user is not 
 def create_app(config_class=Config):
     """Create and configure an instance of the Flask application."""
     app = Flask(__name__)
+
+    app.secret_key = "b9f8d2c4e7a1f6b3d5c8e2a4f9b1d7c3"
     # Enable the 'do' extension for Jinja2 templates
     app.jinja_env.add_extension('jinja2.ext.do')
 
