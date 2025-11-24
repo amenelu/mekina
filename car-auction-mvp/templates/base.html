@@ -1,481 +1,646 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>{% block title %}Mekina Auction{% endblock %}</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css', v=now.timestamp()) }}">
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      rel="stylesheet"
+      href="{{ url_for('static', filename='css/style.css', v=now.timestamp()) }}"
+    />
     {% block page_styles %}{% endblock %}
     <style>
-        /* New Comparison Bar Styles */
-        .comparison-bar {
-            position: fixed;
-            bottom: 20px;
-            left: 50%;
-            transform: translateX(-50%) translateY(200%); /* Start hidden below screen */
-            width: auto;
-            max-width: 90%;
-            background-color: #2c3e50; /* Dark blue-gray */
-            color: white;
-            border-radius: 50px; /* Pill shape */
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
-            display: flex;
-            align-items: center;
-            padding: 8px 15px;
-            z-index: 1000;
-            transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-            gap: 15px;
-        }
+      /* New Comparison Bar Styles */
+      .comparison-bar {
+        position: fixed;
+        bottom: 20px;
+        left: 50%;
+        transform: translateX(-50%) translateY(200%); /* Start hidden below screen */
+        width: auto;
+        max-width: 90%;
+        background-color: #2c3e50; /* Dark blue-gray */
+        color: white;
+        border-radius: 50px; /* Pill shape */
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        display: flex;
+        align-items: center;
+        padding: 8px 15px;
+        z-index: 1000;
+        transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        gap: 15px;
+      }
 
-        .comparison-bar.is-visible {
-            transform: translateX(-50%) translateY(0); /* Slide in from bottom */
-        }
+      .comparison-bar.is-visible {
+        transform: translateX(-50%) translateY(0); /* Slide in from bottom */
+      }
 
-        .comparison-content {
-            display: flex;
-            align-items: center;
-            gap: 15px;
-            width: 100%;
-        }
+      .comparison-content {
+        display: flex;
+        align-items: center;
+        gap: 15px;
+        width: 100%;
+      }
 
-        .comparison-cars-preview {
-            display: flex;
-            align-items: center;
-        }
+      .comparison-cars-preview {
+        display: flex;
+        align-items: center;
+      }
 
-        .comparison-preview-img {
-            width: 36px;
-            height: 36px;
-            border-radius: 50%;
-            object-fit: cover;
-            border: 2px solid white;
-            margin-left: -12px; /* Create overlap */
-            background-color: #ecf0f1;
-        }
-        .comparison-preview-img:first-child {
-            margin-left: 0;
-        }
+      .comparison-preview-img {
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        object-fit: cover;
+        border: 2px solid white;
+        margin-left: -12px; /* Create overlap */
+        background-color: #ecf0f1;
+      }
+      .comparison-preview-img:first-child {
+        margin-left: 0;
+      }
 
-        #comparison-count {
-            font-weight: 500;
-            white-space: nowrap;
-        }
+      #comparison-count {
+        font-weight: 500;
+        white-space: nowrap;
+      }
 
-        .comparison-actions {
-            /* This pushes the buttons to the far right */
-            margin-left: auto;
-        }
+      .comparison-actions {
+        /* This pushes the buttons to the far right */
+        margin-left: auto;
+      }
     </style>
-</head>
-<body class="{% block body_class %}{% endblock %}">
+  </head>
+  <body class="{% block body_class %}{% endblock %}">
     <div class="page-wrapper">
-        <nav>
-            {# --- Refactored Navigation with Macro --- #}
-            {% macro nav_link(endpoint, text, match_endpoints=None) %}
-                {% set is_active = request.endpoint == endpoint or (match_endpoints and request.endpoint in match_endpoints) %}
-                <li><a href="{{ url_for(endpoint) }}" class="{{ 'active' if is_active }}">{{ text }}</a></li>
-            {% endmacro %}
+      <nav>
+        {# --- Refactored Navigation with Macro --- #} {% macro
+        nav_link(endpoint, text, match_endpoints=None) %} {% set is_active =
+        request.endpoint == endpoint or (match_endpoints and request.endpoint in
+        match_endpoints) %}
+        <li>
+          <a href="{{ url_for(endpoint) }}" class="{{ 'active' if is_active }}"
+            >{{ text }}</a
+          >
+        </li>
+        {% endmacro %}
 
-            <a href="{{ url_for('main.home') }}" class="nav-brand">Mekina</a>
-            <div class="nav-menu" id="nav-menu">
-                <ul>
-                    {% if current_user.is_authenticated and current_user.is_admin %}
-                        {{ nav_link('admin.dashboard', 'Dashboard') }}
-                        {{ nav_link('admin.rental_management', 'Manage Rentals') }}
-                        {{ nav_link('admin.dealer_management', 'Manage Dealers') }}
-                        {{ nav_link('admin.user_management', 'Users') }}
-                        {{ nav_link('auctions.list_auctions', 'Manage Listings') }}
-                    {% elif current_user.is_authenticated and current_user.is_rental_company %}
-                        {{ nav_link('rentals.dashboard', 'Rental Dashboard') }}
-                    {% elif current_user.is_authenticated and current_user.is_dealer %}
-                        {{ nav_link('main.all_listings', 'All Listings') }}
-                        {{ nav_link('dealer.dashboard', 'Dealer Dashboard') }}
-                    {% elif current_user.is_authenticated %}
-                        {{ nav_link('main.all_listings', 'All Listings') }}
-                        {{ nav_link('rentals.list_rentals', 'Rentals') }}
-                        {{ nav_link('request.my_requests', 'My Requests', ['request.request_detail']) }}
-                        {{ nav_link('seller.dashboard', 'Seller Dashboard') }}
-                    {% else %}
-                        {{ nav_link('main.all_listings', 'All Listings') }}
-                        {{ nav_link('auctions.list_auctions', 'All Auctions') }}
-                        {{ nav_link('rentals.list_rentals', 'Rentals') }}
-                    {% endif %}
-                </ul>
-                {# This nav-right is for desktop and the mobile dropdown menu #}
-                <div class="nav-right"> 
-                    {% if current_user.is_authenticated %}
-                        {# --- START: Integrated Real-time Notification Link --- #}
-                        <a href="{{ url_for('main.notifications') }}" class="desktop-icon-link notification-bell-link {% if request.endpoint == 'main.notifications' %}active{% endif %}">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-bell"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>
-                            <span class="notification-badge main-notification-badge" style="display: {% if unread_notifications > 0 %}inline-block{% else %}none{% endif %};">{{ unread_notifications }}</span>
-                        </a>
-                        {# --- START: Messages Link --- #}
-                        {% if current_user.is_dealer %}
-                            <a href="{{ url_for('dealer.list_messages') }}" class="desktop-icon-link {% if 'dealer.list_messages' in request.endpoint or 'dealer.view_conversation' in request.endpoint %}active{% endif %}">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-message-square"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
-                                <span class="notification-badge message-badge" style="display: {% if unread_messages_count > 0 %}inline-block{% else %}none{% endif %};">{{ unread_messages_count }}</span>
-                            </a>
-                        {% else %}
-                            <a href="{{ url_for('main.my_messages') }}" class="desktop-icon-link {% if 'main.my_messages' in request.endpoint or 'main.view_buyer_conversation' in request.endpoint %}active{% endif %}">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-message-square"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
-                                <span class="notification-badge message-badge" style="display: {% if unread_messages_count > 0 %}inline-block{% else %}none{% endif %};">{{ unread_messages_count }}</span>
-                            </a>
-                        {% endif %}
-                        {# --- END: Messages Link --- #}
-                        {# --- END: Integrated Real-time Notification Link --- #}
-                        <span class="desktop-username">Hi, {{ current_user.username }}!</span>
-                        <a href="{{ url_for('auth.logout') }}" class="nav-button">Logout</a>
-                    {% else %}
-                        <a href="{{ url_for('auth.login') }}" class="nav-button">Login</a>
-                        <a href="{{ url_for('auth.register') }}" class="nav-button">Register</a>
-                    {% endif %}
-                </div>
-            </div>
-            {# Mobile-only notification bell icon and hamburger toggle, grouped together #}
-            <div class="mobile-nav-icons">
-                {% if current_user.is_authenticated %}
-                    <a href="{{ url_for('main.notifications') }}" class="mobile-notification-bell-link notification-bell-link {% if request.endpoint == 'main.notifications' %}active{% endif %}">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-bell"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>
-                        <span class="notification-badge main-notification-badge" style="display: {% if unread_notifications > 0 %}inline-block{% else %}none{% endif %};">{{ unread_notifications }}</span>
-                    </a>
-                    {# --- START: Mobile Messages Link --- #}
-                    {% if current_user.is_dealer %}
-                        <a href="{{ url_for('dealer.list_messages') }}" class="mobile-notification-bell-link {% if 'dealer.list_messages' in request.endpoint or 'dealer.view_conversation' in request.endpoint %}active{% endif %}">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-message-square"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
-                            <span class="notification-badge message-badge" style="display: {% if unread_messages_count > 0 %}inline-block{% else %}none{% endif %};">{{ unread_messages_count }}</span>
-                        </a>
-                    {% else %}
-                        <a href="{{ url_for('main.my_messages') }}" class="mobile-notification-bell-link {% if 'main.my_messages' in request.endpoint or 'main.view_buyer_conversation' in request.endpoint %}active{% endif %}">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-message-square"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
-                            <span class="notification-badge message-badge" style="display: {% if unread_messages_count > 0 %}inline-block{% else %}none{% endif %};">{{ unread_messages_count }}</span>
-                        </a>
-                    {% endif %}
-                    {# --- END: Mobile Messages Link --- #}
-                {% endif %}
-                <button class="mobile-nav-toggle" id="mobile-nav-toggle" aria-label="Toggle navigation">
-                    <span class="hamburger-icon"></span>
-                </button>
-            </div>
-        </nav>
-        {% block main_content %}
-            <main class="container">
-                {% with messages = get_flashed_messages() %}
-                {% if messages %}
-                    <ul class=flashes>
-                    {% for message in messages %}
-                        <li>{{ message }}</li>
-                    {% endfor %}
-                    </ul>
-                {% endif %}
-                {% endwith %}
-                {% block content %}{% endblock %}
-            </main>
-        {% endblock %}
+        <a href="{{ url_for('main.home') }}" class="nav-brand">Mekina</a>
+        <div class="nav-menu" id="nav-menu">
+          <ul>
+            {% if current_user.is_authenticated and current_user.is_admin %} {{
+            nav_link('admin.dashboard', 'Dashboard') }} {{
+            nav_link('admin.rental_management', 'Manage Rentals') }} {{
+            nav_link('admin.dealer_management', 'Manage Dealers') }} {{
+            nav_link('admin.user_management', 'Users') }} {{
+            nav_link('auctions.list_auctions', 'Manage Listings') }} {% elif
+            current_user.is_authenticated and current_user.is_rental_company %}
+            {{ nav_link('rentals.dashboard', 'Rental Dashboard') }} {% elif
+            current_user.is_authenticated and current_user.is_dealer %} {{
+            nav_link('main.all_listings', 'All Listings') }} {{
+            nav_link('dealer.dashboard', 'Dealer Dashboard') }} {% elif
+            current_user.is_authenticated %} {{ nav_link('main.all_listings',
+            'All Listings') }} {{ nav_link('rentals.list_rentals', 'Rentals') }}
+            {{ nav_link('request.my_requests', 'My Requests',
+            ['request.request_detail']) }} {{ nav_link('seller.dashboard',
+            'Seller Dashboard') }} {% else %} {{ nav_link('main.all_listings',
+            'All Listings') }} {{ nav_link('auctions.list_auctions', 'All
+            Auctions') }} {{ nav_link('rentals.list_rentals', 'Rentals') }} {%
+            endif %}
+          </ul>
+          {# This nav-right is for desktop and the mobile dropdown menu #}
+          <div class="nav-right">
+            {% if current_user.is_authenticated %} {# --- START: Integrated
+            Real-time Notification Link --- #}
+            <a
+              href="{{ url_for('main.notifications') }}"
+              class="desktop-icon-link notification-bell-link {% if request.endpoint == 'main.notifications' %}active{% endif %}"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="24"
+                height="24"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                class="feather feather-bell"
+              >
+                <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
+                <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
+              </svg>
+              <span
+                class="notification-badge main-notification-badge"
+                style="display: {% if unread_notifications > 0 %}inline-block{% else %}none{% endif %};"
+                >{{ unread_notifications }}</span
+              >
+            </a>
+            {# --- START: Messages Link --- #} {% if current_user.is_dealer %}
+            <a
+              href="{{ url_for('dealer.list_messages') }}"
+              class="desktop-icon-link {% if 'dealer.list_messages' in request.endpoint or 'dealer.view_conversation' in request.endpoint %}active{% endif %}"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="24"
+                height="24"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                class="feather feather-message-square"
+              >
+                <path
+                  d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"
+                ></path>
+              </svg>
+              <span
+                class="notification-badge message-badge"
+                style="display: {% if unread_messages_count > 0 %}inline-block{% else %}none{% endif %};"
+                >{{ unread_messages_count }}</span
+              >
+            </a>
+            {% else %}
+            <a
+              href="{{ url_for('main.my_messages') }}"
+              class="desktop-icon-link {% if 'main.my_messages' in request.endpoint or 'main.view_buyer_conversation' in request.endpoint %}active{% endif %}"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="24"
+                height="24"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                class="feather feather-message-square"
+              >
+                <path
+                  d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"
+                ></path>
+              </svg>
+              <span
+                class="notification-badge message-badge"
+                style="display: {% if unread_messages_count > 0 %}inline-block{% else %}none{% endif %};"
+                >{{ unread_messages_count }}</span
+              >
+            </a>
+            {% endif %} {# --- END: Messages Link --- #} {# --- END: Integrated
+            Real-time Notification Link --- #}
+            <span class="desktop-username"
+              >Hi, {{ current_user.username }}!</span
+            >
+            <a href="{{ url_for('auth.logout') }}" class="nav-button">Logout</a>
+            {% else %}
+            <a href="{{ url_for('auth.login') }}" class="nav-button">Login</a>
+            <a href="{{ url_for('auth.register') }}" class="nav-button"
+              >Register</a
+            >
+            {% endif %}
+          </div>
+        </div>
+        {# Mobile-only notification bell icon and hamburger toggle, grouped
+        together #}
+        <div class="mobile-nav-icons">
+          {% if current_user.is_authenticated %}
+          <a
+            href="{{ url_for('main.notifications') }}"
+            class="mobile-notification-bell-link notification-bell-link {% if request.endpoint == 'main.notifications' %}active{% endif %}"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="24"
+              height="24"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              class="feather feather-bell"
+            >
+              <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
+              <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
+            </svg>
+            <span
+              class="notification-badge main-notification-badge"
+              style="display: {% if unread_notifications > 0 %}inline-block{% else %}none{% endif %};"
+              >{{ unread_notifications }}</span
+            >
+          </a>
+          {# --- START: Mobile Messages Link --- #} {% if current_user.is_dealer
+          %}
+          <a
+            href="{{ url_for('dealer.list_messages') }}"
+            class="mobile-notification-bell-link {% if 'dealer.list_messages' in request.endpoint or 'dealer.view_conversation' in request.endpoint %}active{% endif %}"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="24"
+              height="24"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              class="feather feather-message-square"
+            >
+              <path
+                d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"
+              ></path>
+            </svg>
+            <span
+              class="notification-badge message-badge"
+              style="display: {% if unread_messages_count > 0 %}inline-block{% else %}none{% endif %};"
+              >{{ unread_messages_count }}</span
+            >
+          </a>
+          {% else %}
+          <a
+            href="{{ url_for('main.my_messages') }}"
+            class="mobile-notification-bell-link {% if 'main.my_messages' in request.endpoint or 'main.view_buyer_conversation' in request.endpoint %}active{% endif %}"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="24"
+              height="24"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              class="feather feather-message-square"
+            >
+              <path
+                d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"
+              ></path>
+            </svg>
+            <span
+              class="notification-badge message-badge"
+              style="display: {% if unread_messages_count > 0 %}inline-block{% else %}none{% endif %};"
+              >{{ unread_messages_count }}</span
+            >
+          </a>
+          {% endif %} {# --- END: Mobile Messages Link --- #} {% endif %}
+          <button
+            class="mobile-nav-toggle"
+            id="mobile-nav-toggle"
+            aria-label="Toggle navigation"
+          >
+            <span class="hamburger-icon"></span>
+          </button>
+        </div>
+      </nav>
+      {% block main_content %}
+      <main class="container">
+        {% with messages = get_flashed_messages() %} {% if messages %}
+        <ul class="flashes">
+          {% for message in messages %}
+          <li>{{ message }}</li>
+          {% endfor %}
+        </ul>
+        {% endif %} {% endwith %} {% block content %}{% endblock %}
+      </main>
+      {% endblock %} {% block after_content %}{% endblock %}
 
-        {% block after_content %}{% endblock %}
-
-        <footer class="site-footer">
-            <div class="container">
-                <div class="footer-content-grid">
-                    <div class="footer-brand">
-                        <h4>Mekina Auction</h4>
-                        <p>
-                            The premier automotive marketplace for modern vehicles in Ethiopia.
-                        </p>
-                    </div>
-                    <div class="footer-links">
-                        <h4>Buying</h4>
-                        <ul>
-                            <li><a href="{{ url_for('main.all_listings') }}">All Listings</a></li>
-                            <li><a href="{{ url_for('main.how_it_works') }}">How It Works</a></li>
-                            <li><a href="#">FAQ</a></li>
-                        </ul>
-                    </div>
-                    <div class="footer-links">
-                        <h4>Selling</h4>
-                        <ul>
-                            <li><a href="{{ url_for('seller.submit_car') }}">List Your Car</a></li>
-                            <li><a href="{{ url_for('tradein.submit_trade_in') }}">Trade-in Value</a></li>
-                            <li><a href="#">Seller Guide</a></li>
-                        </ul>
-                    </div>
-                    <div class="footer-links">
-                        <h4>Support</h4>
-                        <ul>
-                            <li><a href="#">Contact Us</a></li>
-                            <li><a href="#">Terms & Conditions</a></li>
-                            <li><a href="#">Privacy Policy</a></li>
-                        </ul>
-                    </div>
-                </div>
-                <div class="footer-bottom">
-                    <p>&copy; {{ now.year }} Mekina Auction. All rights reserved.</p>
-                </div>
+      <footer class="site-footer">
+        <div class="container">
+          <div class="footer-content-grid">
+            <div class="footer-brand">
+              <h4>Mekina Auction</h4>
+              <p>
+                The premier automotive marketplace for modern vehicles in
+                Ethiopia.
+              </p>
             </div>
-        </footer>
+            <div class="footer-links">
+              <h4>Buying</h4>
+              <ul>
+                <li>
+                  <a href="{{ url_for('main.all_listings') }}">All Listings</a>
+                </li>
+                <li>
+                  <a href="{{ url_for('main.how_it_works') }}">How It Works</a>
+                </li>
+                <li><a href="#">FAQ</a></li>
+              </ul>
+            </div>
+            <div class="footer-links">
+              <h4>Selling</h4>
+              <ul>
+                <li>
+                  <a href="{{ url_for('seller.submit_car') }}">List Your Car</a>
+                </li>
+                <li>
+                  <a href="{{ url_for('tradein.submit_trade_in') }}"
+                    >Trade-in Value</a
+                  >
+                </li>
+                <li><a href="#">Seller Guide</a></li>
+              </ul>
+            </div>
+            <div class="footer-links">
+              <h4>Support</h4>
+              <ul>
+                <li><a href="#">Contact Us</a></li>
+                <li><a href="#">Terms & Conditions</a></li>
+                <li><a href="#">Privacy Policy</a></li>
+              </ul>
+            </div>
+          </div>
+          <div class="footer-bottom">
+            <p>&copy; {{ now.year }} Mekina Auction. All rights reserved.</p>
+          </div>
+        </div>
+      </footer>
     </div>
 
     <!-- Fullscreen Image Viewer Modal -->
     <div id="image-viewer-modal" class="image-viewer-modal">
-        <span class="close-image-viewer">&times;</span>
-        <button class="image-viewer-nav prev" id="viewer-prev-btn">&lt;</button>
-        <img class="image-viewer-content" id="fullscreen-image">
-        <button class="image-viewer-nav next" id="viewer-next-btn">&gt;</button>
+      <span class="close-image-viewer">&times;</span>
+      <button class="image-viewer-nav prev" id="viewer-prev-btn">&lt;</button>
+      <img class="image-viewer-content" id="fullscreen-image" />
+      <button class="image-viewer-nav next" id="viewer-next-btn">&gt;</button>
     </div>
 
     <!-- Comparison Bar -->
     {% if request.endpoint != 'main.compare' %}
     <div id="comparison-bar" class="comparison-bar">
-        <div class="comparison-content">
-            <div id="comparison-cars-preview" class="comparison-cars-preview"></div>
-            <span id="comparison-count"></span>
-            <div class="comparison-actions">
-                <a href="#" id="view-comparison-btn" class="btn approve small">View</a>
-                <button id="clear-comparison-btn" class="btn delete small">Clear</button>
-            </div>
+      <div class="comparison-content">
+        <div id="comparison-cars-preview" class="comparison-cars-preview"></div>
+        <span id="comparison-count"></span>
+        <div class="comparison-actions">
+          <a href="#" id="view-comparison-btn" class="btn approve small"
+            >View</a
+          >
+          <button id="clear-comparison-btn" class="btn delete small">
+            Clear
+          </button>
         </div>
+      </div>
     </div>
-    {% endif %}
-
-
-    {# --- START: Socket.IO Client-side Script --- #}
-    {% if current_user.is_authenticated %}
+    {% endif %} {# --- START: Socket.IO Client-side Script --- #} {% if
+    current_user.is_authenticated %}
     <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
     <script>
-    document.addEventListener('DOMContentLoaded', function() {
+      document.addEventListener("DOMContentLoaded", function () {
         // Connect to the Socket.IO server
         const socket = io();
-        
+
         // Function to update notification badges
         function updateNotificationBadges(count) {
-            const badges = document.querySelectorAll('.main-notification-badge');
-            badges.forEach(badge => {
-                badge.textContent = count;
-                badge.style.display = count > 0 ? 'inline-block' : 'none';
-            });
+          const badges = document.querySelectorAll(".main-notification-badge");
+          badges.forEach((badge) => {
+            badge.textContent = count;
+            badge.style.display = count > 0 ? "inline-block" : "none";
+          });
         }
 
         // Function to update message badges
         function updateMessageBadges(count) {
-            const badges = document.querySelectorAll('.message-badge');
-            badges.forEach(badge => {
-                badge.textContent = count;
-                badge.style.display = count > 0 ? 'inline-block' : 'none';
-            });
+          const badges = document.querySelectorAll(".message-badge");
+          badges.forEach((badge) => {
+            badge.textContent = count;
+            badge.style.display = count > 0 ? "inline-block" : "none";
+          });
         }
 
         // Listen for the 'new_notification' event from the server
-        socket.on('new_notification', function(data) {
-            console.log('New notification received:', data);
+        socket.on("new_notification", function (data) {
+          console.log("New notification received:", data);
 
-            const currentPath = window.location.pathname;
-            const onNotificationsPage = currentPath === "{{ url_for('main.notifications') }}";
-            const onMessagesPage = currentPath.startsWith("{{ url_for('main.my_messages') }}") || currentPath.startsWith("{{ url_for('dealer.list_messages') }}");
+          const currentPath = window.location.pathname;
+          const onNotificationsPage =
+            currentPath === "{{ url_for('main.notifications') }}";
+          const onMessagesPage =
+            currentPath.startsWith("{{ url_for('main.my_messages') }}") ||
+            currentPath.startsWith("{{ url_for('dealer.list_messages') }}");
 
-            if (onNotificationsPage) {
-                // --- User is ON the main notifications page ---
-                const notificationList = document.getElementById('notification-list');
-                const noNotificationsMsg = document.getElementById('no-notifications-message'); // Assuming this ID exists
+          if (onNotificationsPage) {
+            // --- User is ON the main notifications page ---
+            const notificationList =
+              document.getElementById("notification-list");
+            const noNotificationsMsg = document.getElementById(
+              "no-notifications-message"
+            ); // Assuming this ID exists
 
-                if (notificationList) {
-                    // Remove "No notifications" message if it's there
-                    if (noNotificationsMsg) {
-                        noNotificationsMsg.remove();
-                    }
+            if (notificationList) {
+              // Remove "No notifications" message if it's there
+              if (noNotificationsMsg) {
+                noNotificationsMsg.remove();
+              }
 
-                    const newNotificationItem = document.createElement('div');
-                    newNotificationItem.classList.add('notification-item', 'unread'); // Mark as unread
-                    newNotificationItem.innerHTML = `
+              const newNotificationItem = document.createElement("div");
+              newNotificationItem.classList.add("notification-item", "unread"); // Mark as unread
+              newNotificationItem.innerHTML = `
                         <div class="notification-content">
                             <p>${data.message}</p>
-                            <small class="notification-time">${
-                                new Date(data.timestamp).toLocaleString('en-US', {
-                                    month: 'short', day: '2-digit', year: 'numeric',
-                                    hour: '2-digit', minute: '2-digit', hour12: false
-                                }).replace(',', '')
-                            }</small>
+                            <small class="notification-time">${new Date(
+                              data.timestamp
+                            )
+                              .toLocaleString("en-US", {
+                                month: "short",
+                                day: "2-digit",
+                                year: "numeric",
+                                hour: "2-digit",
+                                minute: "2-digit",
+                                hour12: false,
+                              })
+                              .replace(",", "")}</small>
                         </div>
                         <div class="notification-action">
                             <a href="${data.link}" class="btn">View</a>
                         </div>
                     `;
-                    notificationList.prepend(newNotificationItem);
-                }
-            } else if (onMessagesPage) {
-                // --- User is ON a messages list or detail page ---
-                // Do nothing here to prevent the badge from updating.
-                // In the future, you could add logic to update the conversation list with an "unread" indicator.
-            } else {
-                // --- User is NOT on the notifications page ---
-                // 1. Update the notification badge count
-                updateNotificationBadges(data.count);
-
-                // 2. Find all notification bell icons/links and make them shake
-                const bells = document.querySelectorAll('.notification-bell-link');
-                bells.forEach(bell => {
-                    bell.classList.add('shake');
-                    setTimeout(() => { bell.classList.remove('shake'); }, 500);
-                });
+              notificationList.prepend(newNotificationItem);
             }
+          } else if (onMessagesPage) {
+            // --- User is ON a messages list or detail page ---
+            // Do nothing here to prevent the badge from updating.
+            // In the future, you could add logic to update the conversation list with an "unread" indicator.
+          } else {
+            // --- User is NOT on the notifications page ---
+            // 1. Update the notification badge count
+            updateNotificationBadges(data.count);
+
+            // 2. Find all notification bell icons/links and make them shake
+            const bells = document.querySelectorAll(".notification-bell-link");
+            bells.forEach((bell) => {
+              bell.classList.add("shake");
+              setTimeout(() => {
+                bell.classList.remove("shake");
+              }, 500);
+            });
+          }
         });
 
         // Listen for the 'notification_count_update' event (for count resets, etc.)
-        socket.on('notification_count_update', function(data) {
-            console.log('Notification count update received:', data);
-            updateNotificationBadges(data.count);
+        socket.on("notification_count_update", function (data) {
+          console.log("Notification count update received:", data);
+          updateNotificationBadges(data.count);
         });
 
         // Listen for the 'message_count_update' event
-        socket.on('message_count_update', function(data) {
-            const currentPath = window.location.pathname;
-            const onMessagesPage = currentPath.startsWith("{{ url_for('main.my_messages') }}") || currentPath.startsWith("{{ url_for('dealer.list_messages') }}");
+        socket.on("message_count_update", function (data) {
+          const currentPath = window.location.pathname;
+          const onMessagesPage =
+            currentPath.startsWith("{{ url_for('main.my_messages') }}") ||
+            currentPath.startsWith("{{ url_for('dealer.list_messages') }}");
 
-            // Only update the message counter if the user is NOT on a messaging page.
-            if (!onMessagesPage) {
-                console.log('Message count update received:', data);
-                updateMessageBadges(data.count);
-            }
+          // Only update the message counter if the user is NOT on a messaging page.
+          if (!onMessagesPage) {
+            console.log("Message count update received:", data);
+            updateMessageBadges(data.count);
+          }
         });
-    });
+      });
     </script>
-    {% endif %}
-    {# --- END: Socket.IO Client-side Script --- #}
+    {% endif %} {# --- END: Socket.IO Client-side Script --- #}
 
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    const mobileNavToggle = document.getElementById('mobile-nav-toggle');
-    const navMenu = document.getElementById('nav-menu');
+    <script>
+      document.addEventListener("DOMContentLoaded", function () {
+        const mobileNavToggle = document.getElementById("mobile-nav-toggle");
+        const navMenu = document.getElementById("nav-menu");
 
-    if (mobileNavToggle && navMenu) {
-        mobileNavToggle.addEventListener('click', function() {
-            navMenu.classList.toggle('active');
-            this.classList.toggle('active');
-        });
-    }
-});
-</script>
-
-<!-- Comparison Tool JavaScript -->
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    const comparisonBar = document.getElementById('comparison-bar');
-    const comparisonCount = document.getElementById('comparison-count');
-    const viewBtn = document.getElementById('view-comparison-btn');
-    const clearBtn = document.getElementById('clear-comparison-btn');
-    const previewContainer = document.getElementById('comparison-cars-preview');
-    const MAX_COMPARE = 4; // Set a limit for comparison
-
-    // Load selected cars from localStorage
-    let selectedCars = JSON.parse(sessionStorage.getItem('compareCars')) || []; // Now stores objects: {id, imageUrl}
-
-    function updateComparisonBar() {
-        if (!comparisonBar) return; // Don't run on compare page
-
-        const carIds = selectedCars.map(car => car.id);
-
-        // Update preview images
-        previewContainer.innerHTML = '';
-        selectedCars.forEach(car => {
-            const img = document.createElement('img');
-            img.src = car.imageUrl;
-            img.alt = 'Selected car';
-            img.className = 'comparison-preview-img';
-            previewContainer.appendChild(img);
-        });
-
-        if (selectedCars.length > 0) {
-            if (selectedCars.length === 1) {
-                comparisonCount.textContent = `Add more to compare...`;
-                viewBtn.classList.add('disabled');
-            } else {
-                comparisonCount.textContent = `Comparing ${selectedCars.length} cars`;
-                viewBtn.classList.remove('disabled');
-            }
-            // Always update the href so it's correct on page load
-            viewBtn.href = `{{ url_for('main.compare') }}?ids=${carIds.join(',')}`;
-            comparisonBar.classList.add('is-visible');
-        } else {
-            comparisonBar.classList.remove('is-visible');
+        if (mobileNavToggle && navMenu) {
+          mobileNavToggle.addEventListener("click", function () {
+            navMenu.classList.toggle("active");
+            this.classList.toggle("active");
+          });
         }
-    }
+      });
+    </script>
 
-    function updateCheckboxes() {
-        const carIds = selectedCars.map(car => car.id);
-        document.querySelectorAll('.compare-checkbox').forEach(checkbox => {
-            const carId = checkbox.dataset.carId;
-            checkbox.checked = carIds.includes(carId);
-        });
-    }
+    <!-- Comparison Tool JavaScript -->
+    <script>
+      document.addEventListener('DOMContentLoaded', function() {
+          const comparisonBar = document.getElementById('comparison-bar');
+          const comparisonCount = document.getElementById('comparison-count');
+          const viewBtn = document.getElementById('view-comparison-btn');
+          const clearBtn = document.getElementById('clear-comparison-btn');
+          const previewContainer = document.getElementById('comparison-cars-preview');
+          const MAX_COMPARE = 4; // Set a limit for comparison
 
-    function handleCompareChange(event) {
-        const checkbox = event.target;
-        const carId = checkbox.dataset.carId;
-        const carCard = checkbox.closest('.car-card, .auction-card'); // Find the parent card
-        const carImage = carCard ? carCard.querySelector('img') : null;
-        const imageUrl = carImage ? carImage.src : '{{ url_for('static', filename='img/default_car.png') }}';
+          // Load selected cars from localStorage
+          let selectedCars = JSON.parse(sessionStorage.getItem('compareCars')) || []; // Now stores objects: {id, imageUrl}
 
-        const carIds = selectedCars.map(car => car.id);
+          function updateComparisonBar() {
+              if (!comparisonBar) return; // Don't run on compare page
 
-        if (checkbox.checked) {
-            if (carIds.length < MAX_COMPARE) {
-                if (!carIds.includes(carId)) {
-                    selectedCars.push({ id: carId, imageUrl: imageUrl });
-                }
-            } else {
-                checkbox.checked = false; // Prevent checking more than the max
-                alert(`You can only compare up to ${MAX_COMPARE} cars at a time.`);
-            }
-        } else {
-            selectedCars = selectedCars.filter(car => car.id !== carId);
-        }
+              const carIds = selectedCars.map(car => car.id);
 
-        sessionStorage.setItem('compareCars', JSON.stringify(selectedCars));
-        updateComparisonBar();
-    }
+              // Update preview images
+              previewContainer.innerHTML = '';
+              selectedCars.forEach(car => {
+                  const img = document.createElement('img');
+                  img.src = car.imageUrl;
+                  img.alt = 'Selected car';
+                  img.className = 'comparison-preview-img';
+                  previewContainer.appendChild(img);
+              });
 
-    // Event delegation for checkboxes added dynamically via AJAX
-    document.body.addEventListener('change', function(event) {
-        if (event.target.classList.contains('compare-checkbox')) {
-            handleCompareChange(event);
-        }
-    });
+              if (selectedCars.length > 0) {
+                  if (selectedCars.length === 1) {
+                      comparisonCount.textContent = `Add more to compare...`;
+                      viewBtn.classList.add('disabled');
+                  } else {
+                      comparisonCount.textContent = `Comparing ${selectedCars.length} cars`;
+                      viewBtn.classList.remove('disabled');
+                  }
+                  // Always update the href so it's correct on page load
+                  viewBtn.href = `{{ url_for('main.compare') }}?ids=${carIds.join(',')}`;
+                  comparisonBar.classList.add('is-visible');
+              } else {
+                  comparisonBar.classList.remove('is-visible');
+              }
+          }
 
-    // Make the entire compare container clickable and prevent card navigation.
-    document.body.addEventListener('click', function(e) {
-        const compareContainer = e.target.closest('.compare-container');
-        if (compareContainer) {
-            // Always prevent the parent link from navigating when clicking anywhere in the compare area.
-            e.preventDefault();
-            e.stopPropagation();
+          function updateCheckboxes() {
+              const carIds = selectedCars.map(car => car.id);
+              document.querySelectorAll('.compare-checkbox').forEach(checkbox => {
+                  const carId = checkbox.dataset.carId;
+                  checkbox.checked = carIds.includes(carId);
+              });
+          }
 
-            // Find the checkbox within the container and toggle its state.
-            const checkbox = compareContainer.querySelector('.compare-checkbox');
-            if (checkbox) {
-                checkbox.checked = !checkbox.checked;
-                // Manually dispatch a 'change' event so our other listener picks it up.
-                checkbox.dispatchEvent(new Event('change', { bubbles: true }));
-            }
-        }
-    }, true); // Use capture phase to catch the event early.
+          function handleCompareChange(event) {
+              const checkbox = event.target;
+              const carId = checkbox.dataset.carId;
+              const carCard = checkbox.closest('.car-card, .auction-card'); // Find the parent card
+              const carImage = carCard ? carCard.querySelector('img') : null;
+              const imageUrl = carImage ? carImage.src : '{{ url_for('static', filename='img/default_car.png') }}';
+
+              const carIds = selectedCars.map(car => car.id);
+
+              if (checkbox.checked) {
+                  if (carIds.length < MAX_COMPARE) {
+                      if (!carIds.includes(carId)) {
+                          selectedCars.push({ id: carId, imageUrl: imageUrl });
+                      }
+                  } else {
+                      checkbox.checked = false; // Prevent checking more than the max
+                      alert(`You can only compare up to ${MAX_COMPARE} cars at a time.`);
+                  }
+              } else {
+                  selectedCars = selectedCars.filter(car => car.id !== carId);
+              }
+
+              sessionStorage.setItem('compareCars', JSON.stringify(selectedCars));
+              updateComparisonBar();
+          }
+
+          // Event delegation for checkboxes added dynamically via AJAX
+          document.body.addEventListener('change', function(event) {
+              if (event.target.classList.contains('compare-checkbox')) {
+                  handleCompareChange(event);
+              }
+          });
+
+          // Make the entire compare container clickable and prevent card navigation.
+          document.body.addEventListener('click', function(e) {
+              const compareContainer = e.target.closest('.compare-container');
+              if (compareContainer) {
+                  // Always prevent the parent link from navigating when clicking anywhere in the compare area.
+                  e.preventDefault();
+                  e.stopPropagation();
+
+                  // Find the checkbox within the container and toggle its state.
+                  const checkbox = compareContainer.querySelector('.compare-checkbox');
+                  if (checkbox) {
+                      checkbox.checked = !checkbox.checked;
+                      // Manually dispatch a 'change' event so our other listener picks it up.
+                      checkbox.dispatchEvent(new Event('change', { bubbles: true }));
+                  }
+              }
+          }, true); // Use capture phase to catch the event early.
 
 
-    if (clearBtn) {
-        clearBtn.addEventListener('click', function() {
-            selectedCars = [];
-            sessionStorage.removeItem('compareCars');
-            updateComparisonBar();
-            updateCheckboxes();
-        });
-    }
+          if (clearBtn) {
+              clearBtn.addEventListener('click', function() {
+                  selectedCars = [];
+                  sessionStorage.removeItem('compareCars');
+                  updateComparisonBar();
+                  updateCheckboxes();
+              });
+          }
 
-    // Initial state setup
-    updateComparisonBar();
-    updateCheckboxes(); // Check boxes for already selected items on initial load
-});
-</script>
-
-</body>
+          // Initial state setup
+          updateComparisonBar();
+          updateCheckboxes(); // Check boxes for already selected items on initial load
+      });
+    </script>
+  </body>
 </html>
