@@ -8,6 +8,7 @@ import {
 } from "react-native";
 import BouncyCheckbox from "react-native-bouncy-checkbox";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { Link } from "expo-router";
 
 export default function LoginScreen() {
   const [login, setLogin] = useState("");
@@ -56,7 +57,7 @@ export default function LoginScreen() {
         <View style={styles.checkboxContainer}>
           <BouncyCheckbox
             size={22}
-            fillColor="#2ecc71"
+            fillColor="#6118d7ff"
             unFillColor="#FFFFFF"
             text="Remember me"
             iconStyle={{ borderColor: "#ced4da" }}
@@ -69,6 +70,15 @@ export default function LoginScreen() {
         <TouchableOpacity style={styles.loginButton}>
           <Text style={styles.loginButtonText}>Submit</Text>
         </TouchableOpacity>
+
+        <View style={styles.registerContainer}>
+          <Text style={styles.registerText}>Don't have an account? </Text>
+          <Link href="/register" asChild>
+            <TouchableOpacity>
+              <Text style={styles.registerLinkText}>Register</Text>
+            </TouchableOpacity>
+          </Link>
+        </View>
       </View>
     </SafeAreaView>
   );
@@ -124,4 +134,19 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   loginButtonText: { color: "#ffffffff", fontSize: 16, fontWeight: "600" },
+  registerContainer: {
+    flexDirection: "row",
+    justifyContent: "center",
+    marginTop: 24,
+  },
+  registerText: {
+    fontSize: 16,
+    color: "#343a40",
+  },
+  registerLinkText: {
+    fontSize: 16,
+    color: "#0d6efd", // Standard link blue
+    fontWeight: "bold",
+    textDecorationLine: "underline",
+  },
 });
