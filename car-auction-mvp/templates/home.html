@@ -1,362 +1,451 @@
-{% extends "base.html" %}
-
-{% block title %}Welcome - Mekina Auction{% endblock %}
-
-{% block page_styles %}
+{% extends "base.html" %} {% block title %}Welcome - Mekina Auction{% endblock
+%} {% block page_styles %}
 <style>
-    .hero-actions {
-        display: flex;
-        justify-content: center;
-        gap: 20px;
-        flex-wrap: wrap;
-        margin-top: 30px;
-    }
-    .hero-actions .btn.primary {
-        background-color: #8e44ad; /* A nice purple color */
-        color: white;
-        border-color: #8e44ad;
-    }
-    .hero-actions .btn.secondary {
-        background-color: transparent;
-        color: white;
-        border: 2px solid white;
-    }
+  .hero-actions {
+    display: flex;
+    justify-content: center;
+    gap: 20px;
+    flex-wrap: wrap;
+    margin-top: 30px;
+  }
+  .hero-actions .btn.primary {
+    background-color: #8e44ad; /* A nice purple color */
+    color: white;
+    border-color: #8e44ad;
+  }
+  .hero-actions .btn.secondary {
+    background-color: transparent;
+    color: white;
+    border: 2px solid white;
+  }
 </style>
-{% endblock %}
-
-{# Override the main_content block to prevent the default <main> tag from rendering on the homepage #}
-{% block main_content %}{% endblock %}
-
-{% block after_content %} {# Use this block to go full-width #}
-    <div class="search-hero">
-        <div class="container">
-            <h1>Find Your Next Car</h1>
-            <p>Search Ethiopia's best selection of modern cars for sale.</p>
-            <div class="search-wrapper">
-                <div id="search-and-filters">
-                    <div class="search-bar">
-                        <input type="text" id="search-input" placeholder="Start typing to search by make, model, year...">
-                    </div>
-                    <div class="quick-filters">
-                        <button class="filter-btn" data-filter="condition" data-value="New">New</button>
-                        <button class="filter-btn" data-filter="condition" data-value="Used">Used</button>
-                        <button class="filter-btn" data-filter="fuel_type" data-value="Electric">EV</button>
-                        <button class="filter-btn" data-filter="fuel_type" data-value="Hybrid">Hybrid</button>
-                        <button class="filter-btn" data-filter="body_type" data-value="SUV">SUV</button>
-                        <button class="filter-btn" data-filter="body_type" data-value="Sedan">Sedan</button>
-                        <button class="filter-btn" data-filter="max_price" data-value="5000000">&lt; 5M ETB</button>
-                    </div>
-                </div>
-                <div id="search-suggestions" class="search-suggestions-container"></div>
-            </div>
-            
-            <div class="hero-actions">
-                <a href="{{ url_for('request.start_request') }}" class="btn primary">Let Us Find It For You</a>
-                <a href="{{ url_for('tradein.submit_trade_in') }}" class="btn secondary">Get a Trade-in Offer</a>
-            </div>
-
+{% endblock %} {# Override the main_content block to prevent the default
+<main>
+  tag from rendering on the homepage #} {% block main_content %}{% endblock %}
+  {% block after_content %} {# Use this block to go full-width #}
+  <div class="search-hero">
+    <div class="container">
+      <h1>Find Your Next Car</h1>
+      <p>Search Ethiopia's best selection of modern cars for sale.</p>
+      <div class="search-wrapper">
+        <div id="search-and-filters">
+          <div class="search-bar">
+            <input
+              type="text"
+              id="search-input"
+              placeholder="Start typing to search by make, model, year..."
+            />
+          </div>
+          <div class="quick-filters">
+            <button class="filter-btn" data-filter="condition" data-value="New">
+              New
+            </button>
+            <button
+              class="filter-btn"
+              data-filter="condition"
+              data-value="Used"
+            >
+              Used
+            </button>
+            <button
+              class="filter-btn"
+              data-filter="fuel_type"
+              data-value="Electric"
+            >
+              EV
+            </button>
+            <button
+              class="filter-btn"
+              data-filter="fuel_type"
+              data-value="Hybrid"
+            >
+              Hybrid
+            </button>
+            <button class="filter-btn" data-filter="body_type" data-value="SUV">
+              SUV
+            </button>
+            <button
+              class="filter-btn"
+              data-filter="body_type"
+              data-value="Sedan"
+            >
+              Sedan
+            </button>
+            <button
+              class="filter-btn"
+              data-filter="max_price"
+              data-value="5000000"
+            >
+              &lt; 5M ETB
+            </button>
+          </div>
         </div>
+        <div id="search-suggestions" class="search-suggestions-container"></div>
+      </div>
+
+      <div class="hero-actions">
+        <a href="{{ url_for('request.start_request') }}" class="btn primary"
+          >Let Us Find It For You</a
+        >
+        <a href="{{ url_for('tradein.submit_trade_in') }}" class="btn secondary"
+          >Get a Trade-in Offer</a
+        >
+      </div>
     </div>
+  </div>
 
-    <!-- Test area removed. Logic will be integrated into the main search. -->
+  <!-- Test area removed. Logic will be integrated into the main search. -->
 
-    {% if featured_cars %}
-    <section class="section featured-section">
-        <div class="container">
-            <!-- Section header removed for a cleaner look -->
-            <div class="featured-slider">
-                <div class="slides">
-                    {% for car in featured_cars %}
-                    <div class="slide">
-                        {% set detail_url = '#' %}
-                        {% if car.listing_type == 'auction' and car.auction %}
-                            {% set detail_url = url_for('auctions.auction_detail', auction_id=car.auction.id) %}
-                        {% elif car.listing_type == 'sale' %}
-                            {% set detail_url = url_for('main.car_detail', car_id=car.id) %}
-                        {% endif %}
-                        <a href="{{ detail_url }}">
-                            <div class="featured-image-grid">
-                                <div class="featured-large-image">
-                                    <span class="featured-tag on-slider">Featured</span>
-                                    <img src="{{ (car.images[0].image_url if car.images else url_for('static', filename='img/default_car.png')) }}" alt="Featured image of {{ car.make }} {{ car.model }}">
-                                </div>
-                                <div class="featured-small-images">
-                                    <img src="{{ (car.images[1].image_url if car.images|length > 1 else url_for('static', filename='img/default_car.png')) }}" alt="Thumbnail 1">
-                                    <img src="{{ (car.images[2].image_url if car.images|length > 2 else url_for('static', filename='img/default_car.png')) }}" alt="Thumbnail 2">
-                                    <img src="{{ (car.images[3].image_url if car.images|length > 3 else url_for('static', filename='img/default_car.png')) }}" alt="Thumbnail 3">
-                                    <img src="{{ (car.images[4].image_url if car.images|length > 4 else url_for('static', filename='img/default_car.png')) }}" alt="Thumbnail 4">
-                                </div>
-                            </div>
-                            <div class="slide-caption">
-                                <h3>{{ car.year }} {{ car.make }} {{ car.model }}</h3>
-                                {% if car.listing_type == 'auction' and car.auction %}
-                                    <p>Auction | Current Bid: {{ '{:,.2f}'.format(car.auction.current_price) }} ETB</p>
-                                {% elif car.listing_type == 'sale' %}
-                                    <p>For Sale | {{ '{:,.2f}'.format(car.fixed_price) }} ETB</p>
-                                {% endif %}
-                            </div>
-                        </a>
-                    </div>
-                    {% endfor %}
+  {% if featured_cars %}
+  <section class="section featured-section">
+    <div class="container">
+      <!-- Section header removed for a cleaner look -->
+      <div class="featured-slider">
+        <div class="slides">
+          {% for car in featured_cars %}
+          <div class="slide">
+            {% set detail_url = '#' %} {% if car.listing_type == 'auction' and
+            car.auction %} {% set detail_url =
+            url_for('auctions.auction_detail', auction_id=car.auction.id) %} {%
+            elif car.listing_type == 'sale' %} {% set detail_url =
+            url_for('main.car_detail', car_id=car.id) %} {% endif %}
+            <a href="{{ detail_url }}">
+              <div class="featured-image-grid">
+                <div class="featured-large-image">
+                  <span class="featured-tag on-slider">Featured</span>
+                  <img
+                    src="{{ (car.images[0].image_url if car.images else url_for('static', filename='img/default_car.png')) }}"
+                    alt="Featured image of {{ car.make }} {{ car.model }}"
+                  />
                 </div>
-                <button class="slider-nav prev">&lt;</button>
-                <button class="slider-nav next">&gt;</button>
-            </div>
-        </div>
-    </section>
-    {% endif %}
-
-    <!-- Live Auctions Section -->
-    <section id="auctions" class="section section-light">
-        <div class="container">
-            <div class="section-header">
-                <h2>All Vehicles for Sale</h2>
+                <div class="featured-small-images">
+                  <img
+                    src="{{ (car.images[1].image_url if car.images|length > 1 else url_for('static', filename='img/default_car.png')) }}"
+                    alt="Thumbnail 1"
+                  />
+                  <img
+                    src="{{ (car.images[2].image_url if car.images|length > 2 else url_for('static', filename='img/default_car.png')) }}"
+                    alt="Thumbnail 2"
+                  />
+                  <img
+                    src="{{ (car.images[3].image_url if car.images|length > 3 else url_for('static', filename='img/default_car.png')) }}"
+                    alt="Thumbnail 3"
+                  />
+                  <img
+                    src="{{ (car.images[4].image_url if car.images|length > 4 else url_for('static', filename='img/default_car.png')) }}"
+                    alt="Thumbnail 4"
+                  />
+                </div>
+              </div>
+              <div class="slide-caption">
+                <h3>{{ car.year }} {{ car.make }} {{ car.model }}</h3>
+                {% if car.listing_type == 'auction' and car.auction %}
                 <p>
-                    Browse all active auctions and listings.
+                  Auction | Current Bid: {{
+                  '{:,.2f}'.format(car.auction.current_price) }} ETB
                 </p>
-            </div>
-            <div class="results-wrapper">
-                <div id="auction-grid-container" class="auction-grid"></div>
-                <div class="loading-spinner" id="loading-spinner" style="display: none;"></div>
-            </div>
-            <p id="no-results-message" style="display: none;">No auctions match your filter criteria.</p>
-            <div class="view-all-container">
-                <a href="{{ url_for('main.all_listings') }}" class="btn approve">View All Listings</a>
-            </div>
+                {% elif car.listing_type == 'sale' %}
+                <p>For Sale | {{ '{:,.2f}'.format(car.fixed_price) }} ETB</p>
+                {% endif %}
+              </div>
+            </a>
+          </div>
+          {% endfor %}
         </div>
-    </section>
+        <button class="slider-nav prev">&lt;</button>
+        <button class="slider-nav next">&gt;</button>
+      </div>
+    </div>
+  </section>
+  {% endif %}
 
-    <!-- Trust Section -->
-    <section class="section trust-section">
-        <div class="container">
-            <div class="section-header">
-                <h2>Built on Trust & Transparency</h2>
-            </div>
-            <div class="trust-grid">
-                <div class="stat">
-                    <div class="value">100%</div>
-                    <div class="label">Admin Reviewed Listings</div>
-                </div>
-                <div class="stat">
-                    <div class="value">Direct</div>
-                    <div class="label">Seller Communication</div>
-                </div>
-                <div class="stat">
-                    <div class="value">Verified</div>
-                    <div class="label">User Accounts</div>
-                </div>
-            </div>
+  <!-- Live Auctions Section -->
+  <section id="auctions" class="section section-light">
+    <div class="container">
+      <div class="section-header">
+        <h2>All Vehicles for Sale</h2>
+        <p>Browse all active auctions and listings.</p>
+      </div>
+      <div class="results-wrapper">
+        <div id="auction-grid-container" class="auction-grid"></div>
+        <div
+          class="loading-spinner"
+          id="loading-spinner"
+          style="display: none"
+        ></div>
+      </div>
+      <p id="no-results-message" style="display: none">
+        No auctions match your filter criteria.
+      </p>
+      <div class="view-all-container">
+        <a href="{{ url_for('main.all_listings') }}" class="btn approve"
+          >View All Listings</a
+        >
+      </div>
+    </div>
+  </section>
+
+  <!-- Trust Section -->
+  <section class="section trust-section">
+    <div class="container">
+      <div class="section-header">
+        <h2>Built on Trust & Transparency</h2>
+      </div>
+      <div class="trust-grid">
+        <div class="stat">
+          <div class="value">100%</div>
+          <div class="label">Admin Reviewed Listings</div>
         </div>
-    </section>
+        <div class="stat">
+          <div class="value">Direct</div>
+          <div class="label">Seller Communication</div>
+        </div>
+        <div class="stat">
+          <div class="value">Verified</div>
+          <div class="label">User Accounts</div>
+        </div>
+      </div>
+    </div>
+  </section>
 
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    // --- Featured Slider Logic ---
-    const slider = document.querySelector('.featured-slider');
-    if (slider) {
-        const slides = slider.querySelector('.slides');
+  <script>
+    document.addEventListener("DOMContentLoaded", function () {
+      // --- Featured Slider Logic ---
+      const slider = document.querySelector(".featured-slider");
+      if (slider) {
+        const slides = slider.querySelector(".slides");
         const slideCount = slides.children.length;
         let currentIndex = 0;
 
         function showSlide(index) {
-            slides.style.transform = `translateX(-${index * 100}%)`;
+          slides.style.transform = `translateX(-${index * 100}%)`;
         }
 
         function nextSlide() {
-            currentIndex = (currentIndex + 1) % slideCount;
-            showSlide(currentIndex);
+          currentIndex = (currentIndex + 1) % slideCount;
+          showSlide(currentIndex);
         }
 
         function prevSlide() {
-            currentIndex = (currentIndex - 1 + slideCount) % slideCount;
-            showSlide(currentIndex);
+          currentIndex = (currentIndex - 1 + slideCount) % slideCount;
+          showSlide(currentIndex);
         }
 
-        slider.querySelector('.next').addEventListener('click', nextSlide);
-        slider.querySelector('.prev').addEventListener('click', prevSlide);
+        slider.querySelector(".next").addEventListener("click", nextSlide);
+        slider.querySelector(".prev").addEventListener("click", prevSlide);
 
         // Auto-play
         if (slideCount > 1) {
-            setInterval(nextSlide, 5000); // Change slide every 5 seconds
+          setInterval(nextSlide, 5000); // Change slide every 5 seconds
         }
-    }
+      }
 
+      // --- Dynamic Search Logic ---
+      const gridContainer = document.getElementById("auction-grid-container");
+      const noResultsMessage = document.getElementById("no-results-message");
+      const searchInput = document.getElementById("search-input");
+      const loadingSpinner = document.getElementById("loading-spinner");
+      const suggestionsContainer =
+        document.getElementById("search-suggestions");
+      const filterButtons = document.querySelectorAll(".filter-btn");
+      let activeFilters = {};
 
-    // --- Dynamic Search Logic ---
-    const gridContainer = document.getElementById('auction-grid-container');
-    const noResultsMessage = document.getElementById('no-results-message');
-    const searchInput = document.getElementById('search-input');
-    const loadingSpinner = document.getElementById('loading-spinner');
-    const suggestionsContainer = document.getElementById('search-suggestions');
-    const filterButtons = document.querySelectorAll('.filter-btn');
-    let activeFilters = {};
-
-    function debounce(func, delay) {
+      function debounce(func, delay) {
         let timeout;
-        return function(...args) {
-            const context = this;
-            clearTimeout(timeout);
-            timeout = setTimeout(() => func.apply(context, args), delay);
+        return function (...args) {
+          const context = this;
+          clearTimeout(timeout);
+          timeout = setTimeout(() => func.apply(context, args), delay);
         };
-    }
+      }
 
-    function fetchAuctions() {
-        loadingSpinner.style.display = 'block';
-        gridContainer.style.opacity = '0.5';
+      function fetchAuctions() {
+        loadingSpinner.style.display = "block";
+        gridContainer.style.opacity = "0.5";
 
         const params = new URLSearchParams();
         // Add text search
         if (searchInput.value) {
-            params.append('q', searchInput.value);
+          params.append("q", searchInput.value);
         }
         // Add active filters
         for (const [key, value] of Object.entries(activeFilters)) {
-            if (value) {
-                params.append(key, value);
-            }
+          if (value) {
+            params.append(key, value);
+          }
         }
 
         // For the homepage, we only want 8 random cars if no filters are active
-        if (Object.keys(activeFilters).length === 0 && !searchInput.value.trim()) {
-            params.append('limit', '8');
-            params.append('random', 'true');
+        if (
+          Object.keys(activeFilters).length === 0 &&
+          !searchInput.value.trim()
+        ) {
+          params.append("limit", "8");
+          params.append("random", "true");
         } else {
-            params.delete('random'); // Ensure we don't get random results when filtering
+          params.delete("random"); // Ensure we don't get random results when filtering
         }
         fetch(`{{ url_for('auctions.all_listings_api') }}?${params.toString()}`)
-            .then(response => response.json())
-            .then(data => {
-                loadingSpinner.style.display = 'none';
-                gridContainer.style.opacity = '1';
-                gridContainer.innerHTML = ''; // Clear existing results
-                if (data.length === 0) {
-                    noResultsMessage.style.display = 'block';
-                } else {
-                    noResultsMessage.style.display = 'none';
-                    data.forEach(listing => {
-                        const cardLink = document.createElement('a');
-                        cardLink.href = listing.detail_url;
-                        cardLink.className = 'auction-card-link';
-                        cardLink.innerHTML = `
+          .then((response) => response.json())
+          .then((data) => {
+            loadingSpinner.style.display = "none";
+            gridContainer.style.opacity = "1";
+            gridContainer.innerHTML = ""; // Clear existing results
+            if (data.length === 0) {
+              noResultsMessage.style.display = "block";
+            } else {
+              noResultsMessage.style.display = "none";
+              data.forEach((listing) => {
+                const cardLink = document.createElement("a");
+                cardLink.href = listing.detail_url;
+                cardLink.className = "auction-card-link";
+                cardLink.innerHTML = `
                             <div class="auction-card">
                                 <div class="card-image-container">
-                                    <img src="${listing.image_url}" alt="Car Image">
-                                    ${listing.owner_role ? `<span class="role-badge ${listing.owner_role.toLowerCase()}">${listing.owner_role}</span>` : ''}
-                                    ${listing.is_featured ? `<span class="featured-tag">Featured</span>` : ''}
-                                    <span class="listing-type-tag ${listing.listing_type.toLowerCase().replace(' ', '-')}">${listing.listing_type}</span>
+                                    <img src="${
+                                      listing.image_url
+                                    }" alt="Car Image">
+                                    ${
+                                      listing.owner_role
+                                        ? `<span class="role-badge ${listing.owner_role.toLowerCase()}">${
+                                            listing.owner_role
+                                          }</span>`
+                                        : ""
+                                    }
+                                    ${
+                                      listing.is_featured
+                                        ? `<span class="featured-tag">Featured</span>`
+                                        : ""
+                                    }
+                                    <span class="listing-type-tag ${listing.listing_type
+                                      .toLowerCase()
+                                      .replace(" ", "-")}">${
+                  listing.listing_type
+                }</span>
                                 </div>
                                 <div class="card-content">
-                                    <h3>${listing.year} ${listing.make} ${listing.model}</h3>
+                                    <h3>${listing.year} ${listing.make} ${
+                  listing.model
+                }</h3>
                                     <div class="card-details">
                                         <p>${listing.price_display}</p>
-                                        <span class="time-left">${listing.time_left || ''}</span>
+                                        <span class="time-left">${
+                                          listing.time_left || ""
+                                        }</span>
                                     </div>
                                 </div>
                             </div>`;
-                        gridContainer.appendChild(cardLink);
-                    });
-                }
-            })
-            .catch(error => {
-                loadingSpinner.style.display = 'none';
-                gridContainer.style.opacity = '1';
-                console.error('Error fetching auctions:', error)
-            });
-    }
+                gridContainer.appendChild(cardLink);
+              });
+            }
+          })
+          .catch((error) => {
+            loadingSpinner.style.display = "none";
+            gridContainer.style.opacity = "1";
+            console.error("Error fetching auctions:", error);
+          });
+      }
 
-    function fetchSuggestions() {
+      function fetchSuggestions() {
         const query = searchInput.value;
         if (query.trim().length < 2) {
-            suggestionsContainer.innerHTML = '';
-            suggestionsContainer.style.display = 'none';
-            return;
+          suggestionsContainer.innerHTML = "";
+          suggestionsContainer.style.display = "none";
+          return;
         }
 
         // When we start fetching suggestions, we also want to clear the main grid
         // and show the spinner, as the live results will be updating.
-        if (query.trim() !== '') {
-            gridContainer.innerHTML = '';
-            loadingSpinner.style.display = 'block';
-            gridContainer.style.opacity = '0.5';
+        if (query.trim() !== "") {
+          gridContainer.innerHTML = "";
+          loadingSpinner.style.display = "block";
+          gridContainer.style.opacity = "0.5";
         }
 
         const params = new URLSearchParams();
-        params.append('q', query);
+        params.append("q", query);
         // Add active filters to the suggestions fetch
         for (const [key, value] of Object.entries(activeFilters)) {
-            if (value) {
-                params.append(key, value);
-            }
+          if (value) {
+            params.append(key, value);
+          }
         }
 
         fetch(`{{ url_for('main.search_suggestions') }}?${params.toString()}`)
-            .then(response => response.json())
-            .then(data => {
-                if (data.length > 0) {
-                    // This is the key fix: The backend now sends car objects, not just text.
-                    suggestionsContainer.innerHTML = data.map(car => `
+          .then((response) => response.json())
+          .then((data) => {
+            if (data.length > 0) {
+              // This is the key fix: The backend now sends car objects, not just text.
+              suggestionsContainer.innerHTML = data
+                .map(
+                  (car) => `
                         <a href="${car.detail_url}" class="suggestion-item">
                             <img src="${car.image_url}" class="suggestion-image" alt="Image of ${car.make} ${car.model}">
                             <div class="suggestion-details">
                                 <span class="suggestion-title">${car.year} ${car.make} ${car.model}</span>
                             </div>
                         </a>
-                    `).join('');
-                    suggestionsContainer.style.display = 'block';
-                } else {
-                    suggestionsContainer.style.display = 'none';
-                }
-            });
-    }
-
-    const debouncedFetch = debounce(fetchAuctions, 300);
-    const debouncedFetchSuggestions = debounce(fetchSuggestions, 250);
-
-    // The main input listener
-    searchInput.addEventListener('input', () => {
-        const query = searchInput.value.trim();
-        if (query === '') {
-            // If input is cleared, hide suggestions and load initial random cars
-            suggestionsContainer.style.display = 'none';
-            fetchAuctions();
-        } else {
-            // Otherwise, fetch suggestions and live results
-            debouncedFetchSuggestions();
-            debouncedFetch();
-        }
-    });
-
-    document.addEventListener('click', function(e) {
-        if (!e.target.closest('.search-wrapper')) {
-            suggestionsContainer.style.display = 'none';
-        }
-    });
-
-    filterButtons.forEach(button => {
-        button.addEventListener('click', function() {
-            const filter = this.dataset.filter;
-            const value = this.dataset.value;
-
-            // Toggle active state
-            if (this.classList.contains('active')) {
-                this.classList.remove('active');
-                delete activeFilters[filter];
+                    `
+                )
+                .join("");
+              suggestionsContainer.style.display = "block";
             } else {
-                // Deactivate other buttons for the same filter group
-                document.querySelectorAll(`.filter-btn[data-filter="${filter}"]`).forEach(btn => btn.classList.remove('active'));
-                this.classList.add('active');
-                activeFilters[filter] = value;
+              suggestionsContainer.style.display = "none";
             }
-            fetchAuctions();
-            // Also update the suggestions dropdown when a filter is clicked
-            if (searchInput.value.trim().length > 0) {
-                fetchSuggestions();
-            }
-        });
-    });
+          });
+      }
 
-    // Initial load
-    fetchAuctions();
-});
-</script>
-{% endblock %}
+      const debouncedFetch = debounce(fetchAuctions, 300);
+      const debouncedFetchSuggestions = debounce(fetchSuggestions, 250);
+
+      // The main input listener
+      searchInput.addEventListener("input", () => {
+        const query = searchInput.value.trim();
+        if (query === "") {
+          // If input is cleared, hide suggestions and load initial random cars
+          suggestionsContainer.style.display = "none";
+          fetchAuctions();
+        } else {
+          // Otherwise, fetch suggestions and live results
+          debouncedFetchSuggestions();
+          debouncedFetch();
+        }
+      });
+
+      document.addEventListener("click", function (e) {
+        if (!e.target.closest(".search-wrapper")) {
+          suggestionsContainer.style.display = "none";
+        }
+      });
+
+      filterButtons.forEach((button) => {
+        button.addEventListener("click", function () {
+          const filter = this.dataset.filter;
+          const value = this.dataset.value;
+
+          // Toggle active state
+          if (this.classList.contains("active")) {
+            this.classList.remove("active");
+            delete activeFilters[filter];
+          } else {
+            // Deactivate other buttons for the same filter group
+            document
+              .querySelectorAll(`.filter-btn[data-filter="${filter}"]`)
+              .forEach((btn) => btn.classList.remove("active"));
+            this.classList.add("active");
+            activeFilters[filter] = value;
+          }
+          fetchAuctions();
+          // Also update the suggestions dropdown when a filter is clicked
+          if (searchInput.value.trim().length > 0) {
+            fetchSuggestions();
+          }
+        });
+      });
+
+      // Initial load
+      fetchAuctions();
+    });
+  </script>
+  {% endblock %}
+</main>
