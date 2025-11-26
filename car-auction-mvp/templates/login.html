@@ -1,30 +1,25 @@
-{% extends "base.html" %}
-
-{% block title %}{{ title }}{% endblock %}
-
-{% block content %}
-    <h1>{{ title }}</h1>
-    <div style="max-width: 500px; margin: auto;">
-        <form method="POST" action="">
-            {{ form.hidden_tag() }}
-            <div class="form-group">
-                {{ form.login.label }}
-                {{ form.login(class="form-control") }}
-                {% for error in form.login.errors %}
-                    <div class="form-error">{{ error }}</div>
-                {% endfor %}
-            </div>
-            <div class="form-group">
-                {{ form.password.label }}
-                {{ form.password(class="form-control") }}
-                {% for error in form.password.errors %}
-                    <div class="form-error">{{ error }}</div>
-                {% endfor %}
-            </div>
-            <div class="form-group checkbox-style">
-                {{ form.remember_me() }} {{ form.remember_me.label }}
-            </div>
-            <p>{{ form.submit(class='btn approve') }}</p>
-        </form>
+{% extends "base.html" %} {% block title %}{{ title }}{% endblock %} {% block
+content %}
+<h1>{{ title }}</h1>
+<div style="max-width: 500px; margin: auto">
+  <form method="POST" action="">
+    {{ form.hidden_tag() }}
+    <div class="form-group">
+      {{ form.login.label }} {{ form.login(class="form-control") }} {% for error
+      in form.login.errors %}
+      <div class="form-error">{{ error }}</div>
+      {% endfor %}
     </div>
+    <div class="form-group">
+      {{ form.password.label }} {{ form.password(class="form-control") }} {% for
+      error in form.password.errors %}
+      <div class="form-error">{{ error }}</div>
+      {% endfor %}
+    </div>
+    <div class="form-group checkbox-style">
+      {{ form.remember_me() }} {{ form.remember_me.label }}
+    </div>
+    <p>{{ form.submit(class='btn approve') }}</p>
+  </form>
+</div>
 {% endblock %}
