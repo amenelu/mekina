@@ -13,6 +13,7 @@ import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 
 import Footer from "../_components/Footer";
+import VehicleCard from "../_components/VehicleCard";
 // --- Mock Data based on home.html ---
 const quickFilters = [
   { label: "New", value: "New" },
@@ -31,7 +32,8 @@ const featuredCars = [
     year: 2023,
     price: "3,500,000 ETB",
     type: "For Sale",
-    image: "https://via.placeholder.com/600x400.png/1C212B/FFFFFF?text=RAV4",
+    image:
+      "https://imgs.search.brave.com/ovSqY64xh9cfSufhgUjn_OinRyzlpcflAXF1s5VT7yE/rs:fit:860:0:0:0/g:ce/aHR0cHM6Ly9wbGF0/Zm9ybS5jc3RhdGlj/LWltYWdlcy5jb20v/bGFyZ2UvaW4vdjIv/YTQzNjFjZDctMGNj/MC01ZWI3LThkZGEt/NjNkYzljYmY3YTZh/LzI3MjI2YTNiLWY1/Y2QtNGMzOS05MTMz/LTdiNzA2NjQ2NjNh/Ny94QS1Tc0pRYWpn/TWRIeXVhNS1vbGlp/UzJ5VFkuanBn",
   },
   {
     id: "2",
@@ -40,7 +42,8 @@ const featuredCars = [
     year: 2024,
     price: "Current Bid: 4,200,000 ETB",
     type: "For sale",
-    image: "https://via.placeholder.com/600x400.png/1C212B/FFFFFF?text=Mach-E",
+    image:
+      "https://imgs.search.brave.com/ooRdlylf1TT_2eGNUXFQKfrsQzAbV7L_aInHnYj4oCs/rs:fit:860:0:0:0/g:ce/aHR0cHM6Ly9tZWRp/YS5nZXR0eWltYWdl/cy5jb20vaWQvMTM2/Mzg4Njg3Ni9waG90/by9mb3JkLW11c3Rh/bmctbWFjaC1lLWd0/LW9uLWEtc3RyZWV0/LmpwZz9zPTYxMng2/MTImdz0wJms9MjAm/Yz1OZ3JSVkpaMFdT/MW1WOF85NWcwSlVj/cnc1YkZDRTFVRVVr/SVp4VEROVzFZPQ",
   },
 ];
 
@@ -102,31 +105,6 @@ const COLORS = {
 
 const HomeScreen = () => {
   const router = useRouter();
-
-  const renderVehicleCard = (item: (typeof allVehicles)[0]) => (
-    <Pressable key={item.id} style={styles.vehicleCard}>
-      <Image source={{ uri: item.image }} style={styles.vehicleCardImage} />
-      <View style={styles.vehicleCardTagContainer}>
-        <Text
-          style={[
-            styles.vehicleCardTag,
-            {
-              backgroundColor:
-                item.listingType === "Sale" ? "#28a745" : COLORS.accent,
-            },
-          ]}
-        >
-          {item.listingType}
-        </Text>
-      </View>
-      <View style={styles.vehicleCardContent}>
-        <Text
-          style={styles.vehicleCardTitle}
-        >{`${item.year} ${item.make} ${item.model}`}</Text>
-        <Text style={styles.vehicleCardPrice}>{item.price}</Text>
-      </View>
-    </Pressable>
-  );
 
   return (
     <ScrollView
@@ -217,7 +195,9 @@ const HomeScreen = () => {
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>All Vehicles for Sale</Text>
         <View style={styles.vehicleGrid}>
-          {allVehicles.map((item) => renderVehicleCard(item))}
+          {allVehicles.map((item) => (
+            <VehicleCard key={item.id} item={item} />
+          ))}
         </View>
         <Pressable
           style={styles.viewAllButton}
@@ -377,44 +357,6 @@ const styles = StyleSheet.create({
     flexWrap: "wrap",
     justifyContent: "space-between",
     paddingHorizontal: 20,
-  },
-  vehicleCard: {
-    width: "48%",
-    backgroundColor: COLORS.card,
-    borderRadius: 12,
-    marginBottom: 15,
-    overflow: "hidden",
-  },
-  vehicleCardImage: {
-    width: "100%",
-    height: 120,
-  },
-  vehicleCardTagContainer: {
-    position: "absolute",
-    top: 8,
-    right: 8,
-  },
-  vehicleCardTag: {
-    color: COLORS.foreground,
-    fontSize: 12,
-    fontWeight: "600",
-    paddingVertical: 3,
-    paddingHorizontal: 8,
-    borderRadius: 8,
-    overflow: "hidden",
-  },
-  vehicleCardContent: {
-    padding: 10,
-  },
-  vehicleCardTitle: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: COLORS.foreground,
-  },
-  vehicleCardPrice: {
-    fontSize: 14,
-    color: COLORS.accent,
-    marginTop: 5,
   },
   viewAllButton: {
     marginHorizontal: 20,

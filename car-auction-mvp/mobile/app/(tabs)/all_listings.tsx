@@ -12,6 +12,7 @@ import { Ionicons } from "@expo/vector-icons";
 
 import HeaderRight from "../_components/HeaderRight";
 import Footer from "../_components/Footer";
+import VehicleCard from "../_components/VehicleCard";
 
 // --- Mock Data (can be replaced with API call) ---
 const allVehicles = [
@@ -105,57 +106,6 @@ const COLORS = {
   mutedForeground: "#8A94A3",
   border: "#313843",
   secondary: "#313843",
-};
-
-const VehicleCard = ({
-  item,
-  isCompared,
-  onToggleCompare,
-}: {
-  item: (typeof allVehicles)[0];
-  isCompared: boolean;
-  onToggleCompare: (id: string) => void;
-}) => {
-  return (
-    <View style={styles.vehicleCard}>
-      <Pressable>
-        {/* This Pressable can be used to navigate to a detail screen later */}
-        <Image source={{ uri: item.image }} style={styles.vehicleCardImage} />
-        <View style={styles.vehicleCardTagContainer}>
-          <Text
-            style={[
-              styles.vehicleCardTag,
-              {
-                backgroundColor:
-                  item.listingType === "Sale" ? "#28a745" : COLORS.accent,
-              },
-            ]}
-          >
-            {item.listingType}
-          </Text>
-        </View>
-        <View style={styles.vehicleCardContent}>
-          <Text
-            style={styles.vehicleCardTitle}
-          >{`${item.year} ${item.make} ${item.model}`}</Text>
-          <Text style={styles.vehicleCardPrice}>{item.price}</Text>
-        </View>
-      </Pressable>
-      <View style={styles.cardFooter}>
-        <Pressable
-          style={styles.compareContainer}
-          onPress={() => onToggleCompare(item.id)}
-        >
-          <Ionicons
-            name={isCompared ? "checkbox" : "square-outline"}
-            size={20}
-            color={isCompared ? COLORS.accent : COLORS.mutedForeground}
-          />
-          <Text style={styles.cardCompareText}>Compare</Text>
-        </Pressable>
-      </View>
-    </View>
-  );
 };
 
 const AllListingsScreen = () => {
@@ -337,68 +287,6 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     padding: 20,
   },
-  vehicleCard: {
-    width: "48%", // Each card takes roughly half the screen width
-    backgroundColor: COLORS.card,
-    borderRadius: 12,
-    marginBottom: 15,
-    overflow: "hidden",
-  },
-  vehicleCardImage: {
-    width: "100%",
-    height: 120,
-  },
-  vehicleCardTagContainer: {
-    position: "absolute",
-    top: 8,
-    right: 8,
-  },
-  vehicleCardTag: {
-    color: COLORS.foreground,
-    fontSize: 12,
-    fontWeight: "600",
-    paddingVertical: 3,
-    paddingHorizontal: 8,
-    borderRadius: 8,
-    overflow: "hidden",
-  },
-  vehicleCardContent: {
-    height: 80, // Give the content area a fixed height
-    padding: 10,
-    justifyContent: "space-between", // Push title and price apart
-  },
-  vehicleCardTitle: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: COLORS.foreground,
-  },
-  vehicleCardPrice: {
-    fontSize: 14,
-    color: COLORS.accent,
-    marginTop: 5,
-  },
-  cardFooter: {
-    borderTopWidth: 1,
-    borderTopColor: COLORS.border,
-    flexDirection: "row",
-    justifyContent: "flex-end", // This will push the content to the right
-    padding: 10,
-  },
-  compareContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  compareText: {
-    color: COLORS.mutedForeground,
-    fontSize: 14,
-    fontWeight: "500",
-  },
-  cardCompareText: {
-    color: COLORS.mutedForeground,
-    fontSize: 14,
-    fontWeight: "500",
-    marginLeft: 8,
-  },
   noResultsText: {
     color: COLORS.mutedForeground,
     textAlign: "center",
@@ -414,7 +302,7 @@ const styles = StyleSheet.create({
     right: 20,
     backgroundColor: "#2c3e50", // Dark blue-gray from web
     borderRadius: 50, // Pill shape
-    paddingVertical: 10,
+    padding: 10,
     paddingHorizontal: 20,
     flexDirection: "row",
     alignItems: "center",
