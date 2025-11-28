@@ -3,8 +3,12 @@ import { Stack } from "expo-router";
 export default function RootLayout() {
   return (
     <Stack>
-      <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+      {/* Define modal/full-screen routes before the main tab navigator */}
       <Stack.Screen name="(auth)" options={{ headerShown: false }} />
+      <Stack.Screen name="request" options={{ headerShown: false }} />
+      <Stack.Screen name="trade-in" options={{ headerShown: false }} />
+      {/* The default tab-based layout */}
+      <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
     </Stack>
   );
 }

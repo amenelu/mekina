@@ -5,10 +5,11 @@ import {
   View,
   ScrollView,
   TextInput,
-  TouchableOpacity,
+  Pressable,
   Image,
   FlatList,
 } from "react-native";
+import { Link } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 
 // --- Mock Data based on home.html ---
@@ -100,7 +101,7 @@ const COLORS = {
 
 const HomeScreen = () => {
   const renderVehicleCard = (item: (typeof allVehicles)[0]) => (
-    <TouchableOpacity key={item.id} style={styles.vehicleCard}>
+    <Pressable key={item.id} style={styles.vehicleCard}>
       <Image source={{ uri: item.image }} style={styles.vehicleCardImage} />
       <View style={styles.vehicleCardTagContainer}>
         <Text
@@ -121,7 +122,7 @@ const HomeScreen = () => {
         >{`${item.year} ${item.make} ${item.model}`}</Text>
         <Text style={styles.vehicleCardPrice}>{item.price}</Text>
       </View>
-    </TouchableOpacity>
+    </Pressable>
   );
 
   return (
@@ -154,22 +155,36 @@ const HomeScreen = () => {
           style={styles.quickFiltersContainer}
         >
           {quickFilters.map((filter) => (
-            <TouchableOpacity key={filter.value} style={styles.filterButton}>
+            <Pressable key={filter.value} style={styles.filterButton}>
               <Text style={styles.filterButtonText}>{filter.label}</Text>
-            </TouchableOpacity>
+            </Pressable>
           ))}
         </ScrollView>
         <View style={styles.heroActions}>
-          <TouchableOpacity style={[styles.heroButton, styles.primaryButton]}>
-            <Text style={[styles.heroButtonText, styles.primaryButtonText]}>
-              Let Us Find It For You
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={[styles.heroButton, styles.secondaryButton]}>
-            <Text style={[styles.heroButtonText, styles.secondaryButtonText]}>
-              Get a Trade-in Offer
-            </Text>
-          </TouchableOpacity>
+          <View style={{ flex: 1, marginRight: 8 }}>
+            <Link href="/request" asChild>
+              <Pressable
+                style={[styles.heroButton, styles.primaryButton, { flex: 1 }]}
+              >
+                <Text style={[styles.heroButtonText, styles.primaryButtonText]}>
+                  Let Us Find It For You
+                </Text>
+              </Pressable>
+            </Link>
+          </View>
+          <View style={{ flex: 1, marginLeft: 8 }}>
+            <Link href="/trade-in" asChild>
+              <Pressable
+                style={[styles.heroButton, styles.secondaryButton, { flex: 1 }]}
+              >
+                <Text
+                  style={[styles.heroButtonText, styles.secondaryButtonText]}
+                >
+                  Get a Trade-in Offer
+                </Text>
+              </Pressable>
+            </Link>
+          </View>
         </View>
       </View>
 
@@ -180,7 +195,7 @@ const HomeScreen = () => {
           horizontal
           data={featuredCars}
           renderItem={({ item }) => (
-            <TouchableOpacity style={styles.featuredCard}>
+            <Pressable style={styles.featuredCard}>
               <Image
                 source={{ uri: item.image }}
                 style={styles.featuredImage}
@@ -191,7 +206,7 @@ const HomeScreen = () => {
                 >{`${item.year} ${item.make} ${item.model}`}</Text>
                 <Text style={styles.featuredPrice}>{item.price}</Text>
               </View>
-            </TouchableOpacity>
+            </Pressable>
           )}
           keyExtractor={(item) => item.id}
           showsHorizontalScrollIndicator={false}
@@ -205,9 +220,9 @@ const HomeScreen = () => {
         <View style={styles.vehicleGrid}>
           {allVehicles.map((item) => renderVehicleCard(item))}
         </View>
-        <TouchableOpacity style={styles.viewAllButton}>
+        <Pressable style={styles.viewAllButton}>
           <Text style={styles.viewAllButtonText}>View All Listings</Text>
-        </TouchableOpacity>
+        </Pressable>
       </View>
 
       {/* --- Trust Section --- */}
@@ -290,14 +305,14 @@ const styles = StyleSheet.create({
   heroActions: {
     marginTop: 30,
     flexDirection: "row",
-    justifyContent: "space-around",
-    gap: 15,
+    alignItems: "center",
   },
   heroButton: {
-    flex: 1,
     paddingVertical: 12,
     borderRadius: 12,
     alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 12,
   },
   primaryButton: {
     backgroundColor: COLORS.primary,

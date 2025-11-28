@@ -48,15 +48,6 @@ export default function TabsLayout() {
         }}
       />
       <Tabs.Screen
-        name="notifications"
-        options={{
-          title: "Notifications",
-          tabBarIcon: ({ color }) => (
-            <Ionicons name="notifications" size={24} color={color} />
-          ),
-        }}
-      />
-      <Tabs.Screen
         name="profile"
         options={{
           title: "Profile",
