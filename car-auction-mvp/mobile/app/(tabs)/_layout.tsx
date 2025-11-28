@@ -32,6 +32,7 @@ export default function TabsLayout() {
         name="index"
         options={{
           title: "Mekina",
+          headerTitleAlign: "left",
           headerTitleStyle: {
             fontSize: 20,
             fontWeight: "bold",
@@ -59,6 +60,19 @@ export default function TabsLayout() {
             <Ionicons name="person-circle" size={24} color={color} />
           ),
           headerShown: false, // Hiding header as profile screen uses SafeAreaView
+        }}
+      />
+      <Tabs.Screen
+        name="all_listings"
+        options={{
+          title: "All Listings",
+          headerTitleAlign: "left",
+          // Hide this screen from the tab bar
+          href: null,
+          // This is sometimes needed even if href is null
+          tabBarIcon: ({ color }) => (
+            <Ionicons name="list" size={24} color={color} />
+          ),
         }}
       />
     </Tabs>
