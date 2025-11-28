@@ -29,7 +29,7 @@ const RequestBudgetScreen = () => {
 
   return (
     <View style={styles.container}>
-      <Stack.Screen options={{ title: "Help Us Find It (1/4)" }} />
+      <Stack.Screen options={{ title: "Help Us Find It (1/5)" }} />
       <Text style={styles.title}>What is your approximate budget?</Text>
       <View style={styles.optionsContainer}>
         {budgetOptions.map((option) => (

@@ -32,7 +32,11 @@ export default function TabsLayout() {
         name="index"
         options={{
           title: "Mekina",
-          headerTitleStyle: { fontSize: 20, fontWeight: "bold" },
+          headerTitleStyle: {
+            fontSize: 20,
+            fontWeight: "bold",
+            color: COLORS.foreground,
+          },
           tabBarIcon: ({ color }) => (
             <Ionicons name="home" size={24} color={color} />
           ),

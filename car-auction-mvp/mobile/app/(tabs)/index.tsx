@@ -237,6 +237,65 @@ const HomeScreen = () => {
           ))}
         </View>
       </View>
+
+      {/* --- Footer (based on base.html) --- */}
+      <View style={styles.footer}>
+        <View style={styles.footerContentGrid}>
+          <View style={styles.footerSection}>
+            <Text style={styles.footerBrand}>Mekina Auction</Text>
+            <Text style={styles.footerDescription}>
+              The premier automotive marketplace for modern vehicles in
+              Ethiopia.
+            </Text>
+          </View>
+
+          <View style={styles.footerSection}>
+            <Text style={styles.footerLinkTitle}>Buying</Text>
+            <Pressable>
+              <Text style={styles.footerLinkText}>All Listings</Text>
+            </Pressable>
+            <Pressable>
+              <Text style={styles.footerLinkText}>How It Works</Text>
+            </Pressable>
+            <Pressable>
+              <Text style={styles.footerLinkText}>FAQ</Text>
+            </Pressable>
+          </View>
+
+          <View style={styles.footerSection}>
+            <Text style={styles.footerLinkTitle}>Selling</Text>
+            <Pressable>
+              <Text style={styles.footerLinkText}>List Your Car</Text>
+            </Pressable>
+            <Pressable>
+              <Text style={styles.footerLinkText}>Trade-in Value</Text>
+            </Pressable>
+            <Pressable>
+              <Text style={styles.footerLinkText}>Seller Guide</Text>
+            </Pressable>
+          </View>
+
+          <View style={styles.footerSection}>
+            <Text style={styles.footerLinkTitle}>Support</Text>
+            <Pressable>
+              <Text style={styles.footerLinkText}>Contact Us</Text>
+            </Pressable>
+            <Pressable>
+              <Text style={styles.footerLinkText}>Terms & Conditions</Text>
+            </Pressable>
+            <Pressable>
+              <Text style={styles.footerLinkText}>Privacy Policy</Text>
+            </Pressable>
+          </View>
+        </View>
+
+        <View style={styles.footerBottom}>
+          <Text style={styles.footerCopyright}>
+            &copy; {new Date().getFullYear()} Mekina Auction. All rights
+            reserved.
+          </Text>
+        </View>
+      </View>
     </ScrollView>
   );
 };
@@ -435,10 +494,12 @@ const styles = StyleSheet.create({
   trustGrid: {
     flexDirection: "row",
     justifyContent: "space-around",
-    paddingHorizontal: 20,
+    paddingHorizontal: 5, // Reduce padding to give flex items more space
+    gap: 10, // Add a small gap between items
   },
   trustStat: {
     alignItems: "center",
+    flex: 1, // Ensure each stat takes equal width
   },
   trustValue: {
     fontSize: 24,
@@ -449,7 +510,56 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: COLORS.mutedForeground,
     textAlign: "center",
-    marginTop: 5,
+    marginTop: 8, // Increase top margin for better spacing
+  },
+  // Footer
+  footer: {
+    backgroundColor: COLORS.secondary,
+    paddingTop: 40,
+    paddingHorizontal: 25,
+    borderTopWidth: 1,
+    borderTopColor: COLORS.border,
+    marginTop: "auto",
+  },
+  footerContentGrid: {
+    marginBottom: 20,
+  },
+  footerSection: {
+    marginBottom: 30,
+  },
+  footerBrand: {
+    fontSize: 22,
+    fontWeight: "700",
+    color: COLORS.foreground,
+    marginBottom: 8,
+  },
+  footerDescription: {
+    fontSize: 15,
+    color: COLORS.mutedForeground,
+    lineHeight: 22,
+  },
+  footerLinkTitle: {
+    fontSize: 18,
+    fontWeight: "600",
+    color: COLORS.foreground,
+    marginBottom: 16,
+  },
+  footerLinkText: {
+    color: COLORS.mutedForeground,
+    fontSize: 15,
+    marginBottom: 12,
+  },
+  footerBottom: {
+    paddingTop: 20,
+    paddingBottom: 20,
+    borderTopWidth: 1,
+    borderTopColor: COLORS.border,
+    alignItems: "center",
+  },
+  footerCopyright: {
+    color: COLORS.mutedForeground,
+    fontSize: 13,
+    textAlign: "center",
   },
 });
 

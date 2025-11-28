@@ -30,7 +30,7 @@ const RequestBodyTypeScreen = () => {
 
   return (
     <View style={styles.container}>
-      <Stack.Screen options={{ title: "Help Us Find It (2/4)" }} />
+      <Stack.Screen options={{ title: "Help Us Find It (2/5)" }} />
       <Text style={styles.title}>What type of car best fits your needs?</Text>
       <View style={styles.optionsContainer}>
         {bodyTypeOptions.map((option) => (
