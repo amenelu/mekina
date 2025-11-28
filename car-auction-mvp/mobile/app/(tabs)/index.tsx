@@ -9,7 +9,7 @@ import {
   Image,
   FlatList,
 } from "react-native";
-import { Link } from "expo-router";
+import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 
 import Footer from "../_components/Footer";
@@ -39,7 +39,7 @@ const featuredCars = [
     model: "Mustang Mach-E",
     year: 2024,
     price: "Current Bid: 4,200,000 ETB",
-    type: "Auction",
+    type: "For sale",
     image: "https://via.placeholder.com/600x400.png/1C212B/FFFFFF?text=Mach-E",
   },
 ];
@@ -61,7 +61,7 @@ const allVehicles = [
     model: "ID.4",
     price: "Current Bid: 3,100,000 ETB",
     image: "https://via.placeholder.com/300x200.png/1C212B/FFFFFF?text=ID.4",
-    listingType: "Auction",
+    listingType: "Sale",
   },
   {
     id: "3",
@@ -101,6 +101,8 @@ const COLORS = {
 };
 
 const HomeScreen = () => {
+  const router = useRouter();
+
   const renderVehicleCard = (item: (typeof allVehicles)[0]) => (
     <Pressable key={item.id} style={styles.vehicleCard}>
       <Image source={{ uri: item.image }} style={styles.vehicleCardImage} />
@@ -163,28 +165,24 @@ const HomeScreen = () => {
         </ScrollView>
         <View style={styles.heroActions}>
           <View style={{ flex: 1, marginRight: 8 }}>
-            <Link href="/request" asChild>
-              <Pressable
-                style={[styles.heroButton, styles.primaryButton, { flex: 1 }]}
-              >
-                <Text style={[styles.heroButtonText, styles.primaryButtonText]}>
-                  Let Us Find It For You
-                </Text>
-              </Pressable>
-            </Link>
+            <Pressable
+              style={[styles.heroButton, styles.primaryButton]}
+              onPress={() => router.push("/request")}
+            >
+              <Text style={[styles.heroButtonText, styles.primaryButtonText]}>
+                Let Us Find It For You
+              </Text>
+            </Pressable>
           </View>
           <View style={{ flex: 1, marginLeft: 8 }}>
-            <Link href="/trade-in" asChild>
-              <Pressable
-                style={[styles.heroButton, styles.secondaryButton, { flex: 1 }]}
-              >
-                <Text
-                  style={[styles.heroButtonText, styles.secondaryButtonText]}
-                >
-                  Get a Trade-in Offer
-                </Text>
-              </Pressable>
-            </Link>
+            <Pressable
+              style={[styles.heroButton, styles.secondaryButton]}
+              onPress={() => router.push("/trade-in")}
+            >
+              <Text style={[styles.heroButtonText, styles.secondaryButtonText]}>
+                Get a Trade-in Offer
+              </Text>
+            </Pressable>
           </View>
         </View>
       </View>
@@ -221,11 +219,12 @@ const HomeScreen = () => {
         <View style={styles.vehicleGrid}>
           {allVehicles.map((item) => renderVehicleCard(item))}
         </View>
-        <Link href="/all_listings" asChild>
-          <Pressable style={styles.viewAllButton}>
-            <Text style={styles.viewAllButtonText}>View All Listings</Text>
-          </Pressable>
-        </Link>
+        <Pressable
+          style={styles.viewAllButton}
+          onPress={() => router.push("/all_listings")}
+        >
+          <Text style={styles.viewAllButtonText}>View All Listings</Text>
+        </Pressable>
       </View>
 
       {/* --- Trust Section --- */}
@@ -315,7 +314,6 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     borderRadius: 12,
     alignItems: "center",
-    justifyContent: "center",
     paddingHorizontal: 12,
   },
   primaryButton: {
@@ -327,8 +325,9 @@ const styles = StyleSheet.create({
     borderColor: COLORS.primary,
   },
   heroButtonText: {
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: "600",
+    textAlign: "center",
   },
   primaryButtonText: {
     color: COLORS.foreground,
