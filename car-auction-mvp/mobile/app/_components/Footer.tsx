@@ -1,5 +1,5 @@
 import React from "react";
-import { View, Text, StyleSheet, Pressable } from "react-native";
+import { View, Pressable, Text, StyleSheet } from "react-native";
 import { Link } from "expo-router";
 
 const COLORS = {
@@ -11,7 +11,7 @@ const COLORS = {
 
 const Footer = () => {
   return (
-    <View style={styles.footer}>
+    <View style={styles.container}>
       <View style={styles.footerContentGrid}>
         <View style={styles.footerSection}>
           <Text style={styles.footerBrand}>Mekina Auction</Text>
@@ -64,6 +64,15 @@ const Footer = () => {
         </View>
       </View>
 
+      <Pressable
+        style={styles.findButton}
+        onPress={() => {
+          /* navigate to find */
+        }}
+      >
+        <Text style={styles.findButtonText}>Find</Text>
+      </Pressable>
+
       <View style={styles.footerBottom}>
         <Text style={styles.footerCopyright}>
           &copy; {new Date().getFullYear()} Mekina Auction. All rights reserved.
@@ -74,13 +83,14 @@ const Footer = () => {
 };
 
 const styles = StyleSheet.create({
-  footer: {
+  container: {
     backgroundColor: COLORS.secondary,
     paddingTop: 40,
     paddingHorizontal: 25,
     borderTopWidth: 1,
     borderTopColor: COLORS.border,
     marginTop: 30,
+    paddingBottom: 18, // give space so the button doesn't overlap content
   },
   footerContentGrid: { marginBottom: 20 },
   footerSection: { marginBottom: 30 },
@@ -117,6 +127,30 @@ const styles = StyleSheet.create({
     color: COLORS.mutedForeground,
     fontSize: 13,
     textAlign: "center",
+  },
+  // Floating centered action button (small, circular, aligned)
+  findButton: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: "#A370F7", // use your accent color
+    alignItems: "center",
+    justifyContent: "center",
+    position: "absolute",
+    bottom: 12,
+    alignSelf: "center",
+    // Shadow for iOS
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    // Elevation for Android
+    elevation: 6,
+  },
+  findButtonText: {
+    color: "#fff",
+    fontWeight: "700",
+    fontSize: 12,
   },
 });
 

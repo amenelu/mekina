@@ -8,6 +8,7 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
+import { useRouter } from "expo-router";
 
 const COLORS = {
   foreground: "#F8F8F8",
@@ -27,19 +28,27 @@ export type Vehicle = {
 
 type VehicleCardProps = {
   item: Vehicle;
-  onPress?: () => void;
   isCompared?: boolean;
   onToggleCompare?: (id: string) => void;
 };
 
 const VehicleCard = ({
   item,
-  onPress,
   isCompared,
   onToggleCompare,
 }: VehicleCardProps) => {
+  const router = useRouter();
+
   return (
-    <Pressable style={styles.vehicleCard} onPress={onPress}>
+    <Pressable
+      style={styles.vehicleCard}
+      onPress={() =>
+        router.push({
+          pathname: "/[id]",
+          params: { id: item.id },
+        })
+      }
+    >
       <ImageBackground
         source={{ uri: item.image }}
         style={styles.vehicleCardImage}

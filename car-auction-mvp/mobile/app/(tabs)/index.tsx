@@ -13,7 +13,7 @@ import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 
 import Footer from "../_components/Footer";
-import VehicleCard from "../_components/VehicleCard";
+import VehicleCard, { Vehicle } from "../_components/VehicleCard";
 // --- Mock Data based on home.html ---
 const quickFilters = [
   { label: "New", value: "New" },
@@ -47,7 +47,7 @@ const featuredCars = [
   },
 ];
 
-const allVehicles = [
+const allVehicles: Vehicle[] = [
   {
     id: "1",
     year: 2022,

@@ -46,16 +46,33 @@ export default function TabsLayout() {
       <Tabs.Screen
         name="messages"
         options={{
-          title: "Messages",
+          // This screen is now accessed from the header, so we hide it from the tab bar.
+          href: null,
+        }}
+      />
+      <Tabs.Screen
+        name="all_listings"
+        options={{
+          title: "Rentals",
+          headerTitleAlign: "left",
           tabBarIcon: ({ color }) => (
-            <Ionicons name="chatbubbles" size={24} color={color} />
+            <Ionicons name="car" size={24} color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="find"
+        options={{
+          title: "Find Car",
+          tabBarIcon: ({ color }) => (
+            <Ionicons name="search" size={24} color={color} />
           ),
         }}
       />
       <Tabs.Screen
         name="profile"
         options={{
-          title: "Profile",
+          title: "My-requests",
           tabBarIcon: ({ color }) => (
             <Ionicons name="person-circle" size={24} color={color} />
           ),
@@ -63,16 +80,32 @@ export default function TabsLayout() {
         }}
       />
       <Tabs.Screen
-        name="all_listings"
+        name="notifications"
         options={{
-          title: "All Listings",
-          headerTitleAlign: "left",
-          // Hide this screen from the tab bar
-          href: null,
-          // This is sometimes needed even if href is null
+          title: "Notifications",
           tabBarIcon: ({ color }) => (
-            <Ionicons name="list" size={24} color={color} />
+            <Ionicons name="notifications" size={24} color={color} />
           ),
+        }}
+      />
+      {/* Add entries for all other screens in this directory to hide them from the tab bar */}
+      <Tabs.Screen
+        name="[id]" // This targets the dynamic route file [id].tsx
+        options={{
+          href: null, // Hide from tab bar
+          headerRight: () => null, // Hide header icons on detail page
+        }}
+      />
+      <Tabs.Screen
+        name="sell"
+        options={{
+          href: null, // Hide the old 'sell' screen from the tab bar
+        }}
+      />
+      <Tabs.Screen
+        name="request" // This targets the (tabs)/request folder
+        options={{
+          href: null, // Hide this entire group from the tab bar
         }}
       />
     </Tabs>

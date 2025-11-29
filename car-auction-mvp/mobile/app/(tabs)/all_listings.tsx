@@ -12,10 +12,10 @@ import { Ionicons } from "@expo/vector-icons";
 
 import HeaderRight from "../_components/HeaderRight";
 import Footer from "../_components/Footer";
-import VehicleCard from "../_components/VehicleCard";
+import VehicleCard, { Vehicle } from "../_components/VehicleCard";
 
 // --- Mock Data (can be replaced with API call) ---
-const allVehicles = [
+const allVehicles: Vehicle[] = [
   {
     id: "1",
     year: 2022,

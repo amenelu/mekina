@@ -24,16 +24,6 @@ const HeaderRight = () => {
         </TouchableOpacity>
       </Link>
 
-      <Link href="/(tabs)/notifications" asChild>
-        <TouchableOpacity style={styles.iconButton}>
-          <Ionicons
-            name="notifications-outline"
-            size={26}
-            color={COLORS.mutedForeground}
-          />
-        </TouchableOpacity>
-      </Link>
-
       <Link href="/(tabs)/profile" asChild>
         <TouchableOpacity style={styles.iconButton}>
           <Ionicons
