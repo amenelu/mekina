@@ -1,13 +1,57 @@
-import React from "react";
+import React, { useEffect, useRef } from "react";
 import { Tabs } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import HeaderRight from "../_components/HeaderRight";
+import { Animated, StyleSheet, TouchableOpacity, View } from "react-native";
 
 const COLORS = {
   background: "#14181F",
   foreground: "#F8F8F8",
   card: "#1C212B",
   accent: "#A370F7",
+};
+
+// Custom component for the pulsating button
+const PulsatingTabBarButton = ({ children, onPress }: any) => {
+  const pulseAnimation = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    const animation = Animated.loop(
+      Animated.timing(pulseAnimation, {
+        toValue: 1,
+        duration: 2000, // The pulsation will take 2 seconds
+        useNativeDriver: true,
+      })
+    );
+    animation.start();
+    return () => animation.stop(); // Cleanup animation on component unmount
+  }, [pulseAnimation]);
+
+  // We create an animated style for the outer ring
+  const animatedStyle = {
+    transform: [
+      {
+        scale: pulseAnimation.interpolate({
+          inputRange: [0, 1],
+          outputRange: [1, 1.4], // The ring will scale up by 40%
+        }),
+      },
+    ],
+    opacity: pulseAnimation.interpolate({
+      inputRange: [0, 0.5, 1],
+      outputRange: [0.8, 1, 0], // The ring will fade out as it expands
+    }),
+  };
+
+  return (
+    <TouchableOpacity onPress={onPress} style={styles.pulsatingButtonContainer}>
+      {/* The outer, pulsating ring */}
+      <Animated.View style={[styles.pulsatingRing, animatedStyle]} />
+
+      {/* The inner, static button that contains the icon */}
+      <View style={styles.innerButton}>{children}</View>
+    </TouchableOpacity>
+  );
 };
 
 export default function TabsLayout() {
@@ -64,9 +108,14 @@ export default function TabsLayout() {
         name="find"
         options={{
           title: "Find Car",
-          tabBarIcon: ({ color }) => (
-            <Ionicons name="search" size={24} color={color} />
+          tabBarIcon: ({ focused }) => (
+            <Ionicons
+              name="search"
+              size={28}
+              color={focused ? COLORS.accent : "#fff"}
+            />
           ),
+          tabBarButton: (props) => <PulsatingTabBarButton {...props} />,
         }}
       />
       <Tabs.Screen
@@ -111,3 +160,31 @@ export default function TabsLayout() {
     </Tabs>
   );
 }
+
+const styles = StyleSheet.create({
+  pulsatingButtonContainer: {
+    position: "relative",
+    width: 70,
+    height: 70,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  pulsatingRing: {
+    position: "absolute",
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    borderWidth: 2,
+    borderColor: COLORS.accent,
+  },
+  innerButton: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: COLORS.card,
+    borderWidth: 2,
+    borderColor: COLORS.accent,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+});
