@@ -88,13 +88,6 @@ export default function TabsLayout() {
         }}
       />
       <Tabs.Screen
-        name="messages"
-        options={{
-          // This screen is now accessed from the header, so we hide it from the tab bar.
-          href: null,
-        }}
-      />
-      <Tabs.Screen
         name="all_listings"
         options={{
           title: "Rentals",
@@ -135,26 +128,6 @@ export default function TabsLayout() {
           tabBarIcon: ({ color }) => (
             <Ionicons name="notifications" size={24} color={color} />
           ),
-        }}
-      />
-      {/* Add entries for all other screens in this directory to hide them from the tab bar */}
-      <Tabs.Screen
-        name="[id]" // This targets the dynamic route file [id].tsx
-        options={{
-          href: null, // Hide from tab bar
-          headerRight: () => null, // Hide header icons on detail page
-        }}
-      />
-      <Tabs.Screen
-        name="sell"
-        options={{
-          href: null, // Hide the old 'sell' screen from the tab bar
-        }}
-      />
-      <Tabs.Screen
-        name="request" // This targets the (tabs)/request folder
-        options={{
-          href: null, // Hide this entire group from the tab bar
         }}
       />
     </Tabs>

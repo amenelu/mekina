@@ -12,7 +12,7 @@ const COLORS = {
 const HeaderRight = () => {
   return (
     <View style={styles.container}>
-      <Link href="/(tabs)/messages" asChild>
+      <Link href="/messages" asChild>
         <TouchableOpacity style={styles.iconButton}>
           <Ionicons
             name="chatbubble-ellipses-outline"
