@@ -1,4 +1,4 @@
-import { Stack, useRouter } from "expo-router";
+import { Stack, useRouter, useNavigation } from "expo-router";
 import { Pressable } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 
@@ -10,6 +10,7 @@ const COLORS = {
 
 export default function RequestLayout() {
   const router = useRouter();
+
   return (
     <Stack
       screenOptions={{
@@ -18,7 +19,11 @@ export default function RequestLayout() {
         headerTitleStyle: { color: COLORS.foreground },
         contentStyle: { backgroundColor: COLORS.background },
         headerLeft: () => (
-          <Pressable onPress={() => router.back()}>
+          <Pressable
+            // Use router.back() to navigate up the parent stack
+            onPress={() => router.back()}
+            style={{ paddingHorizontal: 10 }}
+          >
             <Ionicons name="chevron-back" size={24} color={COLORS.foreground} />
           </Pressable>
         ),

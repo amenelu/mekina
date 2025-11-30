@@ -10,7 +10,7 @@ import {
 } from "react-native";
 import { useLocalSearchParams, Stack } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import { Vehicle } from "../_components/VehicleCard";
+import { Vehicle } from "./_components/VehicleCard";
 
 // --- Mock Data (In a real app, this would be fetched from an API) ---
 const allVehicles: Vehicle[] = [
