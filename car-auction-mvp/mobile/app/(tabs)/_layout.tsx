@@ -109,6 +109,7 @@ export default function TabsLayout() {
             />
           ),
           tabBarButton: (props) => <PulsatingTabBarButton {...props} />,
+          headerShown: false, // This will hide the main header for the request flow
         }}
       />
       <Tabs.Screen
