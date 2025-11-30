@@ -88,12 +88,12 @@ export default function TabsLayout() {
         }}
       />
       <Tabs.Screen
-        name="all_listings"
+        name="rentals"
         options={{
           title: "Rentals",
           headerTitleAlign: "left",
           tabBarIcon: ({ color }) => (
-            <Ionicons name="car" size={24} color={color} />
+            <Ionicons name="car-sport" size={24} color={color} />
           ),
         }}
       />
@@ -131,6 +131,9 @@ export default function TabsLayout() {
           ),
         }}
       />
+      {/* --- Hidden Screens --- */}
+      {/* This screen exists but should not have a button on the tab bar. */}
+      <Tabs.Screen name="all_listings" options={{ href: null }} />
     </Tabs>
   );
 }

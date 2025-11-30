@@ -25,8 +25,8 @@ export default function RootLayout() {
       })}
     >
       <Stack.Screen name="(auth)" options={{ headerShown: false }} />
-      <Stack.Screen name="request" options={{ headerShown: false }} />
       <Stack.Screen name="trade-in" options={{ headerShown: false }} />
+      <Stack.Screen name="rentals" options={{ headerShown: false }} />
       {/* The detail page, which will have a back button */}
       <Stack.Screen
         name="[id]"
