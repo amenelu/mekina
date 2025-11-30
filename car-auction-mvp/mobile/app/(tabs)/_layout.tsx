@@ -98,7 +98,7 @@ export default function TabsLayout() {
         }}
       />
       <Tabs.Screen
-        name="find"
+        name="request" // Point the tab directly to the request flow
         options={{
           title: "Find Car",
           tabBarIcon: ({ focused }) => (

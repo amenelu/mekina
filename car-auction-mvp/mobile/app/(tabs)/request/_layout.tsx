@@ -1,4 +1,4 @@
-import { Stack, useRouter, useNavigation } from "expo-router";
+import { Stack, useRouter } from "expo-router";
 import { Pressable } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 
@@ -10,7 +10,6 @@ const COLORS = {
 
 export default function RequestLayout() {
   const router = useRouter();
-
   return (
     <Stack
       screenOptions={{
