@@ -113,12 +113,18 @@ export default function TabsLayout() {
         }}
       />
       <Tabs.Screen
-        name="profile"
+        name="my-requests"
         options={{
           title: "My-requests",
           tabBarIcon: ({ color }) => (
             <Ionicons name="person-circle" size={24} color={color} />
           ),
+        }}
+      />
+      <Tabs.Screen
+        name="profile"
+        options={{
+          href: null, // This will hide the button from the tab bar
           headerShown: false, // Hiding header as profile screen uses SafeAreaView
         }}
       />
