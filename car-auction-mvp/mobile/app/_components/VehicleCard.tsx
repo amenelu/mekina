@@ -24,6 +24,7 @@ export type Vehicle = {
   price: string;
   image: string;
   mileage: number;
+  is_featured?: boolean;
   listingType: "Sale" | "Auction";
 };
 
@@ -59,6 +60,11 @@ const VehicleCard = ({
           colors={["transparent", "rgba(0,0,0,0.8)"]}
           style={styles.gradientOverlay}
         />
+        {item.is_featured && (
+          <View style={styles.featuredTagContainer}>
+            <Text style={styles.featuredTag}>Featured</Text>
+          </View>
+        )}
         <Text
           style={[
             styles.vehicleCardTag,
@@ -144,6 +150,21 @@ const styles = StyleSheet.create({
   vehicleCardTitle: { fontSize: 16, fontWeight: "600", color: "#FFFFFF" },
   vehicleCardPrice: { fontSize: 14, color: COLORS.accent, marginTop: 5 },
   compareButton: {},
+  featuredTagContainer: {
+    position: "absolute",
+    top: 10,
+    left: 10,
+  },
+  featuredTag: {
+    backgroundColor: COLORS.accent,
+    color: COLORS.foreground,
+    fontSize: 12,
+    fontWeight: "bold",
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+    overflow: "hidden",
+  },
 });
 
 export default VehicleCard;

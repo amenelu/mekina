@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import {
   StyleSheet,
   Text,
@@ -8,6 +8,8 @@ import {
   Pressable,
   ImageBackground,
 } from "react-native";
+import { useNavigation } from "expo-router";
+import { useScrollToTop } from "@react-navigation/native";
 import { Ionicons } from "@expo/vector-icons";
 import Footer from "../_components/Footer";
 
@@ -93,6 +95,22 @@ const RentalCard = ({ item }: { item: (typeof rentalVehicles)[0] }) => {
 };
 
 const RentalsScreen = () => {
+  const navigation = useNavigation();
+  const ref = useRef<ScrollView>(null);
+
+  // This hook handles scrolling to top when the active tab is pressed
+  useScrollToTop(ref);
+
+  React.useLayoutEffect(() => {
+    navigation.setOptions({
+      headerTitle: () => (
+        <Pressable onPress={() => ref.current?.scrollTo({ y: 0, animated: true })}>
+          <Text style={styles.headerTitleText}>Rentals</Text>
+        </Pressable>
+      ),
+    });
+  }, [navigation]);
+
   const [searchQuery, setSearchQuery] = useState("");
 
   const filteredVehicles = rentalVehicles.filter((vehicle) =>
@@ -102,7 +120,7 @@ const RentalsScreen = () => {
   );
 
   return (
-    <ScrollView style={styles.container}>
+    <ScrollView style={styles.container} ref={ref}>
       {/* --- Search & Filter Section --- */}
       <View style={styles.filterContainer}>
         <View style={styles.searchBar}>
@@ -159,6 +177,11 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: COLORS.background,
+  },
+  headerTitleText: {
+    fontSize: 18, // Match default header title size
+    fontWeight: "600",
+    color: COLORS.foreground,
   },
   filterContainer: {
     padding: 20,

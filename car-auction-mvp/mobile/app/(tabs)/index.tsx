@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useRef } from "react";
 import {
   StyleSheet,
   Text,
@@ -9,7 +9,8 @@ import {
   Image,
   FlatList,
 } from "react-native";
-import { useRouter } from "expo-router";
+import { useRouter, useNavigation } from "expo-router";
+import { useScrollToTop } from "@react-navigation/native";
 import { Ionicons } from "@expo/vector-icons";
 
 import Footer from "../_components/Footer";
@@ -109,9 +110,27 @@ const COLORS = {
 
 const HomeScreen = () => {
   const router = useRouter();
+  const navigation = useNavigation();
+  const ref = useRef<ScrollView>(null);
+
+  // This hook handles scrolling to top when the active tab is pressed
+  useScrollToTop(ref);
+
+  React.useLayoutEffect(() => {
+    navigation.setOptions({
+      headerTitle: () => (
+        <Pressable
+          onPress={() => ref.current?.scrollTo({ y: 0, animated: true })}
+        >
+          <Text style={styles.headerTitleText}>Mekina</Text>
+        </Pressable>
+      ),
+    });
+  }, [navigation]);
 
   return (
     <ScrollView
+      ref={ref}
       style={styles.container}
       contentContainerStyle={styles.contentContainer}
     >
@@ -176,11 +195,17 @@ const HomeScreen = () => {
           horizontal
           data={featuredCars}
           renderItem={({ item }) => (
-            <Pressable style={styles.featuredCard}>
+            <Pressable
+              style={styles.featuredCard}
+              onPress={() => router.push(`/${item.id}`)}
+            >
               <Image
                 source={{ uri: item.image }}
                 style={styles.featuredImage}
               />
+              <View style={styles.featuredTagContainer}>
+                <Text style={styles.featuredTag}>Featured</Text>
+              </View>
               <View style={styles.featuredCaption}>
                 <Text
                   style={styles.featuredTitle}
@@ -235,6 +260,11 @@ const styles = StyleSheet.create({
   },
   contentContainer: {
     paddingBottom: 40,
+  },
+  headerTitleText: {
+    fontSize: 20,
+    fontWeight: "bold",
+    color: COLORS.foreground,
   },
   // Hero Section
   searchHero: {
@@ -344,6 +374,21 @@ const styles = StyleSheet.create({
   },
   featuredCaption: {
     padding: 15,
+  },
+  featuredTagContainer: {
+    position: "absolute",
+    top: 12,
+    left: 12,
+  },
+  featuredTag: {
+    backgroundColor: COLORS.accent,
+    color: COLORS.foreground,
+    fontSize: 12,
+    fontWeight: "bold",
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+    overflow: "hidden", // Ensures border radius works on iOS
   },
   featuredTitle: {
     fontSize: 18,

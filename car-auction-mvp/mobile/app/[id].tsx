@@ -23,6 +23,7 @@ const allVehicles: Vehicle[] = [
     image:
       "https://imgs.search.brave.com/IMfjRFIBmlHG1FAY9P4j_f3ygIpC6_-Lq48rCDOeoz4/rs:fit:860:0:0:0/g:ce/aHR0cHM6Ly9kaS11/cGxvYWRzLXBvZDku/ZGVhbGVyaW5zcGly/ZS5jb20vY2FwaXRv/bGh5dW5kYWlzYW5q/b3NlL3VwbG9hZHMv/MjAyMS8xMi8yMDIy/LUh5dW5kYWktSU9O/SVEtNS1JbnRyby5w/bmc",
     mileage: 25000,
+    is_featured: true,
     listingType: "Sale",
   },
   {
@@ -153,10 +154,17 @@ const CarDetailScreen = () => {
       <ScrollView style={styles.container}>
         {/* Image Gallery */}
         <View style={styles.imageGallery}>
-          <Image
-            source={{ uri: mainImage || car.image }}
-            style={styles.mainImage}
-          />
+          <View>
+            <Image
+              source={{ uri: mainImage || car.image }}
+              style={styles.mainImage}
+            />
+            {car.is_featured && (
+              <View style={styles.featuredTagContainer}>
+                <Text style={styles.featuredTag}>Featured</Text>
+              </View>
+            )}
+          </View>
           <ScrollView horizontal showsHorizontalScrollIndicator={false}>
             {thumbnails.map((thumbUri, index) => (
               <Pressable key={index} onPress={() => setMainImage(thumbUri)}>
@@ -272,6 +280,22 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     borderWidth: 2,
     borderColor: "transparent",
+  },
+  featuredTagContainer: {
+    position: "absolute",
+    top: 15,
+    left: 15,
+    zIndex: 1,
+  },
+  featuredTag: {
+    backgroundColor: COLORS.accent,
+    color: COLORS.foreground,
+    fontSize: 14,
+    fontWeight: "bold",
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 8,
+    overflow: "hidden",
   },
   contentContainer: {
     padding: 20,
