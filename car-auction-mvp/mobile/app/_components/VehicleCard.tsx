@@ -86,6 +86,7 @@ const VehicleCard = ({
             <Pressable
               style={styles.compareButton}
               onPress={() => onToggleCompare(item.id)}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
             >
               <Ionicons
                 name={isCompared ? "checkbox" : "square-outline"}
