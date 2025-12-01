@@ -7,6 +7,7 @@ import {
   TextInput,
   Pressable,
   Image,
+  Alert,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
@@ -232,12 +233,19 @@ const AllListingsScreen = () => {
           </View>
           <Pressable
             style={[styles.comparisonButton, styles.viewButton]}
-            onPress={() =>
-              router.push({
-                pathname: "/compare",
-                params: { car_ids: compareItems.map((c) => c.id) },
-              })
-            }
+            onPress={() => {
+              if (compareItems.length > 1) {
+                router.push({
+                  pathname: "/compare",
+                  params: { car_ids: compareItems.map((c) => c.id) },
+                });
+              } else {
+                Alert.alert(
+                  "Select More Cars",
+                  "Please select at least two cars to compare."
+                );
+              }
+            }}
           >
             <Text style={styles.viewButtonText}>View</Text>
           </Pressable>
