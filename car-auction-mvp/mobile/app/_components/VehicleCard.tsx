@@ -23,6 +23,7 @@ export type Vehicle = {
   model: string;
   price: string;
   image: string;
+  mileage: number;
   listingType: "Sale" | "Auction";
 };
 

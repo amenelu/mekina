@@ -9,6 +9,7 @@ import {
   Image,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { useRouter } from "expo-router";
 
 import HeaderRight from "../_components/HeaderRight";
 import Footer from "../_components/Footer";
@@ -24,6 +25,7 @@ const allVehicles: Vehicle[] = [
     price: "3,800,000 ETB",
     image:
       "https://imgs.search.brave.com/IMfjRFIBmlHG1FAY9P4j_f3ygIpC6_-Lq48rCDOeoz4/rs:fit:860:0:0:0/g:ce/aHR0cHM6Ly9kaS11/cGxvYWRzLXBvZDku/ZGVhbGVyaW5zcGly/ZS5jb20vY2FwaXRv/bGh5dW5kYWlzYW5q/b3NlL3VwbG9hZHMv/MjAyMS8xMi8yMDIy/LUh5dW5kYWktSU9O/SVEtNS1JbnRyby5w/bmc",
+    mileage: 25000,
     listingType: "Sale",
   },
   {
@@ -34,6 +36,7 @@ const allVehicles: Vehicle[] = [
     price: "Current Bid: 3,100,000 ETB",
     image:
       "https://imgs.search.brave.com/qt8FWIjaoCfMuFfwo7qFDXLFJenfb37wtMaiMqEyDsA/rs:fit:860:0:0:0/g:ce/aHR0cHM6Ly9jbGVh/bnRlY2huaWNhLmNv/bS93cC1jb250ZW50/L3VwbG9hZHMvMjAy/NC8wNS9WVy12b2xr/c3dhZ2VuLWlkLjQt/aWQ0LWN1di1jcm9z/c292ZXItc3V2LWVs/ZWN0cmljLWV2LUtZ/TEUtRklFTEQtQ2xl/YW5UZWNobmljYS04/MDB4NDQ1LmpwZw",
+    mileage: 45000,
     listingType: "Auction",
   },
   {
@@ -44,6 +47,7 @@ const allVehicles: Vehicle[] = [
     price: "2,950,000 ETB",
     image:
       "https://imgs.search.brave.com/qt8FWIjaoCfMuFfwo7qFDXLFJenfb37wtMaiMqEyDsA/rs:fit:860:0:0:0/g:ce/aHR0cHM6Ly9jbGVh/bnRlY2huaWNhLmNv/bS93cC1jb250ZW50/L3VwbG9hZHMvMjAy/NC8wNS9WVy12b2xr/c3dhZ2VuLWlkLjQt/aWQ0LWN1di1jcm9z/c292ZXItc3V2LWVs/ZWN0cmljLWV2LUtZ/TEUtRklFTEQtQ2xl/YW5UZWNobmljYS04/MDB4NDQ1LmpwZw",
+    mileage: 15000,
     listingType: "Sale",
   },
   {
@@ -54,6 +58,7 @@ const allVehicles: Vehicle[] = [
     price: "Current Bid: 4,500,000 ETB",
     image:
       "https://imgs.search.brave.com/1-RrtfNbEgi3rUJFAdyLJfc4cwd9PAlVKZ3FFQe8HPw/rs:fit:860:0:0:0/g:ce/aHR0cHM6Ly90My5m/dGNkbi5uZXQvanBn/LzA0LzA1LzA1Lzk2/LzM2MF9GXzQwNTA1/OTYyOV9sZkFDb0Vu/WXo0Z1RGd0dXSks2/aWxLMUtjQmNYdGQy/Vi5qcGc",
+    mileage: 60000,
     listingType: "Auction",
   },
   {
@@ -64,6 +69,7 @@ const allVehicles: Vehicle[] = [
     price: "3,500,000 ETB",
     image:
       "https://imgs.search.brave.com/v2a8HQzdx9CdYjNiPZWMjNhP0Ijrs6m42WMY2dApHWE/rs:fit:860:0:0:0/g:ce/aHR0cHM6Ly9oaXBz/LmhlYXJzdGFwcHMu/Y29tL2htZy1wcm9k/L2ltYWdlcy8yMDIz/LXRveW90YS1yYXY0/LWh5YnJpZC13b29k/bGFuZC1lZGl0aW9u/LTM2NTktMTY3NTEx/NjM1Ni5qcGc_Y3Jv/cD0xeHc6MXhoO2Nl/bnRlcix0b3A",
+    mileage: 5000,
     listingType: "Sale",
   },
   {
@@ -74,6 +80,7 @@ const allVehicles: Vehicle[] = [
     price: "Current Bid: 4,200,000 ETB",
     image:
       "https://imgs.search.brave.com/_06DoRpRgtWgSfBoiobDkKKpTvv8D9tZBomMujqgwjU/rs:fit:860:0:0:0/g:ce/aHR0cHM6Ly9waWN0/dXJlcy5kZWFsZXIu/Y29tL2EvYXV0b25h/dGlvbmthdHlmb3Jk/ZmQvMTIzNC9jNTkz/OGNjY2U2ZTQ0MmFm/YjY2MjA0MWVlODAw/ZmYxOS5wbmc_aW1w/b2xpY3k9ZG93bnNp/emVfYmtwdCZ3PTI1/MDA",
+    mileage: 12000,
     listingType: "Auction",
   },
   {
@@ -84,6 +91,7 @@ const allVehicles: Vehicle[] = [
     price: "3,750,000 ETB",
     image:
       "https://imgs.search.brave.com/flY_UFc1PtTX3AZTE_v5AOnEf3eYwwSPwHf8FFAt9oY/rs:fit:860:0:0:0/g:ce/aHR0cHM6Ly93d3cu/dGhlZHJpdmUuY29t/L3dwLWNvbnRlbnQv/dXBsb2Fkcy8yMDI0/LzA1LzE0L2tpYV9l/djZfNjY3LmpwZWc_/cXVhbGl0eT04NSZ3/PTc2OA",
+    mileage: 30000,
     listingType: "Sale",
   },
   {
@@ -94,6 +102,7 @@ const allVehicles: Vehicle[] = [
     price: "Current Bid: 4,800,000 ETB",
     image:
       "https://imgs.search.brave.com/16ZSeFix5EMCTRLxyO4ZHklz2lGf44dO19lib87n2Ko/rs:fit:860:0:0:0/g:ce/aHR0cHM6Ly9kaWdp/dGFsYXNzZXRzLnRl/c2xhLmNvbS90ZXNs/YS1jb250ZW50cy9p/bWFnZS91cGxvYWQv/Zl9hdXRvLHFfYXV0/by9sZWFybl9uZXdf/bW9kZWx5X2V4dF8x/LmpwZw",
+    mileage: 20000,
     listingType: "Auction",
   },
 ];
@@ -109,6 +118,7 @@ const COLORS = {
 };
 
 const AllListingsScreen = () => {
+  const router = useRouter();
   const [searchQuery, setSearchQuery] = useState("");
   const [compareItems, setCompareItems] = useState<
     { id: string; image: string }[]
@@ -220,7 +230,15 @@ const AllListingsScreen = () => {
               style={styles.comparisonText}
             >{`Comparing ${compareItems.length} item(s)`}</Text>
           </View>
-          <Pressable style={[styles.comparisonButton, styles.viewButton]}>
+          <Pressable
+            style={[styles.comparisonButton, styles.viewButton]}
+            onPress={() =>
+              router.push({
+                pathname: "/compare",
+                params: { car_ids: compareItems.map((c) => c.id) },
+              })
+            }
+          >
             <Text style={styles.viewButtonText}>View</Text>
           </Pressable>
           <Pressable

@@ -55,6 +55,7 @@ const allVehicles: Vehicle[] = [
     model: "Ioniq 5",
     price: "3,800,000 ETB",
     image: "https://via.placeholder.com/300x200.png/1C212B/FFFFFF?text=Ioniq+5",
+    mileage: 25000,
     listingType: "Sale",
   },
   {
@@ -64,6 +65,7 @@ const allVehicles: Vehicle[] = [
     model: "ID.4",
     price: "Current Bid: 3,100,000 ETB",
     image: "https://via.placeholder.com/300x200.png/1C212B/FFFFFF?text=ID.4",
+    mileage: 45000,
     listingType: "Sale",
   },
   {
@@ -73,6 +75,7 @@ const allVehicles: Vehicle[] = [
     model: "Atto 3",
     price: "2,950,000 ETB",
     image: "https://via.placeholder.com/300x200.png/1C212B/FFFFFF?text=Atto+3",
+    mileage: 15000,
     listingType: "Sale",
   },
   {
@@ -82,6 +85,7 @@ const allVehicles: Vehicle[] = [
     model: "EQC",
     price: "Current Bid: 4,500,000 ETB",
     image: "https://via.placeholder.com/300x200.png/1C212B/FFFFFF?text=EQC",
+    mileage: 60000,
     listingType: "Auction",
   },
 ];

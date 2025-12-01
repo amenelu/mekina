@@ -38,6 +38,7 @@ export default function RootLayout() {
       />
       <Stack.Screen name="messages" options={{ title: "Messages" }} />
       <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+      <Stack.Screen name="compare" options={{ presentation: "modal" }} />
     </Stack>
   );
 }
