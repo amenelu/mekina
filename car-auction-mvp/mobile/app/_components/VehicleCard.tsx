@@ -5,6 +5,8 @@ import {
   View,
   Pressable,
   ImageBackground,
+  StyleProp,
+  ViewStyle,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
@@ -32,18 +34,20 @@ type VehicleCardProps = {
   item: Vehicle;
   isCompared?: boolean;
   onToggleCompare?: (id: string) => void;
+  style?: StyleProp<ViewStyle>;
 };
 
 const VehicleCard = ({
   item,
   isCompared,
   onToggleCompare,
+  style,
 }: VehicleCardProps) => {
   const router = useRouter();
 
   return (
     <Pressable
-      style={styles.vehicleCard}
+      style={[styles.vehicleCard, style]}
       onPress={() =>
         router.push({
           pathname: "/[id]",
@@ -109,7 +113,7 @@ const VehicleCard = ({
 
 const styles = StyleSheet.create({
   vehicleCard: {
-    width: "48%",
+    width: "48%", // This will be overridden by the style prop if provided
     backgroundColor: COLORS.card,
     borderRadius: 12,
     marginBottom: 15,

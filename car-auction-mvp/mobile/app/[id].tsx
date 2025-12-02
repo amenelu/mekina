@@ -8,8 +8,9 @@ import {
   Pressable,
   ActivityIndicator,
   Alert,
+  useWindowDimensions,
 } from "react-native";
-import { useLocalSearchParams, Stack } from "expo-router";
+import { useLocalSearchParams, Stack, useNavigation } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import VehicleCard, { Vehicle } from "./_components/VehicleCard";
 
@@ -29,6 +30,8 @@ const CarDetailScreen = () => {
   const [similarCars, setSimilarCars] = useState<Vehicle[]>([]);
   const [mainImage, setMainImage] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const navigation = useNavigation();
+  const { width } = useWindowDimensions();
 
   useEffect(() => {
     const fetchCarDetails = async () => {
@@ -55,6 +58,17 @@ const CarDetailScreen = () => {
 
     fetchCarDetails();
   }, [id]);
+
+  // Use a layout effect to set the title. This runs before the paint,
+  // preventing the `[id]` from ever showing.
+  React.useLayoutEffect(() => {
+    const title = car
+      ? `${car.year} ${car.make} ${car.model}`
+      : id
+      ? "Loading..."
+      : "Not Found";
+    navigation.setOptions({ title });
+  }, [navigation, car, id]);
 
   if (loading) {
     return (
@@ -83,9 +97,7 @@ const CarDetailScreen = () => {
 
   return (
     <>
-      <Stack.Screen
-        options={{ title: `${car.year} ${car.make} ${car.model}` }}
-      />
+      <Stack.Screen />
       <ScrollView style={styles.container}>
         {/* Image Gallery */}
         <View style={styles.imageGallery}>
@@ -182,7 +194,11 @@ const CarDetailScreen = () => {
               <Text style={styles.sectionTitle}>Similar Listings</Text>
               <View style={styles.vehicleGrid}>
                 {similarCars.map((item) => (
-                  <VehicleCard key={item.id} item={item} />
+                  <VehicleCard
+                    key={item.id}
+                    item={item}
+                    style={{ width: width / 2 - 30 }}
+                  />
                 ))}
               </View>
             </View>
@@ -365,7 +381,7 @@ const styles = StyleSheet.create({
   vehicleGrid: {
     flexDirection: "row",
     flexWrap: "wrap",
-    justifyContent: "space-between",
+    gap: 20,
   },
 });
 
