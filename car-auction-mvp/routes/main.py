@@ -234,7 +234,7 @@ def search_suggestions():
     # Limit results for suggestions, but maybe fetch more for a full listing page
     # For now, we'll keep the limit consistent.
     # A more advanced implementation might use pagination here.
-    cars = query.order_by(Car.created_at.desc()).limit(50).all()
+    cars = query.order_by(Car.id.desc()).limit(50).all()
 
     results = []
     for car in cars:
@@ -304,8 +304,12 @@ def api_car_detail(car_id):
 
     similar_cars, similarity_reason = get_similar_cars(car, car.listing_type)
 
+    car_data = car.to_dict(include_owner=True)
+    # Manually add the price_display field for consistency with other endpoints
+    car_data['price_display'] = car.get_price_display()
+
     return jsonify(
-        car=car.to_dict(include_owner=True),
+        car=car_data,
         similar_cars=[c.to_dict() for c in similar_cars],
         similarity_reason=similarity_reason
     )
@@ -398,15 +402,28 @@ def api_listings():
             Car.fixed_price <= max_price,
             Car.auction.current_price <= max_price
         ))
+        # This was causing a crash if an auction record didn't exist.
+        # The corrected version safely joins and filters.
+        from models.auction import Auction
+        query = query.outerjoin(Auction, Car.id == Auction.car_id).filter(
+            or_(
+                (Car.listing_type == 'sale') & (Car.fixed_price <= max_price),
+                (Car.listing_type == 'auction') & (Auction.current_price <= max_price)
+            )
+        )
 
-    query = query.order_by(Car.created_at.desc())
+    query = query.order_by(Car.id.desc())
     cars = query.all()
 
     results = []
     for car in cars:
-        # CRITICAL FIX: Calculate display_price before using it.
-        # This was missing and causing the endpoint to fail silently.
-        car.display_price = car.fixed_price if car.listing_type == 'sale' else (car.auction.current_price if car.auction else None)
+        # Calculate display_price safely.
+        # The previous implementation could crash if car.auction was None.
+        display_price = None
+        if car.listing_type == 'sale':
+            display_price = car.fixed_price
+        elif car.listing_type == 'auction' and car.auction:
+            display_price = car.auction.current_price
 
         detail_url = ''
         if car.listing_type == 'auction' and car.auction:
@@ -419,7 +436,7 @@ def api_listings():
             'year': car.year,
             'make': car.make,
             'model': car.model,
-            'price_display': f"{car.display_price:,.0f} ETB" if car.display_price else "N/A",
+            'price_display': f"{display_price:,.0f} ETB" if display_price is not None else "N/A",
             'image_url': car.primary_image_url or url_for('static', filename='img/default_car.png'),
             'detail_url': detail_url,
             'listing_type': car.listing_type

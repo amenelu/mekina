@@ -45,6 +45,18 @@ class Car(db.Model):
             return self.images[0].image_url
         return None
 
+    def get_price_display(self):
+        """Returns a formatted string for the car's price based on listing type."""
+        price = None
+        if self.listing_type == 'sale':
+            price = self.fixed_price
+        elif self.listing_type == 'auction' and self.auction:
+            price = self.auction.current_price
+        
+        if price is not None:
+            return f"{price:,.0f} ETB"
+        return "N/A"
+
     def to_dict(self, include_owner=False):
         """Serializes the Car object to a dictionary for API responses."""
         car_dict = {

@@ -16,6 +16,7 @@ import { useRouter } from "expo-router";
 import HeaderRight from "../_components/HeaderRight";
 import Footer from "../_components/Footer";
 import VehicleCard, { Vehicle } from "../_components/VehicleCard";
+import { API_BASE_URL } from "../../apiConfig";
 
 const COLORS = {
   background: "#14181F",
@@ -40,9 +41,7 @@ const AllListingsScreen = () => {
     const fetchVehicles = async () => {
       try {
         // IMPORTANT: Replace with your computer's local IP address
-        const response = await fetch(
-          "http://192.168.100.9:5001/auctions/api/all_listings"
-        );
+        const response = await fetch(`${API_BASE_URL}/api/listings`);
         const data = await response.json();
 
         const formattedData = data.map((item: any) => ({
@@ -191,7 +190,7 @@ const AllListingsScreen = () => {
               if (compareItems.length > 1) {
                 router.push({
                   pathname: "/compare",
-                  params: { car_ids: compareItems.map((c) => c.id) },
+                  params: { car_ids: compareItems.map((c) => c.id).join(",") },
                 });
               } else {
                 Alert.alert(

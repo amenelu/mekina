@@ -23,7 +23,8 @@ export type Vehicle = {
   year: number;
   make: string;
   model: string;
-  price: string;
+  price: string; // Legacy, prefer price_display
+  price_display?: string; // The formatted price string from the API
   image: string;
   mileage: number;
   is_featured?: boolean;

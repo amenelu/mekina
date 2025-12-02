@@ -13,6 +13,7 @@ import {
 import { useLocalSearchParams, Stack, useNavigation } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import VehicleCard, { Vehicle } from "./_components/VehicleCard";
+import { API_BASE_URL } from "../apiConfig";
 
 const COLORS = {
   background: "#14181F",
@@ -39,9 +40,7 @@ const CarDetailScreen = () => {
       setLoading(true);
       try {
         // IMPORTANT: Replace with your computer's local IP address
-        const response = await fetch(
-          `http://192.168.100.9:5001/api/cars/${id}`
-        );
+        const response = await fetch(`${API_BASE_URL}/api/cars/${id}`);
         const data = await response.json();
         if (data.car) {
           setCar(data.car);
