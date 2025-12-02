@@ -27,9 +27,11 @@ const Footer = () => {
               <Text style={styles.footerLinkText}>All Listings</Text>
             </Pressable>
           </Link>
-          <Pressable>
-            <Text style={styles.footerLinkText}>How It Works</Text>
-          </Pressable>
+          <Link href="/how-it-works" asChild>
+            <Pressable>
+              <Text style={styles.footerLinkText}>How It Works</Text>
+            </Pressable>
+          </Link>
           <Pressable>
             <Text style={styles.footerLinkText}>FAQ</Text>
           </Pressable>
