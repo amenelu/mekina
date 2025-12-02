@@ -7,6 +7,7 @@ import {
   TextInput,
   Pressable,
   Image,
+  ActivityIndicator,
   Alert,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
@@ -15,99 +16,6 @@ import { useRouter } from "expo-router";
 import HeaderRight from "../_components/HeaderRight";
 import Footer from "../_components/Footer";
 import VehicleCard, { Vehicle } from "../_components/VehicleCard";
-
-// --- Mock Data (can be replaced with API call) ---
-const allVehicles: Vehicle[] = [
-  {
-    id: "1",
-    year: 2022,
-    make: "Hyundai",
-    model: "Ioniq 5",
-    price: "3,800,000 ETB",
-    image:
-      "https://imgs.search.brave.com/IMfjRFIBmlHG1FAY9P4j_f3ygIpC6_-Lq48rCDOeoz4/rs:fit:860:0:0:0/g:ce/aHR0cHM6Ly9kaS11/cGxvYWRzLXBvZDku/ZGVhbGVyaW5zcGly/ZS5jb20vY2FwaXRv/bGh5dW5kYWlzYW5q/b3NlL3VwbG9hZHMv/MjAyMS8xMi8yMDIy/LUh5dW5kYWktSU9O/SVEtNS1JbnRyby5w/bmc",
-    mileage: 25000,
-    is_featured: true,
-    listingType: "Sale",
-  },
-  {
-    id: "2",
-    year: 2021,
-    make: "Volkswagen",
-    model: "ID.4",
-    price: "Current Bid: 3,100,000 ETB",
-    image:
-      "https://imgs.search.brave.com/qt8FWIjaoCfMuFfwo7qFDXLFJenfb37wtMaiMqEyDsA/rs:fit:860:0:0:0/g:ce/aHR0cHM6Ly9jbGVh/bnRlY2huaWNhLmNv/bS93cC1jb250ZW50/L3VwbG9hZHMvMjAy/NC8wNS9WVy12b2xr/c3dhZ2VuLWlkLjQt/aWQ0LWN1di1jcm9z/c292ZXItc3V2LWVs/ZWN0cmljLWV2LUtZ/TEUtRklFTEQtQ2xl/YW5UZWNobmljYS04/MDB4NDQ1LmpwZw",
-    mileage: 45000,
-    listingType: "Auction",
-  },
-  {
-    id: "3",
-    year: 2023,
-    make: "BYD",
-    model: "Atto 3",
-    price: "2,950,000 ETB",
-    image:
-      "https://imgs.search.brave.com/qt8FWIjaoCfMuFfwo7qFDXLFJenfb37wtMaiMqEyDsA/rs:fit:860:0:0:0/g:ce/aHR0cHM6Ly9jbGVh/bnRlY2huaWNhLmNv/bS93cC1jb250ZW50/L3VwbG9hZHMvMjAy/NC8wNS9WVy12b2xr/c3dhZ2VuLWlkLjQt/aWQ0LWN1di1jcm9z/c292ZXItc3V2LWVs/ZWN0cmljLWV2LUtZ/TEUtRklFTEQtQ2xl/YW5UZWNobmljYS04/MDB4NDQ1LmpwZw",
-    mileage: 15000,
-    listingType: "Sale",
-  },
-  {
-    id: "4",
-    year: 2020,
-    make: "Mercedes-Benz",
-    model: "EQC",
-    price: "Current Bid: 4,500,000 ETB",
-    image:
-      "https://imgs.search.brave.com/1-RrtfNbEgi3rUJFAdyLJfc4cwd9PAlVKZ3FFQe8HPw/rs:fit:860:0:0:0/g:ce/aHR0cHM6Ly90My5m/dGNkbi5uZXQvanBn/LzA0LzA1LzA1Lzk2/LzM2MF9GXzQwNTA1/OTYyOV9sZkFDb0Vu/WXo0Z1RGd0dXSks2/aWxLMUtjQmNYdGQy/Vi5qcGc",
-    mileage: 60000,
-    listingType: "Auction",
-  },
-  {
-    id: "5",
-    year: 2023,
-    make: "Toyota",
-    model: "RAV4",
-    price: "3,500,000 ETB",
-    image:
-      "https://imgs.search.brave.com/v2a8HQzdx9CdYjNiPZWMjNhP0Ijrs6m42WMY2dApHWE/rs:fit:860:0:0:0/g:ce/aHR0cHM6Ly9oaXBz/LmhlYXJzdGFwcHMu/Y29tL2htZy1wcm9k/L2ltYWdlcy8yMDIz/LXRveW90YS1yYXY0/LWh5YnJpZC13b29k/bGFuZC1lZGl0aW9u/LTM2NTktMTY3NTEx/NjM1Ni5qcGc_Y3Jv/cD0xeHc6MXhoO2Nl/bnRlcix0b3A",
-    mileage: 5000,
-    listingType: "Sale",
-  },
-  {
-    id: "6",
-    year: 2024,
-    make: "Ford",
-    model: "Mustang Mach-E",
-    price: "Current Bid: 4,200,000 ETB",
-    image:
-      "https://imgs.search.brave.com/_06DoRpRgtWgSfBoiobDkKKpTvv8D9tZBomMujqgwjU/rs:fit:860:0:0:0/g:ce/aHR0cHM6Ly9waWN0/dXJlcy5kZWFsZXIu/Y29tL2EvYXV0b25h/dGlvbmthdHlmb3Jk/ZmQvMTIzNC9jNTkz/OGNjY2U2ZTQ0MmFm/YjY2MjA0MWVlODAw/ZmYxOS5wbmc_aW1w/b2xpY3k9ZG93bnNp/emVfYmtwdCZ3PTI1/MDA",
-    mileage: 12000,
-    listingType: "Auction",
-  },
-  {
-    id: "7",
-    year: 2022,
-    make: "Kia",
-    model: "EV6",
-    price: "3,750,000 ETB",
-    image:
-      "https://imgs.search.brave.com/flY_UFc1PtTX3AZTE_v5AOnEf3eYwwSPwHf8FFAt9oY/rs:fit:860:0:0:0/g:ce/aHR0cHM6Ly93d3cu/dGhlZHJpdmUuY29t/L3dwLWNvbnRlbnQv/dXBsb2Fkcy8yMDI0/LzA1LzE0L2tpYV9l/djZfNjY3LmpwZWc_/cXVhbGl0eT04NSZ3/PTc2OA",
-    mileage: 30000,
-    listingType: "Sale",
-  },
-  {
-    id: "8",
-    year: 2021,
-    make: "Tesla",
-    model: "Model Y",
-    price: "Current Bid: 4,800,000 ETB",
-    image:
-      "https://imgs.search.brave.com/16ZSeFix5EMCTRLxyO4ZHklz2lGf44dO19lib87n2Ko/rs:fit:860:0:0:0/g:ce/aHR0cHM6Ly9kaWdp/dGFsYXNzZXRzLnRl/c2xhLmNvbS90ZXNs/YS1jb250ZW50cy9p/bWFnZS91cGxvYWQv/Zl9hdXRvLHFfYXV0/by9sZWFybl9uZXdf/bW9kZWx5X2V4dF8x/LmpwZw",
-    mileage: 20000,
-    listingType: "Auction",
-  },
-];
 
 const COLORS = {
   background: "#14181F",
@@ -121,12 +29,49 @@ const COLORS = {
 
 const AllListingsScreen = () => {
   const router = useRouter();
+  const [allVehicles, setAllVehicles] = useState<Vehicle[]>([]);
+  const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [compareItems, setCompareItems] = useState<
     { id: string; image: string }[]
   >([]);
 
-  // In a real app, you'd filter based on state. For now, we just display all.
+  React.useEffect(() => {
+    const fetchVehicles = async () => {
+      try {
+        // IMPORTANT: Replace with your computer's local IP address
+        const response = await fetch(
+          "http://192.168.100.9:5001/auctions/api/all_listings"
+        );
+        const data = await response.json();
+
+        const formattedData = data.map((item: any) => ({
+          id: item.id.toString(),
+          year: item.year,
+          make: item.make,
+          model: item.model,
+          price: item.price_display,
+          image: item.image_url,
+          mileage: item.mileage || 0,
+          is_featured: item.is_featured,
+          listingType: item.listing_type === "Auction" ? "Auction" : "Sale",
+        }));
+
+        setAllVehicles(formattedData);
+      } catch (error) {
+        console.error("Failed to fetch vehicles:", error);
+        Alert.alert(
+          "Connection Error",
+          "Could not connect to the server. Please make sure your backend is running and you are on the same network."
+        );
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchVehicles();
+  }, []);
+
   const filteredVehicles = allVehicles.filter((vehicle) =>
     `${vehicle.year} ${vehicle.make} ${vehicle.model}`
       .toLowerCase()
@@ -157,6 +102,14 @@ const AllListingsScreen = () => {
   };
   return (
     <>
+      {loading && (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={COLORS.accent} />
+          <Text style={{ color: COLORS.foreground, marginTop: 10 }}>
+            Loading Listings...
+          </Text>
+        </View>
+      )}
       <ScrollView style={styles.container}>
         {/* --- Search & Filter Section --- */}
         <View style={styles.filterContainer}>
@@ -266,6 +219,13 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: COLORS.background,
+  },
+  loadingContainer: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: "rgba(20, 24, 31, 0.9)",
+    justifyContent: "center",
+    alignItems: "center",
+    zIndex: 10,
   },
   filterContainer: {
     padding: 20,

@@ -97,6 +97,29 @@ const RequestCard = ({ request }: { request: (typeof mockRequests)[0] }) => {
 const MyRequestsScreen = () => {
   return (
     <ScrollView style={styles.container}>
+      {/* Add a button to access the dealer dashboard */}
+      <View style={styles.dashboardButtonContainer}>
+        <Link href="/dealer-dashboard" asChild>
+          <Pressable style={styles.dashboardButton}>
+            <Text style={styles.dashboardButtonText}>
+              Go to Dealer Dashboard
+            </Text>
+          </Pressable>
+        </Link>
+        {/* Add a button to access the admin dashboard */}
+        <Link href="/admin-dashboard" asChild>
+          <Pressable
+            style={[
+              styles.dashboardButton,
+              { marginTop: 10, backgroundColor: "#c0392b" },
+            ]}
+          >
+            <Text style={styles.dashboardButtonText}>
+              Go to Admin Dashboard
+            </Text>
+          </Pressable>
+        </Link>
+      </View>
       <View style={styles.content}>
         {mockRequests.length > 0 ? (
           mockRequests.map((req) => <RequestCard key={req.id} request={req} />)
@@ -180,6 +203,22 @@ const styles = StyleSheet.create({
     fontSize: 16,
     marginTop: 10,
     fontWeight: "600",
+  },
+  dashboardButtonContainer: {
+    padding: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.border,
+  },
+  dashboardButton: {
+    backgroundColor: COLORS.accent,
+    padding: 15,
+    borderRadius: 10,
+    alignItems: "center",
+  },
+  dashboardButtonText: {
+    color: COLORS.foreground,
+    fontSize: 16,
+    fontWeight: "bold",
   },
 });
 
