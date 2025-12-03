@@ -9,6 +9,8 @@ import {
   Image,
   ActivityIndicator,
   Alert,
+  Modal,
+  TouchableOpacity,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
@@ -33,15 +35,58 @@ const AllListingsScreen = () => {
   const [allVehicles, setAllVehicles] = useState<Vehicle[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState(searchQuery);
   const [compareItems, setCompareItems] = useState<
     { id: string; image: string }[]
   >([]);
 
+  // Filter states
+  const [filters, setFilters] = useState({
+    condition: "",
+    body_type: "",
+    fuel_type: "",
+  });
+  // State for the new unified filter modal
+  const [isFilterModalVisible, setFilterModalVisible] = useState(false);
+  const [tempFilters, setTempFilters] = useState(filters);
+
+  // Debounce search input to avoid excessive API calls
+  React.useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedSearchQuery(searchQuery);
+    }, 500); // 500ms delay
+
+    return () => {
+      clearTimeout(handler);
+    };
+  }, [searchQuery]);
+
   React.useEffect(() => {
     const fetchVehicles = async () => {
+      setLoading(true);
       try {
-        // IMPORTANT: Replace with your computer's local IP address
-        const response = await fetch(`${API_BASE_URL}/api/listings`);
+        const params = new URLSearchParams();
+        if (debouncedSearchQuery) {
+          params.append("q", debouncedSearchQuery);
+        }
+        if (filters.condition) {
+          params.append("condition", filters.condition);
+        }
+        if (filters.body_type) {
+          params.append("body_type", filters.body_type);
+        }
+        if (filters.fuel_type) {
+          params.append("fuel_type", filters.fuel_type);
+        }
+
+        const response = await fetch(
+          `${API_BASE_URL}/api/listings?${params.toString()}`
+        );
+
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
         const data = await response.json();
 
         const formattedData = data.map((item: any) => ({
@@ -49,11 +94,11 @@ const AllListingsScreen = () => {
           year: item.year,
           make: item.make,
           model: item.model,
-          price: item.price_display,
+          price: item.price_display || "N/A",
           image: item.image_url,
           mileage: item.mileage || 0,
           is_featured: item.is_featured,
-          listingType: item.listing_type === "Auction" ? "Auction" : "Sale",
+          listingType: item.listing_type,
         }));
 
         setAllVehicles(formattedData);
@@ -69,13 +114,7 @@ const AllListingsScreen = () => {
     };
 
     fetchVehicles();
-  }, []);
-
-  const filteredVehicles = allVehicles.filter((vehicle) =>
-    `${vehicle.year} ${vehicle.make} ${vehicle.model}`
-      .toLowerCase()
-      .includes(searchQuery.toLowerCase())
-  );
+  }, [debouncedSearchQuery, filters]);
 
   const handleToggleCompare = (itemId: string) => {
     const isCurrentlyCompared = compareItems.some((item) => item.id === itemId);
@@ -98,6 +137,21 @@ const AllListingsScreen = () => {
   };
   const handleClearCompare = () => {
     setCompareItems([]);
+  };
+
+  const filterOptions = {
+    condition: ["New", "Used"],
+    body_type: ["SUV", "Sedan", "Hatchback", "Pickup", "Coupe", "Minivan"],
+    fuel_type: ["Gasoline", "Diesel", "Electric", "Hybrid"],
+  };
+
+  const clearAllFilters = () => {
+    setFilters({
+      condition: "",
+      body_type: "",
+      fuel_type: "",
+    });
+    setSearchQuery("");
   };
   return (
     <>
@@ -127,40 +181,41 @@ const AllListingsScreen = () => {
               onChangeText={setSearchQuery}
             />
           </View>
-          {/* Filters can be implemented with modals or custom dropdowns */}
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            style={styles.quickFiltersContainer}
-          >
-            <Pressable style={styles.filterButton}>
-              <Text style={styles.filterButtonText}>Any Condition</Text>
+          <View style={styles.quickFiltersContainer}>
+            <Pressable
+              style={styles.filterButton}
+              onPress={() => {
+                setTempFilters(filters); // Sync temp state with active filters
+                setFilterModalVisible(true);
+              }}
+            >
+              <Ionicons
+                name="options-outline"
+                size={20}
+                color={COLORS.mutedForeground}
+              />
+              <Text style={styles.filterButtonText}>Filter</Text>
             </Pressable>
-            <Pressable style={styles.filterButton}>
-              <Text style={styles.filterButtonText}>Any Body Type</Text>
-            </Pressable>
-            <Pressable style={styles.filterButton}>
-              <Text style={styles.filterButtonText}>Any Fuel Type</Text>
-            </Pressable>
-          </ScrollView>
+            {/* You can add a clear all button here if desired */}
+          </View>
         </View>
 
         {/* --- Listings Grid --- */}
         <View style={styles.gridContainer}>
-          {filteredVehicles.length > 0 ? (
-            filteredVehicles.map((item) => (
-              <VehicleCard
-                key={item.id}
-                item={item}
-                isCompared={compareItems.some((c) => c.id === item.id)}
-                onToggleCompare={handleToggleCompare}
-              />
-            ))
-          ) : (
-            <Text style={styles.noResultsText}>
-              No listings match your search criteria.
-            </Text>
-          )}
+          {!loading && allVehicles.length > 0
+            ? allVehicles.map((item) => (
+                <VehicleCard
+                  key={item.id}
+                  item={item}
+                  isCompared={compareItems.some((c) => c.id === item.id)}
+                  onToggleCompare={handleToggleCompare}
+                />
+              ))
+            : !loading && (
+                <Text style={styles.noResultsText}>
+                  No listings match your search criteria.
+                </Text>
+              )}
         </View>
 
         <Footer />
@@ -210,6 +265,142 @@ const AllListingsScreen = () => {
           </Pressable>
         </View>
       )}
+      {/* Filter Modal */}
+      <Modal
+        animationType="slide"
+        transparent={true}
+        visible={isFilterModalVisible}
+        onRequestClose={() => setFilterModalVisible(false)}
+      >
+        <Pressable
+          style={styles.modalContainer}
+          onPress={() => setFilterModalVisible(false)}
+        >
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Filters</Text>
+            <ScrollView>
+              {/* Condition Filter */}
+              <Text style={styles.modalSectionTitle}>Condition</Text>
+              <View style={styles.modalOptionsGrid}>
+                {filterOptions.condition.map((option) => (
+                  <TouchableOpacity
+                    key={option}
+                    style={[
+                      styles.modalOption,
+                      tempFilters.condition === option &&
+                        styles.modalOptionSelected,
+                    ]}
+                    onPress={() =>
+                      setTempFilters((f) => ({
+                        ...f,
+                        condition: f.condition === option ? "" : option,
+                      }))
+                    }
+                  >
+                    <Text
+                      style={[
+                        styles.modalOptionText,
+                        tempFilters.condition === option &&
+                          styles.modalOptionTextSelected,
+                      ]}
+                    >
+                      {option}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+
+              {/* Body Type Filter */}
+              <Text style={styles.modalSectionTitle}>Body Type</Text>
+              <View style={styles.modalOptionsGrid}>
+                {filterOptions.body_type.map((option) => (
+                  <TouchableOpacity
+                    key={option}
+                    style={[
+                      styles.modalOption,
+                      tempFilters.body_type === option &&
+                        styles.modalOptionSelected,
+                    ]}
+                    onPress={() =>
+                      setTempFilters((f) => ({
+                        ...f,
+                        body_type: f.body_type === option ? "" : option,
+                      }))
+                    }
+                  >
+                    <Text
+                      style={[
+                        styles.modalOptionText,
+                        tempFilters.body_type === option &&
+                          styles.modalOptionTextSelected,
+                      ]}
+                    >
+                      {option}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+
+              {/* Fuel Type Filter */}
+              <Text style={styles.modalSectionTitle}>Fuel Type</Text>
+              <View style={styles.modalOptionsGrid}>
+                {filterOptions.fuel_type.map((option) => (
+                  <TouchableOpacity
+                    key={option}
+                    style={[
+                      styles.modalOption,
+                      tempFilters.fuel_type === option &&
+                        styles.modalOptionSelected,
+                    ]}
+                    onPress={() =>
+                      setTempFilters((f) => ({
+                        ...f,
+                        fuel_type: f.fuel_type === option ? "" : option,
+                      }))
+                    }
+                  >
+                    <Text
+                      style={[
+                        styles.modalOptionText,
+                        tempFilters.fuel_type === option &&
+                          styles.modalOptionTextSelected,
+                      ]}
+                    >
+                      {option}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </ScrollView>
+
+            <View style={styles.modalFooter}>
+              <TouchableOpacity
+                style={styles.modalClearButton}
+                onPress={() => {
+                  // Clear the main filters directly and close the modal
+                  setFilters({
+                    condition: "",
+                    body_type: "",
+                    fuel_type: "",
+                  });
+                  setFilterModalVisible(false);
+                }}
+              >
+                <Text style={styles.modalClearButtonText}>Clear All</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.modalApplyButton}
+                onPress={() => {
+                  setFilters(tempFilters);
+                  setFilterModalVisible(false);
+                }}
+              >
+                <Text style={styles.modalApplyButtonText}>Apply Filters</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </Pressable>
+      </Modal>
     </>
   );
 };
@@ -253,6 +444,7 @@ const styles = StyleSheet.create({
   quickFiltersContainer: {
     marginTop: 15,
     flexDirection: "row",
+    alignItems: "center",
   },
   filterButton: {
     backgroundColor: COLORS.secondary,
@@ -262,10 +454,18 @@ const styles = StyleSheet.create({
     marginRight: 10,
     borderWidth: 1,
     borderColor: COLORS.border,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  clearFiltersButton: {
+    padding: 8,
+    justifyContent: "center",
   },
   filterButtonText: {
     color: COLORS.mutedForeground,
     fontWeight: "500",
+    fontSize: 14,
   },
   gridContainer: {
     flexDirection: "row",
@@ -343,6 +543,89 @@ const styles = StyleSheet.create({
   clearButtonText: {
     color: "#FFFFFF",
     fontWeight: "600",
+  },
+  // Modal Styles
+  modalContainer: {
+    flex: 1,
+    justifyContent: "flex-end",
+    backgroundColor: "rgba(0, 0, 0, 0.7)",
+  },
+  modalContent: {
+    backgroundColor: COLORS.card,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    padding: 20,
+    maxHeight: "80%",
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: "bold",
+    color: COLORS.foreground,
+    marginBottom: 10,
+    textAlign: "center",
+  },
+  modalSectionTitle: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: COLORS.mutedForeground,
+    marginTop: 20,
+    marginBottom: 10,
+  },
+  modalOptionsGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 10,
+  },
+  modalOption: {
+    paddingVertical: 10,
+    paddingHorizontal: 15,
+    backgroundColor: COLORS.secondary,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+  },
+  modalOptionSelected: {
+    backgroundColor: COLORS.accent,
+    borderColor: COLORS.accent,
+  },
+  modalOptionText: {
+    fontSize: 14,
+    color: COLORS.mutedForeground,
+    fontWeight: "500",
+  },
+  modalOptionTextSelected: {
+    color: COLORS.foreground,
+  },
+  modalFooter: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginTop: 30,
+    paddingTop: 15,
+    borderTopWidth: 1,
+    borderTopColor: COLORS.border,
+  },
+  modalClearButton: {
+    padding: 15,
+    borderRadius: 10,
+    alignItems: "center",
+  },
+  modalClearButtonText: {
+    color: COLORS.mutedForeground,
+    fontSize: 16,
+    fontWeight: "bold",
+  },
+  modalApplyButton: {
+    padding: 15,
+    borderRadius: 10,
+    backgroundColor: COLORS.accent,
+    alignItems: "center",
+    flex: 1,
+    marginLeft: 10,
+  },
+  modalApplyButtonText: {
+    color: "#fff",
+    fontSize: 16,
+    fontWeight: "bold",
   },
 });
 
