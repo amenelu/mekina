@@ -40,6 +40,7 @@ class User(UserMixin, db.Model):
             'is_dealer': self.is_dealer,
             'is_verified': self.is_verified,
             'is_rental_company': self.is_rental_company,
+            'is_admin': self.is_admin,
         }
         if detail_level == 'owner':
             data['email'] = self.email

@@ -1,6 +1,8 @@
 import React from "react";
 import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { useAuth } from "@/hooks/useAuth";
+import { useRouter } from "expo-router";
 
 const COLORS = {
   background: "#14181F",
@@ -9,20 +11,19 @@ const COLORS = {
 };
 
 const ProfileScreen = () => {
-  // Dummy user data
-  const user = {
-    username: "Amen",
-  };
+  const { user, logout } = useAuth();
+  const router = useRouter();
 
   const handleLogout = () => {
-    // TODO: Implement logout logic
-    console.log("Logging out...");
+    logout();
+    // Redirect to the login screen and remove the tabs from the history stack.
+    router.replace("/login");
   };
 
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.content}>
-        <Text style={styles.title}>Hi, {user.username}!</Text>
+        <Text style={styles.title}>Hi, {user?.username || "User"}!</Text>
         <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
           <Text style={styles.logoutButtonText}>Logout</Text>
         </TouchableOpacity>

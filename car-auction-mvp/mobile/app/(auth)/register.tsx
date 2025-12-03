@@ -1,13 +1,18 @@
 import React, { useState } from "react";
 import {
+  Alert,
   View,
   Text,
   TextInput,
   StyleSheet,
   TouchableOpacity,
   ScrollView,
+  ActivityIndicator,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { useRouter } from "expo-router";
+import axios from "axios";
+import { API_BASE_URL } from "@/apiConfig";
 
 const RegisterScreen = () => {
   const [username, setUsername] = useState("");
@@ -15,49 +20,65 @@ const RegisterScreen = () => {
   const [phoneNumber, setPhoneNumber] = useState("");
   const [password, setPassword] = useState("");
   const [password2, setPassword2] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const router = useRouter();
 
-  // Dummy error state for demonstration
   const [errors, setErrors] = useState({
     username: "",
     email: "",
-    phoneNumber: "",
+    phone_number: "", // Match backend error key
     password: "",
     password2: "",
   });
 
   const handleRegister = () => {
-    // Basic validation example
-    let newErrors = {
+    // Clear previous errors
+    setErrors({
       username: "",
       email: "",
-      phoneNumber: "",
+      phone_number: "",
       password: "",
       password2: "",
-    };
-    let hasError = false;
-    if (!username) {
-      newErrors.username = "Username is required.";
-      hasError = true;
-    }
-    if (!email) {
-      newErrors.email = "Email is required.";
-      hasError = true;
-    }
-    if (password !== password2) {
-      newErrors.password2 = "Passwords do not match.";
-      hasError = true;
-    }
-    setErrors(newErrors);
+    });
 
-    if (!hasError) {
-      console.log("Registering with:", {
+    if (password !== password2) {
+      setErrors((prev) => ({ ...prev, password2: "Passwords do not match." }));
+      return;
+    }
+
+    setIsLoading(true);
+    axios
+      .post(`${API_BASE_URL}/auth/api/register`, {
         username,
         email,
-        phoneNumber,
+        phone_number: phoneNumber,
         password,
+        password2,
+      })
+      .then((response) => {
+        Alert.alert(
+          "Registration Successful",
+          "You can now log in with your new account.",
+          [{ text: "OK", onPress: () => router.push("/login") }]
+        );
+      })
+      .catch((error) => {
+        if (
+          error.response &&
+          error.response.data &&
+          error.response.data.errors
+        ) {
+          // Set validation errors from the backend
+          setErrors((prev) => ({ ...prev, ...error.response.data.errors }));
+        } else {
+          const message =
+            error.response?.data?.message || "An unexpected error occurred.";
+          Alert.alert("Registration Failed", message);
+        }
+      })
+      .finally(() => {
+        setIsLoading(false);
       });
-      // TODO: Implement actual registration logic
-    }
   };
 
   return (
@@ -100,8 +121,8 @@ const RegisterScreen = () => {
               onChangeText={setPhoneNumber}
               keyboardType="phone-pad"
             />
-            {errors.phoneNumber ? (
-              <Text style={styles.errorText}>{errors.phoneNumber}</Text>
+            {errors.phone_number ? (
+              <Text style={styles.errorText}>{errors.phone_number}</Text>
             ) : null}
           </View>
 
@@ -132,8 +153,16 @@ const RegisterScreen = () => {
           </View>
         </View>
 
-        <TouchableOpacity style={styles.submitButton} onPress={handleRegister}>
-          <Text style={styles.submitButtonText}>Register</Text>
+        <TouchableOpacity
+          style={styles.submitButton}
+          onPress={handleRegister}
+          disabled={isLoading}
+        >
+          {isLoading ? (
+            <ActivityIndicator color="#ffffff" />
+          ) : (
+            <Text style={styles.submitButtonText}>Register</Text>
+          )}
         </TouchableOpacity>
       </ScrollView>
     </SafeAreaView>

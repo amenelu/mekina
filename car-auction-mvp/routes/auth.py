@@ -7,7 +7,6 @@ from models.user import User
 import jwt
 from datetime import datetime, timedelta
 from functools import wraps
-from werkzeug.security import check_password_hash
 from flask_wtf import FlaskForm
 from wtforms import StringField, PasswordField, BooleanField, SubmitField
 from wtforms.validators import DataRequired, Email, EqualTo, ValidationError, Optional
@@ -122,11 +121,14 @@ def api_login():
         or_(User.username == data['login'], User.email == data['login'])
     ).first()
 
-    if not user or not check_password_hash(user.password_hash, data['password']):
+    if not user or not user.check_password(data['password']):
         return jsonify({'message': 'Invalid credentials'}), 401
 
     token = generate_jwt(user)
-    return jsonify({'token': token, 'user_id': user.id}), 200
+    return jsonify({
+        'token': token, 
+        'user': user.to_dict(detail_level='owner')
+    }), 200
 
 
 @auth_bp.route('/register', methods=['GET', 'POST'])
@@ -191,3 +193,8 @@ def api_register(): # Removed the extra redirect and render_template lines
 def logout():
     logout_user()
     return redirect(url_for('main.home'))
+
+@auth_bp.route('/api/ping', methods=['GET'])
+def api_ping():
+    """A simple endpoint to check if the API is reachable."""
+    return jsonify({'message': 'pong'}), 200

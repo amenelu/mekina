@@ -1,22 +1,65 @@
 import React, { useState } from "react";
 import {
+  Alert,
   StyleSheet,
   Text,
   View,
   TextInput,
   TouchableOpacity,
+  ActivityIndicator,
 } from "react-native";
 import BouncyCheckbox from "react-native-bouncy-checkbox";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { Link } from "expo-router";
+import { Link, useRouter } from "expo-router";
+import { useAuth } from "@/hooks/useAuth";
+import axios from "axios";
+import { API_BASE_URL } from "@/apiConfig";
 
 export default function LoginScreen() {
   const [login, setLogin] = useState("");
   const [password, setPassword] = useState("");
   const [rememberMe, setRememberMe] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const [focusedInput, setFocusedInput] = useState<"login" | "password" | null>(
     null
   );
+
+  const router = useRouter();
+  const { login: setAuth } = useAuth();
+
+  const handleLogin = async () => {
+    if (!login || !password) {
+      Alert.alert("Error", "Please enter both username/email and password.");
+      return;
+    }
+    setIsLoading(true);
+    try {
+      const response = await axios.post(`${API_BASE_URL}/auth/api/login`, {
+        login,
+        password,
+      });
+      const { user, token } = response.data;
+      setAuth(user, token);
+
+      // Role-based redirection
+      if (user.is_admin) {
+        router.replace("/admin-dashboard");
+      } else if (user.is_dealer) {
+        router.replace("/dealer-dashboard");
+      } else {
+        router.replace("/(tabs)/");
+      }
+    } catch (error: any) {
+      // Prioritize the specific message from the API response
+      const message =
+        error.response?.data?.message ||
+        error.message ||
+        "An unexpected error occurred.";
+      Alert.alert("Login Failed", message);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   return (
     <SafeAreaView style={styles.container}>
@@ -67,8 +110,16 @@ export default function LoginScreen() {
           />
         </View>
 
-        <TouchableOpacity style={styles.loginButton}>
-          <Text style={styles.loginButtonText}>Submit</Text>
+        <TouchableOpacity
+          style={styles.loginButton}
+          onPress={handleLogin}
+          disabled={isLoading}
+        >
+          {isLoading ? (
+            <ActivityIndicator color="#ffffff" />
+          ) : (
+            <Text style={styles.loginButtonText}>Submit</Text>
+          )}
         </TouchableOpacity>
 
         <View style={styles.registerContainer}>
