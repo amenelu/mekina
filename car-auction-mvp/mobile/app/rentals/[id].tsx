@@ -7,105 +7,11 @@ import {
   Image,
   Pressable,
   ActivityIndicator,
+  Alert,
 } from "react-native";
 import { useLocalSearchParams, Stack } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-
-// --- Mock Data (In a real app, this would be fetched from an API) ---
-const rentalVehicles = [
-  {
-    id: "r1",
-    year: 2023,
-    make: "Toyota",
-    model: "Vitz",
-    price: "2,500 ETB/day",
-    image:
-      "https://imgs.search.brave.com/5-P_k5hXfVz_v-y_v-y_v-y_v-y_v-y_v-y_v-y/rs:fit:860:0:0:0/g:ce/aHR0cHM6Ly9jYXJz/LmppamlnaC5jb20v/MjAyMy10b3lvdGEt/dml0ei1hdXRvbWF0/aWMtY2FyLmpwZw",
-    description:
-      "A compact and fuel-efficient car, perfect for city driving and daily commutes. Easy to park and maneuver.",
-    specs: {
-      Condition: "Like New",
-      Mileage: "15,000 km",
-      Transmission: "Automatic",
-      "Fuel Type": "Gasoline",
-    },
-    features: ["Air Conditioning", "Bluetooth", "Backup Camera"],
-    owner: {
-      username: "RentalPro",
-      email: "contact@rentalpro.com",
-      phone: "0912345678",
-    },
-  },
-  {
-    id: "r2",
-    year: 2022,
-    make: "Suzuki",
-    model: "Dzire",
-    price: "2,200 ETB/day",
-    image:
-      "https://imgs.search.brave.com/5-P_k5hXfVz_v-y_v-y_v-y_v-y_v-y_v-y_v-y/rs:fit:860:0:0:0/g:ce/aHR0cHM6Ly9jYXJz/LmppamlnaC5jb20v/MjAyMi1zdXp1a2kt/ZHppcmUtYXV0b21h/dGljLWNhci5qcGc",
-    description:
-      "An affordable and reliable sedan, great for families and business trips.",
-    specs: {
-      Condition: "Used",
-      Mileage: "35,000 km",
-      Transmission: "Automatic",
-      "Fuel Type": "Gasoline",
-    },
-    features: ["Air Conditioning", "Power Windows"],
-    owner: {
-      username: "CityRentals",
-      email: "info@cityrentals.et",
-      phone: "0911121314",
-    },
-  },
-  {
-    id: "r3",
-    year: 2023,
-    make: "Toyota",
-    model: "RAV4",
-    price: "4,500 ETB/day",
-    image:
-      "https://imgs.search.brave.com/v2a8HQzdx9CdYjNiPZWMjNhP0Ijrs6m42WMY2dApHWE/rs:fit:860:0:0:0/g:ce/aHR0cHM6Ly9oaXBz/LmhlYXJzdGFwcHMu/Y29tL2htZy1wcm9k/L2ltYWdlcy8yMDIz/LXRveW90YS1yYXY0/LWh5YnJpZC13b29k/bGFuZC1lZGl0aW9u/LTM2NTktMTY3NTEx/NjM1Ni5qcGc_Y3Jv/cD0xeHc6MXhoO2Nl/bnRlcix0b3A",
-    description:
-      "A spacious and versatile SUV, perfect for road trips and adventures.",
-    specs: {
-      Condition: "New",
-      Mileage: "5,000 km",
-      Transmission: "Automatic",
-      "Fuel Type": "Hybrid",
-    },
-    features: ["Sunroof", "All-Wheel Drive", "Apple CarPlay"],
-    owner: {
-      username: "AdventureRides",
-      email: "book@adventurerides.com",
-      phone: "0922334455",
-    },
-  },
-  {
-    id: "r4",
-    year: 2022,
-    make: "Hyundai",
-    model: "Tucson",
-    price: "4,000 ETB/day",
-    image:
-      "https://imgs.search.brave.com/IMfjRFIBmlHG1FAY9P4j_f3ygIpC6_-Lq48rCDOeoz4/rs:fit:860:0:0:0/g:ce/aHR0cHM6Ly9kaS11/cGxvYWRzLXBvZDku/ZGVhbGVyaW5zcGly/ZS5jb20vY2FwaXRv/bGh5dW5kYWlzYW5q/b3NlL3VwbG9hZHMv/MjAyMS8xMi8yMDIy/LUh5dW5kYWktSU9O/SVEtNS1JbnRyby5w/bmc",
-    description:
-      "A modern and stylish SUV with the latest technology and safety features.",
-    specs: {
-      Condition: "Used",
-      Mileage: "25,000 km",
-      Transmission: "Automatic",
-      "Fuel Type": "Gasoline",
-    },
-    features: ["Panoramic Sunroof", "Lane Keep Assist", "Heated Seats"],
-    owner: {
-      username: "PrestigeRentals",
-      email: "support@prestige.et",
-      phone: "0944556677",
-    },
-  },
-];
+import { API_BASE_URL } from "../../apiConfig";
 
 const COLORS = {
   background: "#14181F",
@@ -119,27 +25,52 @@ const COLORS = {
 
 const RentalDetailScreen = () => {
   const { id } = useLocalSearchParams();
-  const [rental, setRental] = useState<(typeof rentalVehicles)[0] | null>(null);
+  const [rental, setRental] = useState<any | null>(null);
   const [mainImage, setMainImage] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const foundRental = rentalVehicles.find((v) => v.id === id);
-    setRental(foundRental || null);
-    if (foundRental) {
-      setMainImage(foundRental.image);
-    }
+    const fetchRentalDetails = async () => {
+      if (!id) return;
+      setLoading(true);
+      try {
+        // The correct endpoint to get rental details from a car ID is `/api/rentals/car/<id>`
+        const response = await fetch(`${API_BASE_URL}/rentals/api/car/${id}`);
+        const data = await response.json();
+        if (data.rental) {
+          setRental(data.rental);
+          setMainImage(data.rental.primary_image_url);
+        } else {
+          setRental(null);
+        }
+      } catch (error) {
+        console.error("Failed to fetch rental details:", error);
+        Alert.alert("Error", "Could not load rental details.");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchRentalDetails();
   }, [id]);
 
-  if (!rental) {
+  if (loading) {
     return (
       <View style={styles.centered}>
         <ActivityIndicator size="large" color={COLORS.accent} />
       </View>
     );
   }
+  if (!rental) {
+    return (
+      <View style={styles.centered}>
+        <Text style={{ color: COLORS.foreground }}>Rental not found.</Text>
+      </View>
+    );
+  }
 
   const thumbnails = [
-    rental.image,
+    rental.primary_image_url,
     ...Array(4).fill("https://via.placeholder.com/100"),
   ];
 
@@ -152,7 +83,7 @@ const RentalDetailScreen = () => {
         {/* Image Gallery */}
         <View>
           <Image
-            source={{ uri: mainImage || rental.image }}
+            source={{ uri: mainImage || rental.primary_image_url }}
             style={styles.mainImage}
           />
           <ScrollView horizontal showsHorizontalScrollIndicator={false}>
@@ -182,7 +113,7 @@ const RentalDetailScreen = () => {
 
           <View style={styles.priceBox}>
             <Text style={styles.priceLabel}>Price Per Day</Text>
-            <Text style={styles.priceValue}>{rental.price}</Text>
+            <Text style={styles.priceValue}>{rental.price_display}</Text>
           </View>
 
           <Text style={styles.sectionTitle}>Description</Text>
@@ -190,22 +121,29 @@ const RentalDetailScreen = () => {
 
           <Text style={styles.sectionTitle}>Specifications</Text>
           <View style={styles.specsContainer}>
-            {Object.entries(rental.specs).map(([key, value]) => (
-              <View key={key} style={styles.specItem}>
-                <Text style={styles.specLabel}>{key}</Text>
-                <Text style={styles.specValue}>{value}</Text>
-              </View>
-            ))}
+            <View style={styles.specItem}>
+              <Text style={styles.specLabel}>Condition</Text>
+              <Text style={styles.specValue}>{rental.condition}</Text>
+            </View>
+            <View style={styles.specItem}>
+              <Text style={styles.specLabel}>Mileage</Text>
+              <Text style={styles.specValue}>
+                {rental.mileage
+                  ? `${rental.mileage.toLocaleString()} km`
+                  : "N/A"}
+              </Text>
+            </View>
+            <View style={styles.specItem}>
+              <Text style={styles.specLabel}>Transmission</Text>
+              <Text style={styles.specValue}>{rental.transmission}</Text>
+            </View>
+            <View style={styles.specItem}>
+              <Text style={styles.specLabel}>Fuel Type</Text>
+              <Text style={styles.specValue}>{rental.fuel_type}</Text>
+            </View>
           </View>
 
-          <Text style={styles.sectionTitle}>Features</Text>
-          <View style={styles.specsContainer}>
-            {rental.features.map((feature) => (
-              <View key={feature} style={styles.specItem}>
-                <Text style={styles.specValue}>{feature}</Text>
-              </View>
-            ))}
-          </View>
+          {/* You can add a features section here if the API provides it */}
         </View>
       </ScrollView>
       {/* Floating Action Button */}

@@ -23,6 +23,27 @@ def rental_detail(listing_id):
     from flask import redirect
     return redirect(url_for('main.car_detail', car_id=listing_id))
 
+@rentals_bp.route('/api/car/<int:car_id>')
+def api_rental_detail_by_car(car_id):
+    """
+    API endpoint to get rental details for a specific car ID.
+    This is what the mobile app's detail screen will call.
+    """
+    car = Car.query.options(
+        joinedload(Car.rental_listing),
+        joinedload(Car.images)
+    ).filter(
+        Car.id == car_id,
+        Car.listing_type == 'rental'
+    ).first_or_404()
+
+    # The mobile app expects a 'rental' key containing the car's data.
+    rental_data = car.to_dict()
+    # Add the price_display for consistency with the list view
+    rental_data['price_display'] = f"{car.rental_listing.price_per_day:,.0f} ETB/day" if car.rental_listing else "N/A"
+
+    return jsonify(rental=rental_data)
+
 @rentals_bp.route('/api/filter')
 def api_filter_rentals():
     """API endpoint to return filtered rental car data as JSON."""

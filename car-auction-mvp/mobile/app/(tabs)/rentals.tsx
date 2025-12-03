@@ -1,4 +1,4 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import {
   StyleSheet,
   Text,
@@ -7,11 +7,14 @@ import {
   TextInput,
   Pressable,
   ImageBackground,
+  ActivityIndicator,
+  Alert,
 } from "react-native";
 import { useNavigation } from "expo-router";
 import { useScrollToTop } from "@react-navigation/native";
 import { Ionicons } from "@expo/vector-icons";
 import Footer from "../_components/Footer";
+import { API_BASE_URL } from "../../apiConfig";
 
 const COLORS = {
   background: "#14181F",
@@ -23,49 +26,18 @@ const COLORS = {
   secondary: "#313843",
 };
 
-// Mock Data for Rentals
-const rentalVehicles = [
-  {
-    id: "r1",
-    year: 2023,
-    make: "Toyota",
-    model: "Vitz",
-    price: "2,500 ETB/day",
-    image:
-      "https://imgs.search.brave.com/5-P_k5hXfVz_v-y_v-y_v-y_v-y_v-y_v-y_v-y/rs:fit:860:0:0:0/g:ce/aHR0cHM6Ly9jYXJz/LmppamlnaC5jb20v/MjAyMy10b3lvdGEt/dml0ei1hdXRvbWF0/aWMtY2FyLmpwZw",
-  },
-  {
-    id: "r2",
-    year: 2022,
-    make: "Suzuki",
-    model: "Dzire",
-    price: "2,200 ETB/day",
-    image:
-      "https://imgs.search.brave.com/5-P_k5hXfVz_v-y_v-y_v-y_v-y_v-y_v-y_v-y/rs:fit:860:0:0:0/g:ce/aHR0cHM6Ly9jYXJz/LmppamlnaC5jb20v/MjAyMi1zdXp1a2kt/ZHppcmUtYXV0b21h/dGljLWNhci5qcGc",
-  },
-  {
-    id: "r3",
-    year: 2023,
-    make: "Toyota",
-    model: "RAV4",
-    price: "4,500 ETB/day",
-    image:
-      "https://imgs.search.brave.com/v2a8HQzdx9CdYjNiPZWMjNhP0Ijrs6m42WMY2dApHWE/rs:fit:860:0:0:0/g:ce/aHR0cHM6Ly9oaXBz/LmhlYXJzdGFwcHMu/Y29tL2htZy1wcm9k/L2ltYWdlcy8yMDIz/LXRveW90YS1yYXY0/LWh5YnJpZC13b29k/bGFuZC1lZGl0aW9u/LTM2NTktMTY3NTEx/NjM1Ni5qcGc_Y3Jv/cD0xeHc6MXhoO2Nl/bnRlcix0b3A",
-  },
-  {
-    id: "r4",
-    year: 2022,
-    make: "Hyundai",
-    model: "Tucson",
-    price: "4,000 ETB/day",
-    image:
-      "https://imgs.search.brave.com/IMfjRFIBmlHG1FAY9P4j_f3ygIpC6_-Lq48rCDOeoz4/rs:fit:860:0:0:0/g:ce/aHR0cHM6Ly9kaS11/cGxvYWRzLXBvZDku/ZGVhbGVyaW5zcGly/ZS5jb20vY2FwaXRv/bGh5dW5kYWlzYW5q/b3NlL3VwbG9hZHMv/MjAyMS8xMi8yMDIy/LUh5dW5kYWktSU9O/SVEtNS1JbnRyby5w/bmc",
-  },
-];
+export type RentalVehicle = {
+  id: number; // The API sends the car ID as a number
+  year: number;
+  make: string;
+  model: string;
+  price_display: string;
+  image_url: string;
+};
 
 import { useRouter } from "expo-router";
 
-const RentalCard = ({ item }: { item: (typeof rentalVehicles)[0] }) => {
+const RentalCard = ({ item }: { item: RentalVehicle }) => {
   const router = useRouter();
   return (
     <Pressable
@@ -73,12 +45,12 @@ const RentalCard = ({ item }: { item: (typeof rentalVehicles)[0] }) => {
       onPress={() =>
         router.push({
           pathname: "/rentals/[id]",
-          params: { id: item.id },
+          params: { id: item.id.toString() }, // The detail page expects the car ID
         })
       }
     >
       <ImageBackground
-        source={{ uri: item.image }}
+        source={{ uri: item.image_url }}
         style={styles.rentalCardImage}
         resizeMode="cover"
       >
@@ -87,7 +59,7 @@ const RentalCard = ({ item }: { item: (typeof rentalVehicles)[0] }) => {
           <Text style={styles.rentalCardTitle}>
             {item.year} {item.make} {item.model}
           </Text>
-          <Text style={styles.rentalCardPrice}>{item.price}</Text>
+          <Text style={styles.rentalCardPrice}>{item.price_display}</Text>
         </View>
       </ImageBackground>
     </Pressable>
@@ -97,6 +69,9 @@ const RentalCard = ({ item }: { item: (typeof rentalVehicles)[0] }) => {
 const RentalsScreen = () => {
   const navigation = useNavigation();
   const ref = useRef<ScrollView>(null);
+  const [rentalVehicles, setRentalVehicles] = useState<RentalVehicle[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState("");
 
   // This hook handles scrolling to top when the active tab is pressed
   useScrollToTop(ref);
@@ -104,20 +79,60 @@ const RentalsScreen = () => {
   React.useLayoutEffect(() => {
     navigation.setOptions({
       headerTitle: () => (
-        <Pressable onPress={() => ref.current?.scrollTo({ y: 0, animated: true })}>
+        <Pressable
+          onPress={() => ref.current?.scrollTo({ y: 0, animated: true })}
+        >
           <Text style={styles.headerTitleText}>Rentals</Text>
         </Pressable>
       ),
     });
   }, [navigation]);
 
-  const [searchQuery, setSearchQuery] = useState("");
+  useEffect(() => {
+    const fetchRentals = async () => {
+      setLoading(true);
+      try {
+        // The backend uses the main listings endpoint with a query parameter for rentals.
+        const response = await fetch(
+          `${API_BASE_URL}/api/listings?listing_type=rental`
+        );
+
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const data = await response.json();
+        setRentalVehicles(data.rentals || []);
+      } catch (error) {
+        console.error("Failed to fetch rental vehicles:", error);
+        Alert.alert(
+          "Connection Error",
+          "Could not load rental listings. Please try again later."
+        );
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchRentals();
+  }, []);
 
   const filteredVehicles = rentalVehicles.filter((vehicle) =>
     `${vehicle.year} ${vehicle.make} ${vehicle.model}`
       .toLowerCase()
       .includes(searchQuery.toLowerCase())
   );
+
+  if (loading) {
+    return (
+      <View style={styles.centered}>
+        <ActivityIndicator size="large" color={COLORS.accent} />
+        <Text style={{ color: COLORS.foreground, marginTop: 10 }}>
+          Loading Rentals...
+        </Text>
+      </View>
+    );
+  }
 
   return (
     <ScrollView style={styles.container} ref={ref}>
@@ -174,6 +189,12 @@ const RentalsScreen = () => {
 };
 
 const styles = StyleSheet.create({
+  centered: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: COLORS.background,
+  },
   container: {
     flex: 1,
     backgroundColor: COLORS.background,
