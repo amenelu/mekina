@@ -443,7 +443,11 @@ def api_listings():
     results = []
     for car in cars:
         car_dict = car.to_dict()
-        car_dict['price_display'] = car.get_price_display()
+        # Manually construct price_display for rentals since get_price_display doesn't handle it
+        if car.listing_type == 'rental' and car.rental_listing:
+            car_dict['price_display'] = f"{car.rental_listing.price_per_day:,.0f} ETB/day"
+        else:
+            car_dict['price_display'] = car.get_price_display()
         results.append(car_dict)
 
     # The mobile app's rental page expects a specific JSON structure.

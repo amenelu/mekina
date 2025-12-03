@@ -102,7 +102,16 @@ const RentalsScreen = () => {
         }
 
         const data = await response.json();
-        setRentalVehicles(data.rentals || []);
+        // The API sends a list of car objects. We need to map them to the RentalVehicle type.
+        const formattedData = (data.rentals || []).map((item: any) => ({
+          id: item.id,
+          year: item.year,
+          make: item.make,
+          model: item.model,
+          price_display: item.price_display || "N/A", // Ensure price_display is mapped
+          image_url: item.image_url,
+        }));
+        setRentalVehicles(formattedData);
       } catch (error) {
         console.error("Failed to fetch rental vehicles:", error);
         Alert.alert(
@@ -288,6 +297,9 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "600",
     color: COLORS.accent,
+    textShadowColor: "rgba(0, 0, 0, 0.75)",
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 3,
     marginTop: 5,
   },
 });
