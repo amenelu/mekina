@@ -316,7 +316,13 @@ def api_car_detail(car_id):
 
 def _get_comparison_data(car_ids):
     """Helper function to fetch cars and calculate best comparison values."""
-    cars = Car.query.filter(Car.id.in_(car_ids)).all()
+    from sqlalchemy.orm import joinedload
+    # Use joinedload to prevent the N+1 query problem when to_dict() is called.
+    # This fetches cars and their related images/auctions in a more efficient query.
+    cars = Car.query.options(
+        joinedload(Car.images),
+        joinedload(Car.auction)
+    ).filter(Car.id.in_(car_ids)).all()
     cars_dict = {car.id: car for car in cars}
     sorted_cars = [cars_dict.get(id) for id in car_ids if cars_dict.get(id)]
 
@@ -366,8 +372,15 @@ def api_compare():
 
     sorted_cars, best_values = _get_comparison_data(car_ids)
     
+    # Manually add the price_display to each car's dictionary without altering the model.
+    cars_data = []
+    for car in sorted_cars:
+        car_dict = car.to_dict()
+        car_dict['price_display'] = car.get_price_display()
+        cars_data.append(car_dict)
+
     return jsonify(
-        cars=[car.to_dict() for car in sorted_cars],
+        cars=cars_data,
         best_values=best_values
     )
 
@@ -382,12 +395,14 @@ def api_listings():
 
     # Apply filters from request arguments
     if q := request.args.get('q'):
-        search_term = f"%{q}%"
-        query = query.filter(or_(
-            Car.make.ilike(search_term),
-            Car.model.ilike(search_term),
-            Car.year.like(search_term)
-        ))
+        search_term = q.lower()
+        search_conditions = [
+            Car.make.ilike(f"%{search_term}%"),
+            Car.model.ilike(f"%{search_term}%")
+        ]
+        if search_term.isdigit():
+            search_conditions.append(Car.year == int(search_term))
+        query = query.filter(or_(*search_conditions))
 
     if condition := request.args.get('condition'):
         query = query.filter(Car.condition == condition)
@@ -397,20 +412,6 @@ def api_listings():
         query = query.filter(Car.fuel_type == fuel_type)
     if body_type := request.args.get('body_type'):
         query = query.filter(Car.body_type == body_type)
-    if max_price := request.args.get('max_price', type=float):
-        query = query.outerjoin(Car.auction).filter(or_(
-            Car.fixed_price <= max_price,
-            Car.auction.current_price <= max_price
-        ))
-        # This was causing a crash if an auction record didn't exist.
-        # The corrected version safely joins and filters.
-        from models.auction import Auction
-        query = query.outerjoin(Auction, Car.id == Auction.car_id).filter(
-            or_(
-                (Car.listing_type == 'sale') & (Car.fixed_price <= max_price),
-                (Car.listing_type == 'auction') & (Auction.current_price <= max_price)
-            )
-        )
 
     query = query.order_by(Car.id.desc())
     cars = query.all()
@@ -418,7 +419,6 @@ def api_listings():
     results = []
     for car in cars:
         # Calculate display_price safely.
-        # The previous implementation could crash if car.auction was None.
         display_price = None
         if car.listing_type == 'sale':
             display_price = car.fixed_price
@@ -430,6 +430,11 @@ def api_listings():
             detail_url = url_for('auctions.auction_detail', auction_id=car.auction.id)
         elif car.listing_type == 'sale':
             detail_url = url_for('main.car_detail', car_id=car.id)
+
+        # Post-filter by price in Python to avoid complex, crash-prone SQL
+        if max_price := request.args.get('max_price', type=float):
+            if display_price is None or display_price > max_price:
+                continue # Skip this car if it doesn't meet the price filter
 
         results.append({
             'id': car.id,
