@@ -1,6 +1,6 @@
 import React from "react";
 import { View, Text, StyleSheet, ScrollView, Pressable } from "react-native";
-import { Stack, Link } from "expo-router";
+import { Link } from "expo-router";
 
 const COLORS = {
   background: "#14181F",
@@ -71,8 +71,7 @@ const PendingListingRow = ({ car }: { car: (typeof pendingCars)[0] }) => (
 
 const AdminDashboardScreen = () => {
   return (
-    <>
-      <Stack.Screen options={{ title: "Admin Dashboard" }} />
+    <React.Fragment>
       <ScrollView style={styles.container}>
         {/* Header */}
         <View style={styles.header}>
@@ -110,7 +109,7 @@ const AdminDashboardScreen = () => {
           )}
         </View>
       </ScrollView>
-    </>
+    </React.Fragment>
   );
 };
 

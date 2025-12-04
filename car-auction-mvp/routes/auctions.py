@@ -6,7 +6,7 @@ from models.car import Car
 from models.bid import Bid
 from models.question import Question
 from extensions import db
-from datetime import datetime
+from datetime import datetime, timedelta
 from routes.main import get_similar_cars, mark_notification_as_read
 
 # Simple form for placing a bid
@@ -15,6 +15,7 @@ from wtforms import FloatField, SubmitField
 from wtforms.validators import DataRequired, NumberRange, ValidationError
 from wtforms import TextAreaField, validators
 auctions_bp = Blueprint('auctions', __name__)
+from routes.auth import admin_token_required
 
 def bid_increment_validator(form, field):
     """Custom validator to enforce bid increments."""
@@ -271,13 +272,9 @@ def filter_auctions_api():
     return jsonify(results)
 
 @auctions_bp.route('/api/admin/listings')
-@login_required
-def api_admin_list_cars():
+@admin_token_required
+def api_admin_list_cars(current_user):
     """API endpoint for admin to search/filter all car listings."""
-    if not current_user.is_admin:
-        from flask import abort
-        abort(403)
-
     page = request.args.get('page', 1, type=int)
     query = request.args.get('q', '')
 

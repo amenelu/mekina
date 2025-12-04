@@ -80,6 +80,21 @@ def token_required(f):
             return jsonify({'message': 'Token is invalid!'}), 401
         return f(current_user=user, *args, **kwargs)
     return decorated_function
+
+def admin_token_required(f):
+    """Decorator to protect API endpoints with JWT and require admin role."""
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        # First, validate the token
+        token_check_response = token_required(lambda current_user, **kwargs: (current_user, kwargs))
+        user, new_kwargs = token_check_response(*args, **kwargs)
+        
+        # If token_required returned a JSON response, it's an error
+        if isinstance(user, tuple) and isinstance(user[0], dict): return jsonify(user[0]), user[1]
+        if not user.is_admin:
+            return jsonify({'message': 'Admin access required!'}), 403
+        return f(current_user=user, *args, **new_kwargs)
+    return decorated_function
 @auth_bp.route('/login', methods=['GET', 'POST'])
 def login():
     if current_user.is_authenticated:

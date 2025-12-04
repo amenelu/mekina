@@ -43,10 +43,9 @@ export default function LoginScreen() {
 
       // Role-based redirection
       if (user.is_admin) {
-        router.replace("/admin-dashboard");
-      } else if (user.is_dealer) {
-        router.replace("/dealer-dashboard");
+        router.replace("/(admin)/dashboard");
       } else {
+        // For all other users, go to the default user-facing tab layout
         router.replace("/(tabs)/");
       }
     } catch (error: any) {

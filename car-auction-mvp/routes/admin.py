@@ -11,7 +11,7 @@ from models.equipment import Equipment
 from models.dealer_review import DealerReview
 from models.car_image import CarImage
 from routes.seller import CarSubmissionForm, save_seller_document
-from datetime import datetime
+from routes.auth import admin_token_required
 from functools import wraps
 
 from flask_wtf import FlaskForm
@@ -53,9 +53,8 @@ def dashboard():
     return render_template('dashboard.html', stats=stats, cars=cars_pending_approval)
 
 @admin_bp.route('/api/dashboard')
-@login_required
-@admin_required
-def api_admin_dashboard():
+@admin_token_required
+def api_admin_dashboard(current_user):
     """API endpoint for admin dashboard statistics and pending approvals."""
     stats = {
         'user_count': User.query.count(),
@@ -67,7 +66,7 @@ def api_admin_dashboard():
     cars_pending_approval = Car.query.filter_by(is_approved=False).order_by(Car.id.desc()).all()
     return jsonify(
         stats=stats,
-        pending_approvals=[car.to_dict() for car in cars_pending_approval]
+        pending_approvals=[car.to_dict(include_owner=True) for car in cars_pending_approval]
     )
 
 
@@ -91,9 +90,8 @@ def user_management():
     return render_template('user_management.html', users=paginated_users)
 
 @admin_bp.route('/api/users')
-@login_required
-@admin_required
-def api_admin_list_users():
+@admin_token_required
+def api_admin_list_users(current_user):
     """API endpoint for admin to search/filter all non-dealer users."""
     query = request.args.get('q', '')
     page = request.args.get('page', 1, type=int)
@@ -156,9 +154,8 @@ def edit_user(user_id):
     return render_template('edit_user.html', form=form, user=user_to_edit)
 
 @admin_bp.route('/api/users/<int:user_id>', methods=['GET', 'PUT', 'DELETE'])
-@login_required
-@admin_required
-def api_manage_user(user_id):
+@admin_token_required
+def api_manage_user(current_user, user_id):
     """API endpoint for an admin to manage a single user (GET, PUT, DELETE)."""
     user = User.query.get_or_404(user_id)
 
@@ -241,9 +238,8 @@ def dealer_management():
     return render_template('dealer_management.html', dealers_with_stats=dealers_with_stats)
 
 @admin_bp.route('/api/dealers')
-@login_required
-@admin_required
-def api_admin_list_dealers():
+@admin_token_required
+def api_admin_list_dealers(current_user):
     """API endpoint for admin to search/filter all dealer users with stats."""
     query = request.args.get('q', '')
     page = request.args.get('page', 1, type=int)
@@ -303,9 +299,8 @@ def rental_management():
     return render_template('rental_management.html', cars=rental_cars)
 
 @admin_bp.route('/api/rentals')
-@login_required
-@admin_required
-def api_admin_list_rentals():
+@admin_token_required
+def api_admin_list_rentals(current_user):
     """API endpoint for admin to search/filter all rental listings."""
     query = request.args.get('q', '')
     page = request.args.get('page', 1, type=int)
@@ -488,9 +483,8 @@ def delete_listing(car_id):
     return redirect(url_for('auctions.list_auctions'))
 
 @admin_bp.route('/api/listings', methods=['POST'])
-@login_required
-@admin_required
-def api_create_listing():
+@admin_token_required
+def api_create_listing(current_user):
     """API endpoint for an admin to create a new car listing."""
     data = request.get_json()
     if not data:
@@ -533,9 +527,8 @@ def api_create_listing():
     return jsonify({'status': 'success', 'message': 'New listing created successfully.', 'car': new_car.to_dict()}), 201
 
 @admin_bp.route('/api/listings/<int:car_id>', methods=['GET', 'PUT', 'POST', 'DELETE'])
-@login_required
-@admin_required
-def api_manage_listing(car_id):
+@admin_token_required
+def api_manage_listing(current_user, car_id):
     """Comprehensive API endpoint for an admin to manage a single car listing."""
     car = Car.query.get_or_404(car_id)
 
