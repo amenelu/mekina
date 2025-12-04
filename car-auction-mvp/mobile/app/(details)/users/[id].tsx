@@ -9,6 +9,7 @@ import {
   Pressable,
   Alert,
   ScrollView,
+  TextInput,
 } from "react-native";
 import axios from "axios";
 import { API_BASE_URL } from "@/apiConfig";
@@ -27,6 +28,7 @@ interface User {
   is_dealer: boolean;
   is_rental_company: boolean;
   is_verified: boolean;
+  points?: number;
 }
 
 /**
@@ -107,9 +109,12 @@ const UserDetailsPage: React.FC = () => {
     }
   }, [editedUser, navigation]);
 
-  const handleRoleChange = (role: keyof User, value: boolean) => {
+  const handleValueChange = (
+    field: keyof User,
+    value: string | boolean | number
+  ) => {
     if (editedUser) {
-      setEditedUser({ ...editedUser, [role]: value });
+      setEditedUser({ ...editedUser, [field]: value });
     }
   };
 
@@ -162,14 +167,38 @@ const UserDetailsPage: React.FC = () => {
 
   return (
     <ScrollView style={styles.container}>
-      <View style={styles.card}>
-        <Text style={styles.cardTitle}>User Details</Text>
-        <Text style={styles.text}>ID: {user.id}</Text>
-        <Text style={styles.text}>Username: {user.username}</Text>
-        {user.email && <Text style={styles.text}>Email: {user.email}</Text>}
-        {user.phone_number && (
-          <Text style={styles.text}>Phone: {user.phone_number}</Text>
-        )}
+      <View style={[styles.card, { marginTop: 0 }]}>
+        <Text style={styles.cardTitle}>Edit User Details</Text>
+        <View style={styles.inputGroup}>
+          <Text style={styles.label}>Username</Text>
+          <TextInput
+            style={styles.input}
+            value={editedUser.username}
+            onChangeText={(v) => handleValueChange("username", v)}
+            placeholderTextColor="#8A94A3"
+          />
+        </View>
+        <View style={styles.inputGroup}>
+          <Text style={styles.label}>Email</Text>
+          <TextInput
+            style={styles.input}
+            value={editedUser.email}
+            onChangeText={(v) => handleValueChange("email", v)}
+            keyboardType="email-address"
+            autoCapitalize="none"
+            placeholderTextColor="#8A94A3"
+          />
+        </View>
+        <View style={styles.inputGroup}>
+          <Text style={styles.label}>Points</Text>
+          <TextInput
+            style={styles.input}
+            value={String(editedUser.points ?? 0)}
+            onChangeText={(v) => handleValueChange("points", Number(v) || 0)}
+            keyboardType="number-pad"
+            placeholderTextColor="#8A94A3"
+          />
+        </View>
       </View>
 
       <View style={styles.card}>
@@ -177,29 +206,29 @@ const UserDetailsPage: React.FC = () => {
         <View style={styles.switchRow}>
           <Text style={styles.text}>Admin</Text>
           <Switch
-            value={editedUser.is_admin}
-            onValueChange={(v) => handleRoleChange("is_admin", v)}
+            value={editedUser.is_admin ?? false}
+            onValueChange={(v) => handleValueChange("is_admin", v)}
           />
         </View>
         <View style={styles.switchRow}>
           <Text style={styles.text}>Dealer</Text>
           <Switch
-            value={editedUser.is_dealer}
-            onValueChange={(v) => handleRoleChange("is_dealer", v)}
+            value={editedUser.is_dealer ?? false}
+            onValueChange={(v) => handleValueChange("is_dealer", v)}
           />
         </View>
         <View style={styles.switchRow}>
           <Text style={styles.text}>Rental Company</Text>
           <Switch
-            value={editedUser.is_rental_company}
-            onValueChange={(v) => handleRoleChange("is_rental_company", v)}
+            value={editedUser.is_rental_company ?? false}
+            onValueChange={(v) => handleValueChange("is_rental_company", v)}
           />
         </View>
         <View style={styles.switchRow}>
           <Text style={styles.text}>Verified</Text>
           <Switch
-            value={editedUser.is_verified}
-            onValueChange={(v) => handleRoleChange("is_verified", v)}
+            value={editedUser.is_verified ?? false}
+            onValueChange={(v) => handleValueChange("is_verified", v)}
           />
         </View>
       </View>
@@ -225,7 +254,7 @@ const UserDetailsPage: React.FC = () => {
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#14181F" },
+  container: { flex: 1, backgroundColor: "#14181F", paddingVertical: 16 },
   centered: { flex: 1, justifyContent: "center", alignItems: "center" },
   card: {
     backgroundColor: "#1C212B",
@@ -241,6 +270,23 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   text: { fontSize: 16, marginBottom: 8, color: "#F8F8F8" },
+  inputGroup: {
+    marginBottom: 15,
+  },
+  label: {
+    fontSize: 14,
+    color: "#8A94A3",
+    marginBottom: 5,
+  },
+  input: {
+    backgroundColor: "#14181F",
+    color: "#F8F8F8",
+    padding: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "#313843",
+    fontSize: 16,
+  },
   errorText: { color: "red", textAlign: "center", marginTop: 20 },
   switchRow: {
     flexDirection: "row",

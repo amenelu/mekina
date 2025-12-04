@@ -275,7 +275,6 @@ def filter_auctions_api():
 @admin_token_required
 def api_admin_list_cars(current_user):
     """API endpoint for admin to search/filter all car listings."""
-    page = request.args.get('page', 1, type=int)
     query = request.args.get('q', '')
 
     cars_query = Car.query.order_by(Car.id.desc())
@@ -288,7 +287,7 @@ def api_admin_list_cars(current_user):
             Car.year.like(search_term)
         ))
 
-    paginated_cars = cars_query.paginate(page=page, per_page=10)
+    all_cars = cars_query.all()
 
     cars_data = [{
         'id': car.id,
@@ -301,9 +300,8 @@ def api_admin_list_cars(current_user):
         'is_active': car.is_active,
         'edit_url': url_for('admin.edit_listing', car_id=car.id),
         'delete_url': url_for('admin.delete_listing', car_id=car.id)
-    } for car in paginated_cars.items]
+    } for car in all_cars]
 
     return jsonify({
         'cars': cars_data,
-        'pagination': { 'page': paginated_cars.page, 'pages': paginated_cars.pages, 'has_prev': paginated_cars.has_prev, 'prev_num': paginated_cars.prev_num, 'has_next': paginated_cars.has_next, 'next_num': paginated_cars.next_num }
     })

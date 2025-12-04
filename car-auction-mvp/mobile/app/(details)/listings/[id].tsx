@@ -8,6 +8,8 @@ import {
   ScrollView,
   Pressable,
   Alert,
+  TextInput,
+  Switch,
 } from "react-native";
 import axios from "axios";
 import { API_BASE_URL } from "@/apiConfig";
@@ -49,6 +51,21 @@ const fetchListing = async (
   return response.data.car;
 };
 
+/**
+ * API function to update listing data.
+ */
+const updateListing = async (
+  id: string,
+  data: Partial<Listing>,
+  token: string | null
+) => {
+  if (!token) throw new Error("Authentication token not found.");
+  // The endpoint for updating is the same as for managing actions, but with PUT method
+  await axios.put(`${API_BASE_URL}/admin/api/listings/${id}`, data, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+};
+
 const manageListingAction = async (
   id: string,
   action: "approve" | "delete",
@@ -78,13 +95,18 @@ const ListingDetailsPage: React.FC = () => {
   const [listing, setListing] = useState<Listing | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
+  const [editedListing, setEditedListing] = useState<Listing | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
     if (id && token) {
       setLoading(true);
       setError(null);
       fetchListing(id, token)
-        .then((data) => setListing(data))
+        .then((data) => {
+          setListing(data);
+          setEditedListing(data);
+        })
         .catch((err) => setError(err.message || "Failed to load listing."))
         .finally(() => setLoading(false));
     }
@@ -92,18 +114,44 @@ const ListingDetailsPage: React.FC = () => {
 
   useEffect(() => {
     if (listing) {
-      navigation.setOptions({
-        title: `${listing.year} ${listing.make} ${listing.model}`,
-      });
+      navigation.setOptions({ title: `Manage Listing` });
     }
   }, [listing, navigation]);
+
+  const handleValueChange = (
+    field: keyof Listing,
+    value: string | boolean | number
+  ) => {
+    if (editedListing) {
+      setEditedListing({ ...editedListing, [field]: value });
+    }
+  };
+
+  const handleSaveChanges = async () => {
+    if (!editedListing || !id) return;
+    setIsSaving(true);
+    try {
+      await updateListing(id, editedListing, token);
+      setListing(editedListing); // Update view state
+      Alert.alert("Success", "Listing updated successfully.");
+    } catch (err: any) {
+      const message =
+        err.response?.data?.message || "Failed to update listing.";
+      Alert.alert("Error", message);
+    } finally {
+      setIsSaving(false);
+    }
+  };
 
   const handleApprove = async () => {
     if (!id) return;
     try {
       await manageListingAction(id, "approve", token);
       Alert.alert("Success", "Listing has been approved.");
-      setListing((prev) => (prev ? { ...prev, is_approved: true } : null));
+      // Update both states to reflect the change immediately
+      const updatedState = { ...editedListing, is_approved: true } as Listing;
+      setListing(updatedState);
+      setEditedListing(updatedState);
     } catch (err) {
       Alert.alert("Error", "Failed to approve listing.");
     }
@@ -141,29 +189,84 @@ const ListingDetailsPage: React.FC = () => {
     return <Text style={styles.errorText}>Error: {error}</Text>;
   }
 
-  if (!listing) {
+  if (!listing || !editedListing) {
     return <Text style={styles.centered}>Listing not found.</Text>;
   }
 
   return (
     <ScrollView style={styles.container}>
       <View style={styles.card}>
-        <Text style={styles.cardTitle}>Listing Details</Text>
-        <Text style={styles.text}>ID: {listing.id}</Text>
-        <Text style={styles.text}>Owner: {listing.owner?.username}</Text>
-        <Text style={styles.text}>Type: {listing.listing_type}</Text>
-        <Text style={styles.text}>Description: {listing.description}</Text>
-        <Text style={styles.text}>
-          Status: {listing.is_approved ? "Approved" : "Pending Approval"}
-        </Text>
+        <Text style={styles.cardTitle}>Edit Listing</Text>
+        <View style={styles.inputGroup}>
+          <Text style={styles.label}>Make</Text>
+          <TextInput
+            style={styles.input}
+            value={editedListing.make}
+            onChangeText={(v) => handleValueChange("make", v)}
+          />
+        </View>
+        <View style={styles.inputGroup}>
+          <Text style={styles.label}>Model</Text>
+          <TextInput
+            style={styles.input}
+            value={editedListing.model}
+            onChangeText={(v) => handleValueChange("model", v)}
+          />
+        </View>
+        <View style={styles.inputGroup}>
+          <Text style={styles.label}>Year</Text>
+          <TextInput
+            style={styles.input}
+            value={String(editedListing.year)}
+            onChangeText={(v) => handleValueChange("year", Number(v) || 0)}
+            keyboardType="number-pad"
+          />
+        </View>
+        <View style={styles.inputGroup}>
+          <Text style={styles.label}>Description</Text>
+          <TextInput
+            style={[styles.input, { height: 100, textAlignVertical: "top" }]}
+            value={editedListing.description}
+            onChangeText={(v) => handleValueChange("description", v)}
+            multiline
+          />
+        </View>
       </View>
 
-      {!listing.is_approved && (
+      <View style={styles.card}>
+        <Text style={styles.cardTitle}>Manage Status</Text>
+        <View style={styles.switchRow}>
+          <Text style={styles.text}>Approved</Text>
+          <Switch
+            value={editedListing.is_approved}
+            onValueChange={(v) => handleValueChange("is_approved", v)}
+          />
+        </View>
+        <View style={styles.switchRow}>
+          <Text style={styles.text}>Active</Text>
+          <Switch
+            value={editedListing.is_active}
+            onValueChange={(v) => handleValueChange("is_active", v)}
+          />
+        </View>
+      </View>
+
+      <Pressable
+        style={[styles.button, styles.saveButton]}
+        onPress={handleSaveChanges}
+        disabled={isSaving}
+      >
+        <Text style={styles.buttonText}>
+          {isSaving ? "Saving..." : "Save Changes"}
+        </Text>
+      </Pressable>
+
+      {!editedListing.is_approved && (
         <Pressable
           style={[styles.button, styles.approveButton]}
           onPress={handleApprove}
         >
-          <Text style={styles.buttonText}>Approve Listing</Text>
+          <Text style={styles.buttonText}>Approve Now</Text>
         </Pressable>
       )}
 
@@ -178,13 +281,14 @@ const ListingDetailsPage: React.FC = () => {
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 16, backgroundColor: "#14181F" },
+  container: { flex: 1, backgroundColor: "#14181F", paddingVertical: 16 },
   centered: { flex: 1, justifyContent: "center", alignItems: "center" },
   card: {
     backgroundColor: "#1C212B",
     borderRadius: 12,
     padding: 15,
-    marginBottom: 16,
+    marginHorizontal: 16,
+    marginTop: 16,
   },
   cardTitle: {
     fontSize: 18,
@@ -193,16 +297,40 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   text: { fontSize: 16, marginBottom: 8, color: "#F8F8F8" },
+  inputGroup: {
+    marginBottom: 15,
+  },
+  label: {
+    fontSize: 14,
+    color: "#8A94A3",
+    marginBottom: 5,
+  },
+  input: {
+    backgroundColor: "#14181F",
+    color: "#F8F8F8",
+    padding: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "#313843",
+    fontSize: 16,
+  },
   errorText: { color: "red", textAlign: "center", marginTop: 20 },
+  switchRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingVertical: 8,
+  },
   button: {
     borderRadius: 8,
     padding: 15,
     alignItems: "center",
-    marginBottom: 16,
+    marginHorizontal: 16,
+    marginTop: 16,
   },
+  saveButton: { backgroundColor: "#A370F7" },
   approveButton: { backgroundColor: "#28a745" },
-  deleteButton: { backgroundColor: "#dc3545" },
+  deleteButton: { backgroundColor: "#dc3545", marginBottom: 32 },
   buttonText: { color: "#fff", fontWeight: "bold", fontSize: 16 },
 });
-
 export default ListingDetailsPage;

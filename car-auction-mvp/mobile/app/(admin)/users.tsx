@@ -7,6 +7,7 @@ import {
   ActivityIndicator,
   TextInput,
   Pressable,
+  Alert,
 } from "react-native";
 import axios from "axios";
 import { API_BASE_URL } from "@/apiConfig";
@@ -31,6 +32,7 @@ interface User {
   email: string;
   is_admin: boolean;
   is_rental_company: boolean;
+  points: number;
 }
 import { useRouter } from "expo-router";
 const AdminUsersScreen = () => {
@@ -50,7 +52,6 @@ const AdminUsersScreen = () => {
             headers: { Authorization: `Bearer ${token}` },
           }
         );
-        console.log("Fetched users data from API:", response.data);
         setUsers(response.data.users);
       } catch (error) {
         console.error("Failed to fetch users:", error);

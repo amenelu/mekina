@@ -7,6 +7,7 @@ import {
   ActivityIndicator,
   TextInput,
   Pressable,
+  Alert,
 } from "react-native";
 import axios from "axios";
 import { API_BASE_URL } from "@/apiConfig";
@@ -69,6 +70,32 @@ const AdminListingsScreen = () => {
     return () => clearTimeout(debounceFetch);
   }, [search, token]);
 
+  const handleDelete = (listing: Listing) => {
+    Alert.alert(
+      "Delete Listing",
+      `Are you sure you want to delete the ${listing.year} ${listing.make} ${listing.model}?`,
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Delete",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              await axios.delete(
+                `${API_BASE_URL}/admin/api/listings/${listing.id}`,
+                { headers: { Authorization: `Bearer ${token}` } }
+              );
+              setListings((prev) => prev.filter((l) => l.id !== listing.id));
+              Alert.alert("Success", "Listing has been deleted.");
+            } catch (err) {
+              Alert.alert("Error", "Failed to delete listing.");
+            }
+          },
+        },
+      ]
+    );
+  };
+
   const renderItem = ({ item }: { item: Listing }) => (
     <View style={styles.card}>
       <View style={styles.cardHeader}>
@@ -110,7 +137,10 @@ const AdminListingsScreen = () => {
         >
           <Text style={styles.buttonText}>Manage</Text>
         </Pressable>
-        <Pressable style={[styles.button, styles.deleteButton]}>
+        <Pressable
+          style={[styles.button, styles.deleteButton]}
+          onPress={() => handleDelete(item)}
+        >
           <Text style={styles.buttonText}>Delete</Text>
         </Pressable>
       </View>

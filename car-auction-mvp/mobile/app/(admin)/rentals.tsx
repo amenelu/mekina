@@ -7,6 +7,7 @@ import {
   ActivityIndicator,
   TextInput,
   Pressable,
+  Alert,
 } from "react-native";
 import axios from "axios";
 import { API_BASE_URL } from "@/apiConfig"; // Keep this import
@@ -21,6 +22,7 @@ const COLORS = {
   mutedForeground: "#8A94A3",
   accent: "#A370F7",
   success: "#28a745",
+  destructive: "#dc3545",
   warning: "#ffc107",
   // Add other colors if needed
 };
@@ -74,6 +76,32 @@ const AdminRentalsScreen = () => {
     return () => clearTimeout(debounceFetch);
   }, [search, token]);
 
+  const handleDelete = (rental: Rental) => {
+    Alert.alert(
+      "Delete Rental Listing",
+      `Are you sure you want to delete the ${rental.year} ${rental.make} ${rental.model}?`,
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Delete",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              await axios.delete(
+                `${API_BASE_URL}/admin/api/listings/${rental.id}`,
+                { headers: { Authorization: `Bearer ${token}` } }
+              );
+              setRentals((prev) => prev.filter((r) => r.id !== rental.id));
+              Alert.alert("Success", "Rental listing has been deleted.");
+            } catch (err) {
+              Alert.alert("Error", "Failed to delete rental listing.");
+            }
+          },
+        },
+      ]
+    );
+  };
+
   const renderItem = ({ item }: { item: Rental }) => (
     <View style={styles.card}>
       <View>
@@ -98,12 +126,20 @@ const AdminRentalsScreen = () => {
           </Text>
         </View>
       </View>
-      <Pressable
-        style={styles.editButton}
-        onPress={() => router.push(`/(details)/rentals/${item.id}`)}
-      >
-        <Text style={styles.editButtonText}>Edit</Text>
-      </Pressable>
+      <View style={styles.buttonContainer}>
+        <Pressable
+          style={styles.manageButton}
+          onPress={() => router.push(`/(details)/rentals/${item.id}`)}
+        >
+          <Text style={styles.buttonText}>Manage</Text>
+        </Pressable>
+        <Pressable
+          style={styles.deleteButton}
+          onPress={() => handleDelete(item)}
+        >
+          <Text style={styles.buttonText}>Delete</Text>
+        </Pressable>
+      </View>
     </View>
   );
 
@@ -163,9 +199,6 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     padding: 15,
     marginBottom: 10,
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
   },
   title: { fontSize: 16, fontWeight: "bold", color: COLORS.foreground },
   subtitle: { fontSize: 14, color: COLORS.mutedForeground, marginTop: 4 },
@@ -179,8 +212,28 @@ const styles = StyleSheet.create({
     fontSize: 12,
     overflow: "hidden",
   },
-  editButton: { backgroundColor: COLORS.accent, padding: 10, borderRadius: 8 },
-  editButtonText: { color: COLORS.foreground, fontWeight: "bold" },
+  buttonContainer: {
+    flexDirection: "row",
+    justifyContent: "flex-end",
+    gap: 10,
+    borderTopWidth: 1,
+    borderTopColor: COLORS.border,
+    paddingTop: 12,
+    marginTop: 12,
+  },
+  manageButton: {
+    backgroundColor: COLORS.accent,
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+  },
+  deleteButton: {
+    backgroundColor: COLORS.destructive,
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+  },
+  buttonText: { color: COLORS.foreground, fontWeight: "bold" },
   emptyText: {
     color: COLORS.mutedForeground,
     textAlign: "center",
