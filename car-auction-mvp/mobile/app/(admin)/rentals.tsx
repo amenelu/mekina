@@ -9,8 +9,8 @@ import {
   Pressable,
 } from "react-native";
 import axios from "axios";
-import { API_BASE_URL } from "@/apiConfig";
-import { useAuth } from "@/hooks/useAuth";
+import { API_BASE_URL } from "@/apiConfig"; // Keep this import
+import { useAuth } from "@/hooks/useAuth"; // Keep this import
 import { Ionicons } from "@expo/vector-icons";
 
 const COLORS = {
@@ -22,6 +22,7 @@ const COLORS = {
   accent: "#A370F7",
   success: "#28a745",
   warning: "#ffc107",
+  // Add other colors if needed
 };
 
 interface Rental {
@@ -34,12 +35,14 @@ interface Rental {
   is_approved: boolean;
   is_active: boolean;
 }
-
+import { useRouter } from "expo-router";
+// AdminRentalsScreen component
 const AdminRentalsScreen = () => {
   const [rentals, setRentals] = useState<Rental[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const { token } = useAuth();
+  const router = useRouter();
 
   useEffect(() => {
     const fetchRentals = async () => {
@@ -52,8 +55,13 @@ const AdminRentalsScreen = () => {
           }
         );
         setRentals(response.data.cars);
-      } catch (error) {
-        console.error("Failed to fetch rentals:", error);
+      } catch (error: any) {
+        console.error(
+          "Error fetching rentals:",
+          error.response
+            ? JSON.stringify(error.response.data, null, 2)
+            : error.message
+        );
       } finally {
         setLoading(false);
       }
@@ -90,7 +98,10 @@ const AdminRentalsScreen = () => {
           </Text>
         </View>
       </View>
-      <Pressable style={styles.editButton}>
+      <Pressable
+        style={styles.editButton}
+        onPress={() => router.push(`/(details)/rentals/${item.id}`)}
+      >
         <Text style={styles.editButtonText}>Edit</Text>
       </Pressable>
     </View>

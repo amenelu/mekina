@@ -160,7 +160,7 @@ def api_manage_user(current_user, user_id):
     user = User.query.get_or_404(user_id)
 
     if request.method == 'GET':
-        return jsonify(user=user.to_dict(detail_level='admin'))
+        return jsonify(user=user.to_dict(detail_level='owner'))
 
     elif request.method == 'PUT':
         data = request.get_json()
@@ -328,7 +328,7 @@ def api_admin_list_rentals(current_user):
         'make': car.make,
         'model': car.model,
         'owner_username': car.owner.username,
-        'price_per_day': '{:,.2f}'.format(car.rental_listing.price_per_day) if car.rental_listing else 'N/A',
+        'price_per_day': '{:,.2f}'.format(car.rental_listing.price_per_day) if car.rental_listing and car.rental_listing.price_per_day is not None else 'N/A',
         'is_approved': car.is_approved,
         'is_active': car.is_active,
         'edit_url': url_for('admin.edit_listing', car_id=car.id),
@@ -533,8 +533,25 @@ def api_manage_listing(current_user, car_id):
     car = Car.query.get_or_404(car_id)
 
     if request.method == 'GET':
-        # Return detailed car info for an edit form
-        return jsonify(car=car.to_dict(include_owner=True, include_all_images=True, include_equipment=True))
+        # Manually construct the dictionary to handle potential missing relationships safely
+        car_data = {
+            'id': car.id,
+            'make': car.make,
+            'model': car.model,
+            'year': car.year,
+            'description': car.description,
+            'listing_type': car.listing_type,
+            'fixed_price': car.fixed_price,
+            'is_approved': car.is_approved,
+            'is_active': car.is_active,
+            'owner': {'username': car.owner.username} if car.owner else None,
+            'auction': {
+                'current_price': car.auction.current_price,
+                'end_time': car.auction.end_time.isoformat() if car.auction.end_time else None
+            } if car.auction else None,
+            'rental_listing': {'price_per_day': car.rental_listing.price_per_day} if car.rental_listing else None
+        }
+        return jsonify(car=car_data)
 
     elif request.method == 'PUT':
         # Update the listing from JSON data

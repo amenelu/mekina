@@ -11,7 +11,7 @@ import {
 import { useAuth } from "@/hooks/useAuth";
 import axios from "axios";
 import { API_BASE_URL } from "@/apiConfig";
-import { useFocusEffect } from "expo-router";
+import { useFocusEffect, useRouter } from "expo-router";
 
 const COLORS = {
   background: "#14181F",
@@ -57,29 +57,35 @@ const PendingListingRow = ({
 }: {
   car: PendingCar;
   onApprove: (id: number) => void;
-}) => (
-  <View style={styles.listingRow}>
-    <View style={styles.listingInfo}>
-      <Text
-        style={styles.listingTitle}
-      >{`${car.year} ${car.make} ${car.model}`}</Text>
-      <Text style={styles.listingSubtitle}>
-        By {car.owner.username} ({car.listing_type})
-      </Text>
+}) => {
+  const router = useRouter();
+  return (
+    <View style={styles.listingRow}>
+      <View style={styles.listingInfo}>
+        <Text
+          style={styles.listingTitle}
+        >{`${car.year} ${car.make} ${car.model}`}</Text>
+        <Text style={styles.listingSubtitle}>
+          By {car.owner.username} ({car.listing_type})
+        </Text>
+      </View>
+      <View style={styles.listingActions}>
+        <Pressable
+          style={[styles.actionButton, styles.editButton]}
+          onPress={() => router.push(`/(details)/listings/${car.id}`)}
+        >
+          <Text style={styles.actionButtonText}>Review</Text>
+        </Pressable>
+        <Pressable
+          style={[styles.actionButton, styles.approveButton]}
+          onPress={() => onApprove(car.id)}
+        >
+          <Text style={styles.actionButtonText}>Approve</Text>
+        </Pressable>
+      </View>
     </View>
-    <View style={styles.listingActions}>
-      <Pressable style={[styles.actionButton, styles.editButton]}>
-        <Text style={styles.actionButtonText}>Review</Text>
-      </Pressable>
-      <Pressable
-        style={[styles.actionButton, styles.approveButton]}
-        onPress={() => onApprove(car.id)}
-      >
-        <Text style={styles.actionButtonText}>Approve</Text>
-      </Pressable>
-    </View>
-  </View>
-);
+  );
+};
 
 const AdminDashboardScreen = () => {
   const [stats, setStats] = useState<Stats | null>(null);

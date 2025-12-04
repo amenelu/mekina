@@ -10,7 +10,7 @@ import {
 } from "react-native";
 import axios from "axios";
 import { API_BASE_URL } from "@/apiConfig";
-import { useAuth } from "@/hooks/useAuth";
+import { useAuth } from "@/hooks/useAuth"; // Keep this import
 import { Ionicons } from "@expo/vector-icons";
 
 const COLORS = {
@@ -20,6 +20,9 @@ const COLORS = {
   border: "#313843",
   mutedForeground: "#8A94A3",
   accent: "#A370F7",
+  destructive: "#dc3545",
+  info: "#0dcaf0",
+  // Add other colors if needed
 };
 
 interface User {
@@ -29,12 +32,13 @@ interface User {
   is_admin: boolean;
   is_rental_company: boolean;
 }
-
+import { useRouter } from "expo-router";
 const AdminUsersScreen = () => {
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const { token } = useAuth();
+  const router = useRouter();
 
   useEffect(() => {
     const fetchUsers = async () => {
@@ -46,6 +50,7 @@ const AdminUsersScreen = () => {
             headers: { Authorization: `Bearer ${token}` },
           }
         );
+        console.log("Fetched users data from API:", response.data);
         setUsers(response.data.users);
       } catch (error) {
         console.error("Failed to fetch users:", error);
@@ -63,11 +68,33 @@ const AdminUsersScreen = () => {
 
   const renderItem = ({ item }: { item: User }) => (
     <View style={styles.userCard}>
-      <View>
-        <Text style={styles.username}>{item.username}</Text>
+      <View style={{ flex: 1 }}>
+        <View style={styles.userHeader}>
+          <Text style={styles.username}>{item.username}</Text>
+          <View style={styles.roleContainer}>
+            {item.is_admin && (
+              <Text
+                style={[
+                  styles.roleTag,
+                  { backgroundColor: COLORS.destructive },
+                ]}
+              >
+                Admin
+              </Text>
+            )}
+            {item.is_rental_company && (
+              <Text style={[styles.roleTag, { backgroundColor: COLORS.info }]}>
+                Rental
+              </Text>
+            )}
+          </View>
+        </View>
         <Text style={styles.email}>{item.email}</Text>
       </View>
-      <Pressable style={styles.editButton}>
+      <Pressable
+        style={styles.editButton}
+        onPress={() => router.push(`/(details)/users/${item.id}`)}
+      >
         <Text style={styles.editButtonText}>Manage</Text>
       </Pressable>
     </View>
@@ -133,10 +160,26 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "center",
   },
+  userHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 4,
+    flexWrap: "wrap",
+  },
   username: { fontSize: 16, fontWeight: "bold", color: COLORS.foreground },
-  email: { fontSize: 14, color: COLORS.mutedForeground, marginTop: 4 },
+  email: { fontSize: 14, color: COLORS.mutedForeground },
   editButton: { backgroundColor: COLORS.accent, padding: 10, borderRadius: 8 },
   editButtonText: { color: COLORS.foreground, fontWeight: "bold" },
+  roleContainer: { flexDirection: "row", marginLeft: 10, gap: 5 },
+  roleTag: {
+    color: "#fff",
+    fontWeight: "bold",
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 5,
+    fontSize: 10,
+    overflow: "hidden",
+  },
   emptyText: {
     color: COLORS.mutedForeground,
     textAlign: "center",

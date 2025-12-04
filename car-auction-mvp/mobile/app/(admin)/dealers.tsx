@@ -10,7 +10,7 @@ import {
 } from "react-native";
 import axios from "axios";
 import { API_BASE_URL } from "@/apiConfig";
-import { useAuth } from "@/hooks/useAuth";
+import { useAuth } from "@/hooks/useAuth"; // Keep this import
 import { Ionicons } from "@expo/vector-icons";
 
 const COLORS = {
@@ -20,6 +20,7 @@ const COLORS = {
   border: "#313843",
   mutedForeground: "#8A94A3",
   accent: "#A370F7",
+  // Add other colors if needed
 };
 
 interface Dealer {
@@ -30,12 +31,13 @@ interface Dealer {
   avg_rating: number;
   review_count: number;
 }
-
+import { useRouter } from "expo-router";
 const AdminDealersScreen = () => {
   const [dealers, setDealers] = useState<Dealer[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const { token } = useAuth();
+  const router = useRouter();
 
   useEffect(() => {
     const fetchDealers = async () => {
@@ -72,7 +74,10 @@ const AdminDealersScreen = () => {
           {item.review_count} reviews)
         </Text>
       </View>
-      <Pressable style={styles.editButton}>
+      <Pressable
+        style={styles.editButton}
+        onPress={() => router.push(`/(details)/dealers/${item.id}`)}
+      >
         <Text style={styles.editButtonText}>Manage</Text>
       </Pressable>
     </View>

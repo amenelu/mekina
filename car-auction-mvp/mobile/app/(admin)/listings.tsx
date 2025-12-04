@@ -10,7 +10,7 @@ import {
 } from "react-native";
 import axios from "axios";
 import { API_BASE_URL } from "@/apiConfig";
-import { useAuth } from "@/hooks/useAuth";
+import { useAuth } from "@/hooks/useAuth"; // Keep this import
 import { Ionicons } from "@expo/vector-icons";
 
 const COLORS = {
@@ -22,6 +22,7 @@ const COLORS = {
   success: "#28a745",
   warning: "#ffc107",
   destructive: "#dc3545",
+  // Add other colors if needed
 };
 
 interface Listing {
@@ -34,12 +35,13 @@ interface Listing {
   is_approved: boolean;
   is_active: boolean;
 }
-
+import { useRouter } from "expo-router";
 const AdminListingsScreen = () => {
   const [listings, setListings] = useState<Listing[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const { token } = useAuth();
+  const router = useRouter();
 
   useEffect(() => {
     const fetchListings = async () => {
@@ -102,7 +104,10 @@ const AdminListingsScreen = () => {
         Owner: {item.owner_username} · Type: {item.listing_type}
       </Text>
       <View style={styles.buttonContainer}>
-        <Pressable style={[styles.button, styles.manageButton]}>
+        <Pressable
+          style={[styles.button, styles.manageButton]}
+          onPress={() => router.push(`/(details)/listings/${item.id}`)}
+        >
           <Text style={styles.buttonText}>Manage</Text>
         </Pressable>
         <Pressable style={[styles.button, styles.deleteButton]}>
