@@ -114,7 +114,22 @@ const UserDetailsPage: React.FC = () => {
     value: string | boolean | number
   ) => {
     if (editedUser) {
-      setEditedUser({ ...editedUser, [field]: value });
+      const newUserState = { ...editedUser, [field]: value };
+
+      // If a primary role is being set to true, set others to false
+      if (value === true) {
+        if (field === "is_admin") {
+          newUserState.is_dealer = false;
+          newUserState.is_rental_company = false;
+        } else if (field === "is_dealer") {
+          newUserState.is_admin = false;
+          newUserState.is_rental_company = false;
+        } else if (field === "is_rental_company") {
+          newUserState.is_admin = false;
+          newUserState.is_dealer = false;
+        }
+      }
+      setEditedUser(newUserState);
     }
   };
 
@@ -124,7 +139,9 @@ const UserDetailsPage: React.FC = () => {
     try {
       await updateUser(id, editedUser, token);
       setUser(editedUser); // Update the main user state
-      Alert.alert("Success", "User roles updated successfully.");
+      Alert.alert("Success", "User updated successfully.", [
+        { text: "OK", onPress: () => navigation.goBack() },
+      ]);
     } catch (err: any) {
       const message = err.response?.data?.message || "Failed to update user.";
       Alert.alert("Error", message);

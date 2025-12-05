@@ -9,6 +9,7 @@ import {
   Switch,
   Pressable,
   Alert,
+  TextInput,
 } from "react-native";
 import axios from "axios";
 import { API_BASE_URL } from "@/apiConfig";
@@ -106,9 +107,27 @@ const DealerDetailsPage: React.FC = () => {
     }
   }, [editedDealer, navigation]);
 
-  const handleRoleChange = (role: keyof User, value: boolean) => {
+  const handleValueChange = (
+    field: keyof User,
+    value: string | boolean | number
+  ) => {
     if (editedDealer) {
-      setEditedDealer({ ...editedDealer, [role]: value });
+      const newDealerState = { ...editedDealer, [field]: value };
+
+      // If a primary role is being set to true, set others to false
+      if (value === true) {
+        if (field === "is_admin") {
+          newDealerState.is_dealer = false;
+          newDealerState.is_rental_company = false;
+        } else if (field === "is_dealer") {
+          newDealerState.is_admin = false;
+          newDealerState.is_rental_company = false;
+        } else if (field === "is_rental_company") {
+          newDealerState.is_admin = false;
+          newDealerState.is_dealer = false;
+        }
+      }
+      setEditedDealer(newDealerState);
     }
   };
 
@@ -118,7 +137,9 @@ const DealerDetailsPage: React.FC = () => {
     try {
       await updateUser(id, editedDealer, token);
       setDealer(editedDealer);
-      Alert.alert("Success", "Dealer updated successfully.");
+      Alert.alert("Success", "Dealer updated successfully.", [
+        { text: "OK", onPress: () => navigation.goBack() },
+      ]);
     } catch (err: any) {
       const message = err.response?.data?.message || "Failed to update dealer.";
       Alert.alert("Error", message);
@@ -161,14 +182,35 @@ const DealerDetailsPage: React.FC = () => {
 
   return (
     <ScrollView style={styles.container}>
-      <View style={styles.card}>
-        <Text style={styles.cardTitle}>Dealer Details</Text>
-        <Text style={styles.text}>ID: {dealer.id}</Text>
-        <Text style={styles.text}>Username: {dealer.username}</Text>
-        {dealer.email && <Text style={styles.text}>Email: {dealer.email}</Text>}
-        {dealer.points !== undefined && (
-          <Text style={styles.text}>Points: {dealer.points}</Text>
-        )}
+      <View style={[styles.card, { marginTop: 0 }]}>
+        <Text style={styles.cardTitle}>Edit Dealer Details</Text>
+        <View style={styles.inputGroup}>
+          <Text style={styles.label}>Username</Text>
+          <TextInput
+            style={styles.input}
+            value={editedDealer.username}
+            onChangeText={(v) => handleValueChange("username", v)}
+          />
+        </View>
+        <View style={styles.inputGroup}>
+          <Text style={styles.label}>Email</Text>
+          <TextInput
+            style={styles.input}
+            value={editedDealer.email ?? ""}
+            onChangeText={(v) => handleValueChange("email", v)}
+            keyboardType="email-address"
+            autoCapitalize="none"
+          />
+        </View>
+        <View style={styles.inputGroup}>
+          <Text style={styles.label}>Points</Text>
+          <TextInput
+            style={styles.input}
+            value={String(editedDealer.points ?? 0)}
+            onChangeText={(v) => handleValueChange("points", Number(v) || 0)}
+            keyboardType="number-pad"
+          />
+        </View>
       </View>
 
       <View style={styles.card}>
@@ -176,22 +218,29 @@ const DealerDetailsPage: React.FC = () => {
         <View style={styles.switchRow}>
           <Text style={styles.text}>Admin</Text>
           <Switch
-            value={editedDealer.is_admin}
-            onValueChange={(v) => handleRoleChange("is_admin", v)}
+            value={editedDealer.is_admin ?? false}
+            onValueChange={(v) => handleValueChange("is_admin", v)}
           />
         </View>
         <View style={styles.switchRow}>
           <Text style={styles.text}>Dealer</Text>
           <Switch
-            value={editedDealer.is_dealer}
-            onValueChange={(v) => handleRoleChange("is_dealer", v)}
+            value={editedDealer.is_dealer ?? false}
+            onValueChange={(v) => handleValueChange("is_dealer", v)}
+          />
+        </View>
+        <View style={styles.switchRow}>
+          <Text style={styles.text}>Rental Company</Text>
+          <Switch
+            value={editedDealer.is_rental_company ?? false}
+            onValueChange={(v) => handleValueChange("is_rental_company", v)}
           />
         </View>
         <View style={styles.switchRow}>
           <Text style={styles.text}>Verified</Text>
           <Switch
-            value={editedDealer.is_verified}
-            onValueChange={(v) => handleRoleChange("is_verified", v)}
+            value={editedDealer.is_verified ?? false}
+            onValueChange={(v) => handleValueChange("is_verified", v)}
           />
         </View>
       </View>
@@ -217,13 +266,14 @@ const DealerDetailsPage: React.FC = () => {
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 16, backgroundColor: "#14181F" },
+  container: { flex: 1, backgroundColor: "#14181F", paddingVertical: 16 },
   centered: { flex: 1, justifyContent: "center", alignItems: "center" },
   card: {
     backgroundColor: "#1C212B",
     borderRadius: 12,
     padding: 15,
-    marginBottom: 16,
+    marginHorizontal: 16,
+    marginTop: 16,
   },
   cardTitle: {
     fontSize: 18,
@@ -232,6 +282,23 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   text: { fontSize: 16, marginBottom: 8, color: "#F8F8F8" },
+  inputGroup: {
+    marginBottom: 15,
+  },
+  label: {
+    fontSize: 14,
+    color: "#8A94A3",
+    marginBottom: 5,
+  },
+  input: {
+    backgroundColor: "#14181F",
+    color: "#F8F8F8",
+    padding: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "#313843",
+    fontSize: 16,
+  },
   errorText: { color: "red", textAlign: "center", marginTop: 20 },
   switchRow: {
     flexDirection: "row",
@@ -243,7 +310,8 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     padding: 15,
     alignItems: "center",
-    marginBottom: 16,
+    marginHorizontal: 16,
+    marginTop: 16,
   },
   saveButton: { backgroundColor: "#A370F7" },
   deleteButton: { backgroundColor: "#dc3545" },
