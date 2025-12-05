@@ -541,6 +541,13 @@ def api_manage_listing(current_user, car_id):
             'fixed_price': car.fixed_price,
             'is_approved': car.is_approved,
             'is_active': car.is_active,
+            'condition': car.condition,
+            'body_type': car.body_type,
+            'mileage': car.mileage,
+            'transmission': car.transmission,
+            'drivetrain': car.drivetrain,
+            'fuel_type': car.fuel_type,
+            'is_featured': car.is_featured,
             'owner': {'username': car.owner.username} if car.owner else None,
             'auction': {
                 'current_price': car.auction.current_price,

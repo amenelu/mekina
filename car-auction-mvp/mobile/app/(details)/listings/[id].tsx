@@ -29,6 +29,13 @@ interface Listing {
   fixed_price?: number;
   is_approved: boolean;
   is_active: boolean;
+  condition?: string;
+  body_type?: string;
+  mileage?: number;
+  transmission?: string;
+  drivetrain?: string;
+  fuel_type?: string;
+  is_featured?: boolean;
   owner?: { username: string };
   auction?: { current_price: number; end_time: string };
   rental_listing?: { price_per_day: number };
@@ -234,6 +241,98 @@ const ListingDetailsPage: React.FC = () => {
       </View>
 
       <View style={styles.card}>
+        <Text style={styles.cardTitle}>Specifications</Text>
+        <View style={styles.inputGroup}>
+          <Text style={styles.label}>Condition</Text>
+          <TextInput
+            style={styles.input}
+            value={editedListing.condition ?? ""}
+            onChangeText={(v) => handleValueChange("condition", v)}
+          />
+        </View>
+        <View style={styles.inputGroup}>
+          <Text style={styles.label}>Body Type</Text>
+          <TextInput
+            style={styles.input}
+            value={editedListing.body_type ?? ""}
+            onChangeText={(v) => handleValueChange("body_type", v)}
+          />
+        </View>
+        <View style={styles.inputGroup}>
+          <Text style={styles.label}>Mileage (km)</Text>
+          <TextInput
+            style={styles.input}
+            value={String(editedListing.mileage ?? 0)}
+            onChangeText={(v) => handleValueChange("mileage", Number(v) || 0)}
+            keyboardType="number-pad"
+          />
+        </View>
+        <View style={styles.inputGroup}>
+          <Text style={styles.label}>Transmission</Text>
+          <TextInput
+            style={styles.input}
+            value={editedListing.transmission ?? ""}
+            onChangeText={(v) => handleValueChange("transmission", v)}
+          />
+        </View>
+        <View style={styles.inputGroup}>
+          <Text style={styles.label}>Drivetrain</Text>
+          <TextInput
+            style={styles.input}
+            value={editedListing.drivetrain ?? ""}
+            onChangeText={(v) => handleValueChange("drivetrain", v)}
+          />
+        </View>
+        <View style={styles.inputGroup}>
+          <Text style={styles.label}>Fuel Type</Text>
+          <TextInput
+            style={styles.input}
+            value={editedListing.fuel_type ?? ""}
+            onChangeText={(v) => handleValueChange("fuel_type", v)}
+          />
+        </View>
+      </View>
+
+      <View style={styles.card}>
+        <Text style={styles.cardTitle}>Pricing</Text>
+        {editedListing.listing_type === "sale" && (
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>Fixed Price (ETB)</Text>
+            <TextInput
+              style={styles.input}
+              value={String(editedListing.fixed_price ?? 0)}
+              onChangeText={(v) =>
+                handleValueChange("fixed_price", Number(v) || 0)
+              }
+              keyboardType="number-pad"
+            />
+          </View>
+        )}
+        {editedListing.listing_type === "rental" && (
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>Price Per Day (ETB)</Text>
+            <TextInput
+              style={styles.input}
+              value={String(editedListing.rental_listing?.price_per_day ?? 0)}
+              // Note: This is a nested property, updating it requires more complex state handling
+              // For now, this is a read-only representation.
+              editable={false}
+            />
+          </View>
+        )}
+        {editedListing.listing_type === "auction" && (
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>Current Bid (ETB)</Text>
+            <TextInput
+              style={styles.input}
+              value={String(editedListing.auction?.current_price ?? 0)}
+              editable={false} // Current price is not directly editable
+            />
+          </View>
+        )}
+      </View>
+
+      <View style={styles.card}>
         <Text style={styles.cardTitle}>Manage Status</Text>
         <View style={styles.switchRow}>
           <Text style={styles.text}>Approved</Text>
@@ -247,6 +346,13 @@ const ListingDetailsPage: React.FC = () => {
           <Switch
             value={editedListing.is_active}
             onValueChange={(v) => handleValueChange("is_active", v)}
+          />
+        </View>
+        <View style={styles.switchRow}>
+          <Text style={styles.text}>Featured</Text>
+          <Switch
+            value={editedListing.is_featured ?? false}
+            onValueChange={(v) => handleValueChange("is_featured", v)}
           />
         </View>
       </View>
