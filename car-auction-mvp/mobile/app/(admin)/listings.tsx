@@ -108,66 +108,86 @@ const AdminListingsScreen = () => {
     );
   };
 
-  const renderItem = ({ item }: { item: Listing }) => (
-    <View style={styles.card}>
-      {item.image_url && (
-        <Image
-          source={{
-            uri: item.image_url.startsWith("http")
-              ? item.image_url
-              : `${API_BASE_URL}${item.image_url}`,
-          }}
-          style={styles.cardImage}
-          resizeMode="cover"
-        />
-      )}
-      <View style={styles.cardHeader}>
-        <Text style={styles.title}>
-          {item.year} {item.make} {item.model}
-        </Text>
-        <View style={styles.statusContainer}>
-          <Text
-            style={[
-              styles.statusTag,
-              {
-                backgroundColor: item.is_approved
-                  ? COLORS.success
-                  : COLORS.warning,
-              },
-            ]}
-          >
-            {item.is_approved ? "Approved" : "Pending"}
+  const ListingCard = ({ item }: { item: Listing }) => {
+    const [imageLoading, setImageLoading] = useState(true);
+    const router = useRouter();
+    const imageUrl =
+      item.image_url && item.image_url.startsWith("http")
+        ? item.image_url
+        : item.image_url
+        ? `${API_BASE_URL}${item.image_url}`
+        : null;
+
+    return (
+      <View style={styles.card}>
+        {imageUrl && (
+          <View style={styles.cardImage}>
+            <Image
+              source={{ uri: imageUrl }}
+              style={StyleSheet.absoluteFill}
+              resizeMode="cover"
+              onLoadEnd={() => setImageLoading(false)}
+            />
+            {imageLoading && (
+              <ActivityIndicator
+                style={StyleSheet.absoluteFill}
+                color={COLORS.accent}
+              />
+            )}
+          </View>
+        )}
+        <View style={styles.cardHeader}>
+          <Text style={styles.title}>
+            {item.year} {item.make} {item.model}
           </Text>
-          {!item.is_active && (
+          <View style={styles.statusContainer}>
             <Text
               style={[
                 styles.statusTag,
-                { backgroundColor: COLORS.destructive },
+                {
+                  backgroundColor: item.is_approved
+                    ? COLORS.success
+                    : COLORS.warning,
+                },
               ]}
             >
-              Inactive
+              {item.is_approved ? "Approved" : "Pending"}
             </Text>
-          )}
+            {!item.is_active && (
+              <Text
+                style={[
+                  styles.statusTag,
+                  { backgroundColor: COLORS.destructive },
+                ]}
+              >
+                Inactive
+              </Text>
+            )}
+          </View>
+        </View>
+        <Text style={styles.subtitle}>
+          Owner: {item.owner_username} · Type: {item.listing_type}
+        </Text>
+        <View style={styles.buttonContainer}>
+          <Pressable
+            style={[styles.button, styles.manageButton]}
+            onPress={() => router.push(`/(details)/listings/${item.id}`)}
+          >
+            <Text style={styles.buttonText}>Manage</Text>
+          </Pressable>
+          <Pressable
+            style={[styles.button, styles.deleteButton]}
+            onPress={() => handleDelete(item)}
+          >
+            <Text style={styles.buttonText}>Delete</Text>
+          </Pressable>
         </View>
       </View>
-      <Text style={styles.subtitle}>
-        Owner: {item.owner_username} · Type: {item.listing_type}
-      </Text>
-      <View style={styles.buttonContainer}>
-        <Pressable
-          style={[styles.button, styles.manageButton]}
-          onPress={() => router.push(`/(details)/listings/${item.id}`)}
-        >
-          <Text style={styles.buttonText}>Manage</Text>
-        </Pressable>
-        <Pressable
-          style={[styles.button, styles.deleteButton]}
-          onPress={() => handleDelete(item)}
-        >
-          <Text style={styles.buttonText}>Delete</Text>
-        </Pressable>
-      </View>
-    </View>
+    );
+  };
+
+  const renderItem = ({ item }: { item: Listing }) => (
+    <ListingCard item={item} />
   );
 
   return (

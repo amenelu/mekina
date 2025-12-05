@@ -127,6 +127,29 @@ const manageListingAction = async (
   });
 };
 
+const ImageThumbnail = ({
+  image,
+}: {
+  image: { id: number; image_url: string };
+}) => {
+  const [isLoading, setIsLoading] = useState(true);
+  return (
+    <View style={styles.thumbnail}>
+      <Image
+        source={{ uri: image.image_url }}
+        style={StyleSheet.absoluteFill}
+        onLoadEnd={() => setIsLoading(false)}
+      />
+      {isLoading && (
+        <ActivityIndicator
+          style={StyleSheet.absoluteFill}
+          color={COLORS.accent}
+        />
+      )}
+    </View>
+  );
+};
+
 /**
  * Renders the listing details page.
  */
@@ -310,11 +333,7 @@ const ListingDetailsPage: React.FC = () => {
         <Text style={styles.label}>Current Images</Text>
         <ScrollView horizontal style={styles.imageScrollView}>
           {editedListing.images?.map((img) => (
-            <Image
-              key={img.id}
-              source={{ uri: img.image_url }}
-              style={styles.thumbnail}
-            />
+            <ImageThumbnail key={img.id} image={img} />
           ))}
         </ScrollView>
 

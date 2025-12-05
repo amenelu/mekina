@@ -553,7 +553,11 @@ def api_manage_listing(current_user, car_id):
                 'current_price': car.auction.current_price,
                 'end_time': car.auction.end_time.isoformat() if car.auction.end_time else None
             } if car.auction else None,
-            'rental_listing': {'price_per_day': car.rental_listing.price_per_day} if car.rental_listing else None
+            'rental_listing': {'price_per_day': car.rental_listing.price_per_day} if car.rental_listing else None,
+            'images': [
+                {'id': img.id, 'image_url': url_for('static', filename=img.image_url.split('/static/')[1], _external=True)}
+                for img in car.images if img.image_url and '/static/' in img.image_url
+            ]
         }
         return jsonify(car=car_data)
 
@@ -619,7 +623,10 @@ def api_manage_listing(current_user, car_id):
         print("Committed changes to DB.")
         # Manually construct the response to include detailed image data for the mobile app
         car_data = car.to_dict(include_owner=True)
-        car_data['images'] = [{'id': img.id, 'image_url': img.image_url} for img in car.images]
+        car_data['images'] = [
+            {'id': img.id, 'image_url': url_for('static', filename=img.image_url.split('/static/')[1], _external=True)}
+            for img in car.images if img.image_url and '/static/' in img.image_url
+        ]
         print(f"Returning car_data: {car_data}\n")
         return jsonify({'status': 'success', 'message': 'Listing updated successfully.', 'car': car_data})
 
