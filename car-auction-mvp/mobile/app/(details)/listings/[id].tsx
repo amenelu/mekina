@@ -10,10 +10,23 @@ import {
   Alert,
   TextInput,
   Switch,
+  Image,
 } from "react-native";
 import axios from "axios";
 import { API_BASE_URL } from "@/apiConfig";
 import { useAuth } from "@/hooks/useAuth";
+import * as ImagePicker from "expo-image-picker";
+import { Ionicons } from "@expo/vector-icons";
+
+const COLORS = {
+  background: "#14181F",
+  foreground: "#F8F8F8",
+  card: "#1C212B",
+  accent: "#A370F7",
+  border: "#313843",
+  success: "#28a745",
+  destructive: "#dc3545",
+};
 
 /**
  * @interface Listing
@@ -39,6 +52,7 @@ interface Listing {
   owner?: { username: string };
   auction?: { current_price: number; end_time: string };
   rental_listing?: { price_per_day: number };
+  images?: { id: number; image_url: string }[];
 }
 
 /**
@@ -64,13 +78,35 @@ const fetchListing = async (
 const updateListing = async (
   id: string,
   data: Partial<Listing>,
-  token: string | null
+  token: string | null,
+  images: ImagePicker.ImagePickerAsset[]
 ) => {
   if (!token) throw new Error("Authentication token not found.");
-  // The endpoint for updating is the same as for managing actions, but with PUT method
-  await axios.put(`${API_BASE_URL}/admin/api/listings/${id}`, data, {
-    headers: { Authorization: `Bearer ${token}` },
+
+  const formData = new FormData();
+
+  // Append all non-image fields
+  Object.entries(data).forEach(([key, value]) => {
+    if (value !== null && value !== undefined && key !== "images") {
+      formData.append(key, String(value));
+    }
   });
+
+  // Append new image files
+  images.forEach((image) => {
+    formData.append("images", {
+      uri: image.uri,
+      name: image.fileName,
+      type: image.mimeType,
+    } as any);
+  });
+
+  const response = await axios.put(
+    `${API_BASE_URL}/admin/api/listings/${id}`,
+    formData,
+    { headers: { Authorization: `Bearer ${token}` } }
+  );
+  return response.data;
 };
 
 const manageListingAction = async (
@@ -104,6 +140,9 @@ const ListingDetailsPage: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [editedListing, setEditedListing] = useState<Listing | null>(null);
   const [isSaving, setIsSaving] = useState(false);
+  const [newImages, setNewImages] = useState<ImagePicker.ImagePickerAsset[]>(
+    []
+  );
 
   useEffect(() => {
     if (id && token) {
@@ -138,9 +177,13 @@ const ListingDetailsPage: React.FC = () => {
     if (!editedListing || !id) return;
     setIsSaving(true);
     try {
-      await updateListing(id, editedListing, token);
-      setListing(editedListing); // Update view state
-      Alert.alert("Success", "Listing updated successfully.");
+      const response = await updateListing(id, editedListing, token, newImages);
+      // Update both states with the fresh data from the backend
+      setListing(response.car);
+      setEditedListing(response.car);
+      Alert.alert("Success", "Listing updated successfully.", [
+        { text: "OK", onPress: () => navigation.goBack() },
+      ]);
     } catch (err: any) {
       const message =
         err.response?.data?.message || "Failed to update listing.";
@@ -186,6 +229,28 @@ const ListingDetailsPage: React.FC = () => {
         },
       ]
     );
+  };
+
+  const handleImagePick = async () => {
+    // Request permissions
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== "granted") {
+      Alert.alert(
+        "Permission Denied",
+        "Sorry, we need camera roll permissions to make this work!"
+      );
+      return;
+    }
+
+    let result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsMultipleSelection: true,
+      quality: 1,
+    });
+
+    if (!result.canceled) {
+      setNewImages(result.assets);
+    }
   };
 
   if (loading) {
@@ -238,6 +303,44 @@ const ListingDetailsPage: React.FC = () => {
             multiline
           />
         </View>
+      </View>
+
+      <View style={styles.card}>
+        <Text style={styles.cardTitle}>Manage Images</Text>
+        <Text style={styles.label}>Current Images</Text>
+        <ScrollView horizontal style={styles.imageScrollView}>
+          {editedListing.images?.map((img) => (
+            <Image
+              key={img.id}
+              source={{ uri: img.image_url }}
+              style={styles.thumbnail}
+            />
+          ))}
+        </ScrollView>
+
+        {newImages.length > 0 && (
+          <>
+            <Text style={[styles.label, { marginTop: 15 }]}>
+              New Images (will replace current)
+            </Text>
+            <ScrollView horizontal style={styles.imageScrollView}>
+              {newImages.map((img, index) => (
+                <Image
+                  key={index}
+                  source={{ uri: img.uri }}
+                  style={styles.thumbnail}
+                />
+              ))}
+            </ScrollView>
+          </>
+        )}
+
+        <Pressable style={styles.imagePickerButton} onPress={handleImagePick}>
+          <Ionicons name="camera" size={20} color={COLORS.accent} />
+          <Text style={styles.imagePickerText}>
+            {newImages.length > 0 ? "Reselect Images" : "Select New Images"}
+          </Text>
+        </Pressable>
       </View>
 
       <View style={styles.card}>
@@ -420,6 +523,29 @@ const styles = StyleSheet.create({
     borderColor: "#313843",
     fontSize: 16,
   },
+  imageScrollView: {
+    marginBottom: 15,
+  },
+  thumbnail: {
+    width: 100,
+    height: 100,
+    borderRadius: 8,
+    marginRight: 10,
+    backgroundColor: "#14181F",
+  },
+  imagePickerButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 10,
+    backgroundColor: "transparent",
+    padding: 15,
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: COLORS.accent,
+    borderStyle: "dashed",
+  },
+  imagePickerText: { color: COLORS.accent, fontSize: 16, fontWeight: "600" },
   errorText: { color: "red", textAlign: "center", marginTop: 20 },
   switchRow: {
     flexDirection: "row",

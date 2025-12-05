@@ -1,4 +1,5 @@
 from extensions import db
+from flask import url_for
 
 from .car_image import CarImage # Import the CarImage model
 from .equipment import Equipment
@@ -41,9 +42,17 @@ class Car(db.Model):
     # Property to easily get the primary image for thumbnails
     @property
     def primary_image_url(self):
-        if self.images:
-            return self.images[0].image_url
-        return None
+        """Generates an absolute URL for the primary image."""
+        if self.images and self.images[0].image_url and '/static/' in self.images[0].image_url:
+            # The image_url is stored as '/static/uploads/...'
+            # We need to get the path relative to the 'static' folder for url_for.
+            try:
+                filename = self.images[0].image_url.split('/static/')[1]
+                return url_for('static', filename=filename, _external=True)
+            except IndexError:
+                pass # Fallback if the URL format is unexpected
+        # Return a default placeholder if you have one, otherwise None
+        return url_for('static', filename='img/default_car.png', _external=True)
 
     def get_price_display(self):
         """Returns a formatted string for the car's price based on listing type."""
@@ -77,7 +86,10 @@ class Car(db.Model):
             'body_type': self.body_type,
             'listing_type': self.listing_type,
             'primary_image_url': self.primary_image_url,
-            'image_urls': [img.image_url for img in self.images],
+            'image_urls': [
+                url_for('static', filename=img.image_url.split('/static/')[1], _external=True)
+                for img in self.images if img.image_url and '/static/' in img.image_url
+            ],
             'equipment': [eq.name for eq in self.equipment]
         }
 

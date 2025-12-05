@@ -191,8 +191,8 @@ def api_auction_detail(auction_id):
     )
 
 @auctions_bp.route('/api/filter')
-def filter_auctions_api():
-    """API endpoint to return filtered auction data as JSON."""
+def all_listings_api():
+    """API endpoint to return filtered auction/listing data as JSON for the main listings page."""
     query = Auction.query.join(Car).filter(
         Car.is_approved == True,
         Auction.end_time > datetime.utcnow()
@@ -255,7 +255,7 @@ def filter_auctions_api():
             'make': auction.car.make,
             'model': auction.car.model,
             'current_price': auction.current_price,
-            'image_url': auction.car.primary_image_url or url_for('static', filename='img/default_car.png'),
+            'image_url': auction.car.primary_image_url,
             'detail_url': url_for('auctions.auction_detail', auction_id=auction.id),
             'time_left': format_timedelta(auction.end_time - datetime.utcnow()),
             'bid_count': auction.bids.count(),
@@ -295,6 +295,7 @@ def api_admin_list_cars(current_user):
         'make': car.make,
         'model': car.model,
         'owner_username': car.owner.username,
+        'image_url': car.primary_image_url, # This was missing or incorrect before
         'listing_type': car.listing_type,
         'is_approved': car.is_approved,
         'is_active': car.is_active,

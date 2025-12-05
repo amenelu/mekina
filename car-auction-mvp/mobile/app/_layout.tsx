@@ -40,10 +40,7 @@ export default function RootLayout() {
       <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
       <Stack.Screen name="compare" options={{ presentation: "modal" }} />
       <Stack.Screen name="how-it-works" options={{ title: "How It Works" }} />
-      <Stack.Screen
-        name="admin-dashboard"
-        options={{ title: "Admin Dashboard" }}
-      />
+      <Stack.Screen name="(admin)" options={{ headerShown: false }} />
       <Stack.Screen
         name="dealer-dashboard"
         options={{ title: "Dealer Dashboard" }}

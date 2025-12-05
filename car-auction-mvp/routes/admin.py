@@ -558,15 +558,30 @@ def api_manage_listing(current_user, car_id):
         return jsonify(car=car_data)
 
     elif request.method == 'PUT':
-        # Update the listing from JSON data
-        data = request.get_json()
-        if not data:
-            return jsonify({'status': 'error', 'message': 'Invalid JSON payload.'}), 400
+        # This now handles multipart/form-data for image uploads
+        print("\n--- ADMIN API: PUT /api/listings/<id> ---")
+        data = request.form.to_dict()
+        files = request.files.getlist('images')
+        print(f"Received form data: {data}")
+        print(f"Received files: {[f.filename for f in files]}")
 
         # Update basic car fields
-        for field in ['make', 'model', 'year', 'description', 'condition', 'body_type', 'mileage', 'transmission', 'drivetrain', 'fuel_type', 'is_featured']:
+        for field in ['make', 'model', 'description', 'condition', 'body_type', 'transmission', 'drivetrain', 'fuel_type']:
             if field in data:
                 setattr(car, field, data[field])
+        
+        # Handle booleans, which come as strings from forms
+        for field in ['is_approved', 'is_active', 'is_featured']:
+            if field in data:
+                setattr(car, field, data[field].lower() in ['true', '1', 'on'])
+
+        # Handle numbers
+        for field in ['year', 'mileage', 'fixed_price']:
+            if field in data and data[field]:
+                try:
+                    setattr(car, field, int(float(data[field])))
+                except (ValueError, TypeError):
+                    pass # Ignore if conversion fails
 
         # Handle listing type and price changes
         if 'listing_type' in data and data['listing_type'] != car.listing_type:
@@ -577,6 +592,7 @@ def api_manage_listing(current_user, car_id):
             # Set new listing type
             car.listing_type = data['listing_type']
 
+        # Update listing-specific details based on the (potentially new) type
         if car.listing_type == 'auction':
             if not car.auction: car.auction = Auction(car_id=car.id)
             car.auction.start_price = data.get('start_price', car.auction.start_price)
@@ -588,8 +604,24 @@ def api_manage_listing(current_user, car_id):
             if not car.rental_listing: car.rental_listing = RentalListing(car_id=car.id)
             car.rental_listing.price_per_day = data.get('price_per_day', car.rental_listing.price_per_day)
 
+        # If new images are uploaded, replace the old ones
+        if files and files[0].filename:
+            print("New files detected. Replacing old images.")
+            CarImage.query.filter_by(car_id=car.id).delete()
+            for image_file in files:
+                image_url = save_seller_document(image_file)
+                print(f"Saved image, URL: {image_url}")
+                if image_url:
+                    new_image = CarImage(image_url=image_url, car_id=car.id)
+                    db.session.add(new_image)
+
         db.session.commit()
-        return jsonify({'status': 'success', 'message': 'Listing updated successfully.', 'car': car.to_dict()})
+        print("Committed changes to DB.")
+        # Manually construct the response to include detailed image data for the mobile app
+        car_data = car.to_dict(include_owner=True)
+        car_data['images'] = [{'id': img.id, 'image_url': img.image_url} for img in car.images]
+        print(f"Returning car_data: {car_data}\n")
+        return jsonify({'status': 'success', 'message': 'Listing updated successfully.', 'car': car_data})
 
     elif request.method == 'POST':
         # Handle actions like 'approve'

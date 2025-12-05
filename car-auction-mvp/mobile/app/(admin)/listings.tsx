@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import {
   View,
   Text,
@@ -8,8 +8,9 @@ import {
   TextInput,
   Pressable,
   Alert,
+  Image,
 } from "react-native";
-import axios from "axios";
+import axios, { AxiosError } from "axios";
 import { API_BASE_URL } from "@/apiConfig";
 import { useAuth } from "@/hooks/useAuth"; // Keep this import
 import { Ionicons } from "@expo/vector-icons";
@@ -33,10 +34,11 @@ interface Listing {
   model: string;
   owner_username: string;
   listing_type: string;
+  image_url?: string;
   is_approved: boolean;
   is_active: boolean;
 }
-import { useRouter } from "expo-router";
+import { useRouter, useFocusEffect } from "expo-router";
 const AdminListingsScreen = () => {
   const [listings, setListings] = useState<Listing[]>([]);
   const [loading, setLoading] = useState(true);
@@ -44,31 +46,41 @@ const AdminListingsScreen = () => {
   const { token } = useAuth();
   const router = useRouter();
 
-  useEffect(() => {
-    const fetchListings = async () => {
-      setLoading(true);
-      try {
-        // Note the URL includes the 'auctions' blueprint prefix
-        const response = await axios.get(
-          `${API_BASE_URL}/auctions/api/admin/listings?q=${search}`,
-          {
-            headers: { Authorization: `Bearer ${token}` },
-          }
-        );
-        setListings(response.data.cars);
-      } catch (error) {
-        console.error("Failed to fetch listings:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
+  // Function to fetch listings
+  const fetchListings = async () => {
+    setLoading(true);
+    try {
+      const response = await axios.get(
+        `${API_BASE_URL}/auctions/api/admin/listings?q=${search}`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+      setListings(response.data.cars);
+    } catch (error: any) {
+      console.error(
+        "Failed to fetch listings:",
+        error.response ? error.response.data : error.message
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
 
+  // Fetch on initial load and when search changes (debounced)
+  useEffect(() => {
     const debounceFetch = setTimeout(() => {
       fetchListings();
     }, 300);
-
     return () => clearTimeout(debounceFetch);
   }, [search, token]);
+
+  // Re-fetch when the screen comes into focus
+  useFocusEffect(
+    useCallback(() => {
+      fetchListings();
+    }, [token])
+  );
 
   const handleDelete = (listing: Listing) => {
     Alert.alert(
@@ -98,6 +110,17 @@ const AdminListingsScreen = () => {
 
   const renderItem = ({ item }: { item: Listing }) => (
     <View style={styles.card}>
+      {item.image_url && (
+        <Image
+          source={{
+            uri: item.image_url.startsWith("http")
+              ? item.image_url
+              : `${API_BASE_URL}${item.image_url}`,
+          }}
+          style={styles.cardImage}
+          resizeMode="cover"
+        />
+      )}
       <View style={styles.cardHeader}>
         <Text style={styles.title}>
           {item.year} {item.make} {item.model}
@@ -203,6 +226,12 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     padding: 15,
     marginBottom: 15,
+  },
+  cardImage: {
+    width: "100%",
+    height: 150,
+    borderRadius: 8,
+    marginBottom: 12,
   },
   cardHeader: {
     flexDirection: "row",
