@@ -40,6 +40,7 @@ interface Rental {
   is_featured?: boolean;
   owner?: { username: string };
   rental_listing?: { price_per_day: number };
+  price_per_day?: number; // Add this for easier editing
   images?: { id: number; image_url: string }[];
 }
 
@@ -163,6 +164,14 @@ const RentalDetailsPage: React.FC = () => {
     value: string | boolean | number
   ) => {
     if (editedRental) {
+      // Special handling for nested price_per_day
+      if (field === "price_per_day") {
+        setEditedRental({
+          ...editedRental,
+          rental_listing: { price_per_day: value as number },
+        });
+        return;
+      }
       setEditedRental({ ...editedRental, [field]: value });
     }
   };
@@ -172,8 +181,9 @@ const RentalDetailsPage: React.FC = () => {
     setIsSaving(true);
     try {
       const response = await updateListing(id, editedRental, token, newImages);
-      setRental(response.car);
-      setEditedRental(response.car);
+      const updatedRental = response.car;
+      setRental(updatedRental);
+      setEditedRental(updatedRental);
       Alert.alert("Success", "Rental listing updated successfully.", [
         { text: "OK", onPress: () => navigation.goBack() },
       ]);
@@ -253,6 +263,117 @@ const RentalDetailsPage: React.FC = () => {
             onChangeText={(v) => handleValueChange("make", v)}
           />
         </View>
+        <ScrollView style={styles.container}>
+          <View style={styles.card}>
+            <Text style={styles.cardTitle}>Edit Rental Details</Text>
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>Make</Text>
+              <TextInput
+                style={styles.input}
+                value={editedRental.make}
+                onChangeText={(v) => handleValueChange("make", v)}
+              />
+            </View>
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>Model</Text>
+              <TextInput
+                style={styles.input}
+                value={editedRental.model}
+                onChangeText={(v) => handleValueChange("model", v)}
+              />
+            </View>
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>Year</Text>
+              <TextInput
+                style={styles.input}
+                value={String(editedRental.year)}
+                onChangeText={(v) => handleValueChange("year", Number(v) || 0)}
+                keyboardType="number-pad"
+              />
+            </View>
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>Price Per Day (ETB)</Text>
+              <TextInput
+                style={styles.input}
+                value={String(editedRental.rental_listing?.price_per_day ?? 0)}
+                onChangeText={(v) =>
+                  handleValueChange("price_per_day", Number(v) || 0)
+                }
+                keyboardType="number-pad"
+              />
+            </View>
+          </View>
+
+          <View style={styles.card}>
+            <Text style={styles.cardTitle}>Manage Images</Text>
+            <Text style={styles.label}>Current Images</Text>
+            <ScrollView horizontal style={styles.imageScrollView}>
+              {editedRental.images?.map((img) => (
+                <ImageThumbnail key={img.id} image={img} />
+              ))}
+            </ScrollView>
+            {newImages.length > 0 && (
+              <>
+                <Text style={[styles.label, { marginTop: 15 }]}>
+                  New Images (will replace current)
+                </Text>
+                <ScrollView horizontal style={styles.imageScrollView}>
+                  {newImages.map((img, index) => (
+                    <Image
+                      key={index}
+                      source={{ uri: img.uri }}
+                      style={styles.thumbnail}
+                    />
+                  ))}
+                </ScrollView>
+              </>
+            )}
+            <Pressable
+              style={styles.imagePickerButton}
+              onPress={handleImagePick}
+            >
+              <Ionicons name="camera" size={20} color={COLORS.accent} />
+              <Text style={styles.imagePickerText}>
+                {newImages.length > 0 ? "Reselect Images" : "Select New Images"}
+              </Text>
+            </Pressable>
+          </View>
+
+          <View style={styles.card}>
+            <Text style={styles.cardTitle}>Manage Status</Text>
+            <View style={styles.switchRow}>
+              <Text style={styles.text}>Approved</Text>
+              <Switch
+                value={editedRental.is_approved}
+                onValueChange={(v) => handleValueChange("is_approved", v)}
+              />
+            </View>
+            <View style={styles.switchRow}>
+              <Text style={styles.text}>Active</Text>
+              <Switch
+                value={editedRental.is_active}
+                onValueChange={(v) => handleValueChange("is_active", v)}
+              />
+            </View>
+          </View>
+
+          <Pressable
+            style={[styles.button, styles.saveButton]}
+            onPress={handleSaveChanges}
+            disabled={isSaving}
+          >
+            <Text style={styles.buttonText}>
+              {isSaving ? "Saving..." : "Save Changes"}
+            </Text>
+          </Pressable>
+
+          <Pressable
+            style={[styles.button, styles.deleteButton]}
+            onPress={handleDelete}
+          >
+            <Text style={styles.buttonText}>Delete Listing</Text>
+          </Pressable>
+        </ScrollView>
         <View style={styles.inputGroup}>
           <Text style={styles.label}>Model</Text>
           <TextInput

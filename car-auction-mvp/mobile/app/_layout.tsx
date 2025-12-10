@@ -1,5 +1,6 @@
 import { Stack } from "expo-router";
 import { Pressable } from "react-native";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { Ionicons } from "@expo/vector-icons";
 
 const COLORS = {
@@ -9,42 +10,48 @@ const COLORS = {
 
 export default function RootLayout() {
   return (
-    <Stack
-      screenOptions={({ navigation }) => ({
-        headerStyle: { backgroundColor: COLORS.card },
-        headerTintColor: COLORS.foreground,
-        // Replace the default back button with a custom one to guarantee no text
-        headerLeft: () => (
-          <Pressable
-            onPress={() => navigation.goBack()}
-            style={{ paddingHorizontal: 10 }}
-          >
-            <Ionicons name="chevron-back" size={24} color={COLORS.foreground} />
-          </Pressable>
-        ),
-      })}
-    >
-      <Stack.Screen name="(auth)" options={{ headerShown: false }} />
-      <Stack.Screen name="trade-in" options={{ headerShown: false }} />
-      <Stack.Screen name="rentals" options={{ headerShown: false }} />
-      {/* The detail page, which will have a back button */}
-      <Stack.Screen
-        name="[id]"
-        options={
-          {
-            // The title is set dynamically inside the [id].tsx file
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <Stack
+        screenOptions={({ navigation }) => ({
+          headerStyle: { backgroundColor: COLORS.card },
+          headerTintColor: COLORS.foreground,
+          // Replace the default back button with a custom one to guarantee no text
+          headerLeft: () => (
+            <Pressable
+              onPress={() => navigation.goBack()}
+              style={{ paddingHorizontal: 10 }}
+            >
+              <Ionicons
+                name="chevron-back"
+                size={24}
+                color={COLORS.foreground}
+              />
+            </Pressable>
+          ),
+        })}
+      >
+        <Stack.Screen name="(auth)" options={{ headerShown: false }} />
+        <Stack.Screen name="trade-in" options={{ headerShown: false }} />
+        <Stack.Screen name="rentals" options={{ headerShown: false }} />
+        {/* The detail page, which will have a back button */}
+        <Stack.Screen
+          name="[id]"
+          options={
+            {
+              // The title is set dynamically inside the [id].tsx file
+            }
           }
-        }
-      />
-      <Stack.Screen name="messages" options={{ title: "Messages" }} />
-      <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-      <Stack.Screen name="compare" options={{ presentation: "modal" }} />
-      <Stack.Screen name="how-it-works" options={{ title: "How It Works" }} />
-      <Stack.Screen name="(admin)" options={{ headerShown: false }} />
-      <Stack.Screen
-        name="dealer-dashboard"
-        options={{ title: "Dealer Dashboard" }}
-      />
-    </Stack>
+        />
+        <Stack.Screen name="messages" options={{ title: "Messages" }} />
+        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+        <Stack.Screen name="compare" options={{ presentation: "modal" }} />
+        <Stack.Screen name="how-it-works" options={{ title: "How It Works" }} />
+        <Stack.Screen name="(admin)" options={{ headerShown: false }} />
+        <Stack.Screen
+          name="dealer-dashboard"
+          options={{ title: "Dealer Dashboard" }}
+        />
+      </Stack>
+    </GestureHandlerRootView>
   );
 }

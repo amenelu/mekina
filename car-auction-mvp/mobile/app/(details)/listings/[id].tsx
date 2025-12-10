@@ -9,10 +9,14 @@ import {
   Pressable,
   Alert,
   TextInput,
+  TouchableOpacity,
   Switch,
   Image,
 } from "react-native";
 import axios from "axios";
+import DraggableFlatList, {
+  ScaleDecorator,
+} from "react-native-draggable-flatlist";
 import { API_BASE_URL } from "@/apiConfig";
 import { useAuth } from "@/hooks/useAuth";
 import * as ImagePicker from "expo-image-picker";
@@ -127,6 +131,35 @@ const manageListingAction = async (
   });
 };
 
+const deleteImage = async (
+  carId: string,
+  imageId: number,
+  token: string | null
+) => {
+  if (!token) throw new Error("Authentication token not found.");
+  await axios.delete(
+    `${API_BASE_URL}/admin/api/listings/${carId}/images/${imageId}`,
+    {
+      headers: { Authorization: `Bearer ${token}` },
+    }
+  );
+};
+
+const reorderImages = async (
+  carId: string,
+  imageIds: number[],
+  token: string | null
+) => {
+  if (!token) throw new Error("Authentication token not found.");
+  await axios.post(
+    `${API_BASE_URL}/admin/api/listings/${carId}/images/reorder`,
+    { image_ids: imageIds },
+    {
+      headers: { Authorization: `Bearer ${token}` },
+    }
+  );
+};
+
 const ImageThumbnail = ({
   image,
 }: {
@@ -194,6 +227,41 @@ const ListingDetailsPage: React.FC = () => {
     if (editedListing) {
       setEditedListing({ ...editedListing, [field]: value });
     }
+  };
+
+  const handleImageDelete = (imageId: number) => {
+    if (!id) return;
+    Alert.alert("Delete Image", "Are you sure you want to delete this image?", [
+      { text: "Cancel", style: "cancel" },
+      {
+        text: "Delete",
+        style: "destructive",
+        onPress: async () => {
+          await deleteImage(id, imageId, token);
+          setEditedListing((prev) => ({
+            ...prev!,
+            images: prev!.images?.filter((img) => img.id !== imageId),
+          }));
+          Alert.alert("Success", "Image deleted.");
+        },
+      },
+    ]);
+  };
+
+  const handleSetCoverImage = (imageId: number) => {
+    if (!editedListing || !editedListing.images || !id) return;
+
+    const newImagesOrder = [...editedListing.images];
+    const imageToMove = newImagesOrder.find((img) => img.id === imageId);
+    if (!imageToMove) return;
+
+    const remainingImages = newImagesOrder.filter((img) => img.id !== imageId);
+    const finalImages = [imageToMove, ...remainingImages];
+
+    setEditedListing((prev) => ({ ...prev!, images: finalImages }));
+    const newImageIds = finalImages.map((img) => img.id);
+    // Call the API to persist the new order
+    reorderImages(id, newImageIds, token);
   };
 
   const handleSaveChanges = async () => {
@@ -331,11 +399,54 @@ const ListingDetailsPage: React.FC = () => {
       <View style={styles.card}>
         <Text style={styles.cardTitle}>Manage Images</Text>
         <Text style={styles.label}>Current Images</Text>
-        <ScrollView horizontal style={styles.imageScrollView}>
-          {editedListing.images?.map((img) => (
-            <ImageThumbnail key={img.id} image={img} />
-          ))}
-        </ScrollView>
+        <DraggableFlatList
+          data={editedListing.images ?? []}
+          horizontal
+          onDragEnd={({ data }) => {
+            const newImageIds = data.map((item) => item.id);
+            reorderImages(id!, newImageIds, token);
+            setEditedListing((prev) => ({ ...prev!, images: data }));
+          }}
+          keyExtractor={(item) => `draggable-item-${item.id}`}
+          renderItem={({ item, drag, isActive, getIndex }) => {
+            const index = getIndex();
+
+            return (
+              <ScaleDecorator>
+                <TouchableOpacity
+                  onLongPress={drag}
+                  disabled={isActive}
+                  style={[
+                    styles.thumbnailContainer,
+                    index === 0 && styles.coverImage,
+                  ]}
+                >
+                  <ImageThumbnail image={item} />
+                  {index === 0 && (
+                    <View style={styles.coverLabel}>
+                      <Text style={styles.coverLabelText}>Cover</Text>
+                    </View>
+                  )}
+                  <Pressable
+                    style={styles.deleteImageIcon}
+                    onPress={() => handleImageDelete(item.id)}
+                  >
+                    <Ionicons name="close-circle" size={24} color="white" />
+                  </Pressable>
+                  {index !== 0 && (
+                    <Pressable
+                      style={styles.setCoverButton}
+                      onPress={() => handleSetCoverImage(item.id)}
+                    >
+                      <Text style={styles.setCoverButtonText}>Make Cover</Text>
+                    </Pressable>
+                  )}
+                </TouchableOpacity>
+              </ScaleDecorator>
+            );
+          }}
+          containerStyle={styles.imageScrollView}
+        />
 
         {newImages.length > 0 && (
           <>
@@ -552,6 +663,43 @@ const styles = StyleSheet.create({
     marginRight: 10,
     backgroundColor: "#14181F",
   },
+  thumbnailContainer: {
+    position: "relative",
+  },
+  coverImage: {
+    borderWidth: 2,
+    borderColor: COLORS.accent,
+  },
+  coverLabel: {
+    position: "absolute",
+    top: 4,
+    left: 4,
+    backgroundColor: COLORS.accent,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
+  coverLabelText: {
+    color: "white",
+    fontSize: 10,
+    fontWeight: "bold",
+  },
+  deleteImageIcon: {
+    position: "absolute",
+    top: -5,
+    right: 5,
+    backgroundColor: COLORS.destructive,
+    borderRadius: 12,
+  },
+  setCoverButton: {
+    position: "absolute",
+    bottom: 5,
+    left: 5,
+    right: 5,
+    backgroundColor: "rgba(0,0,0,0.7)",
+    paddingVertical: 4,
+    borderRadius: 4,
+  },
   imagePickerButton: {
     flexDirection: "row",
     alignItems: "center",
@@ -565,6 +713,12 @@ const styles = StyleSheet.create({
     borderStyle: "dashed",
   },
   imagePickerText: { color: COLORS.accent, fontSize: 16, fontWeight: "600" },
+  setCoverButtonText: {
+    color: "white",
+    fontSize: 12,
+    textAlign: "center",
+    fontWeight: "bold",
+  },
   errorText: { color: "red", textAlign: "center", marginTop: 20 },
   switchRow: {
     flexDirection: "row",
