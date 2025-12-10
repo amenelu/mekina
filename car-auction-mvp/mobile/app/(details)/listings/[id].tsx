@@ -1,5 +1,5 @@
 import { useLocalSearchParams, useNavigation } from "expo-router";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useLayoutEffect, useState } from "react";
 import {
   View,
   Text,
@@ -214,11 +214,19 @@ const ListingDetailsPage: React.FC = () => {
     }
   }, [id, token]);
 
+  // Set a generic title immediately to prevent the file path from flashing
+  useLayoutEffect(() => {
+    navigation.setOptions({ title: "Manage Listing" });
+  }, [navigation]);
+
+  // Update the title with specific details once the data is loaded
   useEffect(() => {
-    if (listing) {
-      navigation.setOptions({ title: `Manage Listing` });
+    if (editedListing) {
+      navigation.setOptions({
+        title: `Manage: ${editedListing.year} ${editedListing.make}`,
+      });
     }
-  }, [listing, navigation]);
+  }, [editedListing]);
 
   const handleValueChange = (
     field: keyof Listing,

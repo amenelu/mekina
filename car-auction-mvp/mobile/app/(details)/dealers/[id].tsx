@@ -1,5 +1,5 @@
 import { useLocalSearchParams, useNavigation } from "expo-router";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useLayoutEffect, useState } from "react";
 import {
   View,
   Text,
@@ -101,6 +101,12 @@ const DealerDetailsPage: React.FC = () => {
     }
   }, [id, token]);
 
+  // Set a generic title immediately to prevent the file path from flashing
+  useLayoutEffect(() => {
+    navigation.setOptions({ title: "Manage Dealer" });
+  }, [navigation]);
+
+  // Update the title with specific details once the data is loaded
   useEffect(() => {
     if (editedDealer) {
       navigation.setOptions({ title: `Manage: ${editedDealer.username}` });

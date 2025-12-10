@@ -1,5 +1,5 @@
 import { useLocalSearchParams, useNavigation } from "expo-router";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useLayoutEffect, useState } from "react";
 import {
   View,
   Text,
@@ -103,6 +103,12 @@ const UserDetailsPage: React.FC = () => {
     }
   }, [id, token]);
 
+  // Set a generic title immediately to prevent the file path from flashing
+  useLayoutEffect(() => {
+    navigation.setOptions({ title: "Manage User" });
+  }, [navigation]);
+
+  // Update the title with specific details once the data is loaded
   useEffect(() => {
     if (editedUser) {
       navigation.setOptions({ title: `Manage: ${editedUser.username}` });
