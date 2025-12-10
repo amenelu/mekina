@@ -555,8 +555,8 @@ def api_manage_listing(current_user, car_id):
             } if car.auction else None,
             'rental_listing': {'price_per_day': car.rental_listing.price_per_day} if car.rental_listing else None,
             'images': [
-                {'id': img.id, 'image_url': url_for('static', filename=img.image_url.split('/static/')[1], _external=True)}
-                for img in car.images if img.image_url and '/static/' in img.image_url
+                {'id': img.id, 'image_url': url_for('static', filename=img.image_url.split('/static/')[1], _external=True), 'order': img.order}
+                for img in sorted(car.images, key=lambda i: i.order) if img.image_url and '/static/' in img.image_url
             ]
         }
         return jsonify(car=car_data)
@@ -609,14 +609,17 @@ def api_manage_listing(current_user, car_id):
             car.rental_listing.price_per_day = data.get('price_per_day', car.rental_listing.price_per_day)
 
         # If new images are uploaded, replace the old ones
-        if files and files[0].filename:
-            print("New files detected. Replacing old images.")
-            CarImage.query.filter_by(car_id=car.id).delete()
+        if files and any(f.filename for f in files):
+            print("New files detected. Appending to existing images.")
+            # Find the highest current order number to append new images correctly
+            highest_order = db.session.query(func.max(CarImage.order)).filter_by(car_id=car.id).scalar() or -1
+            
             for image_file in files:
                 image_url = save_seller_document(image_file)
                 print(f"Saved image, URL: {image_url}")
                 if image_url:
-                    new_image = CarImage(image_url=image_url, car_id=car.id)
+                    highest_order += 1
+                    new_image = CarImage(image_url=image_url, car_id=car.id, order=highest_order)
                     db.session.add(new_image)
 
         db.session.commit()
@@ -624,8 +627,8 @@ def api_manage_listing(current_user, car_id):
         # Manually construct the response to include detailed image data for the mobile app
         car_data = car.to_dict(include_owner=True)
         car_data['images'] = [
-            {'id': img.id, 'image_url': url_for('static', filename=img.image_url.split('/static/')[1], _external=True)}
-            for img in car.images if img.image_url and '/static/' in img.image_url
+            {'id': img.id, 'image_url': url_for('static', filename=img.image_url.split('/static/')[1], _external=True), 'order': img.order}
+            for img in sorted(car.images, key=lambda i: i.order) if img.image_url and '/static/' in img.image_url
         ]
         print(f"Returning car_data: {car_data}\n")
         return jsonify({'status': 'success', 'message': 'Listing updated successfully.', 'car': car_data})
@@ -658,3 +661,41 @@ def api_manage_listing(current_user, car_id):
         return jsonify({'status': 'success', 'message': 'Listing has been permanently deleted.'})
 
     return jsonify({'status': 'error', 'message': 'Method not supported.'}), 405
+
+@admin_bp.route('/api/listings/<int:car_id>/images/<int:image_id>', methods=['DELETE'])
+@admin_token_required
+def api_delete_image(current_user, car_id, image_id):
+    """API endpoint for an admin to delete a single car image."""
+    car = Car.query.get_or_404(car_id)
+    image = CarImage.query.filter_by(id=image_id, car_id=car.id).first_or_404()
+
+    # Optional: Delete the actual file from the server
+    # import os
+    # from flask import current_app
+    # try:
+    #     if '/static/' in image.image_url:
+    #         filename = image.image_url.split('/static/')[1]
+    #         file_path = os.path.join(current_app.root_path, 'static', filename)
+    #         if os.path.exists(file_path):
+    #             os.remove(file_path)
+    # except Exception as e:
+    #     current_app.logger.error(f"Error deleting image file {image.image_url}: {e}")
+
+    db.session.delete(image)
+    db.session.commit()
+    return jsonify({'status': 'success', 'message': 'Image deleted successfully.'})
+
+@admin_bp.route('/api/listings/<int:car_id>/images/reorder', methods=['POST'])
+@admin_token_required
+def api_reorder_images(current_user, car_id):
+    """API endpoint for an admin to reorder car images."""
+    data = request.get_json()
+    image_ids = data.get('image_ids')
+    if not image_ids or not isinstance(image_ids, list):
+        return jsonify({'status': 'error', 'message': 'Invalid payload. `image_ids` must be a list.'}), 400
+
+    for index, image_id in enumerate(image_ids):
+        CarImage.query.filter_by(id=image_id, car_id=car_id).update({'order': index})
+
+    db.session.commit()
+    return jsonify({'status': 'success', 'message': 'Image order updated.'})

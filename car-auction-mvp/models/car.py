@@ -36,7 +36,13 @@ class Car(db.Model):
     # Relationship
     auction = db.relationship('Auction', backref='car', uselist=False, cascade="all, delete-orphan")
     rental_listing = db.relationship('RentalListing', backref='car', uselist=False, cascade="all, delete-orphan")
-    images = db.relationship('CarImage', backref='car', lazy=True, cascade="all, delete-orphan") # One-to-many relationship with CarImage
+    images = db.relationship(
+        'CarImage', 
+        backref='car', 
+        lazy=True, 
+        cascade="all, delete-orphan", 
+        order_by='CarImage.order'  # Always sort images by the order column
+    )
     equipment = db.relationship('Equipment', secondary=car_equipment_association, lazy='subquery', backref=db.backref('cars', lazy=True))
 
     # Property to easily get the primary image for thumbnails

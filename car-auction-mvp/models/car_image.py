@@ -7,6 +7,7 @@ class CarImage(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     image_url = db.Column(db.String(255), nullable=False)
     car_id = db.Column(db.Integer, db.ForeignKey('car.id'), nullable=False)
+    order = db.Column(db.Integer, nullable=False, default=0, server_default='0')
 
     def __repr__(self):
         return f'<CarImage {self.image_url}>'
