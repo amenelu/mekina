@@ -1,6 +1,15 @@
-import React from "react";
-import { View, Text, StyleSheet, ScrollView, Pressable } from "react-native";
-import { Link } from "expo-router";
+import React, { useState, useEffect } from "react";
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  Pressable,
+  ActivityIndicator,
+} from "react-native";
+import { useAuth } from "@/hooks/useAuth";
+import axios from "axios";
+import { API_BASE_URL } from "@/apiConfig";
 
 const COLORS = {
   background: "#14181F",
@@ -13,33 +22,18 @@ const COLORS = {
   edit: "#ffc107",
 };
 
-// --- Mock Data ---
-const stats = {
-  user_count: 125,
-  active_auction_count: 12,
-  for_sale_count: 25,
-  for_rent_count: 8,
-  pending_approval_count: 2,
-};
+interface Stats {
+  [key: string]: number;
+}
 
-const pendingCars = [
-  {
-    id: "car10",
-    year: 2023,
-    make: "Tesla",
-    model: "Model 3",
-    seller: "elon_m",
-    listing_type: "Sale",
-  },
-  {
-    id: "car11",
-    year: 2022,
-    make: "Rivian",
-    model: "R1T",
-    seller: "rj_scaringe",
-    listing_type: "Auction",
-  },
-];
+interface PendingCar {
+  id: number;
+  year: number;
+  make: string;
+  model: string;
+  owner: { username: string };
+  listing_type: string;
+}
 
 const StatCard = ({ label, value }: { label: string; value: number }) => (
   <View style={styles.statCard}>
@@ -48,14 +42,14 @@ const StatCard = ({ label, value }: { label: string; value: number }) => (
   </View>
 );
 
-const PendingListingRow = ({ car }: { car: (typeof pendingCars)[0] }) => (
+const PendingListingRow = ({ car }: { car: PendingCar }) => (
   <View style={styles.listingRow}>
     <View style={styles.listingInfo}>
       <Text
         style={styles.listingTitle}
       >{`${car.year} ${car.make} ${car.model}`}</Text>
       <Text style={styles.listingSubtitle}>
-        By {car.seller} ({car.listing_type})
+        By {car.owner.username} ({car.listing_type})
       </Text>
     </View>
     <View style={styles.listingActions}>
@@ -70,6 +64,34 @@ const PendingListingRow = ({ car }: { car: (typeof pendingCars)[0] }) => (
 );
 
 const AdminDashboardScreen = () => {
+  const { token } = useAuth();
+  const [loading, setLoading] = useState(true);
+  const [stats, setStats] = useState<Stats | null>(null);
+  const [pendingCars, setPendingCars] = useState<PendingCar[]>([]);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      if (!token) return;
+      try {
+        setLoading(true);
+        const response = await axios.get(
+          `${API_BASE_URL}/admin/api/dashboard`,
+          {
+            headers: { Authorization: `Bearer ${token}` },
+          }
+        );
+        setStats(response.data.stats);
+        setPendingCars(response.data.pending_approvals);
+      } catch (error) {
+        console.error("Failed to fetch admin dashboard data:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, [token]);
+
   return (
     <React.Fragment>
       <ScrollView style={styles.container}>
@@ -81,19 +103,23 @@ const AdminDashboardScreen = () => {
           </Text>
         </View>
 
-        {/* Stats */}
-        <View style={styles.statsGrid}>
-          <StatCard label="Total Users" value={stats.user_count} />
-          <StatCard
-            label="Active Auctions"
-            value={stats.active_auction_count}
-          />
-          <StatCard label="Cars For Sale" value={stats.for_sale_count} />
-          <StatCard label="Cars For Rent" value={stats.for_rent_count} />
-          <StatCard label="Pending" value={stats.pending_approval_count} />
-        </View>
+        {loading ? (
+          <ActivityIndicator size="large" color={COLORS.accent} />
+        ) : (
+          stats && (
+            <View style={styles.statsGrid}>
+              <StatCard label="Total Users" value={stats.user_count} />
+              <StatCard
+                label="Active Auctions"
+                value={stats.active_auction_count}
+              />
+              <StatCard label="Cars For Sale" value={stats.for_sale_count} />
+              <StatCard label="Cars For Rent" value={stats.for_rent_count} />
+              <StatCard label="Pending" value={stats.pending_approval_count} />
+            </View>
+          )
+        )}
 
-        {/* Pending Listings */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Listings Pending Approval</Text>
           {pendingCars.length > 0 ? (

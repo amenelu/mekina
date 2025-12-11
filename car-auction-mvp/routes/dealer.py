@@ -1,4 +1,4 @@
-from flask import Blueprint, render_template, redirect, url_for, flash, request, abort, current_app
+from flask import Blueprint, render_template, redirect, url_for, flash, request, abort, current_app, jsonify
 from flask_login import login_required, current_user, AnonymousUserMixin
 from models.car_request import CarRequest 
 from werkzeug.utils import secure_filename
@@ -26,6 +26,7 @@ from wtforms.validators import DataRequired, NumberRange, Optional, Length, Vali
 from wtforms import FileField
 from flask_wtf.file import FileAllowed
 from routes.main import mark_notification_as_read
+from routes.seller import save_base64_image, token_required
 
 dealer_bp = Blueprint('dealer', __name__, url_prefix='/dealer')
 
@@ -144,9 +145,8 @@ def dashboard():
     )
 
 @dealer_bp.route('/api/dashboard')
-@login_required
-@dealer_required
-def api_dealer_dashboard():
+@token_required
+def api_dealer_dashboard(current_user):
     """API endpoint for dealer dashboard data."""
     filter_new = request.args.get('filter_new', 'false').lower() == 'true'
 
@@ -197,11 +197,21 @@ def api_dealer_dashboard():
     ).order_by(RequestQuestion.timestamp.desc()).all()
 
     return jsonify(
-        active_requests=active_requests_data,
-        my_cars=[car.to_dict() for car in my_cars],
-        unanswered_questions=[q.to_dict() for q in unanswered_questions],
-        unanswered_request_questions=[q.to_dict() for q in unanswered_request_questions],
-        now=datetime.utcnow().isoformat() + 'Z'
+        requests = active_requests_data,
+        my_cars = [car.to_dict() for car in my_cars],
+        unanswered_questions = [q.to_dict() for q in unanswered_questions],
+        unanswered_request_questions = [q.to_dict() for q in unanswered_request_questions],
+        conversations = [
+            {
+                "id": conv.id,
+                "buyer": {"username": conv.buyer.username},
+                "car": {"year": conv.car.year, "make": conv.car.make, "model": conv.car.model},
+                "created_at": conv.created_at.isoformat() + 'Z'
+            } for conv in Conversation.query.filter_by(dealer_id=current_user.id).order_by(Conversation.created_at.desc()).all()
+        ],
+        now = datetime.utcnow().isoformat() + 'Z',
+        user_points = current_user.points,
+        pending_approval_count = Car.query.filter_by(owner_id=current_user.id, is_approved=False).count()
     )
 
 @dealer_bp.route('/messages')

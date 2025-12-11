@@ -1,4 +1,4 @@
-from flask import Blueprint, render_template, abort, jsonify, request, url_for
+from flask import Blueprint, flash, redirect, render_template, abort, jsonify, request, url_for
 from flask_login import current_user, login_required
 from functools import wraps
 import re

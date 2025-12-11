@@ -1,5 +1,5 @@
 import os
-from flask import Blueprint, render_template, redirect, url_for, flash, request, current_app
+from flask import Blueprint, jsonify, render_template, redirect, url_for, flash, request, current_app
 from flask_login import login_required, current_user
 from models.car import Car
 from models.question import Question
@@ -18,6 +18,7 @@ from wtforms import (StringField, IntegerField, TextAreaField, SubmitField, Floa
                      SelectField, SelectMultipleField, widgets, RadioField, BooleanField)
 from wtforms.fields import DateTimeLocalField, MultipleFileField
 from wtforms.validators import DataRequired, Length, NumberRange, Optional, ValidationError
+from routes.auth import token_required
 
 seller_bp = Blueprint('seller', __name__, url_prefix='/seller')
 
@@ -233,73 +234,77 @@ def submit_car():
     return render_template('submit_car.html', title='Submit Your Car', form=form)
 
 @seller_bp.route('/api/cars', methods=['POST'])
-@login_required
-def api_submit_car():
+@token_required
+def api_submit_car(current_user):
     """API endpoint for submitting a new car listing."""
-    data = request.get_json()
-    if not data:
-        return jsonify({'status': 'error', 'message': 'Invalid JSON payload.'}), 400
+    # Handle multipart/form-data from the mobile app
+    data = request.form.to_dict()
+    files = request.files.getlist('images')
 
     # Basic validation (more comprehensive validation would be needed)
-    required_fields = ['make', 'model', 'year', 'condition', 'body_type', 'transmission', 'drivetrain', 'fuel_type', 'listing_type']
+    required_fields = ['make', 'model', 'year', 'listing_type']
     if not all(field in data for field in required_fields):
         return jsonify({'status': 'error', 'message': 'Missing required car details.'}), 400
 
     listing_type = data.get('listing_type')
-    if listing_type == 'auction' and (not data.get('start_price') or not data.get('end_time')):
-        return jsonify({'status': 'error', 'message': 'Auction requires start price and end time.'}), 400
     if listing_type == 'sale' and not data.get('fixed_price'):
         return jsonify({'status': 'error', 'message': 'Fixed price sale requires a price.'}), 400
-    if listing_type == 'rental' and not data.get('price_per_day'):
-        return jsonify({'status': 'error', 'message': 'Rental requires price per day.'}), 400
 
-    new_car = Car(
-        make=data.get('make'),
-        model=data.get('model'),
-        year=data.get('year'),
-        description=data.get('description'),
-        condition=data.get('condition'),
-        body_type=data.get('body_type'),
-        mileage=data.get('mileage'),
-        transmission=data.get('transmission'),
-        drivetrain=data.get('drivetrain'),
-        fuel_type=data.get('fuel_type'),
-        owner_id=current_user.id,
-        listing_type=listing_type,
-        is_bank_loan_available=data.get('is_bank_loan_available', False),
-        fixed_price=data.get('fixed_price') if listing_type == 'sale' else None,
-        is_approved=False # All seller submissions must be approved
-    )
+    try:
+        new_car = Car(
+            make=data.get('make'),
+            model=data.get('model'),
+            year=int(data.get('year')),
+            description=data.get('description'),
+            condition=data.get('condition'),
+            body_type=data.get('body_type'),
+            mileage=int(data.get('mileage')) if data.get('mileage') else None,
+            transmission=data.get('transmission'),
+            drivetrain=data.get('drivetrain'),
+            fuel_type=data.get('fuel_type'),
+            owner_id=current_user.id,
+            listing_type=listing_type,
+            is_bank_loan_available=data.get('is_bank_loan_available', 'false').lower() == 'true',
+            fixed_price=float(data.get('fixed_price')) if listing_type == 'sale' and data.get('fixed_price') else None,
+            is_approved=False # All seller submissions must be approved
+        )
+    except (ValueError, TypeError) as e:
+        return jsonify({'status': 'error', 'message': f'Invalid data format for a numeric field: {e}'}), 400
+
     db.session.add(new_car)
     db.session.flush()
 
     # Add equipment
-    for item_name in data.get('equipment', []):
-        equipment_item = Equipment.query.filter_by(name=item_name).first()
-        if equipment_item:
-            new_car.equipment.append(equipment_item)
+    # The mobile form doesn't send equipment yet, but this is ready for it
+    if 'equipment' in data:
+        equipment_list = data.get('equipment').split(',') if isinstance(data.get('equipment'), str) else []
+        for item_name in equipment_list:
+            equipment_item = Equipment.query.filter_by(name=item_name).first()
+            if equipment_item:
+                new_car.equipment.append(equipment_item)
 
-    # Handle images (expecting a list of base64 strings or URLs)
-    image_urls = []
-    for img_data in data.get('images', []):
-        if img_data.startswith('data:image') or len(img_data) > 200: # Heuristic for base64
-            image_url = save_base64_image(img_data, filename_prefix=f"car_{new_car.id}")
-        else: # Assume it's already a URL
-            image_url = img_data
+    # Handle images
+    if not files:
+        return jsonify({'status': 'error', 'message': 'At least one image is required.'}), 400
+
+    for image_file in files:
+        image_url = save_seller_document(image_file)
         if image_url:
             new_image = CarImage(image_url=image_url, car_id=new_car.id)
             db.session.add(new_image)
-            image_urls.append(image_url)
 
+    # Handle listing-type specific objects
     if listing_type == 'auction':
+        # The mobile form defaults to 'sale', so this part is for future expansion
         new_auction = Auction(
-            start_price=data.get('start_price'), current_price=data.get('start_price'),
-            end_time=datetime.fromisoformat(data['end_time'].replace('Z', '+00:00')), # Expect ISO format
+            start_price=float(data.get('start_price', 0)),
+            current_price=float(data.get('start_price', 0)),
+            end_time=datetime.fromisoformat(data['end_time'].replace('Z', '+00:00')),
             car_id=new_car.id
         )
         db.session.add(new_auction)
     elif listing_type == 'rental':
-        new_rental = RentalListing(price_per_day=data.get('price_per_day'), car_id=new_car.id)
+        new_rental = RentalListing(price_per_day=float(data.get('price_per_day', 0)), car_id=new_car.id)
         db.session.add(new_rental)
 
     db.session.commit()
