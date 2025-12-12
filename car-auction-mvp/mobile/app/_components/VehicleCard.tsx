@@ -19,16 +19,15 @@ const COLORS = {
 };
 
 export type Vehicle = {
-  id: string;
+  id: string; // Expects a string for router params
   year: number;
   make: string;
   model: string;
-  price: string; // Legacy, prefer price_display
-  price_display?: string; // The formatted price string from the API
-  image: string;
+  price: string; // The formatted price string to display
+  image: string; // The image URL to display
   mileage: number;
   is_featured?: boolean;
-  listingType: "Sale" | "Auction";
+  listingType: "Sale" | "Auction"; // The type of listing
 };
 
 type VehicleCardProps = {

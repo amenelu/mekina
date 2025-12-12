@@ -8,12 +8,13 @@ import {
   Pressable,
   FlatList,
   RefreshControl,
+  SafeAreaView,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
 import { useNavigation, router } from "expo-router";
 import axios from "axios";
 import { useAuth } from "@/hooks/useAuth";
 import { API_BASE_URL } from "@/apiConfig";
+import { io } from "socket.io-client";
 import { Ionicons } from "@expo/vector-icons";
 
 const COLORS = {
@@ -24,6 +25,7 @@ const COLORS = {
   accent: "#A370F7",
   success: "#28a745",
   warning: "#ffc107",
+  border: "#313843",
 };
 
 interface DashboardStats {
@@ -49,7 +51,15 @@ interface CustomerRequest {
   make: string;
   model: string;
   min_year: number;
-  notes: string;
+  message: string;
+  created_at: string;
+  min_price?: number;
+  max_price?: number;
+  condition?: string;
+  transmission?: string;
+  bid_count?: number;
+  lowest_offer?: number;
+  has_been_viewed?: boolean;
 }
 
 interface Conversation {
@@ -114,16 +124,70 @@ const ListingItem = ({ item }: { item: Listing }) => (
   </View>
 );
 
-const RequestItem = ({ item }: { item: CustomerRequest }) => (
-  <View style={styles.itemCard}>
-    <Text style={styles.itemTitle}>
-      {item.make} {item.model} ({item.min_year}+)
-    </Text>
-    <Text style={styles.itemNotes} numberOfLines={2}>
-      {item.notes}
-    </Text>
-  </View>
-);
+const RequestItem = ({ item }: { item: CustomerRequest }) => {
+  const handlePress = () => {
+    router.push({
+      pathname: "/(dealer)/place-offer",
+      params: { request_id: item.id },
+    });
+  };
+
+  return (
+    <Pressable style={styles.itemCard} onPress={handlePress}>
+      <View style={styles.requestCardHeader}>
+        <Text style={styles.itemTitle}>
+          {item.make || "Any Make"} {item.model || ""} ({item.min_year || "Any"}
+          +)
+        </Text>
+        {!item.has_been_viewed && (
+          <View style={styles.newBadge}>
+            <Text style={styles.newBadgeText}>NEW</Text>
+          </View>
+        )}
+      </View>
+
+      <View style={styles.requestCardBody}>
+        <View style={styles.requestDetails}>
+          {item.min_price && item.max_price && (
+            <Text style={styles.detailText}>
+              <Text style={styles.detailLabel}>Budget: </Text>
+              {item.min_price.toLocaleString()} -{" "}
+              {item.max_price.toLocaleString()} ETB
+            </Text>
+          )}
+          <Text style={styles.detailText}>
+            <Text style={styles.detailLabel}>Condition: </Text>
+            {item.condition || "Any"}
+          </Text>
+          <Text style={styles.detailText}>
+            <Text style={styles.detailLabel}>Transmission: </Text>
+            {item.transmission || "Any"}
+          </Text>
+        </View>
+        <View style={styles.requestStats}>
+          <View style={styles.requestStatItem}>
+            <Text style={styles.requestStatValue}>{item.bid_count || 0}</Text>
+            <Text style={styles.requestStatLabel}>Offers</Text>
+          </View>
+          <View style={styles.requestStatItem}>
+            <Text style={styles.requestStatValue}>
+              {item.lowest_offer ? item.lowest_offer.toLocaleString() : "N/A"}
+            </Text>
+            <Text style={styles.requestStatLabel}>Lowest</Text>
+          </View>
+        </View>
+      </View>
+
+      <Text style={styles.itemNotes} numberOfLines={2}>
+        {item.message}
+      </Text>
+
+      <View style={styles.offerButton}>
+        <Text style={styles.offerButtonText}>Place Offer</Text>
+      </View>
+    </Pressable>
+  );
+};
 
 const DealerDashboard = () => {
   const { token, user } = useAuth();
@@ -138,7 +202,49 @@ const DealerDashboard = () => {
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [activeTab, setActiveTab] = useState<
     "listings" | "requests" | "pending"
-  >("listings");
+  >("requests");
+
+  useEffect(() => {
+    if (!token) return;
+
+    const socket = io(API_BASE_URL, {
+      query: { token },
+      transports: ["websocket"],
+    });
+
+    socket.on("connect", () => {
+      console.log("Socket connected for real-time dashboard updates.");
+    });
+
+    // Listen for updates to existing requests (e.g., new bid)
+    socket.on("request_updated", (data) => {
+      setRequests((prevRequests) =>
+        prevRequests.map((req) =>
+          req.id === data.request_id
+            ? {
+                ...req,
+                bid_count: data.bid_count,
+                lowest_offer: data.lowest_offer,
+              }
+            : req
+        )
+      );
+    });
+
+    // Listen for entirely new customer requests
+    socket.on("new_customer_request", (newRequest) => {
+      setRequests((prevRequests) => [newRequest, ...prevRequests]);
+    });
+
+    socket.on("disconnect", () => {
+      console.log("Socket disconnected.");
+    });
+
+    // Cleanup on component unmount
+    return () => {
+      socket.disconnect();
+    };
+  }, [token]);
 
   const fetchData = async () => {
     try {
@@ -163,7 +269,12 @@ const DealerDashboard = () => {
       const allCars = data.my_cars || [];
       setListings(allCars.filter((c: Listing) => c.is_approved));
       setPendingListings(allCars.filter((c: Listing) => !c.is_approved));
-      setRequests(data.requests || []);
+      // Sort requests by creation date, newest first
+      const sortedRequests = (data.requests || []).sort(
+        (a: CustomerRequest, b: CustomerRequest) =>
+          new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+      );
+      setRequests(sortedRequests);
       setConversations(data.conversations || []);
     } catch (error) {
       console.error("Failed to fetch dealer dashboard data:", error);
@@ -408,6 +519,61 @@ const styles = StyleSheet.create({
     color: COLORS.textSecondary,
     textAlign: "center",
     marginTop: 30,
+  },
+  requestCardHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
+    marginBottom: 12,
+  },
+  newBadge: {
+    backgroundColor: COLORS.warning,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 5,
+  },
+  newBadgeText: {
+    color: "black",
+    fontWeight: "bold",
+    fontSize: 12,
+  },
+  requestCardBody: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginBottom: 12,
+    borderTopWidth: 1,
+    borderBottomWidth: 1,
+    borderColor: COLORS.border,
+    paddingVertical: 12,
+  },
+  requestDetails: {
+    flex: 1,
+  },
+  detailText: {
+    color: COLORS.textSecondary,
+    fontSize: 14,
+    marginBottom: 4,
+  },
+  detailLabel: {
+    color: COLORS.text,
+    fontWeight: "600",
+  },
+  requestStats: {
+    flexDirection: "row",
+    gap: 15,
+    alignItems: "center",
+  },
+  requestStatItem: {
+    alignItems: "center",
+  },
+  requestStatValue: {
+    color: COLORS.accent,
+    fontSize: 18,
+    fontWeight: "bold",
+  },
+  requestStatLabel: {
+    color: COLORS.textSecondary,
+    fontSize: 12,
   },
 });
 

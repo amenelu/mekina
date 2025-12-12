@@ -6,8 +6,8 @@ import {
   FlatList,
   ActivityIndicator,
   Pressable,
+  SafeAreaView,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
 import axios from "axios";
 import { useAuth } from "@/hooks/useAuth";
 import { API_BASE_URL } from "@/apiConfig";

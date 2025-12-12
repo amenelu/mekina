@@ -10,9 +10,9 @@ import {
   Image,
   ActivityIndicator,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
 import { useNavigation } from "expo-router";
 import axios from "axios";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { useAuth } from "@/hooks/useAuth";
 import { API_BASE_URL } from "@/apiConfig";
 import * as ImagePicker from "expo-image-picker";

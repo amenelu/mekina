@@ -1,6 +1,9 @@
 import React from "react";
 import { View, Text, Pressable, StyleSheet, Dimensions } from "react-native";
-import Animated, { useAnimatedStyle, withTiming } from "react-native-reanimated";
+import Animated, {
+  useAnimatedStyle,
+  withTiming,
+} from "react-native-reanimated";
 
 const { width } = Dimensions.get("window");
 
@@ -17,7 +20,7 @@ interface SegmentedControlProps {
   onChange: (index: number) => void;
 }
 
-export const SegmentedControl: React.FC<SegmentedControlProps> = ({
+const SegmentedControl: React.FC<SegmentedControlProps> = ({
   tabs,
   currentIndex,
   onChange,
@@ -33,11 +36,7 @@ export const SegmentedControl: React.FC<SegmentedControlProps> = ({
   return (
     <View style={[styles.container, { width: segmentWidth * tabs.length }]}>
       <Animated.View
-        style={[
-          styles.activeBox,
-          { width: segmentWidth },
-          animatedStyle,
-        ]}
+        style={[styles.activeBox, { width: segmentWidth }, animatedStyle]}
       />
       {tabs.map((tab, index) => (
         <Pressable
@@ -48,7 +47,10 @@ export const SegmentedControl: React.FC<SegmentedControlProps> = ({
           <Text
             style={[
               styles.tabText,
-              { color: currentIndex === index ? COLORS.text : COLORS.textSecondary },
+              {
+                color:
+                  currentIndex === index ? COLORS.text : COLORS.textSecondary,
+              },
             ]}
           >
             {tab}
@@ -75,3 +77,5 @@ const styles = StyleSheet.create({
   tab: { justifyContent: "center", alignItems: "center" },
   tabText: { fontWeight: "bold", fontSize: 14 },
 });
+
+export default SegmentedControl;

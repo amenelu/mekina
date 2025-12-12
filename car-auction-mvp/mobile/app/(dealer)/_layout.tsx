@@ -71,6 +71,7 @@ export default function DealerTabsLayout() {
         options={{
           title: "place-offer",
           href: null,
+          headerShown: false, // Use custom header in the screen
         }}
       />
     </Tabs>
