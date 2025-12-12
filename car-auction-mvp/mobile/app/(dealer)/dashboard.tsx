@@ -96,33 +96,46 @@ const StatCard = ({
   );
 };
 
-const ListingItem = ({ item }: { item: Listing }) => (
-  <View style={styles.itemCard}>
-    <View>
-      <Text style={styles.itemTitle}>
-        {item.year} {item.make} {item.model}
-      </Text>
-      <Text style={styles.itemSubtitle}>{item.listing_type.toUpperCase()}</Text>
-    </View>
-    <View style={styles.statusContainer}>
-      {item.is_approved ? (
-        <>
-          <Text style={[styles.statusTag, styles.approved]}>Approved</Text>
-          <Text
-            style={[
-              styles.statusTag,
-              item.is_active ? styles.active : styles.inactive,
-            ]}
-          >
-            {item.is_active ? "Active" : "Inactive"}
+const ListingItem = ({ item }: { item: Listing }) => {
+  const handlePress = () => {
+    router.push({
+      pathname: "/(dealer)/edit-listing",
+      params: { id: item.id.toString() },
+    });
+  };
+
+  return (
+    <Pressable style={styles.itemCard} onPress={handlePress}>
+      <View>
+        <Text style={styles.itemTitle}>
+          {item.year} {item.make} {item.model}
+        </Text>
+        <Text style={styles.itemSubtitle}>
+          {item.listing_type.toUpperCase()}
+        </Text>
+      </View>
+      <View style={styles.statusContainer}>
+        {item.is_approved ? (
+          <>
+            <Text style={[styles.statusTag, styles.approved]}>Approved</Text>
+            <Text
+              style={[
+                styles.statusTag,
+                item.is_active ? styles.active : styles.inactive,
+              ]}
+            >
+              {item.is_active ? "Active" : "Inactive"}
+            </Text>
+          </>
+        ) : (
+          <Text style={[styles.statusTag, styles.pending]}>
+            Pending Approval
           </Text>
-        </>
-      ) : (
-        <Text style={[styles.statusTag, styles.pending]}>Pending Approval</Text>
-      )}
-    </View>
-  </View>
-);
+        )}
+      </View>
+    </Pressable>
+  );
+};
 
 const RequestItem = ({ item }: { item: CustomerRequest }) => {
   const handlePress = () => {

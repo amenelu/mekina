@@ -74,6 +74,13 @@ export default function DealerTabsLayout() {
           headerShown: false, // Use custom header in the screen
         }}
       />
+      <Tabs.Screen
+        name="edit-listing"
+        options={{
+          href: null, // Hide from tab bar
+          headerShown: false,
+        }}
+      />
     </Tabs>
   );
 }

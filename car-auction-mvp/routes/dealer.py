@@ -866,6 +866,59 @@ def api_place_dealer_bid(current_user, request_id):
         )
 
 
+@dealer_bp.route("/api/cars/<int:car_id>/update", methods=["PUT"])
+@token_required
+def api_update_car(current_user, car_id):
+    """API endpoint for a dealer to update their own car listing."""
+    car = Car.query.get_or_404(car_id)
+
+    # Security Check: Ensure the current user owns this car
+    if car.owner_id != current_user.id:
+        return jsonify({"status": "error", "message": "Permission denied."}), 403
+
+    data = request.get_json()
+    if not data:
+        return jsonify({"status": "error", "message": "Invalid JSON payload."}), 400
+
+    # --- Point Deduction Logic ---
+    # Check if the edit is happening more than 1 hour after the last update
+    time_since_last_update = datetime.utcnow() - car.updated_at
+    if time_since_last_update > timedelta(hours=1):
+        if current_user.points <= 0:
+            return (
+                jsonify(
+                    {
+                        "status": "error",
+                        "message": "You do not have enough points to edit this listing after one hour.",
+                    }
+                ),
+                402,
+            )  # 402 Payment Required
+        current_user.points -= 1
+        success_message = (
+            "Listing updated and sent for re-approval. 1 point was deducted."
+        )
+    else:
+        success_message = "Listing updated and sent for re-approval."
+
+    # --- Update Car Details & Require Re-approval ---
+    car.make = data.get("make", car.make)
+    car.model = data.get("model", car.model)
+    car.year = int(data.get("year", car.year))
+    car.fixed_price = float(data.get("price", car.fixed_price))
+    car.description = data.get("description", car.description)
+
+    # Set for re-approval
+    car.is_approved = False
+    car.updated_at = datetime.utcnow()  # Manually update the timestamp
+
+    db.session.commit()
+
+    return jsonify(
+        {"status": "success", "message": success_message, "car": car.to_dict()}
+    )
+
+
 @dealer_bp.route("/bid/<int:bid_id>/edit", methods=["GET", "POST"])
 @login_required
 @dealer_required

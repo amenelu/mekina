@@ -120,6 +120,17 @@ const ProfileScreen = () => {
 
   return (
     <SafeAreaView style={styles.container}>
+      <View style={styles.header}>
+        <Text style={styles.headerTitle}>My Profile</Text>
+        <Pressable onPress={handleLogout}>
+          <Ionicons
+            name="log-out-outline"
+            size={28}
+            color={COLORS.destructive}
+          />
+        </Pressable>
+      </View>
+
       <ScrollView>
         {profileData && (
           <>
@@ -197,12 +208,6 @@ const ProfileScreen = () => {
             </View>
           </>
         )}
-
-        <View style={styles.section}>
-          <Pressable style={styles.logoutButton} onPress={handleLogout}>
-            <Text style={styles.logoutButtonText}>Log Out</Text>
-          </Pressable>
-        </View>
       </ScrollView>
     </SafeAreaView>
   );
@@ -211,11 +216,18 @@ const ProfileScreen = () => {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.background },
   centered: { flex: 1, justifyContent: "center", alignItems: "center" },
+  header: {
+    padding: 20,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.border,
+  },
+  headerTitle: { fontSize: 24, fontWeight: "bold", color: COLORS.text },
   profileHeader: {
     alignItems: "center",
     padding: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.border,
   },
   avatar: {
     width: 80,
@@ -290,14 +302,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     lineHeight: 20,
   },
-  logoutButton: {
-    backgroundColor: COLORS.destructive,
-    paddingHorizontal: 50,
-    paddingVertical: 15,
-    borderRadius: 8,
-    alignItems: "center",
-  },
-  logoutButtonText: { color: "white", fontWeight: "bold", fontSize: 16 },
 });
 
 export default ProfileScreen;
