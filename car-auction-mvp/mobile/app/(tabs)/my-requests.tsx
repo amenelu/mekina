@@ -1,6 +1,17 @@
-import React from "react";
-import { View, Text, StyleSheet, ScrollView, Pressable } from "react-native";
+import React, { useState, useEffect } from "react";
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  Pressable,
+  ActivityIndicator,
+  RefreshControl,
+} from "react-native";
 import { Link } from "expo-router";
+import { useAuth } from "@/hooks/useAuth";
+import axios from "axios";
+import { API_BASE_URL } from "@/apiConfig";
 
 const COLORS = {
   background: "#14181F",
@@ -13,46 +24,28 @@ const COLORS = {
   warning: "#ffc107",
 };
 
-// Mock data based on my_requests.html
-const mockRequests = [
-  {
-    id: "req1",
-    make: "Toyota",
-    model: "RAV4",
-    status: "Active",
-    notes:
-      "Looking for a recent model, preferably hybrid, with low mileage. Must have a sunroof and good safety features.",
-    created_at: "Oct 26, 2023",
-    offer_count: 3,
-  },
-  {
-    id: "req2",
-    make: null,
-    model: null,
-    status: "Pending",
-    notes:
-      "I need a reliable and fuel-efficient small car for city driving. My budget is around 1.5M ETB. Open to suggestions.",
-    created_at: "Sep 15, 2023",
-    offer_count: 0,
-  },
-  {
-    id: "req3",
-    make: "Ford",
-    model: "Ranger",
-    status: "Closed",
-    notes: "Looking for a 4x4 pickup truck for work purposes.",
-    created_at: "Aug 01, 2023",
-    offer_count: 5,
-  },
-];
+interface CarRequest {
+  id: number;
+  make: string | null;
+  model: string | null;
+  status: string;
+  notes: string;
+  created_at: string;
+  offer_count: number;
+}
 
-const RequestCard = ({ request }: { request: (typeof mockRequests)[0] }) => {
+const RequestCard = ({ request }: { request: CarRequest }) => {
   const statusColor =
-    request.status.toLowerCase() === "active"
+    request.status.toLowerCase() === "completed"
+      ? COLORS.mutedForeground
+      : request.status.toLowerCase() === "active"
       ? COLORS.success
       : request.status.toLowerCase() === "pending"
       ? COLORS.warning
       : COLORS.mutedForeground;
+
+  const statusText =
+    request.status.charAt(0).toUpperCase() + request.status.slice(1);
 
   return (
     <View style={styles.requestCard}>
@@ -65,7 +58,7 @@ const RequestCard = ({ request }: { request: (typeof mockRequests)[0] }) => {
                 : "General Request"}
             </Text>
             <Text style={[styles.statusTag, { backgroundColor: statusColor }]}>
-              {request.status}
+              {statusText}
             </Text>
           </View>
           <View style={styles.cardBody}>
@@ -78,7 +71,9 @@ const RequestCard = ({ request }: { request: (typeof mockRequests)[0] }) => {
       <View style={styles.cardFooter}>
         <View style={styles.footerStat}>
           <Text style={styles.footerLabel}>Submitted</Text>
-          <Text style={styles.footerValue}>{request.created_at}</Text>
+          <Text style={styles.footerValue}>
+            {new Date(request.created_at).toLocaleDateString()}
+          </Text>
         </View>
         <View style={styles.footerStat}>
           <Text style={styles.footerLabel}>Offers</Text>
@@ -95,34 +90,63 @@ const RequestCard = ({ request }: { request: (typeof mockRequests)[0] }) => {
 };
 
 const MyRequestsScreen = () => {
+  const { token } = useAuth();
+  const [requests, setRequests] = useState<CarRequest[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+
+  const fetchRequests = async () => {
+    if (!token) {
+      setLoading(false);
+      return;
+    }
+    try {
+      setLoading(true);
+      const response = await axios.get(
+        `${API_BASE_URL}/requests/api/requests`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+      setRequests(response.data.requests || []);
+    } catch (error) {
+      console.error("Failed to fetch car requests:", error);
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchRequests();
+  }, [token]);
+
+  const onRefresh = () => {
+    setRefreshing(true);
+    fetchRequests();
+  };
+
+  if (loading && !refreshing) {
+    return <ActivityIndicator size="large" style={styles.centered} />;
+  }
+
   return (
-    <ScrollView style={styles.container}>
-      {/* Add a button to access the dealer dashboard */}
-      <View style={styles.dashboardButtonContainer}>
-        <Link href="/dealer-dashboard" asChild>
-          <Pressable style={styles.dashboardButton}>
-            <Text style={styles.dashboardButtonText}>
-              Go to Dealer Dashboard
-            </Text>
-          </Pressable>
-        </Link>
-        {/* Add a button to access the admin dashboard */}
-        <Link href="/admin-dashboard" asChild>
-          <Pressable
-            style={[
-              styles.dashboardButton,
-              { marginTop: 10, backgroundColor: "#c0392b" },
-            ]}
-          >
-            <Text style={styles.dashboardButtonText}>
-              Go to Admin Dashboard
-            </Text>
-          </Pressable>
-        </Link>
+    <ScrollView
+      style={styles.container}
+      refreshControl={
+        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+      }
+    >
+      <View style={styles.header}>
+        <Text style={styles.headerTitle}>My Car Requests</Text>
+        <Text style={styles.headerSubtitle}>
+          Here are the requests you've submitted. Click "View Offers" to see
+          bids from our dealer network.
+        </Text>
       </View>
       <View style={styles.content}>
-        {mockRequests.length > 0 ? (
-          mockRequests.map((req) => <RequestCard key={req.id} request={req} />)
+        {requests.length > 0 ? (
+          requests.map((req) => <RequestCard key={req.id} request={req} />)
         ) : (
           <View style={styles.noRequestsContainer}>
             <Text style={styles.noRequestsText}>
@@ -142,6 +166,17 @@ const MyRequestsScreen = () => {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.background },
+  centered: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: COLORS.background,
+  },
+  header: {
+    padding: 20,
+  },
+  headerTitle: { fontSize: 24, fontWeight: "bold", color: COLORS.foreground },
+  headerSubtitle: { fontSize: 16, color: COLORS.mutedForeground, marginTop: 8 },
   content: { padding: 20, gap: 20 },
   requestCard: {
     backgroundColor: COLORS.card,
@@ -203,22 +238,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     marginTop: 10,
     fontWeight: "600",
-  },
-  dashboardButtonContainer: {
-    padding: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.border,
-  },
-  dashboardButton: {
-    backgroundColor: COLORS.accent,
-    padding: 15,
-    borderRadius: 10,
-    alignItems: "center",
-  },
-  dashboardButtonText: {
-    color: COLORS.foreground,
-    fontSize: 16,
-    fontWeight: "bold",
   },
 });
 
