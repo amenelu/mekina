@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import {
   View,
   Text,
@@ -7,8 +7,9 @@ import {
   Pressable,
   ActivityIndicator,
   RefreshControl,
+  Alert,
 } from "react-native";
-import { Link } from "expo-router";
+import { Link, useFocusEffect } from "expo-router";
 import { useAuth } from "@/hooks/useAuth";
 import axios from "axios";
 import { API_BASE_URL } from "@/apiConfig";
@@ -94,32 +95,44 @@ const MyRequestsScreen = () => {
   const [requests, setRequests] = useState<CarRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
+  // This function will fetch the requests from the API
   const fetchRequests = async () => {
     if (!token) {
       setLoading(false);
+      setError("You are not logged in.");
       return;
     }
     try {
-      setLoading(true);
+      setError(null); // Clear previous errors
       const response = await axios.get(
         `${API_BASE_URL}/requests/api/requests`,
         {
           headers: { Authorization: `Bearer ${token}` },
         }
       );
-      setRequests(response.data.requests || []);
-    } catch (error) {
+      setRequests(response.data.requests || []); // Ensure we have an array
+    } catch (err) {
       console.error("Failed to fetch car requests:", error);
+      setError("Could not load your requests. Please try again.");
+      Alert.alert(
+        "Connection Error",
+        "Could not load your requests. Please pull down to refresh."
+      );
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
   };
 
-  useEffect(() => {
-    fetchRequests();
-  }, [token]);
+  // useFocusEffect will re-fetch data every time the screen comes into view
+  useFocusEffect(
+    useCallback(() => {
+      setLoading(true); // Show loader when screen is focused
+      fetchRequests();
+    }, [token])
+  );
 
   const onRefresh = () => {
     setRefreshing(true);
@@ -127,7 +140,14 @@ const MyRequestsScreen = () => {
   };
 
   if (loading && !refreshing) {
-    return <ActivityIndicator size="large" style={styles.centered} />;
+    return (
+      <View style={styles.centered}>
+        <ActivityIndicator size="large" color={COLORS.accent} />
+        <Text style={{ color: COLORS.foreground, marginTop: 10 }}>
+          Loading Requests...
+        </Text>
+      </View>
+    );
   }
 
   return (
@@ -145,20 +165,26 @@ const MyRequestsScreen = () => {
         </Text>
       </View>
       <View style={styles.content}>
-        {requests.length > 0 ? (
-          requests.map((req) => <RequestCard key={req.id} request={req} />)
-        ) : (
+        {error && !loading && (
           <View style={styles.noRequestsContainer}>
-            <Text style={styles.noRequestsText}>
-              You have not made any car requests yet.
-            </Text>
-            <Link href="/request" asChild>
-              <Pressable>
-                <Text style={styles.linkText}>Find a car now!</Text>
-              </Pressable>
-            </Link>
+            <Text style={styles.noRequestsText}>{error}</Text>
           </View>
         )}
+        {!error && requests.length > 0
+          ? requests.map((req) => <RequestCard key={req.id} request={req} />)
+          : !error &&
+            !loading && (
+              <View style={styles.noRequestsContainer}>
+                <Text style={styles.noRequestsText}>
+                  You have not made any car requests yet.
+                </Text>
+                <Link href="/request" asChild>
+                  <Pressable>
+                    <Text style={styles.linkText}>Find a car now!</Text>
+                  </Pressable>
+                </Link>
+              </View>
+            )}
       </View>
     </ScrollView>
   );

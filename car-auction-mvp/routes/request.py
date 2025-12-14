@@ -1,4 +1,15 @@
-from flask import Blueprint, render_template, redirect, url_for, flash, session, abort, request, jsonify, current_app
+from flask import (
+    Blueprint,
+    render_template,
+    redirect,
+    url_for,
+    flash,
+    session,
+    abort,
+    request,
+    jsonify,
+    current_app,
+)
 from flask_login import login_required, current_user
 from models.car_request import CarRequest
 from models.dealer_bid import DealerBid
@@ -8,241 +19,324 @@ from models.dealer_rating import DealerRating
 from models.notification import Notification
 from models.request_question import RequestQuestion
 from routes.main import mark_notification_as_read
-
+from routes.auth import token_required
 from flask_wtf import FlaskForm
-from wtforms import StringField, IntegerField, TextAreaField, SubmitField, RadioField, SelectField, SelectMultipleField, widgets, validators
+from wtforms import (
+    StringField,
+    IntegerField,
+    TextAreaField,
+    SubmitField,
+    RadioField,
+    SelectField,
+    SelectMultipleField,
+    widgets,
+    validators,
+)
 from wtforms.validators import DataRequired, NumberRange, Optional, Length
 
-request_bp = Blueprint('request', __name__, url_prefix='/requests')
+request_bp = Blueprint("request", __name__, url_prefix="/requests")
+
 
 # --- Initial Choice Form ---
 class RequestStep0_Choice(FlaskForm):
     knows_what_they_want = RadioField(
-        'Do you know which car you want?',
-        choices=[('yes', 'Yes, I know what I want'), ('no', 'No, help me decide')],
-        validators=[DataRequired()]
+        "Do you know which car you want?",
+        choices=[("yes", "Yes, I know what I want"), ("no", "No, help me decide")],
+        validators=[DataRequired()],
     )
-    submit = SubmitField('Continue')
+    submit = SubmitField("Continue")
+
 
 # --- "I know what I want" Path ---
 class RequestStep1_Make(FlaskForm):
-    make = StringField('What make of car are you looking for?', validators=[DataRequired()])
-    submit = SubmitField('Next')
+    make = StringField(
+        "What make of car are you looking for?", validators=[DataRequired()]
+    )
+    submit = SubmitField("Next")
+
 
 class RequestStep2_Model(FlaskForm):
-    model = StringField('Great! And what model?', validators=[DataRequired()])
-    submit = SubmitField('Next')
+    model = StringField("Great! And what model?", validators=[DataRequired()])
+    submit = SubmitField("Next")
+
 
 class RequestStep3_Year(FlaskForm):
-    min_year = IntegerField('What is the minimum year you would consider?', validators=[Optional(), NumberRange(min=1900, max=2100)])
-    submit = SubmitField('Next')
+    min_year = IntegerField(
+        "What is the minimum year you would consider?",
+        validators=[Optional(), NumberRange(min=1900, max=2100)],
+    )
+    submit = SubmitField("Next")
+
 
 class RequestStep4_Notes(FlaskForm):
-    notes = TextAreaField('Any other details? (e.g., color, trim, condition)', validators=[Optional()])
-    submit = SubmitField('Finish Request')
+    notes = TextAreaField(
+        "Any other details? (e.g., color, trim, condition)", validators=[Optional()]
+    )
+    submit = SubmitField("Finish Request")
+
 
 # --- "Help me decide" Path ---
 class RequestGuided_Price(FlaskForm):
-    price = RadioField('What is your approximate budget?', choices=[
-        ('under_1m', 'Under 1,000,000 ETB'),
-        ('1m_to_3m', '1M - 3M ETB'),
-        ('3m_to_5m', '3M - 5M ETB'),
-        ('over_5m', 'Over 5,000,000 ETB')
-    ], validators=[DataRequired()])
-    submit = SubmitField('Next')
+    price = RadioField(
+        "What is your approximate budget?",
+        choices=[
+            ("under_1m", "Under 1,000,000 ETB"),
+            ("1m_to_3m", "1M - 3M ETB"),
+            ("3m_to_5m", "3M - 5M ETB"),
+            ("over_5m", "Over 5,000,000 ETB"),
+        ],
+        validators=[DataRequired()],
+    )
+    submit = SubmitField("Next")
+
 
 class RequestGuided_BodyType(FlaskForm):
-    body_type = RadioField('What type of car best fits your needs?', choices=[
-        ('SUV', 'SUV'),
-        ('Sedan', 'Sedan'),
-        ('Hatchback', 'Hatchback'),
-        ('Pickup', 'Pickup Truck')
-    ], validators=[DataRequired()])
-    submit = SubmitField('Next')
+    body_type = RadioField(
+        "What type of car best fits your needs?",
+        choices=[
+            ("SUV", "SUV"),
+            ("Sedan", "Sedan"),
+            ("Hatchback", "Hatchback"),
+            ("Pickup", "Pickup Truck"),
+        ],
+        validators=[DataRequired()],
+    )
+    submit = SubmitField("Next")
+
 
 class RequestGuided_Fuel(FlaskForm):
-    fuel_type = RadioField('Any preference on fuel type?', choices=[
-        ('Gasoline', 'Gasoline'),
-        ('Diesel', 'Diesel'),
-        ('Hybrid', 'Hybrid'),
-        ('Electric', 'Electric')
-    ], validators=[DataRequired()])
-    submit = SubmitField('Next')
+    fuel_type = RadioField(
+        "Any preference on fuel type?",
+        choices=[
+            ("Gasoline", "Gasoline"),
+            ("Diesel", "Diesel"),
+            ("Hybrid", "Hybrid"),
+            ("Electric", "Electric"),
+        ],
+        validators=[DataRequired()],
+    )
+    submit = SubmitField("Next")
+
 
 class RequestGuided_Brand(FlaskForm):
-    brand = StringField('Are you considering any specific brands? (Optional)', validators=[Optional()])
-    submit = SubmitField('Finish Request')
+    brand = StringField(
+        "Are you considering any specific brands? (Optional)", validators=[Optional()]
+    )
+    submit = SubmitField("Finish Request")
+
 
 class RequestGuided_Equipment(FlaskForm):
-    equipment = SelectMultipleField('Which features are important to you? (Optional)', choices=[
-        ('sunroof', 'Sunroof'),
-        ('leather_seats', 'Leather Seats'),
-        ('apple_carplay', 'Apple CarPlay / Android Auto'),
-        ('awd', 'All-Wheel Drive')
-    ], widget=widgets.ListWidget(prefix_label=False), option_widget=widgets.CheckboxInput())
-    submit = SubmitField('Next')
+    equipment = SelectMultipleField(
+        "Which features are important to you? (Optional)",
+        choices=[
+            ("sunroof", "Sunroof"),
+            ("leather_seats", "Leather Seats"),
+            ("apple_carplay", "Apple CarPlay / Android Auto"),
+            ("awd", "All-Wheel Drive"),
+        ],
+        widget=widgets.ListWidget(prefix_label=False),
+        option_widget=widgets.CheckboxInput(),
+    )
+    submit = SubmitField("Next")
+
 
 class RequestQuestionForm(FlaskForm):
-    question_text = TextAreaField('Your Question', validators=[DataRequired(), validators.Length(min=10, max=500)])
-    submit_question = SubmitField('Ask Question')
+    question_text = TextAreaField(
+        "Your Question", validators=[DataRequired(), validators.Length(min=10, max=500)]
+    )
+    submit_question = SubmitField("Ask Question")
+
 
 class DealerRatingForm(FlaskForm):
-    rating = RadioField('Your Rating', choices=[(1, '1'), (2, '2'), (3, '3'), (4, '4'), (5, '5')], coerce=int, validators=[DataRequired()])
-    review_text = TextAreaField('Your Review (Optional)', validators=[Length(max=1000)])
-    submit = SubmitField('Submit Review')
+    rating = RadioField(
+        "Your Rating",
+        choices=[(1, "1"), (2, "2"), (3, "3"), (4, "4"), (5, "5")],
+        coerce=int,
+        validators=[DataRequired()],
+    )
+    review_text = TextAreaField("Your Review (Optional)", validators=[Length(max=1000)])
+    submit = SubmitField("Submit Review")
 
 
-@request_bp.route('/start')
+@request_bp.route("/start")
 @login_required
 def start_request():
     # Clear any previous request data from the session
-    session.pop('car_request_data', None)
-    return redirect(url_for('request.step0_choice'))
+    session.pop("car_request_data", None)
+    return redirect(url_for("request.step0_choice"))
 
-@request_bp.route('/step1_make', methods=['GET', 'POST'])
+
+@request_bp.route("/step1_make", methods=["GET", "POST"])
 @login_required
 def step1_make():
     form = RequestStep1_Make()
     if form.validate_on_submit():
-        session['car_request_data'] = {'make': form.make.data}
-        return redirect(url_for('request.step2_model'))
-    return render_template('request_step.html', form=form, title="Find a Car (1/4)")
+        session["car_request_data"] = {"make": form.make.data}
+        return redirect(url_for("request.step2_model"))
+    return render_template("request_step.html", form=form, title="Find a Car (1/4)")
 
-@request_bp.route('/step2_model', methods=['GET', 'POST'])
+
+@request_bp.route("/step2_model", methods=["GET", "POST"])
 @login_required
 def step2_model():
-    if 'car_request_data' not in session:
-        return redirect(url_for('request.start_request'))
+    if "car_request_data" not in session:
+        return redirect(url_for("request.start_request"))
     form = RequestStep2_Model()
     if form.validate_on_submit():
-        session['car_request_data']['model'] = form.model.data
+        session["car_request_data"]["model"] = form.model.data
         session.modified = True
-        return redirect(url_for('request.step3_year'))
-    return render_template('request_step.html', form=form, title="Find a Car (2/4)")
+        return redirect(url_for("request.step3_year"))
+    return render_template("request_step.html", form=form, title="Find a Car (2/4)")
 
-@request_bp.route('/step3_year', methods=['GET', 'POST'])
+
+@request_bp.route("/step3_year", methods=["GET", "POST"])
 @login_required
 def step3_year():
-    if 'model' not in session.get('car_request_data', {}):
-        return redirect(url_for('request.start_request'))
+    if "model" not in session.get("car_request_data", {}):
+        return redirect(url_for("request.start_request"))
     form = RequestStep3_Year()
     if form.validate_on_submit():
-        session['car_request_data']['min_year'] = form.min_year.data
+        session["car_request_data"]["min_year"] = form.min_year.data
         session.modified = True
-        return redirect(url_for('request.step4_notes'))
-    return render_template('request_step.html', form=form, title="Find a Car (3/4)")
+        return redirect(url_for("request.step4_notes"))
+    return render_template("request_step.html", form=form, title="Find a Car (3/4)")
 
-@request_bp.route('/step4_notes', methods=['GET', 'POST'])
+
+@request_bp.route("/step4_notes", methods=["GET", "POST"])
 @login_required
 def step4_notes():
-    if 'min_year' not in session.get('car_request_data', {}):
-        return redirect(url_for('request.start_request'))
+    if "min_year" not in session.get("car_request_data", {}):
+        return redirect(url_for("request.start_request"))
     form = RequestStep4_Notes()
     if form.validate_on_submit():
-        data = session.get('car_request_data', {})
+        data = session.get("car_request_data", {})
         new_req = CarRequest(
-            make=data.get('make'), model=data.get('model'),
-            min_year=data.get('min_year'), notes=form.notes.data,
-            user_id=current_user.id
+            make=data.get("make"),
+            model=data.get("model"),
+            min_year=data.get("min_year"),
+            notes=form.notes.data,
+            user_id=current_user.id,
         )
         db.session.add(new_req)
         db.session.commit()
-        session.pop('car_request_data', None)
+        session.pop("car_request_data", None)
 
         # --- Check for matching cars and redirect ---
         filter_params = {
-            'make': data.get('make'),
-            'model': data.get('model'),
-            'min_year': data.get('min_year')
+            "make": data.get("make"),
+            "model": data.get("model"),
+            "min_year": data.get("min_year"),
         }
 
         from models.car import Car
-        query = Car.query.filter(Car.is_approved==True, Car.is_active==True, Car.listing_type != 'rental')
-        if make := filter_params.get('make'):
-            query = query.filter(Car.make.ilike(f'%{make}%'))
-        if model := filter_params.get('model'):
-            query = query.filter(Car.model.ilike(f'%{model}%'))
-        if min_year := filter_params.get('min_year'):
+
+        query = Car.query.filter(
+            Car.is_approved == True, Car.is_active == True, Car.listing_type != "rental"
+        )
+        if make := filter_params.get("make"):
+            query = query.filter(Car.make.ilike(f"%{make}%"))
+        if model := filter_params.get("model"):
+            query = query.filter(Car.model.ilike(f"%{model}%"))
+        if min_year := filter_params.get("min_year"):
             query = query.filter(Car.year >= min_year)
 
         if query.first():
-            flash("We've found some cars that match your preferences! Dealers will also be notified of your request.", 'success')
+            flash(
+                "We've found some cars that match your preferences! Dealers will also be notified of your request.",
+                "success",
+            )
         else:
-            flash("Your request has been sent to our dealers! While we couldn't find an immediate match, they will contact you with offers soon.", 'success')
+            flash(
+                "Your request has been sent to our dealers! While we couldn't find an immediate match, they will contact you with offers soon.",
+                "success",
+            )
 
-        filter_params['exclude_listing_type'] = 'rental'
-        return redirect(url_for('main.all_listings', **{k: v for k, v in filter_params.items() if v}))
+        filter_params["exclude_listing_type"] = "rental"
+        return redirect(
+            url_for(
+                "main.all_listings", **{k: v for k, v in filter_params.items() if v}
+            )
+        )
 
-    return render_template('request_step.html', form=form, title="Find a Car (4/4)")
+    return render_template("request_step.html", form=form, title="Find a Car (4/4)")
+
 
 # --- New Routes for Guided Path ---
 
-@request_bp.route('/step0_choice', methods=['GET', 'POST'])
+
+@request_bp.route("/step0_choice", methods=["GET", "POST"])
 @login_required
 def step0_choice():
     form = RequestStep0_Choice()
     if form.validate_on_submit():
-        session['car_request_data'] = {}
-        if form.knows_what_they_want.data == 'yes':
-            return redirect(url_for('request.step1_make'))
+        session["car_request_data"] = {}
+        if form.knows_what_they_want.data == "yes":
+            return redirect(url_for("request.step1_make"))
         else:
-            return redirect(url_for('request.step_guided_price'))
-    return render_template('request_step.html', form=form, title="Let's Find Your Next Car")
+            return redirect(url_for("request.step_guided_price"))
+    return render_template(
+        "request_step.html", form=form, title="Let's Find Your Next Car"
+    )
 
-@request_bp.route('/guided_price', methods=['GET', 'POST'])
+
+@request_bp.route("/guided_price", methods=["GET", "POST"])
 @login_required
 def step_guided_price():
     form = RequestGuided_Price()
     if form.validate_on_submit():
-        session['car_request_data']['price'] = form.price.data
+        session["car_request_data"]["price"] = form.price.data
         session.modified = True
-        return redirect(url_for('request.step_guided_body_type'))
-    return render_template('request_step.html', form=form, title="Help Us Decide (1/5)")
+        return redirect(url_for("request.step_guided_body_type"))
+    return render_template("request_step.html", form=form, title="Help Us Decide (1/5)")
 
-@request_bp.route('/guided_body_type', methods=['GET', 'POST'])
+
+@request_bp.route("/guided_body_type", methods=["GET", "POST"])
 @login_required
 def step_guided_body_type():
-    if 'price' not in session.get('car_request_data', {}):
-        return redirect(url_for('request.start_request'))
+    if "price" not in session.get("car_request_data", {}):
+        return redirect(url_for("request.start_request"))
     form = RequestGuided_BodyType()
     if form.validate_on_submit():
-        session['car_request_data']['body_type'] = form.body_type.data
+        session["car_request_data"]["body_type"] = form.body_type.data
         session.modified = True
-        return redirect(url_for('request.step_guided_fuel'))
-    return render_template('request_step.html', form=form, title="Help Us Decide (2/5)")
+        return redirect(url_for("request.step_guided_fuel"))
+    return render_template("request_step.html", form=form, title="Help Us Decide (2/5)")
 
-@request_bp.route('/guided_fuel', methods=['GET', 'POST'])
+
+@request_bp.route("/guided_fuel", methods=["GET", "POST"])
 @login_required
 def step_guided_fuel():
-    if 'body_type' not in session.get('car_request_data', {}):
-        return redirect(url_for('request.start_request'))
+    if "body_type" not in session.get("car_request_data", {}):
+        return redirect(url_for("request.start_request"))
     form = RequestGuided_Fuel()
     if form.validate_on_submit():
-        session['car_request_data']['fuel_type'] = form.fuel_type.data
+        session["car_request_data"]["fuel_type"] = form.fuel_type.data
         session.modified = True
-        return redirect(url_for('request.step_guided_equipment'))
-    return render_template('request_step.html', form=form, title="Help Us Decide (3/5)")
+        return redirect(url_for("request.step_guided_equipment"))
+    return render_template("request_step.html", form=form, title="Help Us Decide (3/5)")
 
-@request_bp.route('/guided_equipment', methods=['GET', 'POST'])
+
+@request_bp.route("/guided_equipment", methods=["GET", "POST"])
 @login_required
 def step_guided_equipment():
-    if 'fuel_type' not in session.get('car_request_data', {}):
-        return redirect(url_for('request.start_request'))
+    if "fuel_type" not in session.get("car_request_data", {}):
+        return redirect(url_for("request.start_request"))
     form = RequestGuided_Equipment()
     if form.validate_on_submit():
-        session['car_request_data']['equipment'] = form.equipment.data
+        session["car_request_data"]["equipment"] = form.equipment.data
         session.modified = True
-        return redirect(url_for('request.step_guided_brand'))
-    return render_template('request_step.html', form=form, title="Help Us Decide (4/5)")
+        return redirect(url_for("request.step_guided_brand"))
+    return render_template("request_step.html", form=form, title="Help Us Decide (4/5)")
 
-@request_bp.route('/guided_brand', methods=['GET', 'POST'])
+
+@request_bp.route("/guided_brand", methods=["GET", "POST"])
 @login_required
 def step_guided_brand():
-    if 'equipment' not in session.get('car_request_data', {}):
-        return redirect(url_for('request.start_request'))
+    if "equipment" not in session.get("car_request_data", {}):
+        return redirect(url_for("request.start_request"))
     form = RequestGuided_Brand()
     if form.validate_on_submit():
-        data = session.get('car_request_data', {})
+        data = session.get("car_request_data", {})
         notes = (
             f"Customer is looking for a car with the following preferences:\n"
             f"- Budget: {data.get('price', 'Not specified')}\n"
@@ -252,54 +346,98 @@ def step_guided_brand():
             f"- Preferred Brand(s): {form.brand.data or 'Any'}"
         )
         new_req = CarRequest(
-            notes=notes, 
+            notes=notes,
             user_id=current_user.id,
-            make=form.brand.data or None # Save the brand to the structured 'make' field
+            make=form.brand.data
+            or None,  # Save the brand to the structured 'make' field
         )
         db.session.add(new_req)
         db.session.commit()
-        session.pop('car_request_data', None)
+        session.pop("car_request_data", None)
 
         # Redirect to the filtered "All Listings" page, not just auctions
         filter_params = {
-            'body_type': data.get('body_type'), 
-            'fuel_type': data.get('fuel_type'), 
-            'make': form.brand.data or data.get('brand'),
+            "body_type": data.get("body_type"),
+            "fuel_type": data.get("fuel_type"),
+            "make": form.brand.data or data.get("brand"),
         }
 
         # --- Check for matching cars before flashing message ---
         from models.car import Car
-        query = Car.query.filter(Car.is_approved==True, Car.is_active==True, Car.listing_type != 'rental')
-        if body_type := filter_params.get('body_type'):
+
+        query = Car.query.filter(
+            Car.is_approved == True, Car.is_active == True, Car.listing_type != "rental"
+        )
+        if body_type := filter_params.get("body_type"):
             query = query.filter(Car.body_type == body_type)
-        if fuel_type := filter_params.get('fuel_type'):
+        if fuel_type := filter_params.get("fuel_type"):
             query = query.filter(Car.fuel_type == fuel_type)
-        if make := filter_params.get('make'):
-            query = query.filter(Car.make.ilike(f'%{make}%'))
-        
+        if make := filter_params.get("make"):
+            query = query.filter(Car.make.ilike(f"%{make}%"))
+
         if query.first():
-            flash("We've found some cars that match your preferences! Dealers will also be notified of your request.", 'success')
+            flash(
+                "We've found some cars that match your preferences! Dealers will also be notified of your request.",
+                "success",
+            )
         else:
-            flash("Your request has been sent to our dealers! While we couldn't find an immediate match, they will contact you with offers soon.", 'success')
+            flash(
+                "Your request has been sent to our dealers! While we couldn't find an immediate match, they will contact you with offers soon.",
+                "success",
+            )
 
-        filter_params['exclude_listing_type'] = 'rental'
-        return redirect(url_for('main.all_listings', **{k: v for k, v in filter_params.items() if v}))
-    return render_template('request_step.html', form=form, title="Help Us Decide (5/5)")
+        filter_params["exclude_listing_type"] = "rental"
+        return redirect(
+            url_for(
+                "main.all_listings", **{k: v for k, v in filter_params.items() if v}
+            )
+        )
+    return render_template("request_step.html", form=form, title="Help Us Decide (5/5)")
 
-@request_bp.route('/my')
+
+@request_bp.route("/my")
 @login_required
 def my_requests():
-    requests = CarRequest.query.filter_by(user_id=current_user.id).order_by(CarRequest.created_at.desc()).all()
-    return render_template('my_requests.html', requests=requests)
+    requests = (
+        CarRequest.query.filter_by(user_id=current_user.id)
+        .order_by(CarRequest.created_at.desc())
+        .all()
+    )
+    return render_template("my_requests.html", requests=requests)
 
-@request_bp.route('/api/requests')
-@login_required
-def api_my_requests():
+
+@request_bp.route("/api/requests")
+@token_required
+def api_my_requests(current_user):
     """API endpoint to get the current user's car requests."""
-    user_requests = CarRequest.query.filter_by(user_id=current_user.id).order_by(CarRequest.created_at.desc()).all()
-    return jsonify(requests=[req.to_dict() for req in user_requests])
+    # This print statement confirms the function is being reached after the decorator.
+    print(f"--- Executing api_my_requests for user: {current_user.username} ---")
+    try:
+        user_requests = (
+            CarRequest.query.filter_by(user_id=current_user.id)
+            .order_by(CarRequest.created_at.desc())
+            .all()
+        )
+        requests_data = [req.to_dict() for req in user_requests]
+        # This print statement shows you the exact data being sent back.
+        print(
+            f"--- Found {len(requests_data)} requests. Sending data: {requests_data} ---"
+        )
+        return jsonify(requests=requests_data)
+    except Exception as e:
+        print(f"!!! DATABASE ERROR in api_my_requests: {e} !!!")
+        return (
+            jsonify(
+                {
+                    "status": "error",
+                    "message": "A server error occurred while fetching requests.",
+                }
+            ),
+            500,
+        )
 
-@request_bp.route('/<int:request_id>')
+
+@request_bp.route("/<int:request_id>")
 @login_required
 @mark_notification_as_read
 def request_detail(request_id):
@@ -314,9 +452,15 @@ def request_detail(request_id):
     # We can pass one form instance to the template and reuse it for each bid with JS
     question_form = RequestQuestionForm()
 
-    return render_template('request_detail.html', car_request=car_request, bids=bids, question_form=question_form)
+    return render_template(
+        "request_detail.html",
+        car_request=car_request,
+        bids=bids,
+        question_form=question_form,
+    )
 
-@request_bp.route('/api/requests/<int:request_id>')
+
+@request_bp.route("/api/requests/<int:request_id>")
 @login_required
 def api_request_detail(request_id):
     """API endpoint to get a single car request with all bids."""
@@ -324,24 +468,16 @@ def api_request_detail(request_id):
 
     # Security check - as before
     if car_request.user_id != current_user.id and not current_user.is_admin:
-        return jsonify({'error': 'Permission denied'}), 403
+        return jsonify({"error": "Permission denied"}), 403
 
     bids = car_request.dealer_bids.order_by(DealerBid.price.asc()).all()
 
     return jsonify(
-        {
-            'request': car_request.to_dict(),
-            'bids': [bid.to_dict() for bid in bids]
-        }
+        {"request": car_request.to_dict(), "bids": [bid.to_dict() for bid in bids]}
     )
 
 
-
-
-
-
-
-@request_bp.route('/bid/<int:bid_id>/ask', methods=['POST'])
+@request_bp.route("/bid/<int:bid_id>/ask", methods=["POST"])
 @login_required
 def ask_dealer_question(bid_id):
     """Handles a buyer asking a question about a specific dealer bid."""
@@ -357,33 +493,47 @@ def ask_dealer_question(bid_id):
         new_question = RequestQuestion(
             question_text=form.question_text.data,
             user_id=current_user.id,
-            dealer_bid_id=bid.id
+            dealer_bid_id=bid.id,
         )
         db.session.add(new_question)
         db.session.commit()
 
         # Notify the dealer
         notification_message = f"A customer asked a question about your offer for request #{car_request.id}."
-        new_notification = Notification(user_id=bid.dealer_id, message=notification_message)
+        new_notification = Notification(
+            user_id=bid.dealer_id, message=notification_message
+        )
         db.session.add(new_notification)
-        db.session.flush() # Get ID
+        db.session.flush()  # Get ID
 
-        new_notification.link = url_for('dealer.answer_request_question', question_id=new_question.id, notification_id=new_notification.id)
+        new_notification.link = url_for(
+            "dealer.answer_request_question",
+            question_id=new_question.id,
+            notification_id=new_notification.id,
+        )
         db.session.commit()
 
         # --- Real-time Notification ---
-        unread_count = Notification.query.filter_by(user_id=bid.dealer_id, is_read=False).count()
+        unread_count = Notification.query.filter_by(
+            user_id=bid.dealer_id, is_read=False
+        ).count()
         notification_data = {
-            'message': new_notification.message,
-            'link': new_notification.link,
-            'timestamp': new_notification.timestamp.isoformat() + 'Z',
-            'count': unread_count
+            "message": new_notification.message,
+            "link": new_notification.link,
+            "timestamp": new_notification.timestamp.isoformat() + "Z",
+            "count": unread_count,
         }
-        socketio.emit('new_notification', notification_data, room=str(bid.dealer_id))
+        socketio.emit("new_notification", notification_data, room=str(bid.dealer_id))
 
-        return jsonify({'status': 'success', 'message': 'Your question has been sent to the dealer.'})
+        return jsonify(
+            {
+                "status": "success",
+                "message": "Your question has been sent to the dealer.",
+            }
+        )
 
-    return jsonify({'status': 'error', 'errors': form.errors})
+    return jsonify({"status": "error", "errors": form.errors})
+
 
 def _accept_offer_logic(bid_id, user_id, payment_method):
     """
@@ -396,36 +546,50 @@ def _accept_offer_logic(bid_id, user_id, payment_method):
     # Security & Business Logic Checks
     if car_request.user_id != user_id:
         raise PermissionError("User does not own this request.")
-    if car_request.status != 'active':
+    if car_request.status != "active":
         raise ValueError("This request is already closed.")
-    if payment_method == 'loan' and not bid_to_accept.price_with_loan:
+    if payment_method == "loan" and not bid_to_accept.price_with_loan:
         raise ValueError("Invalid payment method for this offer.")
 
-    final_price = bid_to_accept.price_with_loan if payment_method == 'loan' else bid_to_accept.price
+    final_price = (
+        bid_to_accept.price_with_loan
+        if payment_method == "loan"
+        else bid_to_accept.price
+    )
 
     # Transactional Logic
-    bid_to_accept.status = 'accepted'
+    bid_to_accept.status = "accepted"
     for other_bid in car_request.dealer_bids.filter(DealerBid.id != bid_to_accept.id):
-        other_bid.status = 'rejected'
-    car_request.status = 'completed'
+        other_bid.status = "rejected"
+    car_request.status = "completed"
     car_request.accepted_bid_id = bid_to_accept.id
 
     new_deal = Deal(
-        final_price=final_price, customer_id=car_request.user_id,
-        dealer_id=bid_to_accept.dealer_id, car_request_id=car_request.id,
-        accepted_bid_id=bid_to_accept.id, payment_method=payment_method
+        final_price=final_price,
+        customer_id=car_request.user_id,
+        dealer_id=bid_to_accept.dealer_id,
+        car_request_id=car_request.id,
+        accepted_bid_id=bid_to_accept.id,
+        payment_method=payment_method,
     )
     db.session.add(new_deal)
-    db.session.commit() # Commit here to get new_deal.id
+    db.session.commit()  # Commit here to get new_deal.id
 
     # Notify the dealer
-    notification_message = f"Congratulations! Your offer for request #{car_request.id} was accepted."
-    deal_notification = Notification(user_id=bid_to_accept.dealer_id, message=notification_message, link=url_for('request.deal_summary', deal_id=new_deal.id))
+    notification_message = (
+        f"Congratulations! Your offer for request #{car_request.id} was accepted."
+    )
+    deal_notification = Notification(
+        user_id=bid_to_accept.dealer_id,
+        message=notification_message,
+        link=url_for("request.deal_summary", deal_id=new_deal.id),
+    )
     db.session.add(deal_notification)
     db.session.commit()
     return new_deal, deal_notification
 
-@request_bp.route('/offer/<int:bid_id>/accept', methods=['POST'])
+
+@request_bp.route("/offer/<int:bid_id>/accept", methods=["POST"])
 @login_required
 def accept_offer(bid_id):
     """Handles the logic for a customer accepting a dealer's offer."""
@@ -433,57 +597,79 @@ def accept_offer(bid_id):
     car_request = bid_to_accept.car_request
 
     try:
-        payment_method = request.form.get('payment_method', 'cash')
-        new_deal, deal_notification = _accept_offer_logic(bid_id, current_user.id, payment_method)
-        
+        payment_method = request.form.get("payment_method", "cash")
+        new_deal, deal_notification = _accept_offer_logic(
+            bid_id, current_user.id, payment_method
+        )
+
         # --- Real-time Notification ---
-        unread_count = Notification.query.filter_by(user_id=bid_to_accept.dealer_id, is_read=False).count()
+        unread_count = Notification.query.filter_by(
+            user_id=bid_to_accept.dealer_id, is_read=False
+        ).count()
         notification_data = {
-            'message': deal_notification.message,
-            'link': deal_notification.link,
-            'timestamp': deal_notification.timestamp.isoformat() + 'Z',
-            'count': unread_count
+            "message": deal_notification.message,
+            "link": deal_notification.link,
+            "timestamp": deal_notification.timestamp.isoformat() + "Z",
+            "count": unread_count,
         }
-        socketio.emit('new_notification', notification_data, room=str(bid_to_accept.dealer_id))
-        
-        flash('Offer accepted! The dealer has been notified and you can see the deal summary below.', 'success')
-        return redirect(url_for('request.deal_summary', deal_id=new_deal.id))
+        socketio.emit(
+            "new_notification", notification_data, room=str(bid_to_accept.dealer_id)
+        )
+
+        flash(
+            "Offer accepted! The dealer has been notified and you can see the deal summary below.",
+            "success",
+        )
+        return redirect(url_for("request.deal_summary", deal_id=new_deal.id))
 
     except (PermissionError, ValueError) as e:
-        flash(str(e), 'danger')
+        flash(str(e), "danger")
     except Exception as e:
         db.session.rollback()
         current_app.logger.error(f"Error accepting offer: {e}")
-        flash(f'An error occurred while accepting the offer: {e}', 'danger')
-    return redirect(url_for('request.request_detail', request_id=car_request.id))
+        flash(f"An error occurred while accepting the offer: {e}", "danger")
+    return redirect(url_for("request.request_detail", request_id=car_request.id))
 
-@request_bp.route('/deal/<int:deal_id>')
+
+@request_bp.route("/deal/<int:deal_id>")
 @login_required
 @mark_notification_as_read
 def deal_summary(deal_id):
     """Displays the final summary of a completed deal."""
     deal = Deal.query.get_or_404(deal_id)
     # Security check: only participants or an admin can view the deal
-    if current_user.id not in [deal.customer_id, deal.dealer_id] and not current_user.is_admin:
+    if (
+        current_user.id not in [deal.customer_id, deal.dealer_id]
+        and not current_user.is_admin
+    ):
         abort(403)
-    
+
     # Check if a rating already exists for this deal
     existing_rating = DealerRating.query.filter_by(deal_id=deal.id).first()
     form = DealerRatingForm()
-    return render_template('deal_summary.html', deal=deal, rating=existing_rating, form=form)
+    return render_template(
+        "deal_summary.html", deal=deal, rating=existing_rating, form=form
+    )
 
-@request_bp.route('/api/deals/<int:deal_id>')
+
+@request_bp.route("/api/deals/<int:deal_id>")
 @login_required
 def api_deal_summary(deal_id):
     """API endpoint to get the details of a completed deal."""
     deal = Deal.query.get_or_404(deal_id)
     # Security check
-    if current_user.id not in [deal.customer_id, deal.dealer_id] and not current_user.is_admin:
-        return jsonify({'error': 'Permission denied'}), 403
-    
+    if (
+        current_user.id not in [deal.customer_id, deal.dealer_id]
+        and not current_user.is_admin
+    ):
+        return jsonify({"error": "Permission denied"}), 403
+
     return jsonify(deal=deal.to_dict())
 
-@request_bp.route('/api/requests', methods=['POST']) # This path is now correct: /requests/api/requests
+
+@request_bp.route(
+    "/api/requests", methods=["POST"]
+)  # This path is now correct: /requests/api/requests
 @login_required
 def api_create_request():
     """
@@ -492,10 +678,10 @@ def api_create_request():
     """
     data = request.get_json()
     if not data:
-        return jsonify({'status': 'error', 'message': 'Invalid JSON payload.'}), 400
-    
+        return jsonify({"status": "error", "message": "Invalid JSON payload."}), 400
+
     # --- Logic to handle both "I know what I want" and "Help me decide" paths ---
-    is_guided_path = 'price' in data or 'body_type' in data
+    is_guided_path = "price" in data or "body_type" in data
 
     if is_guided_path:
         # Construct notes from guided path data, similar to the web route
@@ -510,23 +696,44 @@ def api_create_request():
         new_req = CarRequest(
             notes=notes,
             user_id=current_user.id,
-            make=data.get('brand') or None # Save brand to the structured 'make' field
+            make=data.get("brand") or None,  # Save brand to the structured 'make' field
         )
-    else: # "I know what I want" path
-        if not data.get('make') and not data.get('notes'):
-            return jsonify({'status': 'error', 'message': 'Either make/model or notes are required.'}), 400
+    else:  # "I know what I want" path
+        if not data.get("make") and not data.get("notes"):
+            return (
+                jsonify(
+                    {
+                        "status": "error",
+                        "message": "Either make/model or notes are required.",
+                    }
+                ),
+                400,
+            )
         new_req = CarRequest(
-            make=data.get('make'), model=data.get('model'),
-            min_year=data.get('min_year'), max_mileage=data.get('max_mileage'),
-            notes=data.get('notes'), user_id=current_user.id
+            make=data.get("make"),
+            model=data.get("model"),
+            min_year=data.get("min_year"),
+            max_mileage=data.get("max_mileage"),
+            notes=data.get("notes"),
+            user_id=current_user.id,
         )
 
     db.session.add(new_req)
     db.session.commit()
 
-    return jsonify({'status': 'success', 'message': 'Your request has been submitted successfully!', 'request': new_req.to_dict()}), 201
+    return (
+        jsonify(
+            {
+                "status": "success",
+                "message": "Your request has been submitted successfully!",
+                "request": new_req.to_dict(),
+            }
+        ),
+        201,
+    )
 
-@request_bp.route('/deal/<int:deal_id>/rate', methods=['POST'])
+
+@request_bp.route("/deal/<int:deal_id>/rate", methods=["POST"])
 @login_required
 def rate_dealer(deal_id):
     """Handles a buyer submitting a rating for a dealer after a deal."""
@@ -534,10 +741,10 @@ def rate_dealer(deal_id):
 
     # Security checks
     if deal.customer_id != current_user.id:
-        abort(403) # Only the buyer from the deal can rate
+        abort(403)  # Only the buyer from the deal can rate
     if DealerRating.query.filter_by(deal_id=deal.id).first():
         flash("You have already submitted a review for this deal.", "warning")
-        return redirect(url_for('request.deal_summary', deal_id=deal.id))
+        return redirect(url_for("request.deal_summary", deal_id=deal.id))
 
     form = DealerRatingForm()
     if form.validate_on_submit():
@@ -546,17 +753,22 @@ def rate_dealer(deal_id):
             review_text=form.review_text.data,
             dealer_id=deal.dealer_id,
             buyer_id=deal.customer_id,
-            deal_id=deal.id
+            deal_id=deal.id,
         )
         db.session.add(new_rating)
         db.session.commit()
-        flash("Thank you for your review! Your feedback helps our community.", "success")
+        flash(
+            "Thank you for your review! Your feedback helps our community.", "success"
+        )
     else:
-        flash("There was an error with your submission. Please select a rating.", "danger")
+        flash(
+            "There was an error with your submission. Please select a rating.", "danger"
+        )
 
-    return redirect(url_for('request.deal_summary', deal_id=deal.id))
+    return redirect(url_for("request.deal_summary", deal_id=deal.id))
 
-@request_bp.route('/api/deals/<int:deal_id>/rate', methods=['POST'])
+
+@request_bp.route("/api/deals/<int:deal_id>/rate", methods=["POST"])
 @login_required
 def api_rate_dealer(deal_id):
     """API endpoint for a buyer to submit a rating for a dealer."""
@@ -564,22 +776,39 @@ def api_rate_dealer(deal_id):
 
     # Security checks
     if deal.customer_id != current_user.id:
-        return jsonify({'status': 'error', 'message': 'Permission denied.'}), 403
+        return jsonify({"status": "error", "message": "Permission denied."}), 403
     if DealerRating.query.filter_by(deal_id=deal.id).first():
-        return jsonify({'status': 'error', 'message': 'You have already submitted a review for this deal.'}), 400
+        return (
+            jsonify(
+                {
+                    "status": "error",
+                    "message": "You have already submitted a review for this deal.",
+                }
+            ),
+            400,
+        )
 
     data = request.get_json()
-    if not data or 'rating' not in data:
-        return jsonify({'status': 'error', 'message': 'A rating is required.'}), 400
+    if not data or "rating" not in data:
+        return jsonify({"status": "error", "message": "A rating is required."}), 400
 
     new_rating = DealerRating(
-        rating=data.get('rating'),
-        review_text=data.get('review_text'),
+        rating=data.get("rating"),
+        review_text=data.get("review_text"),
         dealer_id=deal.dealer_id,
         buyer_id=deal.customer_id,
-        deal_id=deal.id
+        deal_id=deal.id,
     )
     db.session.add(new_rating)
     db.session.commit()
 
-    return jsonify({'status': 'success', 'message': 'Thank you for your review!', 'rating': new_rating.to_dict()}), 201
+    return (
+        jsonify(
+            {
+                "status": "success",
+                "message": "Thank you for your review!",
+                "rating": new_rating.to_dict(),
+            }
+        ),
+        201,
+    )
