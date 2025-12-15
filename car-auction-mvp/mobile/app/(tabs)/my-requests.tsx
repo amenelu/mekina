@@ -9,7 +9,7 @@ import {
   RefreshControl,
   Alert,
 } from "react-native";
-import { Link, useFocusEffect } from "expo-router";
+import { Link, useFocusEffect, useRouter } from "expo-router";
 import { useAuth } from "@/hooks/useAuth";
 import axios from "axios";
 import { API_BASE_URL } from "@/apiConfig";
@@ -91,7 +91,8 @@ const RequestCard = ({ request }: { request: CarRequest }) => {
 };
 
 const MyRequestsScreen = () => {
-  const { token } = useAuth();
+  const { token, logout } = useAuth();
+  const router = useRouter();
   const [requests, setRequests] = useState<CarRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -114,12 +115,21 @@ const MyRequestsScreen = () => {
       );
       setRequests(response.data.requests || []); // Ensure we have an array
     } catch (err) {
-      console.error("Failed to fetch car requests:", error);
-      setError("Could not load your requests. Please try again.");
-      Alert.alert(
-        "Connection Error",
-        "Could not load your requests. Please pull down to refresh."
-      );
+      if (axios.isAxiosError(err) && err.response?.status === 401) {
+        // Handle token expiration
+        console.log("Token expired or invalid. Logging out.");
+        Alert.alert("Session Expired", "Please log in again.", [
+          { text: "OK", onPress: () => logout() },
+        ]);
+        router.replace("/login");
+      } else {
+        console.error("Failed to fetch car requests:", err);
+        setError("Could not load your requests. Please try again.");
+        Alert.alert(
+          "Connection Error",
+          "Could not load your requests. Please pull down to refresh."
+        );
+      }
     } finally {
       setLoading(false);
       setRefreshing(false);

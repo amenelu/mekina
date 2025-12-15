@@ -461,12 +461,12 @@ def request_detail(request_id):
 
 
 @request_bp.route("/api/requests/<int:request_id>")
-@login_required
-def api_request_detail(request_id):
+@token_required
+def api_request_detail(current_user, request_id):
     """API endpoint to get a single car request with all bids."""
     car_request = CarRequest.query.get_or_404(request_id)
 
-    # Security check - as before
+    # Security check
     if car_request.user_id != current_user.id and not current_user.is_admin:
         return jsonify({"error": "Permission denied"}), 403
 
