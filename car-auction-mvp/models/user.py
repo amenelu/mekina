@@ -46,11 +46,11 @@ class User(UserMixin, db.Model):
         if not self.is_dealer:
             return None
 
-        from models.dealer_review import DealerReview
+        from models.dealer_rating import DealerRating
 
         avg_rating = (
-            db.session.query(db.func.avg(DealerReview.rating))
-            .filter(DealerReview.dealer_id == self.id)
+            db.session.query(db.func.avg(DealerRating.rating))
+            .filter(DealerRating.dealer_id == self.id)
             .scalar()
         )
         return float(avg_rating) if avg_rating is not None else 0

@@ -1,6 +1,7 @@
 from datetime import datetime, date
 from extensions import db
 from flask import url_for
+from .request_question import RequestQuestion
 
 
 class DealerBid(db.Model):
@@ -38,6 +39,7 @@ class DealerBid(db.Model):
     images = db.relationship(
         "DealerBidImage", backref="dealer_bid", lazy=True, cascade="all, delete-orphan"
     )
+    questions = db.relationship("RequestQuestion", backref="dealer_bid", lazy="dynamic")
 
     def to_dict(self):
         """Serializes the DealerBid object to a dictionary."""
@@ -70,6 +72,9 @@ class DealerBid(db.Model):
             "valid_until": self.valid_until.isoformat(),
             "message": self.message,
             "image_urls": image_urls,
+            "questions": [
+                q.to_dict() for q in self.questions.order_by(RequestQuestion.timestamp)
+            ],
             "request_id": self.request_id,
             "dealer": (
                 {

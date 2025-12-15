@@ -7,6 +7,8 @@ import {
   ActivityIndicator,
   Alert,
   Pressable,
+  Modal,
+  Dimensions,
   Image,
   FlatList,
   RefreshControl,
@@ -40,6 +42,14 @@ interface CarRequest {
   bid_count: number;
 }
 
+interface QuestionAnswer {
+  id: number;
+  question_text: string;
+  answer_text: string | null;
+  timestamp: string;
+  answered_at: string | null;
+}
+
 interface DealerBid {
   id: number;
   price: number;
@@ -56,6 +66,7 @@ interface DealerBid {
   extras: string | null;
   valid_until: string;
   image_urls: string[];
+  questions: QuestionAnswer[];
   status: string;
   dealer: {
     username: string;
@@ -71,6 +82,12 @@ const RequestDetailScreen = () => {
   const [request, setRequest] = useState<CarRequest | null>(null);
   const [bids, setBids] = useState<DealerBid[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isImageViewerVisible, setImageViewerVisible] = useState(false);
+  const [selectedImages, setSelectedImages] = useState<string[]>([]);
+  const [selectedImageIndex, setSelectedImageIndex] = useState(0);
+  const [expandedQAs, setExpandedQAs] = useState<{ [key: number]: boolean }>(
+    {}
+  );
   const [refreshing, setRefreshing] = useState(false);
 
   const fetchRequestDetails = useCallback(async () => {
@@ -113,6 +130,105 @@ const RequestDetailScreen = () => {
   const onRefresh = () => {
     setRefreshing(true);
     fetchRequestDetails();
+  };
+
+  const openImageViewer = (images: string[], index: number) => {
+    setSelectedImages(images);
+    setSelectedImageIndex(index);
+    setImageViewerVisible(true);
+  };
+
+  const closeImageViewer = () => {
+    setImageViewerVisible(false);
+    setSelectedImages([]);
+  };
+
+  const toggleQA = (bidId: number) => {
+    setExpandedQAs((prev) => ({
+      ...prev,
+      [bidId]: !prev[bidId],
+    }));
+  };
+
+  const handleAcceptOffer = async (bid: DealerBid) => {
+    // Confirmation Dialog
+    Alert.alert(
+      "Accept Offer?",
+      `Are you sure you want to accept the offer of ${bid.price.toLocaleString()} ETB from ${
+        bid.dealer.username
+      }? This will close the request.`,
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Accept",
+          onPress: async () => {
+            try {
+              setLoading(true);
+              const response = await axios.post(
+                `${API_BASE_URL}/requests/api/offer/${bid.id}/accept`,
+                { payment_method: "cash" }, // Assuming cash for now
+                { headers: { Authorization: `Bearer ${token}` } }
+              );
+
+              if (response.data.status === "success") {
+                Alert.alert("Offer Accepted!", "The dealer has been notified.");
+                // Navigate to the new deal summary page
+                router.replace(`/deal/${response.data.deal.id}`);
+              } else {
+                throw new Error(
+                  response.data.message || "Failed to accept offer."
+                );
+              }
+            } catch (error: any) {
+              console.error("Failed to accept offer:", error);
+              Alert.alert(
+                "Error",
+                error.response?.data?.message ||
+                  "An error occurred. Please try again."
+              );
+            } finally {
+              setLoading(false);
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  const handleAskQuestion = (bidId: number) => {
+    Alert.prompt(
+      "Ask a Question",
+      "Enter your question for the dealer below:",
+      async (questionText) => {
+        if (!questionText) return;
+
+        try {
+          setLoading(true);
+          const response = await axios.post(
+            `${API_BASE_URL}/requests/api/bid/${bidId}/ask`,
+            { question_text: questionText },
+            { headers: { Authorization: `Bearer ${token}` } }
+          );
+
+          if (response.data.status === "success") {
+            Alert.alert("Question Sent", response.data.message);
+          } else {
+            throw new Error(
+              response.data.message || "Failed to send question."
+            );
+          }
+        } catch (error: any) {
+          console.error("Failed to send question:", error);
+          Alert.alert(
+            "Error",
+            error.response?.data?.message ||
+              "An error occurred. Please try again."
+          );
+        } finally {
+          setLoading(false);
+        }
+      }
+    );
   };
 
   if (loading) {
@@ -212,8 +328,15 @@ const RequestDetailScreen = () => {
                   <FlatList
                     horizontal
                     data={bid.image_urls}
-                    renderItem={({ item }) => (
-                      <Image source={{ uri: item }} style={styles.offerImage} />
+                    renderItem={({ item, index }) => (
+                      <Pressable
+                        onPress={() => openImageViewer(bid.image_urls, index)}
+                      >
+                        <Image
+                          source={{ uri: item }}
+                          style={styles.offerImage}
+                        />
+                      </Pressable>
                     )}
                     keyExtractor={(item, index) => `${bid.id}-img-${index}`}
                     showsHorizontalScrollIndicator={false}
@@ -285,11 +408,83 @@ const RequestDetailScreen = () => {
                   {new Date(bid.valid_until).toLocaleDateString()}
                 </Text>
 
-                <View style={styles.bidFooter}>
-                  <Pressable style={styles.acceptButton}>
+                {bid.questions && bid.questions.length > 0 && (
+                  <View style={styles.qnaSection}>
+                    <Pressable
+                      style={styles.qnaHeader}
+                      onPress={() => toggleQA(bid.id)}
+                    >
+                      <Text style={styles.qnaHeaderText}>
+                        Questions & Answers ({bid.questions.length})
+                      </Text>
+                      <Ionicons
+                        name={
+                          expandedQAs[bid.id] ? "chevron-up" : "chevron-down"
+                        }
+                        size={20}
+                        color={COLORS.mutedForeground}
+                      />
+                    </Pressable>
+                    {expandedQAs[bid.id] && (
+                      <View style={styles.qnaList}>
+                        {bid.questions.map((qna) => (
+                          <View key={qna.id} style={styles.qnaItem}>
+                            <View style={styles.qnaBubble}>
+                              <Text style={styles.qnaLabel}>Q:</Text>
+                              <Text style={styles.qnaText}>
+                                {qna.question_text}
+                              </Text>
+                            </View>
+                            {qna.answer_text && (
+                              <View
+                                style={[
+                                  styles.qnaBubble,
+                                  styles.qnaAnswerBubble,
+                                ]}
+                              >
+                                <Text style={styles.qnaLabel}>A:</Text>
+                                <Text style={styles.qnaText}>
+                                  {qna.answer_text}
+                                </Text>
+                              </View>
+                            )}
+                            {!qna.answer_text && (
+                              <View
+                                style={[
+                                  styles.qnaBubble,
+                                  styles.qnaPendingBubble,
+                                ]}
+                              >
+                                <Text style={styles.qnaPendingText}>
+                                  Awaiting dealer response...
+                                </Text>
+                              </View>
+                            )}
+                          </View>
+                        ))}
+                      </View>
+                    )}
+                  </View>
+                )}
+
+                <View
+                  style={[
+                    styles.bidFooter,
+                    request.status !== "active" && { opacity: 0.5 },
+                  ]}
+                >
+                  <Pressable
+                    style={styles.acceptButton}
+                    onPress={() => handleAcceptOffer(bid)}
+                    disabled={request.status !== "active"}
+                  >
                     <Text style={styles.buttonText}>Accept Offer</Text>
                   </Pressable>
-                  <Pressable style={styles.chatButton}>
+                  <Pressable
+                    style={styles.chatButton}
+                    onPress={() => handleAskQuestion(bid.id)}
+                    disabled={request.status !== "active"}
+                  >
                     <Ionicons
                       name="chatbubble-ellipses-outline"
                       size={18}
@@ -316,6 +511,35 @@ const RequestDetailScreen = () => {
           )}
         </View>
       </ScrollView>
+
+      <Modal
+        visible={isImageViewerVisible}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={closeImageViewer}
+      >
+        <View style={styles.imageViewerContainer}>
+          <Pressable style={styles.closeButton} onPress={closeImageViewer}>
+            <Ionicons name="close" size={36} color={COLORS.foreground} />
+          </Pressable>
+          <FlatList
+            data={selectedImages}
+            horizontal
+            pagingEnabled
+            showsHorizontalScrollIndicator={false}
+            keyExtractor={(item, index) => `fullscreen-${index}`}
+            initialScrollIndex={selectedImageIndex}
+            getItemLayout={(data, index) => ({
+              length: Dimensions.get("window").width,
+              offset: Dimensions.get("window").width * index,
+              index,
+            })}
+            renderItem={({ item }) => (
+              <Image source={{ uri: item }} style={styles.fullscreenImage} />
+            )}
+          />
+        </View>
+      </Modal>
     </>
   );
 };
@@ -479,6 +703,60 @@ const styles = StyleSheet.create({
     textAlign: "right",
     marginTop: 10,
   },
+  qnaSection: {
+    borderTopWidth: 1,
+    borderTopColor: COLORS.border,
+    marginTop: 15,
+    paddingTop: 15,
+  },
+  qnaHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  qnaHeaderText: {
+    color: COLORS.foreground,
+    fontSize: 16,
+    fontWeight: "600",
+  },
+  qnaList: {
+    marginTop: 10,
+    gap: 10,
+  },
+  qnaItem: {},
+  qnaBubble: {
+    backgroundColor: COLORS.background,
+    borderRadius: 8,
+    padding: 10,
+    flexDirection: "row",
+  },
+  qnaAnswerBubble: {
+    backgroundColor: "#2E2245", // A slightly different shade for answers
+    marginTop: 5,
+  },
+  qnaPendingBubble: {
+    backgroundColor: "transparent",
+    borderWidth: 1,
+    borderColor: COLORS.muted,
+    marginTop: 5,
+  },
+  qnaPendingText: {
+    color: COLORS.mutedForeground,
+    fontStyle: "italic",
+    fontSize: 14,
+  },
+  qnaLabel: {
+    color: COLORS.accent,
+    fontWeight: "bold",
+    marginRight: 8,
+    fontSize: 15,
+  },
+  qnaText: {
+    color: COLORS.mutedForeground,
+    fontSize: 15,
+    flex: 1,
+    lineHeight: 22,
+  },
   priceContainer: {
     backgroundColor: COLORS.background,
     borderRadius: 8,
@@ -538,6 +816,26 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     borderRadius: 8,
     marginLeft: 10,
+  },
+  imageViewerContainer: {
+    flex: 1,
+    backgroundColor: "rgba(0, 0, 0, 0.9)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  fullscreenImage: {
+    width: Dimensions.get("window").width,
+    height: Dimensions.get("window").height,
+    resizeMode: "contain",
+  },
+  closeButton: {
+    position: "absolute",
+    top: 50,
+    right: 20,
+    zIndex: 10,
+    padding: 10,
+    backgroundColor: "rgba(0,0,0,0.5)",
+    borderRadius: 25,
   },
   buttonText: { color: COLORS.foreground, fontWeight: "bold" },
 });

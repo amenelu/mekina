@@ -631,6 +631,100 @@ def accept_offer(bid_id):
     return redirect(url_for("request.request_detail", request_id=car_request.id))
 
 
+@request_bp.route("/api/bid/<int:bid_id>/ask", methods=["POST"])
+@token_required
+def api_ask_dealer_question(current_user, bid_id):
+    """API endpoint for a buyer to ask a question about a specific dealer bid."""
+    bid = DealerBid.query.get_or_404(bid_id)
+    car_request = bid.car_request
+
+    # Security check
+    if car_request.user_id != current_user.id:
+        return jsonify({"status": "error", "message": "Permission denied."}), 403
+
+    data = request.get_json()
+    if not data or not data.get("question_text"):
+        return (
+            jsonify({"status": "error", "message": "Question text is required."}),
+            400,
+        )
+
+    question_text = data.get("question_text")
+    new_question = RequestQuestion(
+        question_text=question_text,
+        user_id=current_user.id,
+        dealer_bid_id=bid.id,
+    )
+    db.session.add(new_question)
+    db.session.commit()
+
+    # Notify the dealer
+    notification_message = (
+        f"A customer asked a question about your offer for request #{car_request.id}."
+    )
+    new_notification = Notification(
+        user_id=bid.dealer_id,
+        message=notification_message,
+        link=url_for("dealer.answer_request_question", question_id=new_question.id),
+    )
+    db.session.add(new_notification)
+    db.session.commit()
+
+    # --- Real-time Notification for web client ---
+    unread_count = Notification.query.filter_by(
+        user_id=bid.dealer_id, is_read=False
+    ).count()
+    notification_data = {
+        "message": new_notification.message,
+        "link": new_notification.link,
+        "timestamp": new_notification.timestamp.isoformat() + "Z",
+        "count": unread_count,
+    }
+    socketio.emit("new_notification", notification_data, room=str(bid.dealer_id))
+
+    return (
+        jsonify({"status": "success", "message": "Your question has been sent."}),
+        201,
+    )
+
+
+@request_bp.route("/api/offer/<int:bid_id>/accept", methods=["POST"])
+@token_required
+def api_accept_offer(current_user, bid_id):
+    """API endpoint for a customer to accept a dealer's offer."""
+    try:
+        data = request.get_json() or {}
+        payment_method = data.get("payment_method", "cash")
+
+        new_deal, deal_notification = _accept_offer_logic(
+            bid_id, current_user.id, payment_method
+        )
+
+        # --- Real-time Notification for web client ---
+        unread_count = Notification.query.filter_by(
+            user_id=new_deal.dealer_id, is_read=False
+        ).count()
+        notification_data = {
+            "message": deal_notification.message,
+            "link": deal_notification.link,
+            "timestamp": deal_notification.timestamp.isoformat() + "Z",
+            "count": unread_count,
+        }
+        socketio.emit(
+            "new_notification", notification_data, room=str(new_deal.dealer_id)
+        )
+
+        return jsonify({"status": "success", "deal": new_deal.to_dict()}), 200
+
+    except (PermissionError, ValueError) as e:
+        return jsonify({"status": "error", "message": str(e)}), 400
+    except Exception as e:
+        return (
+            jsonify({"status": "error", "message": "An internal error occurred."}),
+            500,
+        )
+
+
 @request_bp.route("/deal/<int:deal_id>")
 @login_required
 @mark_notification_as_read
