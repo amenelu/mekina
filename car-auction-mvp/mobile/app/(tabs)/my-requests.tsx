@@ -33,6 +33,7 @@ interface CarRequest {
   notes: string;
   created_at: string;
   offer_count: number;
+  deal_id: number | null;
 }
 
 const RequestCard = ({ request }: { request: CarRequest }) => {
@@ -80,11 +81,19 @@ const RequestCard = ({ request }: { request: CarRequest }) => {
           <Text style={styles.footerLabel}>Offers</Text>
           <Text style={styles.footerValue}>{request.offer_count}</Text>
         </View>
-        <Link href={`/request/${request.id}`} asChild>
-          <Pressable style={styles.viewOffersButton}>
-            <Text style={styles.viewOffersButtonText}>View Offers</Text>
-          </Pressable>
-        </Link>
+        {request.status === "completed" && request.deal_id ? (
+          <Link href={`/deal/${request.deal_id}`} asChild>
+            <Pressable style={styles.viewOffersButton}>
+              <Text style={styles.viewOffersButtonText}>View Deal Summary</Text>
+            </Pressable>
+          </Link>
+        ) : (
+          <Link href={`/request/${request.id}`} asChild>
+            <Pressable style={styles.viewOffersButton}>
+              <Text style={styles.viewOffersButtonText}>View Offers</Text>
+            </Pressable>
+          </Link>
+        )}
       </View>
     </View>
   );
@@ -113,7 +122,15 @@ const MyRequestsScreen = () => {
           headers: { Authorization: `Bearer ${token}` },
         }
       );
-      setRequests(response.data.requests || []); // Ensure we have an array
+      // Sort requests to show completed ones first
+      const sortedRequests = (response.data.requests || []).sort(
+        (a: CarRequest, b: CarRequest) => {
+          if (a.status === "completed" && b.status !== "completed") return -1;
+          if (b.status === "completed" && a.status !== "completed") return 1;
+          return 0;
+        }
+      );
+      setRequests(sortedRequests);
     } catch (err) {
       if (axios.isAxiosError(err) && err.response?.status === 401) {
         // Handle token expiration

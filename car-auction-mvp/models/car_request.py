@@ -43,6 +43,10 @@ class CarRequest(db.Model):
 
     def to_dict(self):
         """Serializes the CarRequest object to a dictionary."""
+        deal_id = None
+        if self.status == "completed" and self.accepted_bid and self.accepted_bid.deal:
+            deal_id = self.accepted_bid.deal.id
+
         return {
             "id": self.id,
             "make": self.make,
@@ -56,4 +60,5 @@ class CarRequest(db.Model):
             "bid_count": self.dealer_bids.count(),  # Kept for web compatibility
             "offer_count": self.dealer_bids.count(),  # Added for mobile app
             "accepted_bid_id": self.accepted_bid_id,
+            "deal_id": deal_id,
         }

@@ -66,6 +66,7 @@ interface DealerBid {
   extras: string | null;
   valid_until: string;
   image_urls: string[];
+  is_newest: boolean;
   questions: QuestionAnswer[];
   status: string;
   dealer: {
@@ -307,6 +308,11 @@ const RequestDetailScreen = () => {
                 {index === 0 && (
                   <View style={styles.lowestOfferTag}>
                     <Text style={styles.lowestOfferText}>Lowest Offer</Text>
+                  </View>
+                )}
+                {bid.is_newest && index !== 0 && (
+                  <View style={[styles.lowestOfferTag, styles.newestOfferTag]}>
+                    <Text style={styles.lowestOfferText}>Newest Offer</Text>
                   </View>
                 )}
                 <View style={styles.bidHeader}>
@@ -791,6 +797,9 @@ const styles = StyleSheet.create({
     color: COLORS.foreground,
     fontSize: 12,
     fontWeight: "bold",
+  },
+  newestOfferTag: {
+    backgroundColor: COLORS.success,
   },
   dealerName: { fontSize: 18, fontWeight: "600", color: COLORS.foreground },
   bidPrice: { fontSize: 18, fontWeight: "bold", color: COLORS.accent },

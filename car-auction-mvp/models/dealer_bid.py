@@ -41,8 +41,8 @@ class DealerBid(db.Model):
     )
     questions = db.relationship("RequestQuestion", backref="dealer_bid", lazy="dynamic")
 
-    def to_dict(self):
-        """Serializes the DealerBid object to a dictionary."""
+    def to_dict(self, is_newest=False):
+        """Serializes the DealerBid object to a dictionary, with an optional flag for the newest bid."""
         image_urls = []
         if (
             self.images
@@ -72,6 +72,7 @@ class DealerBid(db.Model):
             "valid_until": self.valid_until.isoformat(),
             "message": self.message,
             "image_urls": image_urls,
+            "is_newest": is_newest,
             "questions": [
                 q.to_dict() for q in self.questions.order_by(RequestQuestion.timestamp)
             ],

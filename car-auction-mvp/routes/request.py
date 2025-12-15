@@ -470,10 +470,41 @@ def api_request_detail(current_user, request_id):
     if car_request.user_id != current_user.id and not current_user.is_admin:
         return jsonify({"error": "Permission denied"}), 403
 
-    bids = car_request.dealer_bids.order_by(DealerBid.price.asc()).all()
+    all_bids = car_request.dealer_bids.all()
+
+    if not all_bids:
+        return jsonify({"request": car_request.to_dict(), "bids": []})
+
+    # Find the lowest priced and newest bids
+    lowest_bid = min(all_bids, key=lambda b: b.price)
+    newest_bid = max(all_bids, key=lambda b: b.timestamp)
+
+    # Create a sorted list
+    sorted_bids = []
+    processed_bid_ids = set()
+
+    # 1. Add the lowest bid
+    sorted_bids.append(lowest_bid)
+    processed_bid_ids.add(lowest_bid.id)
+
+    # 2. Add the newest bid if it's not the same as the lowest
+    if newest_bid.id not in processed_bid_ids:
+        sorted_bids.append(newest_bid)
+        processed_bid_ids.add(newest_bid.id)
+
+    # 3. Add the rest of the bids, sorted by price
+    remaining_bids = sorted(
+        [b for b in all_bids if b.id not in processed_bid_ids], key=lambda b: b.price
+    )
+    sorted_bids.extend(remaining_bids)
 
     return jsonify(
-        {"request": car_request.to_dict(), "bids": [bid.to_dict() for bid in bids]}
+        {
+            "request": car_request.to_dict(),
+            "bids": [
+                bid.to_dict(is_newest=(bid.id == newest_bid.id)) for bid in sorted_bids
+            ],
+        }
     )
 
 
@@ -747,8 +778,8 @@ def deal_summary(deal_id):
 
 
 @request_bp.route("/api/deals/<int:deal_id>")
-@login_required
-def api_deal_summary(deal_id):
+@token_required
+def api_deal_summary(current_user, deal_id):
     """API endpoint to get the details of a completed deal."""
     deal = Deal.query.get_or_404(deal_id)
     # Security check
