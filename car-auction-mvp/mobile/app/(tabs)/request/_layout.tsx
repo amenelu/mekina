@@ -29,6 +29,12 @@ export default function RequestLayout() {
       }}
     >
       <Stack.Screen name="index" />
+      {/* These groups are part of the stack but don't have a tab bar icon */}
+      <Stack.Screen name="(general_request)" options={{ headerShown: false }} />
+      <Stack.Screen
+        name="(specific_request)"
+        options={{ headerShown: false }}
+      />
     </Stack>
   );
 }

@@ -10,30 +10,30 @@ const COLORS = {
   border: "#313843",
 };
 
-const bodyTypeOptions = [
-  { label: "SUV", value: "SUV" },
-  { label: "Sedan", value: "Sedan" },
-  { label: "Hatchback", value: "Hatchback" },
-  { label: "Pickup Truck", value: "Pickup" },
+const fuelTypeOptions = [
+  { label: "Gasoline", value: "Gasoline" },
+  { label: "Diesel", value: "Diesel" },
+  { label: "Hybrid", value: "Hybrid" },
+  { label: "Electric", value: "Electric" },
 ];
 
-const RequestBodyTypeScreen = () => {
+const RequestFuelTypeScreen = () => {
   const router = useRouter();
   const params = useLocalSearchParams();
 
   const handleSelect = (value: string) => {
     router.push({
-      pathname: "/request/fuel-type",
-      params: { ...params, bodyType: value },
+      pathname: "./equipment",
+      params: { ...params, fuelType: value },
     });
   };
 
   return (
     <View style={styles.container}>
-      <Stack.Screen options={{ title: "Help Us Find It (2/5)" }} />
-      <Text style={styles.title}>What type of car best fits your needs?</Text>
+      <Stack.Screen options={{ title: "Help Us Find It (3/5)" }} />
+      <Text style={styles.title}>Any preference on fuel type?</Text>
       <View style={styles.optionsContainer}>
-        {bodyTypeOptions.map((option) => (
+        {fuelTypeOptions.map((option) => (
           <TouchableOpacity
             key={option.value}
             style={styles.optionButton}
@@ -78,4 +78,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default RequestBodyTypeScreen;
+export default RequestFuelTypeScreen;

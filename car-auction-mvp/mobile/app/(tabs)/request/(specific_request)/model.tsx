@@ -6,7 +6,7 @@ import {
   TextInput,
   TouchableOpacity,
 } from "react-native";
-import { Stack, useRouter } from "expo-router";
+import { Stack, useRouter, useLocalSearchParams } from "expo-router";
 
 const COLORS = {
   background: "#14181F",
@@ -17,28 +17,33 @@ const COLORS = {
   mutedForeground: "#8A94A3",
 };
 
-const RequestSpecificCarScreen = () => {
+const RequestModelScreen = () => {
   const router = useRouter();
-  const [make, setMake] = useState("");
+  const params = useLocalSearchParams();
+  const [model, setModel] = useState("");
 
   const handleNext = () => {
-    // In a real app, you would continue to the next step (e.g., model)
-    console.log("Car Make:", make);
-    // For now, we can just go back or to a placeholder
-    router.back();
+    if (model.trim()) {
+      router.push({
+        pathname: "./year",
+        params: { ...params, model },
+      });
+    }
   };
 
   return (
     <View style={styles.container}>
-      <Stack.Screen options={{ title: "Find a Car (1/4)" }} />
-      <Text style={styles.title}>What make of car are you looking for?</Text>
+      <Stack.Screen options={{ title: "Find a Car (2/6)" }} />
+      <Text style={styles.title}>
+        Great! What model of {params.make} are you looking for?
+      </Text>
 
       <TextInput
         style={styles.input}
-        placeholder="e.g., Toyota, Ford, BYD"
+        placeholder="e.g., Corolla, F-150, Seal"
         placeholderTextColor={COLORS.mutedForeground}
-        value={make}
-        onChangeText={setMake}
+        value={model}
+        onChangeText={setModel}
       />
 
       <TouchableOpacity style={styles.submitButton} onPress={handleNext}>
@@ -84,4 +89,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default RequestSpecificCarScreen;
+export default RequestModelScreen;

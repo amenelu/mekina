@@ -33,7 +33,7 @@ const RequestEquipmentScreen = () => {
 
   const handleNext = () => {
     router.push({
-      pathname: "/request/brand",
+      pathname: "./brand",
       params: { ...params, equipment: selectedEquipment },
     });
   };

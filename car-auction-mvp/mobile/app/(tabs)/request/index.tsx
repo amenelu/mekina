@@ -14,13 +14,13 @@ const choiceOptions = [
   {
     label: "Yes, I know what I want",
     description: "Tell us the make and model you're looking for.",
-    href: "/request/specific-car",
+    href: "/request/make",
   },
   {
     label: "No, help me decide",
     description:
       "We'll guide you through some options to find the perfect fit.",
-    href: "/request/guided-price",
+    href: "/request/budget",
   },
 ];
 

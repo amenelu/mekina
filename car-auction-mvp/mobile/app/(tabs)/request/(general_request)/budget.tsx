@@ -1,5 +1,11 @@
 import React from "react";
-import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  Pressable,
+} from "react-native";
 import { Stack, useRouter } from "expo-router";
 
 const COLORS = {
@@ -18,13 +24,16 @@ const budgetOptions = [
 ];
 
 const RequestBudgetScreen = () => {
+  // Renaming component for clarity
   const router = useRouter();
 
   const handleSelect = (value: string) => {
-    router.push({
-      pathname: "/request/body-type",
+    // By passing the object directly, TypeScript can infer the literal type of `pathname`.
+    console.log("Attempting to navigate with:", {
+      pathname: "./body-type",
       params: { budget: value },
     });
+    router.push({ pathname: "./body-type", params: { budget: value } });
   };
 
   return (
@@ -33,13 +42,13 @@ const RequestBudgetScreen = () => {
       <Text style={styles.title}>What is your approximate budget?</Text>
       <View style={styles.optionsContainer}>
         {budgetOptions.map((option) => (
-          <TouchableOpacity
+          <Pressable
             key={option.value}
             style={styles.optionButton}
             onPress={() => handleSelect(option.value)}
           >
             <Text style={styles.optionText}>{option.label}</Text>
-          </TouchableOpacity>
+          </Pressable>
         ))}
       </View>
     </View>
