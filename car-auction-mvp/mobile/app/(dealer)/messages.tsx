@@ -10,7 +10,7 @@ import {
 } from "react-native";
 import axios from "axios";
 import { useAuth } from "@/hooks/useAuth";
-import { API_BASE_URL } from "@/apiConfig";
+import API_BASE_URL from "@/constants/Api";
 
 const COLORS = {
   background: "#14181F",

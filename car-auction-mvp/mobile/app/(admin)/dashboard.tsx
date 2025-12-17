@@ -10,7 +10,7 @@ import {
 } from "react-native";
 import { useAuth } from "@/hooks/useAuth";
 import axios from "axios";
-import { API_BASE_URL } from "@/apiConfig";
+import API_URL from "@/constants/Api";
 import { useFocusEffect, useRouter } from "expo-router";
 
 const COLORS = {
@@ -98,7 +98,7 @@ const AdminDashboardScreen = () => {
     setLoading(true);
     setError(null);
     try {
-      const response = await axios.get(`${API_BASE_URL}/admin/api/dashboard`, {
+      const response = await axios.get(`${API_URL}/admin/api/dashboard`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       setStats(response.data.stats);
@@ -120,7 +120,7 @@ const AdminDashboardScreen = () => {
   const handleApprove = async (carId: number) => {
     try {
       await axios.post(
-        `${API_BASE_URL}/admin/api/listings/${carId}`,
+        `${API_URL}/admin/api/listings/${carId}`,
         { action: "approve" },
         { headers: { Authorization: `Bearer ${token}` } }
       );

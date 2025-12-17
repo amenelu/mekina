@@ -17,7 +17,7 @@ import axios from "axios";
 import DraggableFlatList, {
   ScaleDecorator,
 } from "react-native-draggable-flatlist";
-import { API_BASE_URL } from "@/apiConfig";
+import API_BASE_URL from "@/constants/Api";
 import { useAuth } from "@/hooks/useAuth";
 import * as ImagePicker from "expo-image-picker";
 import { Ionicons } from "@expo/vector-icons";

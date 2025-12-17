@@ -18,7 +18,7 @@ import { useRouter } from "expo-router";
 import HeaderRight from "../_components/HeaderRight";
 import Footer from "../_components/Footer";
 import VehicleCard, { Vehicle } from "../_components/VehicleCard";
-import { API_BASE_URL } from "../../apiConfig";
+import API_URL from "@/constants/Api";
 
 const COLORS = {
   background: "#14181F",
@@ -80,7 +80,7 @@ const AllListingsScreen = () => {
         }
 
         const response = await fetch(
-          `${API_BASE_URL}/api/listings?${params.toString()}`
+          `${API_URL}/api/listings?${params.toString()}`
         );
 
         if (!response.ok) {

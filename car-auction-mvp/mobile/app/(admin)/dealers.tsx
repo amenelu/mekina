@@ -10,7 +10,7 @@ import {
   Alert,
 } from "react-native";
 import axios from "axios";
-import { API_BASE_URL } from "@/apiConfig";
+import API_URL from "@/constants/Api";
 import { useAuth } from "@/hooks/useAuth"; // Keep this import
 import { Ionicons } from "@expo/vector-icons";
 
@@ -46,7 +46,7 @@ const AdminDealersScreen = () => {
       setLoading(true);
       try {
         const response = await axios.get(
-          `${API_BASE_URL}/admin/api/dealers?q=${search}`,
+          `${API_URL}/admin/api/dealers?q=${search}`,
           {
             headers: { Authorization: `Bearer ${token}` },
           }
@@ -77,12 +77,9 @@ const AdminDealersScreen = () => {
           style: "destructive",
           onPress: async () => {
             try {
-              await axios.delete(
-                `${API_BASE_URL}/admin/api/users/${dealer.id}`,
-                {
-                  headers: { Authorization: `Bearer ${token}` },
-                }
-              );
+              await axios.delete(`${API_URL}/admin/api/users/${dealer.id}`, {
+                headers: { Authorization: `Bearer ${token}` },
+              });
               setDealers((prevDealers) =>
                 prevDealers.filter((d) => d.id !== dealer.id)
               );

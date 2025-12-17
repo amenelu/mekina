@@ -13,7 +13,7 @@ import {
 import { useNavigation, router } from "expo-router";
 import axios from "axios";
 import { useAuth } from "@/hooks/useAuth";
-import { API_BASE_URL } from "@/apiConfig";
+import API_BASE_URL from "@/constants/Api";
 import { io } from "socket.io-client";
 import { Ionicons } from "@expo/vector-icons";
 

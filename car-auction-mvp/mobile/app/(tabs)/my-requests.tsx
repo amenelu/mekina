@@ -12,7 +12,7 @@ import {
 import { Link, useFocusEffect, useRouter } from "expo-router";
 import { useAuth } from "@/hooks/useAuth";
 import axios from "axios";
-import { API_BASE_URL } from "@/apiConfig";
+import API_URL from "@/constants/Api";
 
 const COLORS = {
   background: "#14181F",
@@ -116,12 +116,9 @@ const MyRequestsScreen = () => {
     }
     try {
       setError(null); // Clear previous errors
-      const response = await axios.get(
-        `${API_BASE_URL}/requests/api/requests`,
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
-      );
+      const response = await axios.get(`${API_URL}/requests/api/requests`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
       // Sort requests to show completed ones first
       const sortedRequests = (response.data.requests || []).sort(
         (a: CarRequest, b: CarRequest) => {

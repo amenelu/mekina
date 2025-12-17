@@ -10,8 +10,9 @@ import {
   Platform,
   Alert,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { useAuth } from "@/hooks/useAuth";
-import { Stack, useRouter, useLocalSearchParams } from "expo-router";
+import { useRouter, useLocalSearchParams } from "expo-router";
 import { ActivityIndicator } from "react-native";
 
 const COLORS = {
@@ -64,7 +65,7 @@ const RequestYearScreen = () => {
       Alert.alert(
         "Request Submitted!",
         "Your request has been sent to our dealers. They will contact you with offers soon.",
-        [{ text: "OK", onPress: () => router.push("/(tabs)/my-requests") }]
+        [{ text: "OK", onPress: () => router.replace("/(tabs)/my-requests") }]
       );
     } catch (error: any) {
       console.error("Failed to submit request:", error);
@@ -78,36 +79,45 @@ const RequestYearScreen = () => {
   };
 
   return (
-    <KeyboardAvoidingView
-      behavior={Platform.OS === "ios" ? "padding" : "height"}
-      style={styles.container}
-    >
-      <Stack.Screen options={{ title: "Find a Car (3/3)" }} />
-      <Text style={styles.title}>What year was it made?</Text>
+    <SafeAreaView style={{ flex: 1, backgroundColor: COLORS.background }}>
+      <KeyboardAvoidingView
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        style={styles.container}
+      >
+        <Text style={styles.counter}>3 / 3</Text>
+        <Text style={styles.title}>What year was it made?</Text>
 
-      <TextInput
-        style={styles.input}
-        placeholder="e.g., 2022"
-        placeholderTextColor={COLORS.mutedForeground}
-        value={year}
-        onChangeText={setYear}
-        keyboardType="number-pad"
-        maxLength={4}
-      />
+        <TextInput
+          style={styles.input}
+          placeholder="e.g., 2022"
+          placeholderTextColor={COLORS.mutedForeground}
+          value={year}
+          onChangeText={setYear}
+          keyboardType="number-pad"
+          maxLength={4}
+        />
 
-      <TouchableOpacity style={styles.submitButton} onPress={handleSubmit}>
-        {loading ? (
-          <ActivityIndicator color={COLORS.foreground} />
-        ) : (
-          <Text style={styles.submitButtonText}>Finish Request</Text>
-        )}
-      </TouchableOpacity>
-    </KeyboardAvoidingView>
+        <TouchableOpacity style={styles.submitButton} onPress={handleSubmit}>
+          {loading ? (
+            <ActivityIndicator color={COLORS.foreground} />
+          ) : (
+            <Text style={styles.submitButtonText}>Finish Request</Text>
+          )}
+        </TouchableOpacity>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
   container: { flex: 1, padding: 20, backgroundColor: COLORS.background },
+  counter: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: COLORS.mutedForeground,
+    textAlign: "center",
+    marginBottom: 20,
+  },
   title: {
     fontSize: 24,
     fontWeight: "bold",

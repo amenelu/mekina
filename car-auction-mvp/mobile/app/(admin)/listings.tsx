@@ -11,7 +11,7 @@ import {
   Image,
 } from "react-native";
 import axios, { AxiosError } from "axios";
-import { API_BASE_URL } from "@/apiConfig";
+import API_URL from "@/constants/Api";
 import { useAuth } from "@/hooks/useAuth"; // Keep this import
 import { Ionicons } from "@expo/vector-icons";
 
@@ -51,7 +51,7 @@ const AdminListingsScreen = () => {
     setLoading(true);
     try {
       const response = await axios.get(
-        `${API_BASE_URL}/auctions/api/admin/listings?q=${search}`,
+        `${API_URL}/auctions/api/admin/listings?q=${search}`,
         {
           headers: { Authorization: `Bearer ${token}` },
         }
@@ -94,7 +94,7 @@ const AdminListingsScreen = () => {
           onPress: async () => {
             try {
               await axios.delete(
-                `${API_BASE_URL}/admin/api/listings/${listing.id}`,
+                `${API_URL}/admin/api/listings/${listing.id}`,
                 { headers: { Authorization: `Bearer ${token}` } }
               );
               setListings((prev) => prev.filter((l) => l.id !== listing.id));
@@ -115,7 +115,7 @@ const AdminListingsScreen = () => {
       item.image_url && item.image_url.startsWith("http")
         ? item.image_url
         : item.image_url
-        ? `${API_BASE_URL}${item.image_url}`
+        ? `${API_URL}${item.image_url}`
         : null;
 
     return (

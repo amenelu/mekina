@@ -10,7 +10,7 @@ import {
 } from "react-native";
 import { useLocalSearchParams, Stack, useRouter } from "expo-router";
 import { Vehicle } from "./_components/VehicleCard";
-import { API_BASE_URL } from "../apiConfig";
+import API_BASE_URL from "@/constants/Api";
 
 const COLORS = {
   background: "#14181F",
@@ -43,7 +43,7 @@ const ComparisonCard = ({
         <View style={[styles.specRow, isBestPrice && styles.bestValueRow]}>
           <Text style={styles.specLabel}>Price</Text>
           <Text style={[styles.specValue, isBestPrice && styles.bestValueText]}>
-            {car.price_display || car.price}
+            {car.price}
           </Text>
         </View>
         <View style={[styles.specRow, isBestYear && styles.bestValueRow]}>
@@ -95,7 +95,18 @@ const CompareScreen = () => {
         );
         const data = await response.json();
         if (data.cars && data.best_values) {
-          setCarsToCompare(data.cars);
+          // Map the API response to the Vehicle type structure
+          const formattedCars = data.cars.map((item: any) => ({
+            id: item.id.toString(),
+            year: item.year,
+            make: item.make,
+            model: item.model,
+            price: item.price_display || "N/A",
+            image: item.image_url,
+            mileage: item.mileage || 0,
+            listingType: item.listing_type,
+          }));
+          setCarsToCompare(formattedCars);
           setBestValues(data.best_values);
         } else {
           // Handle case where API returns an error or empty data

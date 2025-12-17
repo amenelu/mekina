@@ -16,7 +16,7 @@ import {
 import { useLocalSearchParams, useNavigation, router } from "expo-router";
 import axios from "axios";
 import { useAuth } from "@/hooks/useAuth";
-import { API_BASE_URL } from "@/apiConfig";
+import API_BASE_URL from "@/constants/Api";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import * as ImagePicker from "expo-image-picker";
 import { Ionicons } from "@expo/vector-icons";

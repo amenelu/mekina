@@ -13,8 +13,7 @@ import {
 import { useLocalSearchParams, Stack, useNavigation } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import VehicleCard, { Vehicle } from "./_components/VehicleCard";
-import { API_BASE_URL } from "../apiConfig";
-
+import API_BASE_URL from "@/constants/Api";
 const COLORS = {
   background: "#14181F",
   foreground: "#F8F8F8",

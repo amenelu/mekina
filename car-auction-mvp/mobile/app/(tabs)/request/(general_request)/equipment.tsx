@@ -1,7 +1,8 @@
 import React, { useState } from "react";
 import { View, Text, StyleSheet, Pressable } from "react-native";
-import { Stack, useRouter, useLocalSearchParams } from "expo-router";
+import { useRouter, useLocalSearchParams } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 const COLORS = {
   background: "#14181F",
@@ -9,6 +10,7 @@ const COLORS = {
   card: "#1C212B",
   accent: "#A370F7",
   border: "#313843",
+  mutedForeground: "#8A94A3",
 };
 
 const equipmentOptions = [
@@ -39,8 +41,8 @@ const RequestEquipmentScreen = () => {
   };
 
   return (
-    <View style={styles.container}>
-      <Stack.Screen options={{ title: "Help Us Find It (4/5)" }} />
+    <SafeAreaView style={styles.container}>
+      <Text style={styles.counter}>4 / 5</Text>
       <Text style={styles.title}>Which features are important to you?</Text>
       <Text style={styles.subtitle}>
         (Optional, select as many as you like)
@@ -79,7 +81,7 @@ const RequestEquipmentScreen = () => {
       <Pressable style={styles.submitButton} onPress={handleNext}>
         <Text style={styles.submitButtonText}>Next</Text>
       </Pressable>
-    </View>
+    </SafeAreaView>
   );
 };
 
@@ -92,9 +94,16 @@ const styles = StyleSheet.create({
     textAlign: "center",
     marginBottom: 8,
   },
+  counter: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: COLORS.mutedForeground,
+    textAlign: "center",
+    marginBottom: 20,
+  },
   subtitle: {
     fontSize: 16,
-    color: COLORS.foreground,
+    color: COLORS.mutedForeground,
     textAlign: "center",
     marginBottom: 30,
   },

@@ -14,7 +14,7 @@ import { useNavigation } from "expo-router";
 import { useScrollToTop } from "@react-navigation/native";
 import { Ionicons } from "@expo/vector-icons";
 import Footer from "../_components/Footer";
-import { API_BASE_URL } from "../../apiConfig";
+import API_URL from "@/constants/Api";
 
 const COLORS = {
   background: "#14181F",
@@ -94,7 +94,7 @@ const RentalsScreen = () => {
       try {
         // The backend uses the main listings endpoint with a query parameter for rentals.
         const response = await fetch(
-          `${API_BASE_URL}/api/listings?listing_type=rental`
+          `${API_URL}/api/listings?listing_type=rental`
         );
 
         if (!response.ok) {

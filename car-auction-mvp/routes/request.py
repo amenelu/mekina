@@ -807,13 +807,25 @@ def api_create_request(current_user):
     is_guided_path = "price" in data or "body_type" in data
 
     if is_guided_path:
+        # Define a mapping from the equipment values to human-readable labels
+        equipment_map = {
+            "sunroof": "Sunroof",
+            "leather_seats": "Leather Seats",
+            "apple_carplay": "Apple CarPlay / Android Auto",
+            "awd": "All-Wheel Drive",
+        }
+        # Get the list of equipment values from the request
+        equipment_values = data.get("equipment", [])
+        # Map the values to their labels, defaulting to the value itself if not found
+        equipment_labels = [equipment_map.get(val, val) for val in equipment_values]
+
         # Construct notes from guided path data, similar to the web route
         notes = (
             f"Customer is looking for a car with the following preferences:\n"
             f"- Budget: {data.get('price', 'Not specified')}\n"
             f"- Body Type: {data.get('body_type', 'Not specified')}\n"
             f"- Fuel Type: {data.get('fuel_type', 'Not specified')}\n"
-            f"- Important Features: {', '.join(data.get('equipment', [])) or 'None'}\n"
+            f"- Important Features: {', '.join(equipment_labels) or 'None'}\n"
             f"- Preferred Brand(s): {data.get('brand', 'Any')}"
         )
         new_req = CarRequest(

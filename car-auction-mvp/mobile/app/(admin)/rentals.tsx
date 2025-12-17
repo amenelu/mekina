@@ -10,7 +10,7 @@ import {
   Alert,
 } from "react-native";
 import axios from "axios";
-import { API_BASE_URL } from "@/apiConfig"; // Keep this import
+import API_URL from "@/constants/Api";
 import { useAuth } from "@/hooks/useAuth"; // Keep this import
 import { Ionicons } from "@expo/vector-icons";
 
@@ -51,7 +51,7 @@ const AdminRentalsScreen = () => {
       setLoading(true);
       try {
         const response = await axios.get(
-          `${API_BASE_URL}/admin/api/rentals?q=${search}`,
+          `${API_URL}/admin/api/rentals?q=${search}`,
           {
             headers: { Authorization: `Bearer ${token}` },
           }
@@ -87,10 +87,9 @@ const AdminRentalsScreen = () => {
           style: "destructive",
           onPress: async () => {
             try {
-              await axios.delete(
-                `${API_BASE_URL}/admin/api/listings/${rental.id}`,
-                { headers: { Authorization: `Bearer ${token}` } }
-              );
+              await axios.delete(`${API_URL}/admin/api/listings/${rental.id}`, {
+                headers: { Authorization: `Bearer ${token}` },
+              });
               setRentals((prev) => prev.filter((r) => r.id !== rental.id));
               Alert.alert("Success", "Rental listing has been deleted.");
             } catch (err) {

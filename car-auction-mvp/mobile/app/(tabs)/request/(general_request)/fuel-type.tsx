@@ -1,6 +1,7 @@
 import React from "react";
 import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
-import { Stack, useRouter, useLocalSearchParams } from "expo-router";
+import { useRouter, useLocalSearchParams } from "expo-router";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 const COLORS = {
   background: "#14181F",
@@ -8,6 +9,7 @@ const COLORS = {
   card: "#1C212B",
   accent: "#A370F7",
   border: "#313843",
+  mutedForeground: "#8A94A3",
 };
 
 const fuelTypeOptions = [
@@ -24,13 +26,13 @@ const RequestFuelTypeScreen = () => {
   const handleSelect = (value: string) => {
     router.push({
       pathname: "./equipment",
-      params: { ...params, fuelType: value },
+      params: { ...params, fuel_type: value },
     });
   };
 
   return (
-    <View style={styles.container}>
-      <Stack.Screen options={{ title: "Help Us Find It (3/5)" }} />
+    <SafeAreaView style={styles.container}>
+      <Text style={styles.counter}>3 / 5</Text>
       <Text style={styles.title}>Any preference on fuel type?</Text>
       <View style={styles.optionsContainer}>
         {fuelTypeOptions.map((option) => (
@@ -43,7 +45,7 @@ const RequestFuelTypeScreen = () => {
           </TouchableOpacity>
         ))}
       </View>
-    </View>
+    </SafeAreaView>
   );
 };
 
@@ -52,6 +54,13 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: 20,
     backgroundColor: COLORS.background,
+  },
+  counter: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: COLORS.mutedForeground,
+    textAlign: "center",
+    marginBottom: 20,
   },
   title: {
     fontSize: 24,

@@ -14,7 +14,7 @@ import {
 import { useLocalSearchParams, router } from "expo-router";
 import axios from "axios";
 import { useAuth } from "@/hooks/useAuth";
-import { API_BASE_URL } from "@/apiConfig";
+import API_BASE_URL from "@/constants/Api";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 

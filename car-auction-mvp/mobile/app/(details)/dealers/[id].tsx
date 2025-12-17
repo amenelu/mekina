@@ -12,7 +12,7 @@ import {
   TextInput,
 } from "react-native";
 import axios from "axios";
-import { API_BASE_URL } from "@/apiConfig";
+import API_BASE_URL from "@/constants/Api";
 import { useAuth } from "@/hooks/useAuth";
 
 /**

@@ -9,7 +9,7 @@ import {
 } from "react-native";
 import { useAuth } from "@/hooks/useAuth";
 import axios from "axios";
-import { API_BASE_URL } from "@/apiConfig";
+import API_URL from "@/constants/Api";
 
 const COLORS = {
   background: "#14181F",
@@ -74,12 +74,9 @@ const AdminDashboardScreen = () => {
       if (!token) return;
       try {
         setLoading(true);
-        const response = await axios.get(
-          `${API_BASE_URL}/admin/api/dashboard`,
-          {
-            headers: { Authorization: `Bearer ${token}` },
-          }
-        );
+        const response = await axios.get(`${API_URL}/admin/api/dashboard`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
         setStats(response.data.stats);
         setPendingCars(response.data.pending_approvals);
       } catch (error) {

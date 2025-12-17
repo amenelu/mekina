@@ -6,7 +6,8 @@ import {
   TouchableOpacity,
   Pressable,
 } from "react-native";
-import { Stack, useRouter } from "expo-router";
+import { useRouter } from "expo-router";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 const COLORS = {
   background: "#14181F",
@@ -14,6 +15,7 @@ const COLORS = {
   card: "#1C212B",
   accent: "#A370F7",
   border: "#313843",
+  mutedForeground: "#8A94A3",
 };
 
 const budgetOptions = [
@@ -31,14 +33,14 @@ const RequestBudgetScreen = () => {
     // By passing the object directly, TypeScript can infer the literal type of `pathname`.
     console.log("Attempting to navigate with:", {
       pathname: "./body-type",
-      params: { budget: value },
+      params: { price: value },
     });
-    router.push({ pathname: "./body-type", params: { budget: value } });
+    router.push({ pathname: "./body-type", params: { price: value } });
   };
 
   return (
-    <View style={styles.container}>
-      <Stack.Screen options={{ title: "Help Us Find It (1/5)" }} />
+    <SafeAreaView style={styles.container}>
+      <Text style={styles.counter}>1 / 5</Text>
       <Text style={styles.title}>What is your approximate budget?</Text>
       <View style={styles.optionsContainer}>
         {budgetOptions.map((option) => (
@@ -51,7 +53,7 @@ const RequestBudgetScreen = () => {
           </Pressable>
         ))}
       </View>
-    </View>
+    </SafeAreaView>
   );
 };
 
@@ -60,6 +62,13 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: 20,
     backgroundColor: COLORS.background,
+  },
+  counter: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: COLORS.mutedForeground,
+    textAlign: "center",
+    marginBottom: 20,
   },
   title: {
     fontSize: 24,

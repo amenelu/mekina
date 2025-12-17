@@ -13,7 +13,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { Link, useRouter } from "expo-router";
 import { useAuth } from "@/hooks/useAuth";
 import axios from "axios";
-import { API_BASE_URL } from "@/apiConfig";
+import API_URL from "@/constants/Api";
 
 export default function LoginScreen() {
   const [login, setLogin] = useState("");
@@ -34,7 +34,7 @@ export default function LoginScreen() {
     }
     setIsLoading(true);
     try {
-      const response = await axios.post(`${API_BASE_URL}/auth/api/login`, {
+      const response = await axios.post(`${API_URL}/auth/api/login`, {
         login,
         password,
       });

@@ -11,7 +11,7 @@ import {
 import { useLocalSearchParams, Stack, useRouter } from "expo-router";
 import { useAuth } from "@/hooks/useAuth";
 import axios from "axios";
-import { API_BASE_URL } from "@/apiConfig";
+import API_BASE_URL from "@/constants/Api";
 import { Ionicons } from "@expo/vector-icons";
 
 const COLORS = {

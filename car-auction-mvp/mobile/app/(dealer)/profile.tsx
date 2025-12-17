@@ -12,7 +12,7 @@ import {
 import axios from "axios";
 import { useAuth } from "@/hooks/useAuth";
 import { router } from "expo-router";
-import { API_BASE_URL } from "@/apiConfig";
+import API_BASE_URL from "@/constants/Api";
 import { Ionicons } from "@expo/vector-icons";
 import VehicleCard, { Vehicle } from "../_components/VehicleCard";
 

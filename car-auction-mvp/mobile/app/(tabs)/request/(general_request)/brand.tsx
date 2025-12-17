@@ -8,8 +8,9 @@ import {
   TextInput,
   Alert,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { useAuth } from "@/hooks/useAuth";
-import { Stack, useRouter, useLocalSearchParams } from "expo-router";
+import { useRouter, useLocalSearchParams } from "expo-router";
 import { ActivityIndicator } from "react-native";
 
 const COLORS = {
@@ -57,7 +58,7 @@ const RequestBrandScreen = () => {
       Alert.alert(
         "Request Submitted!",
         "Your request has been sent to our dealers. They will contact you with offers soon.",
-        [{ text: "OK", onPress: () => router.push("/(tabs)/my-requests") }]
+        [{ text: "OK", onPress: () => router.replace("/(tabs)/my-requests") }]
       );
     } catch (error: any) {
       console.error("Failed to submit request:", error);
@@ -71,8 +72,8 @@ const RequestBrandScreen = () => {
   };
 
   return (
-    <View style={styles.container}>
-      <Stack.Screen options={{ title: "Help Us Find It (5/5)" }} />
+    <SafeAreaView style={styles.container}>
+      <Text style={styles.counter}>5 / 5</Text>
       <Text style={styles.title}>Are you considering any specific brands?</Text>
       <Text style={styles.subtitle}>(Optional)</Text>
 
@@ -91,7 +92,7 @@ const RequestBrandScreen = () => {
           <Text style={styles.submitButtonText}>Finish Request</Text>
         )}
       </TouchableOpacity>
-    </View>
+    </SafeAreaView>
   );
 };
 
@@ -100,6 +101,13 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: 20,
     backgroundColor: COLORS.background,
+  },
+  counter: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: COLORS.mutedForeground,
+    textAlign: "center",
+    marginBottom: 20,
   },
   title: {
     fontSize: 24,

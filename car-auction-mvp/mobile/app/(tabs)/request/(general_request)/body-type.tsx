@@ -1,6 +1,14 @@
 import React from "react";
-import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
-import { Stack, useRouter, useLocalSearchParams } from "expo-router";
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  Image,
+  ScrollView,
+} from "react-native";
+import { useRouter, useLocalSearchParams } from "expo-router";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 const COLORS = {
   background: "#14181F",
@@ -8,13 +16,30 @@ const COLORS = {
   card: "#1C212B",
   accent: "#A370F7",
   border: "#313843",
+  mutedForeground: "#8A94A3",
 };
 
 const bodyTypeOptions = [
-  { label: "SUV", value: "SUV" },
-  { label: "Sedan", value: "Sedan" },
-  { label: "Hatchback", value: "Hatchback" },
-  { label: "Pickup Truck", value: "Pickup" },
+  {
+    label: "SUV",
+    value: "SUV",
+    image: require("@/assets/images/suv1.png"),
+  },
+  {
+    label: "Sedan",
+    value: "Sedan",
+    image: require("@/assets/images/sedan1.png"),
+  },
+  {
+    label: "Hatchback",
+    value: "Hatchback",
+    image: require("@/assets/images/hatchback1.png"),
+  },
+  {
+    label: "Pickup Truck",
+    value: "Pickup",
+    image: require("@/assets/images/pickup2.png"),
+  },
 ];
 
 const RequestBodyTypeScreen = () => {
@@ -24,26 +49,31 @@ const RequestBodyTypeScreen = () => {
   const handleSelect = (value: string) => {
     router.push({
       pathname: "./fuel-type",
-      params: { ...params, bodyType: value },
+      params: { ...params, body_type: value },
     });
   };
 
   return (
-    <View style={styles.container}>
-      <Stack.Screen options={{ title: "Help Us Find It (2/5)" }} />
-      <Text style={styles.title}>What type of car best fits your needs?</Text>
-      <View style={styles.optionsContainer}>
-        {bodyTypeOptions.map((option) => (
-          <TouchableOpacity
-            key={option.value}
-            style={styles.optionButton}
-            onPress={() => handleSelect(option.value)}
-          >
-            <Text style={styles.optionText}>{option.label}</Text>
-          </TouchableOpacity>
-        ))}
-      </View>
-    </View>
+    <SafeAreaView style={styles.container}>
+      <ScrollView showsVerticalScrollIndicator={false}>
+        <Text style={styles.counter}>2 / 5</Text>
+        <Text style={styles.title}>What type of car best fits your needs?</Text>
+        <View style={styles.optionsContainer}>
+          {bodyTypeOptions.map((option) => {
+            return (
+              <TouchableOpacity
+                key={option.value}
+                style={styles.optionButton}
+                onPress={() => handleSelect(option.value)}
+              >
+                <Image source={option.image} style={styles.optionImage} />
+                <Text style={styles.optionText}>{option.label}</Text>
+              </TouchableOpacity>
+            );
+          })}
+        </View>
+      </ScrollView>
+    </SafeAreaView>
   );
 };
 
@@ -53,6 +83,13 @@ const styles = StyleSheet.create({
     padding: 20,
     backgroundColor: COLORS.background,
   },
+  counter: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: COLORS.mutedForeground,
+    textAlign: "center",
+    marginBottom: 20,
+  },
   title: {
     fontSize: 24,
     fontWeight: "bold",
@@ -61,20 +98,30 @@ const styles = StyleSheet.create({
     textAlign: "center",
   },
   optionsContainer: {
-    gap: 15,
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "space-between",
   },
   optionButton: {
+    width: "48%", // Two columns with a small gap
     backgroundColor: COLORS.card,
-    padding: 20,
     borderRadius: 12,
     borderWidth: 1,
     borderColor: COLORS.border,
     alignItems: "center",
+    overflow: "hidden", // Ensures image corners are rounded
+    marginBottom: 15,
+  },
+  optionImage: {
+    width: "100%",
+    height: 120, // A fixed height for a better look
+    resizeMode: "contain", // Ensure the whole image fits without being cropped
   },
   optionText: {
     color: COLORS.foreground,
     fontSize: 18,
     fontWeight: "500",
+    paddingVertical: 15,
   },
 });
 

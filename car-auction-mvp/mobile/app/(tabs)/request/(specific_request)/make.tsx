@@ -6,7 +6,8 @@ import {
   TextInput,
   TouchableOpacity,
 } from "react-native";
-import { Stack, useRouter } from "expo-router";
+import { useRouter } from "expo-router";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 const COLORS = {
   background: "#14181F",
@@ -29,8 +30,8 @@ const RequestMakeScreen = () => {
   };
 
   return (
-    <View style={styles.container}>
-      <Stack.Screen options={{ title: "Find a Car (1/4)" }} />
+    <SafeAreaView style={styles.container}>
+      <Text style={styles.counter}>1 / 3</Text>
       <Text style={styles.title}>What make of car are you looking for?</Text>
 
       <TextInput
@@ -44,7 +45,7 @@ const RequestMakeScreen = () => {
       <TouchableOpacity style={styles.submitButton} onPress={handleNext}>
         <Text style={styles.submitButtonText}>Next</Text>
       </TouchableOpacity>
-    </View>
+    </SafeAreaView>
   );
 };
 
@@ -53,6 +54,13 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: 20,
     backgroundColor: COLORS.background,
+  },
+  counter: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: COLORS.mutedForeground,
+    textAlign: "center",
+    marginBottom: 20,
   },
   title: {
     fontSize: 24,
