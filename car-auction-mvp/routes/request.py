@@ -792,11 +792,9 @@ def api_deal_summary(current_user, deal_id):
     return jsonify(deal=deal.to_dict())
 
 
-@request_bp.route(
-    "/api/requests", methods=["POST"]
-)  # This path is now correct: /requests/api/requests
-@login_required
-def api_create_request():
+@request_bp.route("/api/requests", methods=["POST"])
+@token_required
+def api_create_request(current_user):
     """
     API endpoint for creating a new car request from a mobile client.
     The client is expected to send all collected data in a single JSON payload.

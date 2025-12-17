@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import API_URL from "@/constants/Api";
 import {
   View,
   Text,
@@ -9,7 +10,9 @@ import {
   Platform,
   Alert,
 } from "react-native";
+import { useAuth } from "@/hooks/useAuth";
 import { Stack, useRouter, useLocalSearchParams } from "expo-router";
+import { ActivityIndicator } from "react-native";
 
 const COLORS = {
   background: "#14181F",
@@ -24,22 +27,53 @@ const RequestYearScreen = () => {
   const router = useRouter();
   const params = useLocalSearchParams();
   const [year, setYear] = useState("");
+  const [loading, setLoading] = useState(false);
+  const { token } = useAuth();
 
-  const handleSubmit = () => {
-    if (year.trim() && /^\d{4}$/.test(year)) {
-      // In a real app, you would send this data to your API
-      const finalRequest = {
-        ...params,
-        year,
-      };
-      console.log("Submitting specific car request:", finalRequest);
+  const handleSubmit = async () => {
+    if (!year.trim() || !/^\d{4}$/.test(year)) {
+      Alert.alert("Invalid Year", "Please enter a valid 4-digit year.");
+      return;
+    }
+    setLoading(true);
 
-      // Show a confirmation and navigate home
+    const finalRequest = {
+      make: params.make,
+      model: params.model,
+      min_year: year, // The API expects min_year
+    };
+
+    try {
+      const response = await fetch(`${API_URL}/requests/api/requests`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(finalRequest),
+      });
+
+      const responseData = await response.json();
+
+      if (!response.ok) {
+        throw new Error(
+          responseData.message || "An error occurred while submitting."
+        );
+      }
+
       Alert.alert(
         "Request Submitted!",
         "Your request has been sent to our dealers. They will contact you with offers soon.",
-        [{ text: "OK", onPress: () => router.push("/(tabs)") }]
+        [{ text: "OK", onPress: () => router.push("/(tabs)/my-requests") }]
       );
+    } catch (error: any) {
+      console.error("Failed to submit request:", error);
+      Alert.alert(
+        "Submission Failed",
+        error.message || "An unknown error occurred."
+      );
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -62,7 +96,11 @@ const RequestYearScreen = () => {
       />
 
       <TouchableOpacity style={styles.submitButton} onPress={handleSubmit}>
-        <Text style={styles.submitButtonText}>Finish Request</Text>
+        {loading ? (
+          <ActivityIndicator color={COLORS.foreground} />
+        ) : (
+          <Text style={styles.submitButtonText}>Finish Request</Text>
+        )}
       </TouchableOpacity>
     </KeyboardAvoidingView>
   );

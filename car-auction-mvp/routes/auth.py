@@ -53,7 +53,7 @@ class RegistrationForm(FlaskForm):
 
 def generate_jwt(user):
     """Generates a JWT for the given user."""
-    expiration_time = datetime.utcnow() + timedelta(hours=1)  # Token valid for 1 hour
+    expiration_time = datetime.utcnow() + timedelta(days=30)  # Token valid for 30 days
     payload = {"user_id": user.id, "exp": expiration_time}
     token = jwt.encode(payload, current_app.config["SECRET_KEY"], algorithm="HS256")
     return token
@@ -94,13 +94,13 @@ def token_required(f):
         token = None
         if "Authorization" in request.headers:
             auth_header = request.headers["Authorization"]
-            print(
-                f"Found Authorization header: {auth_header[:30]}..."
-            )  # Print start of header
+            print(f"Found Authorization header: {auth_header[:30]}...")
             try:
                 token = auth_header.split(" ")[1]
             except IndexError:
-                print("ERROR: Bearer token malformed.")
+                current_app.logger.warning(
+                    "Bearer token malformed in Authorization header."
+                )
                 return jsonify({"message": "Bearer token malformed."}), 401
 
         if not token:
@@ -110,11 +110,15 @@ def token_required(f):
         try:
             user = verify_jwt(token)
             if not user:
-                print("ERROR: Token is invalid or user not found.")
+                current_app.logger.warning(
+                    "Token verification failed: Token is invalid or user not found."
+                )
                 return jsonify({"message": "Token is invalid or user not found!"}), 401
-            print(f"SUCCESS: Token verified for user: {user.username} (ID: {user.id})")
+            current_app.logger.info(
+                f"Token verified for user: {user.username} (ID: {user.id})"
+            )
         except Exception as e:
-            print(f"ERROR: Token processing exception: {e}")
+            current_app.logger.error(f"Token processing exception: {e}", exc_info=True)
             return jsonify({"message": f"Token processing error: {str(e)}"}), 401
         return f(user, *args, **kwargs)
 
