@@ -13,7 +13,7 @@ import {
   FlatList,
   RefreshControl,
 } from "react-native";
-import { useLocalSearchParams, useRouter, Stack } from "expo-router";
+import { useLocalSearchParams, useRouter, Stack, Link } from "expo-router";
 import { useAuth } from "@/hooks/useAuth";
 import axios from "axios";
 import API_BASE_URL from "@/constants/Api";
@@ -71,6 +71,7 @@ interface DealerBid {
   questions: QuestionAnswer[];
   status: string;
   dealer: {
+    id: number;
     username: string;
     avg_rating: number;
   };
@@ -359,7 +360,16 @@ const RequestDetailScreen = () => {
                 )}
                 <View style={styles.bidHeader}>
                   <View>
-                    <Text style={styles.dealerName}>{bid.dealer.username}</Text>
+                    <Link
+                      href={`/(details)/dealers/public/${bid.dealer.id}`}
+                      asChild
+                    >
+                      <Pressable>
+                        <Text style={styles.dealerName}>
+                          {bid.dealer.username}
+                        </Text>
+                      </Pressable>
+                    </Link>
                     <View style={styles.dealerRating}>
                       <Ionicons name="star" size={16} color="#FFD700" />
                       <Text style={styles.dealerRatingText}>

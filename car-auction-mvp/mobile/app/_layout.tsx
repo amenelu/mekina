@@ -1,54 +1,36 @@
 import { Stack } from "expo-router";
-import { Pressable } from "react-native";
-import { GestureHandlerRootView } from "react-native-gesture-handler";
-import { Ionicons } from "@expo/vector-icons";
+import { useAuth } from "@/hooks/useAuth";
 
 const COLORS = {
-  card: "#1C212B",
+  background: "#14181F",
   foreground: "#F8F8F8",
+  card: "#1C212B",
+  accent: "#A370F7",
+  mutedForeground: "#8A94A3",
 };
 
 export default function RootLayout() {
+  const { token } = useAuth();
+
   return (
-    <GestureHandlerRootView style={{ flex: 1 }}>
-      <Stack
-        screenOptions={({ navigation }) => ({
-          headerStyle: { backgroundColor: COLORS.card },
-          headerTintColor: COLORS.foreground,
-          // Replace the default back button with a custom one to guarantee no text
-          headerLeft: () => (
-            <Pressable
-              onPress={() => navigation.goBack()}
-              style={{ paddingHorizontal: 10 }}
-            >
-              <Ionicons
-                name="chevron-back"
-                size={24}
-                color={COLORS.foreground}
-              />
-            </Pressable>
-          ),
-        })}
-      >
-        <Stack.Screen name="(auth)" options={{ headerShown: false }} />
-        <Stack.Screen name="trade-in" options={{ headerShown: false }} />
-        <Stack.Screen name="rentals" options={{ headerShown: false }} />
-        {/* The detail page, which will have a back button */}
-        <Stack.Screen
-          name="[id]"
-          options={
-            {
-              // The title is set dynamically inside the [id].tsx file
-            }
-          }
-        />
-        <Stack.Screen name="messages" options={{ title: "Messages" }} />
-        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        <Stack.Screen name="compare" options={{ presentation: "modal" }} />
-        <Stack.Screen name="how-it-works" options={{ title: "How It Works" }} />
-        <Stack.Screen name="(admin)" options={{ headerShown: false }} />
-        <Stack.Screen name="(dealer)" options={{ headerShown: false }} />
-      </Stack>
-    </GestureHandlerRootView>
+    <Stack
+      screenOptions={{
+        headerStyle: { backgroundColor: COLORS.card },
+        headerTintColor: COLORS.foreground,
+        headerTitleStyle: { color: COLORS.foreground },
+      }}
+    >
+      <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+      <Stack.Screen name="request/[id]" options={{ title: "Request" }} />
+      <Stack.Screen name="deal/[id]" options={{ title: "Deal Summary" }} />
+      <Stack.Screen
+        name="(details)/dealers/public/[id]"
+        options={{ presentation: "modal" }}
+      />
+      <Stack.Screen
+        name="(details)/dealers/[id]"
+        options={{ headerShown: false }}
+      />
+    </Stack>
   );
 }
