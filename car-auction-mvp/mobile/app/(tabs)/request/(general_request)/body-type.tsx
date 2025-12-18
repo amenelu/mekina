@@ -19,26 +19,26 @@ const COLORS = {
   mutedForeground: "#8A94A3",
 };
 
-const bodyTypeOptions = [
+export const bodyTypeOptions = [
   {
     label: "SUV",
     value: "SUV",
-    image: require("@/assets/images/suv1.png"),
+    image: require("@/assets/images/suv3 (1).webp"),
   },
   {
     label: "Sedan",
     value: "Sedan",
-    image: require("@/assets/images/sedan1.png"),
+    image: require("@/assets/images/sedan3 (1).webp"),
   },
   {
     label: "Hatchback",
     value: "Hatchback",
-    image: require("@/assets/images/hatchback1.png"),
+    image: require("@/assets/images/hatchback3.webp"),
   },
   {
     label: "Pickup Truck",
     value: "Pickup",
-    image: require("@/assets/images/pickup2.png"),
+    image: require("@/assets/images/pickup3 (1).webp"),
   },
 ];
 

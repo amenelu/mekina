@@ -1,13 +1,9 @@
-import React from "react";
-import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-  Pressable,
-} from "react-native";
+import React, { useEffect } from "react";
+import { View, Text, StyleSheet, Pressable, Image } from "react-native";
 import { useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { bodyTypeOptions } from "./body-type";
+import resolveAssetSource from "react-native/Libraries/Image/resolveAssetSource";
 
 const COLORS = {
   background: "#14181F",
@@ -28,6 +24,19 @@ const budgetOptions = [
 const RequestBudgetScreen = () => {
   // Renaming component for clarity
   const router = useRouter();
+
+  // Prefetch the next screen to make the transition feel faster.
+  useEffect(() => {
+    router.prefetch("./body-type");
+
+    // Also prefetch the images for the next screen.
+    bodyTypeOptions.forEach((option) => {
+      const source = resolveAssetSource(option.image);
+      if (source?.uri) {
+        Image.prefetch(source.uri);
+      }
+    });
+  }, []);
 
   const handleSelect = (value: string) => {
     // By passing the object directly, TypeScript can infer the literal type of `pathname`.
