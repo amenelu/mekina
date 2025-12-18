@@ -8,7 +8,7 @@ import {
   Pressable,
   Alert,
 } from "react-native";
-import { Stack, useRouter } from "expo-router";
+import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 
 const COLORS = {
@@ -28,6 +28,7 @@ const TradeInScreen = () => {
   const [mileage, setMileage] = useState("");
   const [vin, setVin] = useState("");
   const [comments, setComments] = useState("");
+  const [targetCar, setTargetCar] = useState("");
 
   const handleImagePick = () => {
     // In a real app, you would use a library like expo-image-picker
@@ -36,7 +37,7 @@ const TradeInScreen = () => {
 
   const handleSubmit = () => {
     // In a real app, you would validate and send this data to your API
-    console.log({ make, model, year, mileage, vin, comments });
+    console.log({ make, model, year, mileage, vin, comments, targetCar });
     Alert.alert(
       "Offer Submitted",
       "Thank you! We will review your submission and get back to you with a trade-in offer soon.",
@@ -46,9 +47,7 @@ const TradeInScreen = () => {
 
   return (
     <ScrollView style={styles.container}>
-      <Stack.Screen options={{ title: "Get a Trade-in Offer" }} />
       <View style={styles.header}>
-        <Text style={styles.title}>Trade-in Your Car</Text>
         <Text style={styles.subtitle}>
           Tell us about your car to get a competitive trade-in offer.
         </Text>
@@ -97,6 +96,14 @@ const TradeInScreen = () => {
           value={vin}
           onChangeText={setVin}
           autoCapitalize="characters"
+        />
+
+        <TextInput
+          style={styles.input}
+          placeholder="Are you trading for a specific car? (e.g. Toyota RAV4)"
+          placeholderTextColor={COLORS.mutedForeground}
+          value={targetCar}
+          onChangeText={setTargetCar}
         />
 
         <TextInput

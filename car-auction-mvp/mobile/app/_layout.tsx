@@ -53,6 +53,7 @@ export default function RootLayout() {
         name="(details)/dealers/[id]"
         options={{ headerShown: false }}
       />
+      <Stack.Screen name="trade-in" options={{ headerShown: false }} />
     </Stack>
   );
 }
