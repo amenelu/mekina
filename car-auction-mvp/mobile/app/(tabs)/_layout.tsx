@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from "react";
-import { Tabs } from "expo-router";
+import { Tabs, usePathname } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import HeaderRight from "../_components/HeaderRight";
 import { Animated, StyleSheet, TouchableOpacity, View } from "react-native";
@@ -55,12 +55,19 @@ const PulsatingTabBarButton = ({ children, onPress }: any) => {
 };
 
 export default function TabsLayout() {
+  const pathname = usePathname();
+
+  // Determine if the tab bar should be visible.
+  // We hide it on the request detail page.
+  const isTabBarVisible = !pathname.startsWith("/request/");
+
   return (
     <Tabs
       screenOptions={{
         tabBarActiveTintColor: COLORS.accent,
         tabBarInactiveTintColor: "#8A94A3",
         tabBarStyle: {
+          display: isTabBarVisible ? "flex" : "none", // Dynamically hide/show tab bar
           backgroundColor: COLORS.card,
           borderTopColor: "#313843",
         },
@@ -75,7 +82,8 @@ export default function TabsLayout() {
       <Tabs.Screen
         name="index"
         options={{
-          title: "Mekina",
+          title: "Home",
+          headerTitle: "Home",
           headerTitleAlign: "left",
           headerTitleStyle: {
             fontSize: 20,
@@ -91,6 +99,7 @@ export default function TabsLayout() {
         name="rentals"
         options={{
           title: "Rentals",
+          headerTitle: "Rentals",
           headerTitleAlign: "left",
           tabBarIcon: ({ color }) => (
             <Ionicons name="car-sport" size={24} color={color} />
@@ -101,6 +110,7 @@ export default function TabsLayout() {
         name="request" // Point the tab directly to the request flow
         options={{
           title: "Find Car",
+          headerTitle: "Find Car",
           tabBarIcon: ({ focused }) => (
             <Ionicons
               name="search"
@@ -115,7 +125,8 @@ export default function TabsLayout() {
       <Tabs.Screen
         name="my-requests"
         options={{
-          title: "My-requests",
+          title: "My Requests",
+          headerTitle: "My Requests",
           tabBarIcon: ({ color }) => (
             <Ionicons name="person-circle" size={24} color={color} />
           ),
@@ -132,6 +143,7 @@ export default function TabsLayout() {
         name="notifications"
         options={{
           title: "Notifications",
+          headerTitle: "Notifications",
           tabBarIcon: ({ color }) => (
             <Ionicons name="notifications" size={24} color={color} />
           ),

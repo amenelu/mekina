@@ -9,7 +9,7 @@ import {
   RefreshControl,
   Alert,
 } from "react-native";
-import { Link, useFocusEffect, useRouter } from "expo-router";
+import { Link, useFocusEffect, useRouter, Stack } from "expo-router";
 import { useAuth } from "@/hooks/useAuth";
 import axios from "axios";
 import API_URL from "@/constants/Api";
@@ -175,42 +175,45 @@ const MyRequestsScreen = () => {
   }
 
   return (
-    <ScrollView
-      style={styles.container}
-      refreshControl={
-        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-      }
-    >
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>My Car Requests</Text>
-        <Text style={styles.headerSubtitle}>
-          Here are the requests you've submitted. Click "View Offers" to see
-          bids from our dealer network.
-        </Text>
-      </View>
-      <View style={styles.content}>
-        {error && !loading && (
-          <View style={styles.noRequestsContainer}>
-            <Text style={styles.noRequestsText}>{error}</Text>
-          </View>
-        )}
-        {!error && requests.length > 0
-          ? requests.map((req) => <RequestCard key={req.id} request={req} />)
-          : !error &&
-            !loading && (
-              <View style={styles.noRequestsContainer}>
-                <Text style={styles.noRequestsText}>
-                  You have not made any car requests yet.
-                </Text>
-                <Link href="/request" asChild>
-                  <Pressable>
-                    <Text style={styles.linkText}>Find a car now!</Text>
-                  </Pressable>
-                </Link>
-              </View>
-            )}
-      </View>
-    </ScrollView>
+    <>
+      <Stack.Screen options={{ title: "My Requests" }} />
+      <ScrollView
+        style={styles.container}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        }
+      >
+        <View style={styles.header}>
+          <Text style={styles.headerTitle}>My Car Requests</Text>
+          <Text style={styles.headerSubtitle}>
+            Here are the requests you've submitted. Click "View Offers" to see
+            bids from our dealer network.
+          </Text>
+        </View>
+        <View style={styles.content}>
+          {error && !loading && (
+            <View style={styles.noRequestsContainer}>
+              <Text style={styles.noRequestsText}>{error}</Text>
+            </View>
+          )}
+          {!error && requests.length > 0
+            ? requests.map((req) => <RequestCard key={req.id} request={req} />)
+            : !error &&
+              !loading && (
+                <View style={styles.noRequestsContainer}>
+                  <Text style={styles.noRequestsText}>
+                    You have not made any car requests yet.
+                  </Text>
+                  <Link href="/request" asChild>
+                    <Pressable>
+                      <Text style={styles.linkText}>Find a car now!</Text>
+                    </Pressable>
+                  </Link>
+                </View>
+              )}
+        </View>
+      </ScrollView>
+    </>
   );
 };
 

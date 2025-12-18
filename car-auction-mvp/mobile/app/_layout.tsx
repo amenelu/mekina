@@ -1,5 +1,6 @@
-import { Stack } from "expo-router";
+import { Stack, useNavigationContainerRef } from "expo-router";
 import { useAuth } from "@/hooks/useAuth";
+import { getFocusedRouteNameFromRoute } from "@react-navigation/native";
 
 const COLORS = {
   background: "#14181F",
@@ -10,6 +11,8 @@ const COLORS = {
 };
 
 export default function RootLayout() {
+  const navigationRef = useNavigationContainerRef();
+
   const { token } = useAuth();
 
   return (
@@ -20,12 +23,31 @@ export default function RootLayout() {
         headerTitleStyle: { color: COLORS.foreground },
       }}
     >
-      <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-      <Stack.Screen name="request/[id]" options={{ title: "Request" }} />
+      <Stack.Screen
+        name="(tabs)"
+        options={({ route }) => {
+          const routeName = getFocusedRouteNameFromRoute(route) ?? "Home";
+          const titles: Record<string, string> = {
+            index: "Home",
+            rentals: "Rentals",
+            request: "Find Car",
+            "my-requests": "My Requests",
+            notifications: "Notifications",
+          };
+          return {
+            headerTitle: titles[routeName] || "Mekina",
+            headerShown: false,
+          };
+        }}
+      />
+      <Stack.Screen
+        name="request/[id]"
+        options={{ title: "Request", headerBackTitle: "" }}
+      />
       <Stack.Screen name="deal/[id]" options={{ title: "Deal Summary" }} />
       <Stack.Screen
         name="(details)/dealers/public/[id]"
-        options={{ presentation: "modal" }}
+        options={{ presentation: "modal", title: "Dealer Profile" }}
       />
       <Stack.Screen
         name="(details)/dealers/[id]"
