@@ -39,6 +39,7 @@ interface CarRequest {
   status: string;
   notes: string;
   created_at: string;
+  equipment: string | null; // e.g., "sunroof,leather_seats"
   bid_count: number;
 }
 
@@ -74,6 +75,31 @@ interface DealerBid {
     avg_rating: number;
   };
 }
+
+/**
+ * A component to display an offer image with a loading indicator.
+ */
+const OfferImage = ({ uri, onPress }: { uri: string; onPress: () => void }) => {
+  const [isLoading, setIsLoading] = useState(true);
+
+  return (
+    <Pressable onPress={onPress}>
+      <View style={styles.offerImage}>
+        <Image
+          source={{ uri }}
+          style={StyleSheet.absoluteFill}
+          onLoadEnd={() => setIsLoading(false)}
+        />
+        {isLoading && (
+          <ActivityIndicator
+            style={StyleSheet.absoluteFill}
+            color={COLORS.accent}
+          />
+        )}
+      </View>
+    </Pressable>
+  );
+};
 
 const RequestDetailScreen = () => {
   const { id } = useLocalSearchParams();
@@ -294,6 +320,22 @@ const RequestDetailScreen = () => {
             </View>
             <Text style={styles.notesText}>{request.notes}</Text>
           </View>
+          {request.equipment && (
+            <View style={styles.card}>
+              <Text style={styles.sectionTitleSmall}>Important Features</Text>
+              <View style={styles.featuresContainer}>
+                {request.equipment.split(",").map((feature, index) => (
+                  <View key={index} style={styles.featureChip}>
+                    <Text style={styles.featureChipText}>
+                      {feature
+                        .replace(/_/g, " ")
+                        .replace(/\b\w/g, (l) => l.toUpperCase())}
+                    </Text>
+                  </View>
+                ))}
+              </View>
+            </View>
+          )}
         </View>
 
         {/* Dealer Offers Section */}
@@ -335,14 +377,10 @@ const RequestDetailScreen = () => {
                     horizontal
                     data={bid.image_urls}
                     renderItem={({ item, index }) => (
-                      <Pressable
+                      <OfferImage
+                        uri={item}
                         onPress={() => openImageViewer(bid.image_urls, index)}
-                      >
-                        <Image
-                          source={{ uri: item }}
-                          style={styles.offerImage}
-                        />
-                      </Pressable>
+                      />
                     )}
                     keyExtractor={(item, index) => `${bid.id}-img-${index}`}
                     showsHorizontalScrollIndicator={false}
@@ -602,6 +640,12 @@ const styles = StyleSheet.create({
     color: COLORS.foreground,
     marginBottom: 15,
   },
+  sectionTitleSmall: {
+    fontSize: 18,
+    fontWeight: "bold",
+    color: COLORS.foreground,
+    marginBottom: 15,
+  },
   card: {
     backgroundColor: COLORS.card,
     borderRadius: 12,
@@ -634,6 +678,21 @@ const styles = StyleSheet.create({
     textAlign: "center",
     paddingVertical: 20,
   },
+  featuresContainer: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 10,
+  },
+  featureChip: {
+    backgroundColor: COLORS.muted,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+  },
+  featureChipText: {
+    color: COLORS.mutedForeground,
+    fontSize: 14,
+  },
   bidHeader: {
     marginBottom: 10,
   },
@@ -655,6 +714,7 @@ const styles = StyleSheet.create({
     height: 80,
     borderRadius: 8,
     marginRight: 10,
+    overflow: "hidden", // Ensures the inner Image respects the border radius
     backgroundColor: COLORS.muted,
   },
   timestampContainer: {
