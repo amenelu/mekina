@@ -7,9 +7,15 @@ import {
   ScrollView,
   Pressable,
   Alert,
+  Image,
+  ActivityIndicator,
 } from "react-native";
 import { useRouter } from "expo-router";
+import * as ImagePicker from "expo-image-picker";
 import { Ionicons } from "@expo/vector-icons";
+import axios from "axios";
+import API_URL from "@/constants/Api";
+import { useAuth } from "@/hooks/useAuth";
 
 const COLORS = {
   background: "#14181F",
@@ -22,6 +28,8 @@ const COLORS = {
 
 const TradeInScreen = () => {
   const router = useRouter();
+  const { token } = useAuth();
+  const [loading, setLoading] = useState(false);
   const [make, setMake] = useState("");
   const [model, setModel] = useState("");
   const [year, setYear] = useState("");
@@ -29,20 +37,71 @@ const TradeInScreen = () => {
   const [vin, setVin] = useState("");
   const [comments, setComments] = useState("");
   const [targetCar, setTargetCar] = useState("");
+  const [condition, setCondition] = useState("Good");
+  const [images, setImages] = useState<string[]>([]);
+  const [base64Images, setBase64Images] = useState<string[]>([]);
 
-  const handleImagePick = () => {
-    // In a real app, you would use a library like expo-image-picker
-    Alert.alert("Image Picker", "This would open the image gallery.");
+  const handleImagePick = async () => {
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsMultipleSelection: true,
+      quality: 0.8,
+      base64: true,
+    });
+
+    if (!result.canceled) {
+      const newUris = result.assets.map((asset) => asset.uri);
+      const newBase64s = result.assets.map(
+        (asset) => `data:image/jpeg;base64,${asset.base64}`
+      );
+      setImages((prev) => [...prev, ...newUris]);
+      setBase64Images((prev) => [...prev, ...newBase64s]);
+    }
   };
 
-  const handleSubmit = () => {
-    // In a real app, you would validate and send this data to your API
-    console.log({ make, model, year, mileage, vin, comments, targetCar });
-    Alert.alert(
-      "Offer Submitted",
-      "Thank you! We will review your submission and get back to you with a trade-in offer soon.",
-      [{ text: "OK", onPress: () => router.back() }]
-    );
+  const handleSubmit = async () => {
+    if (!make || !model || !year || !mileage || base64Images.length === 0) {
+      Alert.alert(
+        "Missing Information",
+        "Please fill in all required fields (Make, Model, Year, Mileage) and upload at least one photo."
+      );
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const payload = {
+        make,
+        model,
+        year: parseInt(year),
+        mileage: parseInt(mileage),
+        condition,
+        vin,
+        targetCar,
+        comments,
+        images: base64Images,
+      };
+
+      const response = await axios.post(`${API_URL}/trade-in/api`, payload, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      if (response.status === 201) {
+        Alert.alert(
+          "Offer Submitted",
+          "Thank you! We will review your submission and get back to you with a trade-in offer soon.",
+          [{ text: "OK", onPress: () => router.back() }]
+        );
+      }
+    } catch (error: any) {
+      console.error("Trade-in submission error:", error);
+      Alert.alert(
+        "Error",
+        error.response?.data?.message || "Failed to submit trade-in request."
+      );
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -120,8 +179,22 @@ const TradeInScreen = () => {
           <Text style={styles.imagePickerText}>Upload Photos</Text>
         </Pressable>
 
-        <Pressable style={styles.submitButton} onPress={handleSubmit}>
-          <Text style={styles.submitButtonText}>Submit for Offer</Text>
+        <ScrollView horizontal style={styles.imagePreviewContainer}>
+          {images.map((uri, index) => (
+            <Image key={index} source={{ uri }} style={styles.previewImage} />
+          ))}
+        </ScrollView>
+
+        <Pressable
+          style={styles.submitButton}
+          onPress={handleSubmit}
+          disabled={loading}
+        >
+          {loading ? (
+            <ActivityIndicator color={COLORS.foreground} />
+          ) : (
+            <Text style={styles.submitButtonText}>Submit for Offer</Text>
+          )}
         </Pressable>
       </View>
     </ScrollView>
@@ -169,6 +242,16 @@ const styles = StyleSheet.create({
     borderStyle: "dashed",
   },
   imagePickerText: { color: COLORS.accent, fontSize: 16, fontWeight: "600" },
+  imagePreviewContainer: {
+    flexDirection: "row",
+    marginTop: 10,
+  },
+  previewImage: {
+    width: 80,
+    height: 80,
+    borderRadius: 8,
+    marginRight: 10,
+  },
   submitButton: {
     backgroundColor: COLORS.accent,
     padding: 18,

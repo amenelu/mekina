@@ -52,7 +52,7 @@ const featuredCars = [
 
 const allVehicles: Vehicle[] = [
   {
-    id: "1",
+    id: "101",
     year: 2022,
     make: "Hyundai",
     model: "Ioniq 5",
@@ -62,7 +62,7 @@ const allVehicles: Vehicle[] = [
     listingType: "Sale",
   },
   {
-    id: "2",
+    id: "102",
     year: 2021,
     make: "Volkswagen",
     model: "ID.4",
@@ -72,7 +72,7 @@ const allVehicles: Vehicle[] = [
     listingType: "Sale",
   },
   {
-    id: "3",
+    id: "103",
     year: 2023,
     make: "BYD",
     model: "Atto 3",
@@ -82,7 +82,7 @@ const allVehicles: Vehicle[] = [
     listingType: "Sale",
   },
   {
-    id: "4",
+    id: "104",
     year: 2020,
     make: "Mercedes-Benz",
     model: "EQC",
@@ -200,75 +200,85 @@ const HomeScreen = () => {
           Search Ethiopia's best selection of modern cars for sale.
         </Text>
         <View style={{ zIndex: 10 }}>
-        <View style={styles.searchBar}>
-          <Ionicons
-            name="search"
-            size={20}
-            color={COLORS.mutedForeground}
-            style={styles.searchIcon}
-          />
-          <TextInput
-            style={styles.searchInput}
-            placeholder="Make, model, year..."
-            placeholderTextColor={COLORS.mutedForeground}
-            value={searchQuery}
-            onChangeText={setSearchQuery}
-            onSubmitEditing={handleSearch}
-            returnKeyType="search"
-          />
-        </View>
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          style={styles.quickFiltersContainer}
-        >
-          {quickFilters.map((filter) => (
-            <Pressable
-              key={filter.value}
-              style={[
-                styles.filterButton,
-                activeFilter === filter.value && styles.activeFilterButton,
-              ]}
-              onPress={() =>
-                setActiveFilter(activeFilter === filter.value ? "" : filter.value)
-              }
-            >
-              <Text
-                style={[
-                  styles.filterButtonText,
-                  activeFilter === filter.value && styles.activeFilterButtonText,
-                ]}
-              >
-                {filter.label}
-              </Text>
-            </Pressable>
-          ))}
-        </ScrollView>
-        {searchQuery.length > 0 && (
-          <View style={styles.searchDropdown}>
-            {isSearching ? (
-              <ActivityIndicator size="small" color={COLORS.accent} style={{ padding: 20 }} />
-            ) : searchResults.length > 0 ? (
-              searchResults.slice(0, 5).map((car) => (
-                <Pressable
-                  key={car.id}
-                  style={styles.searchResultItem}
-                  onPress={() => router.push(`/${car.id}`)}
-                >
-                  <Image source={{ uri: car.image }} style={styles.searchResultImage} />
-                  <View style={styles.searchResultTextContainer}>
-                    <Text style={styles.searchResultTitle}>
-                      {car.year} {car.make} {car.model}
-                    </Text>
-                    <Text style={styles.searchResultPrice}>{car.price}</Text>
-                  </View>
-                </Pressable>
-              ))
-            ) : (
-              <Text style={styles.noResultsText}>No cars found</Text>
-            )}
+          <View style={styles.searchBar}>
+            <Ionicons
+              name="search"
+              size={20}
+              color={COLORS.mutedForeground}
+              style={styles.searchIcon}
+            />
+            <TextInput
+              style={styles.searchInput}
+              placeholder="Make, model, year..."
+              placeholderTextColor={COLORS.mutedForeground}
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+              onSubmitEditing={handleSearch}
+              returnKeyType="search"
+            />
           </View>
-        )}
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            style={styles.quickFiltersContainer}
+          >
+            {quickFilters.map((filter) => (
+              <Pressable
+                key={filter.value}
+                style={[
+                  styles.filterButton,
+                  activeFilter === filter.value && styles.activeFilterButton,
+                ]}
+                onPress={() =>
+                  setActiveFilter(
+                    activeFilter === filter.value ? "" : filter.value
+                  )
+                }
+              >
+                <Text
+                  style={[
+                    styles.filterButtonText,
+                    activeFilter === filter.value &&
+                      styles.activeFilterButtonText,
+                  ]}
+                >
+                  {filter.label}
+                </Text>
+              </Pressable>
+            ))}
+          </ScrollView>
+          {searchQuery.length > 0 && (
+            <View style={styles.searchDropdown}>
+              {isSearching ? (
+                <ActivityIndicator
+                  size="small"
+                  color={COLORS.accent}
+                  style={{ padding: 20 }}
+                />
+              ) : searchResults.length > 0 ? (
+                searchResults.slice(0, 5).map((car) => (
+                  <Pressable
+                    key={car.id}
+                    style={styles.searchResultItem}
+                    onPress={() => router.push(`/${car.id}`)}
+                  >
+                    <Image
+                      source={{ uri: car.image }}
+                      style={styles.searchResultImage}
+                    />
+                    <View style={styles.searchResultTextContainer}>
+                      <Text style={styles.searchResultTitle}>
+                        {car.year} {car.make} {car.model}
+                      </Text>
+                      <Text style={styles.searchResultPrice}>{car.price}</Text>
+                    </View>
+                  </Pressable>
+                ))
+              ) : (
+                <Text style={styles.noResultsText}>No cars found</Text>
+              )}
+            </View>
+          )}
         </View>
         <View style={styles.heroActions}>
           <View style={{ flex: 1, marginRight: 8 }}>

@@ -31,12 +31,15 @@ interface CarRequest {
   model: string | null;
   status: string;
   notes: string;
+  comments?: string;
   created_at: string;
-  offer_count: number;
+  offer_count?: number;
   deal_id: number | null;
+  type?: "buy" | "trade-in";
 }
 
 const RequestCard = ({ request }: { request: CarRequest }) => {
+  const router = useRouter();
   const statusColor =
     request.status.toLowerCase() === "completed"
       ? COLORS.mutedForeground
@@ -48,28 +51,41 @@ const RequestCard = ({ request }: { request: CarRequest }) => {
 
   const statusText =
     request.status.charAt(0).toUpperCase() + request.status.slice(1);
+  const isTradeIn = request.type === "trade-in";
+
+  const handlePress = () => {
+    if (isTradeIn) {
+      Alert.alert(
+        "Trade-in Request",
+        "Your trade-in request is being reviewed by our team."
+      );
+    } else {
+      router.push(`/request/${request.id}`);
+    }
+  };
 
   return (
     <View style={styles.requestCard}>
-      <Link href={`/request/${request.id}`} asChild>
-        <Pressable>
-          <View style={styles.cardHeader}>
+      <Pressable onPress={handlePress}>
+        <View style={styles.cardHeader}>
+          <View>
             <Text style={styles.cardTitle}>
               {request.make && request.model
                 ? `${request.make} ${request.model}`
                 : "General Request"}
             </Text>
-            <Text style={[styles.statusTag, { backgroundColor: statusColor }]}>
-              {statusText}
-            </Text>
+            {isTradeIn && <Text style={styles.tradeInTag}>Trade-in</Text>}
           </View>
-          <View style={styles.cardBody}>
-            <Text style={styles.cardNotes} numberOfLines={3}>
-              {request.notes}
-            </Text>
-          </View>
-        </Pressable>
-      </Link>
+          <Text style={[styles.statusTag, { backgroundColor: statusColor }]}>
+            {statusText}
+          </Text>
+        </View>
+        <View style={styles.cardBody}>
+          <Text style={styles.cardNotes} numberOfLines={3}>
+            {isTradeIn ? request.comments : request.notes}
+          </Text>
+        </View>
+      </Pressable>
       <View style={styles.cardFooter}>
         <View style={styles.footerStat}>
           <Text style={styles.footerLabel}>Submitted</Text>
@@ -79,7 +95,7 @@ const RequestCard = ({ request }: { request: CarRequest }) => {
         </View>
         <View style={styles.footerStat}>
           <Text style={styles.footerLabel}>Offers</Text>
-          <Text style={styles.footerValue}>{request.offer_count}</Text>
+          <Text style={styles.footerValue}>{request.offer_count || 0}</Text>
         </View>
         {request.status === "completed" && request.deal_id ? (
           <Link href={`/deal/${request.deal_id}`} asChild>
@@ -87,6 +103,20 @@ const RequestCard = ({ request }: { request: CarRequest }) => {
               <Text style={styles.viewOffersButtonText}>View Deal Summary</Text>
             </Pressable>
           </Link>
+        ) : isTradeIn ? (
+          <Pressable
+            style={[styles.viewOffersButton, { opacity: 0.8 }]}
+            onPress={() =>
+              Alert.alert(
+                "Trade-in Request",
+                "Your trade-in request is being reviewed by our team."
+              )
+            }
+          >
+            <Text style={styles.viewOffersButtonText}>
+              Status: {request.status}
+            </Text>
+          </Pressable>
         ) : (
           <Link href={`/request/${request.id}`} asChild>
             <Pressable style={styles.viewOffersButton}>
@@ -197,7 +227,9 @@ const MyRequestsScreen = () => {
             </View>
           )}
           {!error && requests.length > 0
-            ? requests.map((req) => <RequestCard key={req.id} request={req} />)
+            ? requests.map((req) => (
+                <RequestCard key={`${req.type}-${req.id}`} request={req} />
+              ))
             : !error &&
               !loading && (
                 <View style={styles.noRequestsContainer}>
@@ -243,6 +275,12 @@ const styles = StyleSheet.create({
     padding: 15,
     borderBottomWidth: 1,
     borderBottomColor: COLORS.border,
+  },
+  tradeInTag: {
+    color: COLORS.accent,
+    fontSize: 12,
+    fontWeight: "bold",
+    marginTop: 2,
   },
   cardTitle: { fontSize: 18, fontWeight: "bold", color: COLORS.foreground },
   statusTag: {

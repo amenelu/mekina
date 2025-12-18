@@ -13,6 +13,7 @@ from flask import (
 from flask_login import login_required, current_user
 from models.car_request import CarRequest
 from models.dealer_bid import DealerBid
+from models.trade_in import TradeInRequest
 from models.deal import Deal
 from extensions import db, socketio
 from models.dealer_rating import DealerRating
@@ -413,12 +414,24 @@ def api_my_requests(current_user):
     # This print statement confirms the function is being reached after the decorator.
     print(f"--- Executing api_my_requests for user: {current_user.username} ---")
     try:
-        user_requests = (
-            CarRequest.query.filter_by(user_id=current_user.id)
-            .order_by(CarRequest.created_at.desc())
-            .all()
-        )
-        requests_data = [req.to_dict() for req in user_requests]
+        # Fetch Buy Requests
+        buy_requests = CarRequest.query.filter_by(user_id=current_user.id).all()
+        requests_data = []
+        for req in buy_requests:
+            d = req.to_dict()
+            d["type"] = "buy"
+            requests_data.append(d)
+
+        # Fetch Trade-in Requests
+        trade_requests = TradeInRequest.query.filter_by(user_id=current_user.id).all()
+        for req in trade_requests:
+            d = req.to_dict()
+            d["type"] = "trade-in"
+            requests_data.append(d)
+
+        # Sort combined list by created_at descending
+        requests_data.sort(key=lambda x: x["created_at"], reverse=True)
+
         # This print statement shows you the exact data being sent back.
         print(
             f"--- Found {len(requests_data)} requests. Sending data: {requests_data} ---"

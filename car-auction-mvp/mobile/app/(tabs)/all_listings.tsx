@@ -210,9 +210,9 @@ const AllListingsScreen = () => {
         {/* --- Listings Grid --- */}
         <View style={styles.gridContainer}>
           {!loading && allVehicles.length > 0
-            ? allVehicles.map((item) => (
+            ? allVehicles.map((item, index) => (
                 <VehicleCard
-                  key={item.id}
+                  key={`${item.id}-${index}`}
                   item={item}
                   isCompared={compareItems.some((c) => c.id === item.id)}
                   onToggleCompare={handleToggleCompare}
