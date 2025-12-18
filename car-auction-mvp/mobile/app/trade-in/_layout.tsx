@@ -27,6 +27,8 @@ export default function TradeInLayout() {
       }}
     >
       <Stack.Screen name="index" options={{ title: "Get a Trade-in Offer" }} />
+      <Stack.Screen name="[id]" options={{ title: "Trade-in Details" }} />
+      <Stack.Screen name="admin/[id]" options={{ title: "Review Trade-in" }} />
     </Stack>
   );
 }

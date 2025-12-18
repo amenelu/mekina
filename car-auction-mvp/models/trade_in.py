@@ -30,6 +30,12 @@ class TradeInRequest(db.Model):
         lazy=True,
         cascade="all, delete-orphan",
     )
+    offers = db.relationship(
+        "TradeInOffer",
+        backref="trade_in_request",
+        lazy=True,
+        cascade="all, delete-orphan",
+    )
 
     def to_dict(self):
         """Serializes the object to a dictionary."""
@@ -47,6 +53,7 @@ class TradeInRequest(db.Model):
             "status": self.status,
             "created_at": self.created_at.isoformat() + "Z",
             "photos": [photo.to_dict() for photo in self.photos],
+            "offer_count": len(self.offers),
         }
 
 
@@ -67,4 +74,32 @@ class TradeInPhoto(db.Model):
             "id": self.id,
             "image_url": self.image_url,
             "trade_in_request_id": self.trade_in_request_id,
+        }
+
+
+class TradeInOffer(db.Model):
+    """Represents an offer made by a dealer on a trade-in request."""
+
+    __tablename__ = "trade_in_offers"
+
+    id = db.Column(db.Integer, primary_key=True)
+    trade_in_request_id = db.Column(
+        db.Integer, db.ForeignKey("trade_in_requests.id"), nullable=False
+    )
+    dealer_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False)
+    amount = db.Column(db.Integer, nullable=False)
+    notes = db.Column(db.Text, nullable=True)
+    status = db.Column(db.String(20), default="pending")  # pending, accepted, rejected
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    dealer = db.relationship("User", backref="trade_in_offers")
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "dealer_name": self.dealer.username,
+            "amount": self.amount,
+            "notes": self.notes,
+            "status": self.status,
+            "created_at": self.created_at.isoformat() + "Z",
         }

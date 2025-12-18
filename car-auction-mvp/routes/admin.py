@@ -1,5 +1,14 @@
 from datetime import datetime
-from flask import Blueprint, render_template, redirect, url_for, flash, abort, request, jsonify
+from flask import (
+    Blueprint,
+    render_template,
+    redirect,
+    url_for,
+    flash,
+    abort,
+    request,
+    jsonify,
+)
 from flask_login import login_required, current_user
 from extensions import db, socketio
 from sqlalchemy import func, or_
@@ -11,6 +20,7 @@ from models.notification import Notification
 from models.equipment import Equipment
 from models.dealer_review import DealerReview
 from models.car_image import CarImage
+from models.trade_in import TradeInRequest
 from routes.seller import CarSubmissionForm, save_seller_document
 from routes.auth import admin_token_required
 from functools import wraps
@@ -19,65 +29,110 @@ from flask_wtf import FlaskForm
 from wtforms import StringField, BooleanField, SubmitField, IntegerField
 from wtforms.validators import DataRequired, Email, Optional, NumberRange
 
-admin_bp = Blueprint('admin', __name__, url_prefix='/admin')
+admin_bp = Blueprint("admin", __name__, url_prefix="/admin")
+
 
 # Custom decorator to check for admin privileges
 def admin_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
         if not current_user.is_authenticated or not current_user.is_admin:
-            abort(403) # Forbidden
+            abort(403)  # Forbidden
         return f(*args, **kwargs)
+
     return decorated_function
 
-class EditUserForm(FlaskForm):
-    username = StringField('Username', validators=[DataRequired()])
-    email = StringField('Email', validators=[DataRequired(), Email()])
-    is_dealer = BooleanField('Is Dealer')
-    is_rental_company = BooleanField('Is Rental Company')
-    is_admin = BooleanField('Is Admin')
-    points = IntegerField('Points', validators=[Optional(), NumberRange(min=0)])
-    submit = SubmitField('Update User')
 
-@admin_bp.route('/dashboard')
+class EditUserForm(FlaskForm):
+    username = StringField("Username", validators=[DataRequired()])
+    email = StringField("Email", validators=[DataRequired(), Email()])
+    is_dealer = BooleanField("Is Dealer")
+    is_rental_company = BooleanField("Is Rental Company")
+    is_admin = BooleanField("Is Admin")
+    points = IntegerField("Points", validators=[Optional(), NumberRange(min=0)])
+    submit = SubmitField("Update User")
+
+
+@admin_bp.route("/dashboard")
 @login_required
 @admin_required
 def dashboard():
     stats = {
-        'user_count': User.query.count(),
-        'active_auction_count': Auction.query.filter(Auction.end_time > db.func.now()).count(),
-        'pending_approval_count': Car.query.filter_by(is_approved=False).count(),
-        'for_sale_count': Car.query.filter_by(listing_type='sale', is_approved=True).count(),
-        'for_rent_count': Car.query.filter_by(listing_type='rental', is_approved=True).count(),
+        "user_count": User.query.count(),
+        "active_auction_count": Auction.query.filter(
+            Auction.end_time > db.func.now()
+        ).count(),
+        "pending_approval_count": Car.query.filter_by(is_approved=False).count(),
+        "for_sale_count": Car.query.filter_by(
+            listing_type="sale", is_approved=True
+        ).count(),
+        "for_rent_count": Car.query.filter_by(
+            listing_type="rental", is_approved=True
+        ).count(),
+        "pending_trade_in_count": TradeInRequest.query.filter_by(
+            status="pending"
+        ).count(),
     }
-    cars_pending_approval = Car.query.filter_by(is_approved=False).order_by(Car.id.desc()).all()
-    return render_template('dashboard.html', stats=stats, cars=cars_pending_approval)
+    cars_pending_approval = (
+        Car.query.filter_by(is_approved=False).order_by(Car.id.desc()).all()
+    )
+    pending_trade_ins = (
+        TradeInRequest.query.filter_by(status="pending")
+        .order_by(TradeInRequest.created_at.desc())
+        .all()
+    )
+    return render_template(
+        "dashboard.html",
+        stats=stats,
+        cars=cars_pending_approval,
+        trade_ins=pending_trade_ins,
+    )
 
-@admin_bp.route('/api/dashboard')
+
+@admin_bp.route("/api/dashboard")
 @admin_token_required
 def api_admin_dashboard(current_user):
     """API endpoint for admin dashboard statistics and pending approvals."""
     stats = {
-        'user_count': User.query.count(),
-        'active_auction_count': Auction.query.filter(Auction.end_time > db.func.now()).count(),
-        'pending_approval_count': Car.query.filter_by(is_approved=False).count(),
-        'for_sale_count': Car.query.filter_by(listing_type='sale', is_approved=True).count(),
-        'for_rent_count': Car.query.filter_by(listing_type='rental', is_approved=True).count(),
+        "user_count": User.query.count(),
+        "active_auction_count": Auction.query.filter(
+            Auction.end_time > db.func.now()
+        ).count(),
+        "pending_approval_count": Car.query.filter_by(is_approved=False).count(),
+        "for_sale_count": Car.query.filter_by(
+            listing_type="sale", is_approved=True
+        ).count(),
+        "for_rent_count": Car.query.filter_by(
+            listing_type="rental", is_approved=True
+        ).count(),
+        "pending_trade_in_count": TradeInRequest.query.filter_by(
+            status="pending"
+        ).count(),
     }
-    cars_pending_approval = Car.query.filter_by(is_approved=False).order_by(Car.id.desc()).all()
+    cars_pending_approval = (
+        Car.query.filter_by(is_approved=False).order_by(Car.id.desc()).all()
+    )
+    pending_trade_ins = (
+        TradeInRequest.query.filter_by(status="pending")
+        .order_by(TradeInRequest.created_at.desc())
+        .all()
+    )
     return jsonify(
         stats=stats,
-        pending_approvals=[car.to_dict(include_owner=True) for car in cars_pending_approval]
+        pending_approvals=[
+            car.to_dict(include_owner=True) for car in cars_pending_approval
+        ],
+        pending_trade_ins=[req.to_dict() for req in pending_trade_ins],
     )
 
 
-@admin_bp.route('/users')
+@admin_bp.route("/users")
 @login_required
 @admin_required
 def user_management():
     """Displays a list of all non-dealer users for the admin."""
-    query = request.args.get('q', '')
-    page = request.args.get('page', 1, type=int)
+    query = request.args.get("q", "")
+    page = request.args.get("page", 1, type=int)
 
     users_query = User.query.filter_by(is_dealer=False).order_by(User.id.asc())
 
@@ -88,14 +143,15 @@ def user_management():
         )
 
     paginated_users = users_query.paginate(page=page, per_page=20)
-    return render_template('user_management.html', users=paginated_users)
+    return render_template("user_management.html", users=paginated_users)
 
-@admin_bp.route('/api/users')
+
+@admin_bp.route("/api/users")
 @admin_token_required
 def api_admin_list_users(current_user):
     """API endpoint for admin to search/filter all non-dealer users."""
-    query = request.args.get('q', '')
-    page = request.args.get('page', 1, type=int)
+    query = request.args.get("q", "")
+    page = request.args.get("page", 1, type=int)
 
     users_query = User.query.filter_by(is_dealer=False).order_by(User.id.asc())
 
@@ -108,23 +164,35 @@ def api_admin_list_users(current_user):
     paginated_users = users_query.paginate(page=page, per_page=20)
     all_users = users_query.all()
 
-    users_data = [{
-        'id': user.id,
-        'username': user.username,
-        'email': user.email,
-        'is_rental_company': user.is_rental_company,
-        'is_admin': user.is_admin,
-        'points': user.points or 0,
-        'edit_url': url_for('admin.edit_user', user_id=user.id)
-    } for user in all_users]
+    users_data = [
+        {
+            "id": user.id,
+            "username": user.username,
+            "email": user.email,
+            "is_rental_company": user.is_rental_company,
+            "is_admin": user.is_admin,
+            "points": user.points or 0,
+            "edit_url": url_for("admin.edit_user", user_id=user.id),
+        }
+        for user in all_users
+    ]
 
-    return jsonify({
-        'users': users_data,
-        'pagination': { 'page': paginated_users.page, 'pages': paginated_users.pages, 'has_prev': paginated_users.has_prev, 'prev_num': paginated_users.prev_num, 'has_next': paginated_users.has_next, 'next_num': paginated_users.next_num }
-    })
+    return jsonify(
+        {
+            "users": users_data,
+            "pagination": {
+                "page": paginated_users.page,
+                "pages": paginated_users.pages,
+                "has_prev": paginated_users.has_prev,
+                "prev_num": paginated_users.prev_num,
+                "has_next": paginated_users.has_next,
+                "next_num": paginated_users.next_num,
+            },
+        }
+    )
 
 
-@admin_bp.route('/users/edit/<int:user_id>', methods=['GET', 'POST'])
+@admin_bp.route("/users/edit/<int:user_id>", methods=["GET", "POST"])
 @login_required
 @admin_required
 def edit_user(user_id):
@@ -135,8 +203,8 @@ def edit_user(user_id):
     if form.validate_on_submit():
         # Prevent admin from accidentally removing their own admin status
         if user_to_edit.id == current_user.id and not form.is_admin.data:
-            flash('You cannot remove your own admin status.', 'danger')
-            return redirect(url_for('admin.edit_user', user_id=user_id))
+            flash("You cannot remove your own admin status.", "danger")
+            return redirect(url_for("admin.edit_user", user_id=user_id))
 
         user_to_edit.username = form.username.data
         user_to_edit.email = form.email.data
@@ -146,126 +214,191 @@ def edit_user(user_id):
         user_to_edit.points = form.points.data
 
         db.session.commit()
-        flash(f'User {user_to_edit.username} has been updated.', 'success')
+        flash(f"User {user_to_edit.username} has been updated.", "success")
 
         # If the user is a dealer, redirect to their profile. Otherwise, go to the user list.
         if user_to_edit.is_dealer:
-            return redirect(url_for('dealer.profile', dealer_id=user_to_edit.id))
-        return redirect(url_for('admin.user_management'))
+            return redirect(url_for("dealer.profile", dealer_id=user_to_edit.id))
+        return redirect(url_for("admin.user_management"))
 
-    return render_template('edit_user.html', form=form, user=user_to_edit)
+    return render_template("edit_user.html", form=form, user=user_to_edit)
 
-@admin_bp.route('/api/users/<int:user_id>', methods=['GET', 'PUT', 'DELETE'])
+
+@admin_bp.route("/api/users/<int:user_id>", methods=["GET", "PUT", "DELETE"])
 @admin_token_required
 def api_manage_user(current_user, user_id):
     """API endpoint for an admin to manage a single user (GET, PUT, DELETE)."""
     user = User.query.get_or_404(user_id)
 
-    if request.method == 'GET':
-        return jsonify(user=user.to_dict(detail_level='owner'))
+    if request.method == "GET":
+        return jsonify(user=user.to_dict(detail_level="owner"))
 
-    elif request.method == 'PUT':
+    elif request.method == "PUT":
         data = request.get_json()
         if not data:
-            return jsonify({'status': 'error', 'message': 'Invalid JSON payload.'}), 400
+            return jsonify({"status": "error", "message": "Invalid JSON payload."}), 400
 
         # Prevent admin from accidentally removing their own admin status
-        if user.id == current_user.id and not data.get('is_admin', user.is_admin):
-            return jsonify({'status': 'error', 'message': 'You cannot remove your own admin status.'}), 403
+        if user.id == current_user.id and not data.get("is_admin", user.is_admin):
+            return (
+                jsonify(
+                    {
+                        "status": "error",
+                        "message": "You cannot remove your own admin status.",
+                    }
+                ),
+                403,
+            )
 
         # Update fields from payload
-        user.username = data.get('username', user.username)
-        user.email = data.get('email', user.email)
-        user.is_dealer = data.get('is_dealer', user.is_dealer)
-        user.is_rental_company = data.get('is_rental_company', user.is_rental_company)
-        user.is_admin = data.get('is_admin', user.is_admin)
-        user.points = data.get('points', user.points)
+        user.username = data.get("username", user.username)
+        user.email = data.get("email", user.email)
+        user.is_dealer = data.get("is_dealer", user.is_dealer)
+        user.is_rental_company = data.get("is_rental_company", user.is_rental_company)
+        user.is_admin = data.get("is_admin", user.is_admin)
+        user.points = data.get("points", user.points)
 
         # Validate to prevent duplicates if username/email changed
-        if 'username' in data and User.query.filter(User.username == user.username, User.id != user.id).first():
-            return jsonify({'status': 'error', 'message': 'Username already exists.'}), 409
-        if 'email' in data and User.query.filter(User.email == user.email, User.id != user.id).first():
-            return jsonify({'status': 'error', 'message': 'Email already exists.'}), 409
+        if (
+            "username" in data
+            and User.query.filter(
+                User.username == user.username, User.id != user.id
+            ).first()
+        ):
+            return (
+                jsonify({"status": "error", "message": "Username already exists."}),
+                409,
+            )
+        if (
+            "email" in data
+            and User.query.filter(User.email == user.email, User.id != user.id).first()
+        ):
+            return jsonify({"status": "error", "message": "Email already exists."}), 409
 
         db.session.commit()
-        return jsonify({'status': 'success', 'message': 'User updated successfully.', 'user': user.to_dict(detail_level='admin')})
+        return jsonify(
+            {
+                "status": "success",
+                "message": "User updated successfully.",
+                "user": user.to_dict(detail_level="admin"),
+            }
+        )
 
-    elif request.method == 'DELETE':
+    elif request.method == "DELETE":
         if user.id == current_user.id:
-            return jsonify({'status': 'error', 'message': 'You cannot delete your own account.'}), 403
-        
+            return (
+                jsonify(
+                    {
+                        "status": "error",
+                        "message": "You cannot delete your own account.",
+                    }
+                ),
+                403,
+            )
+
         # Add any other pre-delete checks here (e.g., reassigning listings)
-        
+
         db.session.delete(user)
         db.session.commit()
-        return jsonify({'status': 'success', 'message': 'User deleted successfully.'})
+        return jsonify({"status": "success", "message": "User deleted successfully."})
 
 
 # --- Dummy routes from your templates that need to exist ---
 # You can fill these in later.
 
-@admin_bp.route('/add_car')
+
+@admin_bp.route("/add_car")
 @login_required
 @admin_required
 def add_car():
-    flash('Add car functionality not implemented yet.', 'info')
-    return redirect(url_for('admin.dashboard'))
+    flash("Add car functionality not implemented yet.", "info")
+    return redirect(url_for("admin.dashboard"))
 
-@admin_bp.route('/dealers')
+
+@admin_bp.route("/dealers")
 @login_required
 @admin_required
 def dealer_management():
     """Displays a list of all dealers with statistics."""
     # Subquery for active listings count per dealer
-    active_listings_sub = db.session.query(
-        Car.owner_id, func.count(Car.id).label('active_listings')
-    ).filter(Car.is_active == True, Car.is_approved == True).group_by(Car.owner_id).subquery()
+    active_listings_sub = (
+        db.session.query(Car.owner_id, func.count(Car.id).label("active_listings"))
+        .filter(Car.is_active == True, Car.is_approved == True)
+        .group_by(Car.owner_id)
+        .subquery()
+    )
 
     # Subquery for review stats per dealer
-    review_stats_sub = db.session.query(
-        DealerReview.dealer_id,
-        func.avg(DealerReview.rating).label('avg_rating'),
-        func.count(DealerReview.id).label('review_count')
-    ).group_by(DealerReview.dealer_id).subquery()
+    review_stats_sub = (
+        db.session.query(
+            DealerReview.dealer_id,
+            func.avg(DealerReview.rating).label("avg_rating"),
+            func.count(DealerReview.id).label("review_count"),
+        )
+        .group_by(DealerReview.dealer_id)
+        .subquery()
+    )
 
-    dealers_with_stats = db.session.query(
-        User,
-        func.coalesce(active_listings_sub.c.active_listings, 0).label('active_listings'),
-        func.coalesce(review_stats_sub.c.avg_rating, 0).label('avg_rating'),
-        func.coalesce(review_stats_sub.c.review_count, 0).label('review_count')
-    ).outerjoin(active_listings_sub, User.id == active_listings_sub.c.owner_id)\
-     .outerjoin(review_stats_sub, User.id == review_stats_sub.c.dealer_id)\
-     .filter(User.is_dealer == True).order_by(User.username).all()
+    dealers_with_stats = (
+        db.session.query(
+            User,
+            func.coalesce(active_listings_sub.c.active_listings, 0).label(
+                "active_listings"
+            ),
+            func.coalesce(review_stats_sub.c.avg_rating, 0).label("avg_rating"),
+            func.coalesce(review_stats_sub.c.review_count, 0).label("review_count"),
+        )
+        .outerjoin(active_listings_sub, User.id == active_listings_sub.c.owner_id)
+        .outerjoin(review_stats_sub, User.id == review_stats_sub.c.dealer_id)
+        .filter(User.is_dealer == True)
+        .order_by(User.username)
+        .all()
+    )
 
-    return render_template('dealer_management.html', dealers_with_stats=dealers_with_stats)
+    return render_template(
+        "dealer_management.html", dealers_with_stats=dealers_with_stats
+    )
 
-@admin_bp.route('/api/dealers')
+
+@admin_bp.route("/api/dealers")
 @admin_token_required
 def api_admin_list_dealers(current_user):
     """API endpoint for admin to search/filter all dealer users with stats."""
-    query = request.args.get('q', '')
+    query = request.args.get("q", "")
 
     # Subquery for active listings count per dealer
-    active_listings_sub = db.session.query(
-        Car.owner_id, func.count(Car.id).label('active_listings')
-    ).filter(Car.is_active == True, Car.is_approved == True).group_by(Car.owner_id).subquery()
+    active_listings_sub = (
+        db.session.query(Car.owner_id, func.count(Car.id).label("active_listings"))
+        .filter(Car.is_active == True, Car.is_approved == True)
+        .group_by(Car.owner_id)
+        .subquery()
+    )
 
     # Subquery for review stats per dealer
-    review_stats_sub = db.session.query(
-        DealerReview.dealer_id,
-        func.avg(DealerReview.rating).label('avg_rating'),
-        func.count(DealerReview.id).label('review_count')
-    ).group_by(DealerReview.dealer_id).subquery()
+    review_stats_sub = (
+        db.session.query(
+            DealerReview.dealer_id,
+            func.avg(DealerReview.rating).label("avg_rating"),
+            func.count(DealerReview.id).label("review_count"),
+        )
+        .group_by(DealerReview.dealer_id)
+        .subquery()
+    )
 
     # Base query for dealers
-    dealers_query = db.session.query(
-        User,
-        func.coalesce(active_listings_sub.c.active_listings, 0).label('active_listings'),
-        func.coalesce(review_stats_sub.c.avg_rating, 0).label('avg_rating'),
-        func.coalesce(review_stats_sub.c.review_count, 0).label('review_count')
-    ).outerjoin(active_listings_sub, User.id == active_listings_sub.c.owner_id)\
-     .outerjoin(review_stats_sub, User.id == review_stats_sub.c.dealer_id)\
-     .filter(User.is_dealer == True)
+    dealers_query = (
+        db.session.query(
+            User,
+            func.coalesce(active_listings_sub.c.active_listings, 0).label(
+                "active_listings"
+            ),
+            func.coalesce(review_stats_sub.c.avg_rating, 0).label("avg_rating"),
+            func.coalesce(review_stats_sub.c.review_count, 0).label("review_count"),
+        )
+        .outerjoin(active_listings_sub, User.id == active_listings_sub.c.owner_id)
+        .outerjoin(review_stats_sub, User.id == review_stats_sub.c.dealer_id)
+        .filter(User.is_dealer == True)
+    )
 
     if query:
         search_term = f"%{query}%"
@@ -275,37 +408,48 @@ def api_admin_list_dealers(current_user):
 
     all_dealers = dealers_query.order_by(User.username).all()
 
-    dealers_data = [{
-        'id': dealer.id,
-        'username': dealer.username,
-        'email': dealer.email,
-        'active_listings': active_listings,
-        'avg_rating': float(avg_rating) if avg_rating else 0,
-        'review_count': review_count,
-        'profile_url': url_for('dealer.profile', dealer_id=dealer.id)
-    } for dealer, active_listings, avg_rating, review_count in all_dealers]
+    dealers_data = [
+        {
+            "id": dealer.id,
+            "username": dealer.username,
+            "email": dealer.email,
+            "active_listings": active_listings,
+            "avg_rating": float(avg_rating) if avg_rating else 0,
+            "review_count": review_count,
+            "profile_url": url_for("dealer.profile", dealer_id=dealer.id),
+        }
+        for dealer, active_listings, avg_rating, review_count in all_dealers
+    ]
 
-    return jsonify({
-        'dealers': dealers_data,
-    })
+    return jsonify(
+        {
+            "dealers": dealers_data,
+        }
+    )
 
-@admin_bp.route('/rentals')
+
+@admin_bp.route("/rentals")
 @login_required
 @admin_required
 def rental_management():
     """Displays a list of all rental cars for management."""
-    page = request.args.get('page', 1, type=int)
-    rental_cars = Car.query.filter_by(listing_type='rental').order_by(Car.id.desc()).paginate(page=page, per_page=15)
-    return render_template('rental_management.html', cars=rental_cars)
+    page = request.args.get("page", 1, type=int)
+    rental_cars = (
+        Car.query.filter_by(listing_type="rental")
+        .order_by(Car.id.desc())
+        .paginate(page=page, per_page=15)
+    )
+    return render_template("rental_management.html", cars=rental_cars)
 
-@admin_bp.route('/api/rentals')
+
+@admin_bp.route("/api/rentals")
 @admin_token_required
 def api_admin_list_rentals(current_user):
     """API endpoint for admin to search/filter all rental listings."""
-    query = request.args.get('q', '')
+    query = request.args.get("q", "")
 
     # Base query for rental cars
-    cars_query = Car.query.filter_by(listing_type='rental').order_by(Car.id.desc())
+    cars_query = Car.query.filter_by(listing_type="rental").order_by(Car.id.desc())
 
     if query:
         search_term = f"%{query}%"
@@ -315,30 +459,40 @@ def api_admin_list_rentals(current_user):
                 Car.make.ilike(search_term),
                 Car.model.ilike(search_term),
                 Car.year.like(search_term),
-                User.username.ilike(search_term)
+                User.username.ilike(search_term),
             )
         )
 
     all_cars = cars_query.all()
 
-    cars_data = [{
-        'id': car.id,
-        'year': car.year,
-        'make': car.make,
-        'model': car.model,
-        'owner_username': car.owner.username,
-        'price_per_day': '{:,.2f}'.format(car.rental_listing.price_per_day) if car.rental_listing and car.rental_listing.price_per_day is not None else 'N/A',
-        'is_approved': car.is_approved,
-        'is_active': car.is_active,
-        'edit_url': url_for('admin.edit_listing', car_id=car.id),
-        'delete_url': url_for('admin.delete_listing', car_id=car.id)
-    } for car in all_cars]
+    cars_data = [
+        {
+            "id": car.id,
+            "year": car.year,
+            "make": car.make,
+            "model": car.model,
+            "owner_username": car.owner.username,
+            "price_per_day": (
+                "{:,.2f}".format(car.rental_listing.price_per_day)
+                if car.rental_listing and car.rental_listing.price_per_day is not None
+                else "N/A"
+            ),
+            "is_approved": car.is_approved,
+            "is_active": car.is_active,
+            "edit_url": url_for("admin.edit_listing", car_id=car.id),
+            "delete_url": url_for("admin.delete_listing", car_id=car.id),
+        }
+        for car in all_cars
+    ]
 
-    return jsonify({
-        'cars': cars_data,
-    })
+    return jsonify(
+        {
+            "cars": cars_data,
+        }
+    )
 
-@admin_bp.route('/listing/edit/<int:car_id>', methods=['GET', 'POST'])
+
+@admin_bp.route("/listing/edit/<int:car_id>", methods=["GET", "POST"])
 @login_required
 @admin_required
 def edit_listing(car_id):
@@ -348,17 +502,17 @@ def edit_listing(car_id):
     rental = car.rental_listing
 
     form = CarSubmissionForm(obj=car)
-    form.submit.label.text = 'Update Listing'
+    form.submit.label.text = "Update Listing"
 
-    if request.method == 'GET':
+    if request.method == "GET":
         # Pre-populate listing-type specific fields
         form.listing_type.data = car.listing_type
-        if car.listing_type == 'auction' and auction:
+        if car.listing_type == "auction" and auction:
             form.start_price.data = auction.start_price
             form.end_time.data = auction.end_time
-        elif car.listing_type == 'sale':
+        elif car.listing_type == "sale":
             form.fixed_price.data = car.fixed_price
-        elif car.listing_type == 'rental' and rental:
+        elif car.listing_type == "rental" and rental:
             form.price_per_day.data = rental.price_per_day
         # Pre-populate equipment
         form.equipment.data = [e.name for e in car.equipment]
@@ -384,29 +538,41 @@ def edit_listing(car_id):
 
         if original_listing_type != car.listing_type:
             # Listing type has changed, we need to create/delete associated objects
-            if original_listing_type == 'auction' and auction: db.session.delete(auction)
-            if original_listing_type == 'rental' and rental: db.session.delete(rental)
-            if original_listing_type == 'sale': car.fixed_price = None
+            if original_listing_type == "auction" and auction:
+                db.session.delete(auction)
+            if original_listing_type == "rental" and rental:
+                db.session.delete(rental)
+            if original_listing_type == "sale":
+                car.fixed_price = None
 
-            if car.listing_type == 'auction':
+            if car.listing_type == "auction":
                 from datetime import timedelta
-                new_auction = Auction(car_id=car.id, start_price=form.start_price.data, current_price=form.start_price.data, end_time=form.end_time.data or (datetime.utcnow() + timedelta(days=7)))
+
+                new_auction = Auction(
+                    car_id=car.id,
+                    start_price=form.start_price.data,
+                    current_price=form.start_price.data,
+                    end_time=form.end_time.data
+                    or (datetime.utcnow() + timedelta(days=7)),
+                )
                 db.session.add(new_auction)
-            elif car.listing_type == 'sale':
+            elif car.listing_type == "sale":
                 car.fixed_price = form.fixed_price.data
-            elif car.listing_type == 'rental':
-                new_rental = RentalListing(car_id=car.id, price_per_day=form.price_per_day.data)
+            elif car.listing_type == "rental":
+                new_rental = RentalListing(
+                    car_id=car.id, price_per_day=form.price_per_day.data
+                )
                 db.session.add(new_rental)
         else:
             # Listing type is the same, just update the values
-            if car.listing_type == 'auction' and auction:
+            if car.listing_type == "auction" and auction:
                 auction.start_price = form.start_price.data
                 if not auction.bids and form.start_price.data:
-                     auction.current_price = form.start_price.data
+                    auction.current_price = form.start_price.data
                 auction.end_time = form.end_time.data
-            elif car.listing_type == 'sale':
+            elif car.listing_type == "sale":
                 car.fixed_price = form.fixed_price.data
-            elif car.listing_type == 'rental' and rental:
+            elif car.listing_type == "rental" and rental:
                 rental.price_per_day = form.price_per_day.data
 
         # Update equipment
@@ -426,12 +592,20 @@ def edit_listing(car_id):
                     db.session.add(new_image)
 
         db.session.commit()
-        flash(f'Listing for "{car.year} {car.make} {car.model}" has been updated successfully.', 'success')
-        return redirect(url_for('auctions.list_auctions'))
+        flash(
+            f'Listing for "{car.year} {car.make} {car.model}" has been updated successfully.',
+            "success",
+        )
+        return redirect(url_for("auctions.list_auctions"))
 
-    return render_template('submit_car.html', title=f'Admin Edit: {car.year} {car.make} {car.model}', form=form)
+    return render_template(
+        "submit_car.html",
+        title=f"Admin Edit: {car.year} {car.make} {car.model}",
+        form=form,
+    )
 
-@admin_bp.route('/approve_car/<int:car_id>', methods=['POST'])
+
+@admin_bp.route("/approve_car/<int:car_id>", methods=["POST"])
 @login_required
 @admin_required
 def approve_car(car_id):
@@ -439,35 +613,46 @@ def approve_car(car_id):
     car.is_approved = True
 
     # --- Notify the seller ---
-    if car.listing_type == 'auction' and car.auction:
-        link = url_for('auctions.auction_detail', auction_id=car.auction.id)
-    elif car.listing_type == 'sale':
-        link = url_for('main.car_detail', car_id=car.id)
-    elif car.listing_type == 'rental' and car.rental_listing:
-        link = url_for('rentals.rental_detail', listing_id=car.rental_listing.id)
+    if car.listing_type == "auction" and car.auction:
+        link = url_for("auctions.auction_detail", auction_id=car.auction.id)
+    elif car.listing_type == "sale":
+        link = url_for("main.car_detail", car_id=car.id)
+    elif car.listing_type == "rental" and car.rental_listing:
+        link = url_for("rentals.rental_detail", listing_id=car.rental_listing.id)
     else:
-        link = url_for('main.home')
+        link = url_for("main.home")
     message = f"Congratulations! Your listing for the {car.year} {car.make} {car.model} has been approved and is now live."
     new_notification = Notification(user_id=car.owner_id, message=message)
     db.session.add(new_notification)
-    db.session.flush() # Get ID
-    new_notification.link = url_for('auctions.auction_detail', auction_id=car.auction.id, notification_id=new_notification.id) if car.auction else link
+    db.session.flush()  # Get ID
+    new_notification.link = (
+        url_for(
+            "auctions.auction_detail",
+            auction_id=car.auction.id,
+            notification_id=new_notification.id,
+        )
+        if car.auction
+        else link
+    )
     db.session.commit()
 
     # --- Real-time Notification ---
-    unread_count = Notification.query.filter_by(user_id=car.owner_id, is_read=False).count()
+    unread_count = Notification.query.filter_by(
+        user_id=car.owner_id, is_read=False
+    ).count()
     notification_data = {
-        'message': new_notification.message,
-        'link': new_notification.link,
-        'timestamp': new_notification.timestamp.isoformat() + 'Z',
-        'count': unread_count
+        "message": new_notification.message,
+        "link": new_notification.link,
+        "timestamp": new_notification.timestamp.isoformat() + "Z",
+        "count": unread_count,
     }
-    socketio.emit('new_notification', notification_data, room=str(car.owner_id))
+    socketio.emit("new_notification", notification_data, room=str(car.owner_id))
 
-    flash(f'Car {car.make} {car.model} has been approved.', 'success')
-    return redirect(url_for('admin.dashboard'))
+    flash(f"Car {car.make} {car.model} has been approved.", "success")
+    return redirect(url_for("admin.dashboard"))
 
-@admin_bp.route('/listing/delete/<int:car_id>', methods=['POST'])
+
+@admin_bp.route("/listing/delete/<int:car_id>", methods=["POST"])
 @login_required
 @admin_required
 def delete_listing(car_id):
@@ -477,193 +662,302 @@ def delete_listing(car_id):
     # The Car model's relationships have cascades to delete related items
     db.session.delete(car)
     db.session.commit()
-    flash(f'The listing for "{car.year} {car.make} {car.model}" has been permanently deleted.', 'success')
-    return redirect(url_for('auctions.list_auctions'))
+    flash(
+        f'The listing for "{car.year} {car.make} {car.model}" has been permanently deleted.',
+        "success",
+    )
+    return redirect(url_for("auctions.list_auctions"))
 
-@admin_bp.route('/api/listings', methods=['POST'])
+
+@admin_bp.route("/api/listings", methods=["POST"])
 @admin_token_required
 def api_create_listing(current_user):
     """API endpoint for an admin to create a new car listing."""
     data = request.get_json()
     if not data:
-        return jsonify({'status': 'error', 'message': 'Invalid JSON payload.'}), 400
+        return jsonify({"status": "error", "message": "Invalid JSON payload."}), 400
 
     # Basic validation
-    required_fields = ['make', 'model', 'year', 'description', 'listing_type', 'owner_id']
+    required_fields = [
+        "make",
+        "model",
+        "year",
+        "description",
+        "listing_type",
+        "owner_id",
+    ]
     if not all(field in data for field in required_fields):
-        return jsonify({'status': 'error', 'message': 'Missing required fields.'}), 400
+        return jsonify({"status": "error", "message": "Missing required fields."}), 400
 
     # Create the car object
     new_car = Car(
-        make=data['make'],
-        model=data['model'],
-        year=data['year'],
-        description=data['description'],
-        listing_type=data['listing_type'],
-        owner_id=data['owner_id'],
-        is_approved=data.get('is_approved', True), # Admins can create approved listings directly
-        is_active=data.get('is_active', True),
-        is_featured=data.get('is_featured', False),
-        condition=data.get('condition'),
-        body_type=data.get('body_type'),
-        mileage=data.get('mileage'),
-        transmission=data.get('transmission'),
-        drivetrain=data.get('drivetrain'),
-        fuel_type=data.get('fuel_type')
+        make=data["make"],
+        model=data["model"],
+        year=data["year"],
+        description=data["description"],
+        listing_type=data["listing_type"],
+        owner_id=data["owner_id"],
+        is_approved=data.get(
+            "is_approved", True
+        ),  # Admins can create approved listings directly
+        is_active=data.get("is_active", True),
+        is_featured=data.get("is_featured", False),
+        condition=data.get("condition"),
+        body_type=data.get("body_type"),
+        mileage=data.get("mileage"),
+        transmission=data.get("transmission"),
+        drivetrain=data.get("drivetrain"),
+        fuel_type=data.get("fuel_type"),
     )
     db.session.add(new_car)
 
     # Create associated listing type
-    if new_car.listing_type == 'auction':
-        new_car.auction = Auction(start_price=data.get('start_price', 0), current_price=data.get('start_price', 0), end_time=datetime.fromisoformat(data['end_time']))
-    elif new_car.listing_type == 'sale':
-        new_car.fixed_price = data.get('fixed_price')
-    elif new_car.listing_type == 'rental':
-        new_car.rental_listing = RentalListing(price_per_day=data.get('price_per_day'))
+    if new_car.listing_type == "auction":
+        new_car.auction = Auction(
+            start_price=data.get("start_price", 0),
+            current_price=data.get("start_price", 0),
+            end_time=datetime.fromisoformat(data["end_time"]),
+        )
+    elif new_car.listing_type == "sale":
+        new_car.fixed_price = data.get("fixed_price")
+    elif new_car.listing_type == "rental":
+        new_car.rental_listing = RentalListing(price_per_day=data.get("price_per_day"))
 
     db.session.commit()
-    return jsonify({'status': 'success', 'message': 'New listing created successfully.', 'car': new_car.to_dict()}), 201
+    return (
+        jsonify(
+            {
+                "status": "success",
+                "message": "New listing created successfully.",
+                "car": new_car.to_dict(),
+            }
+        ),
+        201,
+    )
 
-@admin_bp.route('/api/listings/<int:car_id>', methods=['GET', 'PUT', 'POST', 'DELETE'])
+
+@admin_bp.route("/api/listings/<int:car_id>", methods=["GET", "PUT", "POST", "DELETE"])
 @admin_token_required
 def api_manage_listing(current_user, car_id):
     """Comprehensive API endpoint for an admin to manage a single car listing."""
     car = Car.query.get_or_404(car_id)
 
-    if request.method == 'GET':
+    if request.method == "GET":
         # Manually construct the dictionary to handle potential missing relationships safely
         car_data = {
-            'id': car.id,
-            'make': car.make,
-            'model': car.model,
-            'year': car.year,
-            'description': car.description,
-            'listing_type': car.listing_type,
-            'fixed_price': car.fixed_price,
-            'is_approved': car.is_approved,
-            'is_active': car.is_active,
-            'condition': car.condition,
-            'body_type': car.body_type,
-            'mileage': car.mileage,
-            'transmission': car.transmission,
-            'drivetrain': car.drivetrain,
-            'fuel_type': car.fuel_type,
-            'is_featured': car.is_featured,
-            'owner': {'username': car.owner.username} if car.owner else None,
-            'auction': {
-                'current_price': car.auction.current_price,
-                'end_time': car.auction.end_time.isoformat() if car.auction.end_time else None
-            } if car.auction else None,
-            'rental_listing': {'price_per_day': car.rental_listing.price_per_day} if car.rental_listing else None,
-            'images': [
-                {'id': img.id, 'image_url': url_for('static', filename=img.image_url.split('/static/')[1], _external=True), 'order': img.order}
-                for img in sorted(car.images, key=lambda i: i.order) if img.image_url and '/static/' in img.image_url
-            ]
+            "id": car.id,
+            "make": car.make,
+            "model": car.model,
+            "year": car.year,
+            "description": car.description,
+            "listing_type": car.listing_type,
+            "fixed_price": car.fixed_price,
+            "is_approved": car.is_approved,
+            "is_active": car.is_active,
+            "condition": car.condition,
+            "body_type": car.body_type,
+            "mileage": car.mileage,
+            "transmission": car.transmission,
+            "drivetrain": car.drivetrain,
+            "fuel_type": car.fuel_type,
+            "is_featured": car.is_featured,
+            "owner": {"username": car.owner.username} if car.owner else None,
+            "auction": (
+                {
+                    "current_price": car.auction.current_price,
+                    "end_time": (
+                        car.auction.end_time.isoformat()
+                        if car.auction.end_time
+                        else None
+                    ),
+                }
+                if car.auction
+                else None
+            ),
+            "rental_listing": (
+                {"price_per_day": car.rental_listing.price_per_day}
+                if car.rental_listing
+                else None
+            ),
+            "images": [
+                {
+                    "id": img.id,
+                    "image_url": url_for(
+                        "static",
+                        filename=img.image_url.split("/static/")[1],
+                        _external=True,
+                    ),
+                    "order": img.order,
+                }
+                for img in sorted(car.images, key=lambda i: i.order)
+                if img.image_url and "/static/" in img.image_url
+            ],
         }
         return jsonify(car=car_data)
 
-    elif request.method == 'PUT':
+    elif request.method == "PUT":
         # This now handles multipart/form-data for image uploads
         print("\n--- ADMIN API: PUT /api/listings/<id> ---")
         data = request.form.to_dict()
-        files = request.files.getlist('images')
+        files = request.files.getlist("images")
         print(f"Received form data: {data}")
         print(f"Received files: {[f.filename for f in files]}")
 
         # Update basic car fields
-        for field in ['make', 'model', 'description', 'condition', 'body_type', 'transmission', 'drivetrain', 'fuel_type']:
+        for field in [
+            "make",
+            "model",
+            "description",
+            "condition",
+            "body_type",
+            "transmission",
+            "drivetrain",
+            "fuel_type",
+        ]:
             if field in data:
                 setattr(car, field, data[field])
-        
+
         # Handle booleans, which come as strings from forms
-        for field in ['is_approved', 'is_active', 'is_featured']:
+        for field in ["is_approved", "is_active", "is_featured"]:
             if field in data:
-                setattr(car, field, data[field].lower() in ['true', '1', 'on'])
+                setattr(car, field, data[field].lower() in ["true", "1", "on"])
 
         # Handle numbers
-        for field in ['year', 'mileage', 'fixed_price']:
+        for field in ["year", "mileage", "fixed_price"]:
             if field in data and data[field]:
                 try:
                     setattr(car, field, int(float(data[field])))
                 except (ValueError, TypeError):
-                    pass # Ignore if conversion fails
+                    pass  # Ignore if conversion fails
 
         # Handle listing type and price changes
-        if 'listing_type' in data and data['listing_type'] != car.listing_type:
+        if "listing_type" in data and data["listing_type"] != car.listing_type:
             # Clear old listing data
-            if car.auction: db.session.delete(car.auction)
-            if car.rental_listing: db.session.delete(car.rental_listing)
+            if car.auction:
+                db.session.delete(car.auction)
+            if car.rental_listing:
+                db.session.delete(car.rental_listing)
             car.fixed_price = None
             # Set new listing type
-            car.listing_type = data['listing_type']
+            car.listing_type = data["listing_type"]
 
         # Update listing-specific details based on the (potentially new) type
-        if car.listing_type == 'auction':
-            if not car.auction: car.auction = Auction(car_id=car.id)
-            car.auction.start_price = data.get('start_price', car.auction.start_price)
-            if not car.auction.bids: car.auction.current_price = car.auction.start_price
-            if 'end_time' in data: car.auction.end_time = datetime.fromisoformat(data['end_time'])
-        elif car.listing_type == 'sale':
-            car.fixed_price = data.get('fixed_price', car.fixed_price)
-        elif car.listing_type == 'rental':
-            if not car.rental_listing: car.rental_listing = RentalListing(car_id=car.id)
-            car.rental_listing.price_per_day = data.get('price_per_day', car.rental_listing.price_per_day)
+        if car.listing_type == "auction":
+            if not car.auction:
+                car.auction = Auction(car_id=car.id)
+            car.auction.start_price = data.get("start_price", car.auction.start_price)
+            if not car.auction.bids:
+                car.auction.current_price = car.auction.start_price
+            if "end_time" in data:
+                car.auction.end_time = datetime.fromisoformat(data["end_time"])
+        elif car.listing_type == "sale":
+            car.fixed_price = data.get("fixed_price", car.fixed_price)
+        elif car.listing_type == "rental":
+            if not car.rental_listing:
+                car.rental_listing = RentalListing(car_id=car.id)
+            car.rental_listing.price_per_day = data.get(
+                "price_per_day", car.rental_listing.price_per_day
+            )
 
         # If new images are uploaded, replace the old ones
         if files and any(f.filename for f in files):
             print("New files detected. Appending to existing images.")
             # Find the highest current order number to append new images correctly
-            highest_order = db.session.query(func.max(CarImage.order)).filter_by(car_id=car.id).scalar() or -1
-            
+            highest_order = (
+                db.session.query(func.max(CarImage.order))
+                .filter_by(car_id=car.id)
+                .scalar()
+                or -1
+            )
+
             for image_file in files:
                 image_url = save_seller_document(image_file)
                 print(f"Saved image, URL: {image_url}")
                 if image_url:
                     highest_order += 1
-                    new_image = CarImage(image_url=image_url, car_id=car.id, order=highest_order)
+                    new_image = CarImage(
+                        image_url=image_url, car_id=car.id, order=highest_order
+                    )
                     db.session.add(new_image)
 
         db.session.commit()
         print("Committed changes to DB.")
         # Manually construct the response to include detailed image data for the mobile app
         car_data = car.to_dict(include_owner=True)
-        car_data['images'] = [
-            {'id': img.id, 'image_url': url_for('static', filename=img.image_url.split('/static/')[1], _external=True), 'order': img.order}
-            for img in sorted(car.images, key=lambda i: i.order) if img.image_url and '/static/' in img.image_url
+        car_data["images"] = [
+            {
+                "id": img.id,
+                "image_url": url_for(
+                    "static",
+                    filename=img.image_url.split("/static/")[1],
+                    _external=True,
+                ),
+                "order": img.order,
+            }
+            for img in sorted(car.images, key=lambda i: i.order)
+            if img.image_url and "/static/" in img.image_url
         ]
         print(f"Returning car_data: {car_data}\n")
-        return jsonify({'status': 'success', 'message': 'Listing updated successfully.', 'car': car_data})
+        return jsonify(
+            {
+                "status": "success",
+                "message": "Listing updated successfully.",
+                "car": car_data,
+            }
+        )
 
-    elif request.method == 'POST':
+    elif request.method == "POST":
         # Handle actions like 'approve'
         data = request.get_json()
-        action = data.get('action')
+        action = data.get("action")
 
-        if action == 'approve':
+        if action == "approve":
             car.is_approved = True
             # Logic to notify the seller
             message = f"Congratulations! Your listing for the {car.year} {car.make} {car.model} has been approved and is now live."
             notification = Notification(user_id=car.owner_id, message=message)
             db.session.add(notification)
             db.session.flush()
-            notification.link = url_for('auctions.auction_detail', auction_id=car.auction.id, notification_id=notification.id) if car.auction else url_for('main.car_detail', car_id=car.id)
+            notification.link = (
+                url_for(
+                    "auctions.auction_detail",
+                    auction_id=car.auction.id,
+                    notification_id=notification.id,
+                )
+                if car.auction
+                else url_for("main.car_detail", car_id=car.id)
+            )
             db.session.commit()
             # Emit real-time notification
-            unread_count = Notification.query.filter_by(user_id=car.owner_id, is_read=False).count()
-            socketio.emit('new_notification', {'message': notification.message, 'link': notification.link, 'timestamp': notification.timestamp.isoformat() + 'Z', 'count': unread_count}, room=str(car.owner_id))
-            return jsonify({'status': 'success', 'message': 'Car has been approved.'})
-        
-        return jsonify({'status': 'error', 'message': 'Invalid action.'}), 400
+            unread_count = Notification.query.filter_by(
+                user_id=car.owner_id, is_read=False
+            ).count()
+            socketio.emit(
+                "new_notification",
+                {
+                    "message": notification.message,
+                    "link": notification.link,
+                    "timestamp": notification.timestamp.isoformat() + "Z",
+                    "count": unread_count,
+                },
+                room=str(car.owner_id),
+            )
+            return jsonify({"status": "success", "message": "Car has been approved."})
 
-    elif request.method == 'DELETE':
+        return jsonify({"status": "error", "message": "Invalid action."}), 400
+
+    elif request.method == "DELETE":
         # Permanently delete the listing
         db.session.delete(car)
         db.session.commit()
-        return jsonify({'status': 'success', 'message': 'Listing has been permanently deleted.'})
+        return jsonify(
+            {"status": "success", "message": "Listing has been permanently deleted."}
+        )
 
-    return jsonify({'status': 'error', 'message': 'Method not supported.'}), 405
+    return jsonify({"status": "error", "message": "Method not supported."}), 405
 
-@admin_bp.route('/api/listings/<int:car_id>/images/<int:image_id>', methods=['DELETE'])
+
+@admin_bp.route("/api/listings/<int:car_id>/images/<int:image_id>", methods=["DELETE"])
 @admin_token_required
 def api_delete_image(current_user, car_id, image_id):
     """API endpoint for an admin to delete a single car image."""
@@ -684,19 +978,28 @@ def api_delete_image(current_user, car_id, image_id):
 
     db.session.delete(image)
     db.session.commit()
-    return jsonify({'status': 'success', 'message': 'Image deleted successfully.'})
+    return jsonify({"status": "success", "message": "Image deleted successfully."})
 
-@admin_bp.route('/api/listings/<int:car_id>/images/reorder', methods=['POST'])
+
+@admin_bp.route("/api/listings/<int:car_id>/images/reorder", methods=["POST"])
 @admin_token_required
 def api_reorder_images(current_user, car_id):
     """API endpoint for an admin to reorder car images."""
     data = request.get_json()
-    image_ids = data.get('image_ids')
+    image_ids = data.get("image_ids")
     if not image_ids or not isinstance(image_ids, list):
-        return jsonify({'status': 'error', 'message': 'Invalid payload. `image_ids` must be a list.'}), 400
+        return (
+            jsonify(
+                {
+                    "status": "error",
+                    "message": "Invalid payload. `image_ids` must be a list.",
+                }
+            ),
+            400,
+        )
 
     for index, image_id in enumerate(image_ids):
-        CarImage.query.filter_by(id=image_id, car_id=car_id).update({'order': index})
+        CarImage.query.filter_by(id=image_id, car_id=car_id).update({"order": index})
 
     db.session.commit()
-    return jsonify({'status': 'success', 'message': 'Image order updated.'})
+    return jsonify({"status": "success", "message": "Image order updated."})

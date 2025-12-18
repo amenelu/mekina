@@ -55,10 +55,7 @@ const RequestCard = ({ request }: { request: CarRequest }) => {
 
   const handlePress = () => {
     if (isTradeIn) {
-      Alert.alert(
-        "Trade-in Request",
-        "Your trade-in request is being reviewed by our team."
-      );
+      router.push(`/trade-in/${request.id}`);
     } else {
       router.push(`/request/${request.id}`);
     }
@@ -106,12 +103,7 @@ const RequestCard = ({ request }: { request: CarRequest }) => {
         ) : isTradeIn ? (
           <Pressable
             style={[styles.viewOffersButton, { opacity: 0.8 }]}
-            onPress={() =>
-              Alert.alert(
-                "Trade-in Request",
-                "Your trade-in request is being reviewed by our team."
-              )
-            }
+            onPress={() => router.push(`/trade-in/${request.id}`)}
           >
             <Text style={styles.viewOffersButtonText}>
               Status: {request.status}

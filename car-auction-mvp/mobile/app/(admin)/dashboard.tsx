@@ -30,6 +30,7 @@ interface Stats {
   for_sale_count: number;
   for_rent_count: number;
   pending_approval_count: number;
+  pending_trade_in_count: number;
 }
 
 interface PendingCar {
@@ -42,6 +43,16 @@ interface PendingCar {
     id: number;
     username: string;
   };
+}
+
+interface TradeInRequest {
+  id: number;
+  make: string;
+  model: string;
+  year: number;
+  condition: string;
+  status: string;
+  created_at: string;
 }
 
 const StatCard = ({ label, value }: { label: string; value: number }) => (
@@ -87,9 +98,34 @@ const PendingListingRow = ({
   );
 };
 
+const TradeInRow = ({ request }: { request: TradeInRequest }) => {
+  const router = useRouter();
+  return (
+    <View style={styles.listingRow}>
+      <View style={styles.listingInfo}>
+        <Text style={styles.listingTitle}>
+          {request.year} {request.make} {request.model}
+        </Text>
+        <Text style={styles.listingSubtitle}>
+          Condition: {request.condition} | Status: {request.status}
+        </Text>
+      </View>
+      <View style={styles.listingActions}>
+        <Pressable
+          style={[styles.actionButton, styles.editButton]}
+          onPress={() => router.push(`/trade-in/admin/${request.id}`)}
+        >
+          <Text style={styles.actionButtonText}>Review</Text>
+        </Pressable>
+      </View>
+    </View>
+  );
+};
+
 const AdminDashboardScreen = () => {
   const [stats, setStats] = useState<Stats | null>(null);
   const [pendingCars, setPendingCars] = useState<PendingCar[]>([]);
+  const [pendingTradeIns, setPendingTradeIns] = useState<TradeInRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const { token } = useAuth();
@@ -103,6 +139,7 @@ const AdminDashboardScreen = () => {
       });
       setStats(response.data.stats);
       setPendingCars(response.data.pending_approvals);
+      setPendingTradeIns(response.data.pending_trade_ins);
     } catch (err) {
       setError("Failed to fetch dashboard data.");
       console.error(err);
@@ -168,6 +205,7 @@ const AdminDashboardScreen = () => {
           <StatCard label="Cars For Sale" value={stats.for_sale_count} />
           <StatCard label="Cars For Rent" value={stats.for_rent_count} />
           <StatCard label="Pending" value={stats.pending_approval_count} />
+          <StatCard label="Trade-ins" value={stats.pending_trade_in_count} />
         </View>
       )}
 
@@ -188,6 +226,20 @@ const AdminDashboardScreen = () => {
           <Text style={styles.noItemsText}>
             There are no listings pending approval.
           </Text>
+        )}
+      </View>
+
+      {/* Pending Trade-ins */}
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>Pending Trade-in Requests</Text>
+        {pendingTradeIns && pendingTradeIns.length > 0 ? (
+          <View style={styles.listingContainer}>
+            {pendingTradeIns.map((req) => (
+              <TradeInRow key={req.id} request={req} />
+            ))}
+          </View>
+        ) : (
+          <Text style={styles.noItemsText}>No pending trade-in requests.</Text>
         )}
       </View>
     </ScrollView>

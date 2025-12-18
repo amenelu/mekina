@@ -7,6 +7,7 @@ from flask import (
     request,
     current_app,
     jsonify,
+    abort,
 )
 from flask_login import login_required, current_user
 from flask_wtf import FlaskForm
@@ -27,7 +28,7 @@ import base64
 import uuid
 
 from extensions import db
-from models.trade_in import TradeInRequest, TradeInPhoto
+from models.trade_in import TradeInRequest, TradeInPhoto, TradeInOffer
 from routes.auth import token_required
 
 tradein_bp = Blueprint("tradein", __name__, url_prefix="/trade-in")
@@ -222,3 +223,163 @@ def api_submit_trade_in(current_user):
         ),
         201,
     )
+
+
+@tradein_bp.route("/api/requests/<int:request_id>", methods=["GET"])
+@token_required
+def api_get_my_trade_in_detail(current_user, request_id):
+    """API endpoint for a user to get details of their own trade-in request."""
+    req = TradeInRequest.query.get_or_404(request_id)
+
+    is_owner = req.user_id == current_user.id
+    is_admin = getattr(current_user, "is_admin", False)
+    is_dealer = getattr(current_user, "is_dealer", False)
+
+    if not (is_owner or is_admin or (is_dealer and req.status == "active")):
+        print(
+            f"DEBUG: Access denied. User ID: {current_user.id}, Owner ID: {req.user_id}, Status: {req.status}, IsAdmin: {is_admin}, IsDealer: {is_dealer}"
+        )
+        return jsonify({"status": "error", "message": "Unauthorized"}), 403
+
+    response_data = req.to_dict()
+
+    # Determine viewer role for frontend logic
+    viewer_role = "buyer"
+    if is_admin:
+        viewer_role = "admin"
+    elif is_dealer and not is_owner:
+        viewer_role = "dealer"
+
+    response_data["viewer_role"] = viewer_role
+
+    # Include offers if the viewer is the owner or admin
+    if is_owner or is_admin:
+        response_data["offers"] = [offer.to_dict() for offer in req.offers]
+
+    return jsonify({"request": response_data})
+
+
+@tradein_bp.route("/api/requests/<int:request_id>/offer", methods=["POST"])
+@token_required
+def api_place_trade_in_offer(current_user, request_id):
+    """API endpoint for dealers to place an offer on a trade-in request."""
+    if not getattr(current_user, "is_dealer", False):
+        return (
+            jsonify({"status": "error", "message": "Only dealers can place offers."}),
+            403,
+        )
+
+    req = TradeInRequest.query.get_or_404(request_id)
+    if req.status != "active":
+        return (
+            jsonify({"status": "error", "message": "This request is not active."}),
+            400,
+        )
+
+    data = request.get_json()
+    amount = data.get("amount")
+    notes = data.get("notes")
+
+    if not amount:
+        return jsonify({"status": "error", "message": "Offer amount is required."}), 400
+
+    offer = TradeInOffer(
+        trade_in_request_id=req.id,
+        dealer_id=current_user.id,
+        amount=amount,
+        notes=notes,
+    )
+    db.session.add(offer)
+    db.session.commit()
+
+    return (
+        jsonify(
+            {
+                "status": "success",
+                "message": "Offer placed successfully.",
+                "offer": offer.to_dict(),
+            }
+        ),
+        201,
+    )
+
+
+@tradein_bp.route("/admin/requests")
+@login_required
+def admin_trade_in_requests():
+    """Displays all trade-in requests for the admin."""
+    if not current_user.is_admin:
+        abort(403)
+    requests = TradeInRequest.query.order_by(TradeInRequest.created_at.desc()).all()
+    return render_template("admin_trade_ins.html", requests=requests)
+
+
+@tradein_bp.route("/admin/requests/<int:request_id>/status", methods=["POST"])
+@login_required
+def admin_update_trade_in_status(request_id):
+    """Updates the status of a trade-in request."""
+    if not current_user.is_admin:
+        abort(403)
+
+    req = TradeInRequest.query.get_or_404(request_id)
+    new_status = request.form.get("status")
+    if new_status:
+        req.status = new_status
+        db.session.commit()
+        flash(f"Trade-in request #{req.id} status updated to {new_status}.", "success")
+
+    return redirect(url_for("tradein.admin_trade_in_requests"))
+
+
+@tradein_bp.route("/api/admin/requests/<int:request_id>", methods=["GET"])
+@token_required
+def api_admin_get_trade_in(current_user, request_id):
+    """API endpoint for admin to get details of a specific trade-in request."""
+    if not current_user.is_admin:
+        print(f"DEBUG: Admin access denied for user {current_user.id}")
+        return jsonify({"status": "error", "message": "Unauthorized"}), 403
+    req = TradeInRequest.query.get_or_404(request_id)
+    data = req.to_dict()
+    # Add user details manually
+    data["user"] = {
+        "id": req.user.id,
+        "username": req.user.username,
+        "email": req.user.email,
+    }
+    return jsonify({"request": data})
+
+
+@tradein_bp.route("/api/admin/requests/<int:request_id>/status", methods=["POST"])
+@token_required
+def api_admin_update_trade_in_status(current_user, request_id):
+    """API endpoint for admin to update status of a trade-in request."""
+    if not current_user.is_admin:
+        return jsonify({"status": "error", "message": "Unauthorized"}), 403
+
+    req = TradeInRequest.query.get_or_404(request_id)
+    data = request.get_json()
+    new_status = data.get("status")
+
+    if new_status:
+        req.status = new_status
+        db.session.commit()
+        return jsonify(
+            {"status": "success", "message": f"Status updated to {new_status}"}
+        )
+
+    return jsonify({"status": "error", "message": "Status is required."}), 400
+
+
+@tradein_bp.route("/api/active", methods=["GET"])
+@token_required
+def api_get_active_trade_ins(current_user):
+    """API endpoint for dealers to get active trade-in requests."""
+    if not getattr(current_user, "is_dealer", False):
+        return jsonify({"status": "error", "message": "Unauthorized"}), 403
+
+    requests = (
+        TradeInRequest.query.filter_by(status="active")
+        .order_by(TradeInRequest.created_at.desc())
+        .all()
+    )
+    return jsonify({"requests": [req.to_dict() for req in requests]})
