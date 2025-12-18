@@ -13,7 +13,7 @@ import {
   TouchableOpacity,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { useRouter } from "expo-router";
+import { useRouter, useLocalSearchParams } from "expo-router";
 
 import HeaderRight from "../_components/HeaderRight";
 import Footer from "../_components/Footer";
@@ -32,9 +32,10 @@ const COLORS = {
 
 const AllListingsScreen = () => {
   const router = useRouter();
+  const { q } = useLocalSearchParams<{ q?: string }>();
   const [allVehicles, setAllVehicles] = useState<Vehicle[]>([]);
   const [loading, setLoading] = useState(true);
-  const [searchQuery, setSearchQuery] = useState("");
+  const [searchQuery, setSearchQuery] = useState(q || "");
   const [debouncedSearchQuery, setDebouncedSearchQuery] = useState(searchQuery);
   const [compareItems, setCompareItems] = useState<
     { id: string; image: string }[]
@@ -49,6 +50,12 @@ const AllListingsScreen = () => {
   // State for the new unified filter modal
   const [isFilterModalVisible, setFilterModalVisible] = useState(false);
   const [tempFilters, setTempFilters] = useState(filters);
+
+  React.useEffect(() => {
+    if (q) {
+      setSearchQuery(q);
+    }
+  }, [q]);
 
   // Debounce search input to avoid excessive API calls
   React.useEffect(() => {

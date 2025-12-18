@@ -1,4 +1,4 @@
-import React, { useRef } from "react";
+import React, { useRef, useState, useEffect } from "react";
 import {
   StyleSheet,
   Text,
@@ -8,10 +8,12 @@ import {
   Pressable,
   Image,
   FlatList,
+  ActivityIndicator,
 } from "react-native";
 import { useRouter, useNavigation } from "expo-router";
 import { useScrollToTop } from "@react-navigation/native";
 import { Ionicons } from "@expo/vector-icons";
+import API_URL from "@/constants/Api";
 
 import Footer from "../_components/Footer";
 import VehicleCard, { Vehicle } from "../_components/VehicleCard";
@@ -113,6 +115,63 @@ const HomeScreen = () => {
   const navigation = useNavigation();
   const ref = useRef<ScrollView>(null);
 
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchResults, setSearchResults] = useState<Vehicle[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
+  const [activeFilter, setActiveFilter] = useState("");
+
+  useEffect(() => {
+    const delayDebounceFn = setTimeout(async () => {
+      if (searchQuery.trim()) {
+        setIsSearching(true);
+        try {
+          let url = `${API_URL}/api/listings?q=${searchQuery}`;
+          if (activeFilter) {
+            if (activeFilter === "New" || activeFilter === "Used") {
+              url += `&condition=${activeFilter}`;
+            } else if (activeFilter === "EV") {
+              url += `&fuel_type=Electric`;
+            } else if (activeFilter === "Hybrid") {
+              url += `&fuel_type=Hybrid`;
+            } else if (activeFilter === "SUV" || activeFilter === "Sedan") {
+              url += `&body_type=${activeFilter}`;
+            }
+          }
+          const response = await fetch(url);
+          const data = await response.json();
+          const formattedData = data.map((item: any) => ({
+            id: item.id.toString(),
+            year: item.year,
+            make: item.make,
+            model: item.model,
+            price: item.price_display || "N/A",
+            image: item.image_url,
+            mileage: item.mileage || 0,
+            listingType: item.listing_type,
+          }));
+          setSearchResults(formattedData);
+        } catch (error) {
+          console.error("Search error:", error);
+        } finally {
+          setIsSearching(false);
+        }
+      } else {
+        setSearchResults([]);
+      }
+    }, 300);
+
+    return () => clearTimeout(delayDebounceFn);
+  }, [searchQuery, activeFilter]);
+
+  const handleSearch = () => {
+    if (searchQuery.trim()) {
+      router.push({
+        pathname: "/all_listings",
+        params: { q: searchQuery },
+      });
+    }
+  };
+
   // This hook handles scrolling to top when the active tab is pressed
   useScrollToTop(ref);
 
@@ -140,6 +199,7 @@ const HomeScreen = () => {
         <Text style={styles.heroSubtitle}>
           Search Ethiopia's best selection of modern cars for sale.
         </Text>
+        <View style={{ zIndex: 10 }}>
         <View style={styles.searchBar}>
           <Ionicons
             name="search"
@@ -151,6 +211,10 @@ const HomeScreen = () => {
             style={styles.searchInput}
             placeholder="Make, model, year..."
             placeholderTextColor={COLORS.mutedForeground}
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+            onSubmitEditing={handleSearch}
+            returnKeyType="search"
           />
         </View>
         <ScrollView
@@ -159,11 +223,53 @@ const HomeScreen = () => {
           style={styles.quickFiltersContainer}
         >
           {quickFilters.map((filter) => (
-            <Pressable key={filter.value} style={styles.filterButton}>
-              <Text style={styles.filterButtonText}>{filter.label}</Text>
+            <Pressable
+              key={filter.value}
+              style={[
+                styles.filterButton,
+                activeFilter === filter.value && styles.activeFilterButton,
+              ]}
+              onPress={() =>
+                setActiveFilter(activeFilter === filter.value ? "" : filter.value)
+              }
+            >
+              <Text
+                style={[
+                  styles.filterButtonText,
+                  activeFilter === filter.value && styles.activeFilterButtonText,
+                ]}
+              >
+                {filter.label}
+              </Text>
             </Pressable>
           ))}
         </ScrollView>
+        {searchQuery.length > 0 && (
+          <View style={styles.searchDropdown}>
+            {isSearching ? (
+              <ActivityIndicator size="small" color={COLORS.accent} style={{ padding: 20 }} />
+            ) : searchResults.length > 0 ? (
+              searchResults.slice(0, 5).map((car) => (
+                <Pressable
+                  key={car.id}
+                  style={styles.searchResultItem}
+                  onPress={() => router.push(`/${car.id}`)}
+                >
+                  <Image source={{ uri: car.image }} style={styles.searchResultImage} />
+                  <View style={styles.searchResultTextContainer}>
+                    <Text style={styles.searchResultTitle}>
+                      {car.year} {car.make} {car.model}
+                    </Text>
+                    <Text style={styles.searchResultPrice}>{car.price}</Text>
+                  </View>
+                </Pressable>
+              ))
+            ) : (
+              <Text style={styles.noResultsText}>No cars found</Text>
+            )}
+          </View>
+        )}
+        </View>
         <View style={styles.heroActions}>
           <View style={{ flex: 1, marginRight: 8 }}>
             <Pressable
@@ -293,6 +399,53 @@ const styles = StyleSheet.create({
     paddingHorizontal: 15,
     borderWidth: 1,
     borderColor: COLORS.border,
+  },
+  searchDropdown: {
+    position: "absolute",
+    top: 115,
+    left: 0,
+    right: 0,
+    backgroundColor: COLORS.card,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    zIndex: 100,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4.65,
+    elevation: 8,
+    overflow: "hidden",
+  },
+  searchResultItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    padding: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.border,
+  },
+  searchResultImage: {
+    width: 50,
+    height: 35,
+    borderRadius: 4,
+    marginRight: 10,
+  },
+  searchResultTextContainer: {
+    flex: 1,
+  },
+  searchResultTitle: {
+    color: COLORS.foreground,
+    fontSize: 14,
+    fontWeight: "600",
+  },
+  searchResultPrice: {
+    color: COLORS.accent,
+    fontSize: 12,
+  },
+  noResultsText: {
+    color: COLORS.mutedForeground,
+    textAlign: "center",
+    padding: 15,
   },
   searchIcon: {
     marginRight: 10,
@@ -446,6 +599,13 @@ const styles = StyleSheet.create({
     color: COLORS.mutedForeground,
     textAlign: "center",
     marginTop: 8, // Increase top margin for better spacing
+  },
+  activeFilterButton: {
+    backgroundColor: COLORS.accent,
+    borderColor: COLORS.accent,
+  },
+  activeFilterButtonText: {
+    color: "#FFFFFF",
   },
 });
 
