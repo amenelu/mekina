@@ -48,6 +48,7 @@ const AdminRentalsScreen = () => {
 
   useEffect(() => {
     const fetchRentals = async () => {
+      if (!token) return;
       setLoading(true);
       try {
         const response = await axios.get(

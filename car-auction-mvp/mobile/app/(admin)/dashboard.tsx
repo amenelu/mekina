@@ -131,6 +131,7 @@ const AdminDashboardScreen = () => {
   const { token } = useAuth();
 
   const fetchData = useCallback(async () => {
+    if (!token) return;
     setLoading(true);
     setError(null);
     try {

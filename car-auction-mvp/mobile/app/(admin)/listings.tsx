@@ -48,6 +48,7 @@ const AdminListingsScreen = () => {
 
   // Function to fetch listings
   const fetchListings = async () => {
+    if (!token) return;
     setLoading(true);
     try {
       const response = await axios.get(
