@@ -31,6 +31,7 @@ const COLORS = {
   border: "#313843",
   success: "#28a745",
   destructive: "#dc3545",
+  warning: "#ffc107",
 };
 
 /**
@@ -58,6 +59,7 @@ interface Listing {
   auction?: { current_price: number; end_time: string };
   rental_listing?: { price_per_day: number };
   images?: { id: number; image_url: string }[];
+  last_changes?: string[];
 }
 
 /**
@@ -229,6 +231,40 @@ const ListingDetailsPage: React.FC = () => {
     }
   }, [editedListing]);
 
+  const getFieldStyle = (fieldName: string) => {
+    if (listing?.last_changes?.includes(fieldName)) {
+      return {
+        borderColor: COLORS.warning,
+        borderWidth: 2,
+        backgroundColor: "rgba(255, 193, 7, 0.05)",
+      };
+    }
+    return {};
+  };
+
+  const renderChangeLabel = (fieldName: string) => {
+    if (listing?.last_changes?.includes(fieldName)) {
+      return (
+        <View
+          style={{ flexDirection: "row", alignItems: "center", marginTop: 4 }}
+        >
+          <Ionicons name="alert-circle" size={14} color={COLORS.warning} />
+          <Text
+            style={{
+              color: COLORS.warning,
+              fontSize: 12,
+              marginLeft: 4,
+              fontWeight: "bold",
+            }}
+          >
+            Modified by Dealer
+          </Text>
+        </View>
+      );
+    }
+    return null;
+  };
+
   const handleValueChange = (
     field: keyof Listing,
     value: string | boolean | number
@@ -373,36 +409,44 @@ const ListingDetailsPage: React.FC = () => {
           <View style={styles.inputGroup}>
             <Text style={styles.label}>Make</Text>
             <TextInput
-              style={styles.input}
+              style={[styles.input, getFieldStyle("make")]}
               value={editedListing.make}
               onChangeText={(v) => handleValueChange("make", v)}
             />
+            {renderChangeLabel("make")}
           </View>
           <View style={styles.inputGroup}>
             <Text style={styles.label}>Model</Text>
             <TextInput
-              style={styles.input}
+              style={[styles.input, getFieldStyle("model")]}
               value={editedListing.model}
               onChangeText={(v) => handleValueChange("model", v)}
             />
+            {renderChangeLabel("model")}
           </View>
           <View style={styles.inputGroup}>
             <Text style={styles.label}>Year</Text>
             <TextInput
-              style={styles.input}
+              style={[styles.input, getFieldStyle("year")]}
               value={String(editedListing.year)}
               onChangeText={(v) => handleValueChange("year", Number(v) || 0)}
               keyboardType="number-pad"
             />
+            {renderChangeLabel("year")}
           </View>
           <View style={styles.inputGroup}>
             <Text style={styles.label}>Description</Text>
             <TextInput
-              style={[styles.input, { height: 100, textAlignVertical: "top" }]}
+              style={[
+                styles.input,
+                getFieldStyle("description"),
+                { height: 100, textAlignVertical: "top" },
+              ]}
               value={editedListing.description}
               onChangeText={(v) => handleValueChange("description", v)}
               multiline
             />
+            {renderChangeLabel("description")}
           </View>
         </View>
 
@@ -544,13 +588,14 @@ const ListingDetailsPage: React.FC = () => {
             <View style={styles.inputGroup}>
               <Text style={styles.label}>Fixed Price (ETB)</Text>
               <TextInput
-                style={styles.input}
+                style={[styles.input, getFieldStyle("fixed_price")]}
                 value={String(editedListing.fixed_price ?? 0)}
                 onChangeText={(v) =>
                   handleValueChange("fixed_price", Number(v) || 0)
                 }
                 keyboardType="number-pad"
               />
+              {renderChangeLabel("fixed_price")}
             </View>
           )}
           {editedListing.listing_type === "rental" && (

@@ -916,6 +916,23 @@ def api_update_car(current_user, car_id):
     else:
         success_message = "Listing updated and sent for re-approval."
 
+    # --- Track Changes for Admin Highlighting ---
+    changed_fields = []
+    if data.get("make") and data.get("make") != car.make:
+        changed_fields.append("make")
+    if data.get("model") and data.get("model") != car.model:
+        changed_fields.append("model")
+    if data.get("year") and int(data.get("year")) != car.year:
+        changed_fields.append("year")
+    if data.get("price") and float(data.get("price")) != car.fixed_price:
+        changed_fields.append("fixed_price")
+    if data.get("description") and data.get("description") != car.description:
+        changed_fields.append("description")
+
+    # Save changes as comma-separated string if any changes occurred
+    if changed_fields:
+        car.last_changes = ",".join(changed_fields)
+
     # --- Update Car Details & Require Re-approval ---
     car.make = data.get("make", car.make)
     car.model = data.get("model", car.model)

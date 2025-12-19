@@ -779,6 +779,11 @@ def api_manage_listing(current_user, car_id):
                 if car.rental_listing
                 else None
             ),
+            "last_changes": (
+                car.last_changes.split(",")
+                if getattr(car, "last_changes", None)
+                else []
+            ),
             "images": [
                 {
                     "id": img.id,
@@ -913,6 +918,7 @@ def api_manage_listing(current_user, car_id):
 
         if action == "approve":
             car.is_approved = True
+            car.last_changes = None  # Clear the changes log upon approval
             # Logic to notify the seller
             message = f"Congratulations! Your listing for the {car.year} {car.make} {car.model} has been approved and is now live."
             notification = Notification(user_id=car.owner_id, message=message)
