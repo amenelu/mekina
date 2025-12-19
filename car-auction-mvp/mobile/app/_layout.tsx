@@ -23,6 +23,7 @@ export default function RootLayout() {
         headerTitleStyle: { color: COLORS.foreground },
       }}
     >
+      <Stack.Screen name="index" options={{ headerShown: false }} />
       <Stack.Screen
         name="(tabs)"
         options={({ route }) => {
