@@ -222,6 +222,10 @@ def dashboard():
         .all()
     )
 
+    pending_approval_count = Car.query.filter_by(
+        owner_id=current_user.id, is_approved=False
+    ).count()
+
     return render_template(
         "dealer_dashboard.html",
         requests=active_requests,
@@ -230,6 +234,7 @@ def dashboard():
         unanswered_request_questions=unanswered_request_questions,
         now=datetime.utcnow(),
         filter_new=filter_new,
+        pending_approval_count=pending_approval_count,
     )
 
 
@@ -312,6 +317,12 @@ def api_dealer_dashboard(current_user):
         .all()
     )
 
+    pending_approvals = (
+        Car.query.filter_by(owner_id=current_user.id, is_approved=False)
+        .order_by(Car.id.desc())
+        .all()
+    )
+
     return jsonify(
         requests=active_requests_data,
         my_cars=[car.to_dict() for car in my_cars],
@@ -336,9 +347,8 @@ def api_dealer_dashboard(current_user):
         ],
         now=datetime.utcnow().isoformat() + "Z",
         user_points=current_user.points,
-        pending_approval_count=Car.query.filter_by(
-            owner_id=current_user.id, is_approved=False
-        ).count(),
+        pending_approval_count=len(pending_approvals),
+        pending_approvals=[car.to_dict() for car in pending_approvals],
     )
 
 
@@ -882,7 +892,12 @@ def api_update_car(current_user, car_id):
 
     # --- Point Deduction Logic ---
     # Check if the edit is happening more than 1 hour after the last update
-    time_since_last_update = datetime.utcnow() - car.updated_at
+    # Use getattr to safely access updated_at, fallback to created_at or now
+    last_update = getattr(car, "updated_at", None) or getattr(
+        car, "created_at", datetime.utcnow()
+    )
+    time_since_last_update = datetime.utcnow() - last_update
+
     if time_since_last_update > timedelta(hours=1):
         if current_user.points <= 0:
             return (

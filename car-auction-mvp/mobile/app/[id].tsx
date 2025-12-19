@@ -14,6 +14,7 @@ import { useLocalSearchParams, Stack, useNavigation } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import VehicleCard, { Vehicle } from "./_components/VehicleCard";
 import API_BASE_URL from "@/constants/Api";
+import { useAuth } from "@/hooks/useAuth";
 const COLORS = {
   background: "#14181F",
   foreground: "#F8F8F8",
@@ -24,7 +25,6 @@ const COLORS = {
   success: "#28a745",
 };
 
-
 const CarDetailScreen = () => {
   const { id } = useLocalSearchParams();
   const [car, setCar] = useState<any | null>(null); // Use 'any' for now to match API response
@@ -33,6 +33,7 @@ const CarDetailScreen = () => {
   const [loading, setLoading] = useState(true);
   const navigation = useNavigation();
   const { width } = useWindowDimensions();
+  const { token } = useAuth();
 
   useEffect(() => {
     const fetchCarDetails = async () => {
@@ -40,7 +41,9 @@ const CarDetailScreen = () => {
       setLoading(true);
       try {
         // IMPORTANT: Replace with your computer's local IP address
-        const response = await fetch(`${API_BASE_URL}/api/cars/${id}`);
+        const response = await fetch(`${API_BASE_URL}/api/cars/${id}`, {
+          headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+        });
         const data = await response.json();
         if (data.car) {
           setCar(data.car);

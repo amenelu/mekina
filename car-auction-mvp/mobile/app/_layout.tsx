@@ -56,7 +56,7 @@ export default function RootLayout() {
       <Stack.Screen name="trade-in" options={{ headerShown: false }} />
       <Stack.Screen
         name="(admin)"
-        options={{ headerShown: false, title: "Admin", headerBackTitle: "" }}
+        options={{ headerShown: false, title: "", headerBackTitle: "" }}
       />
       <Stack.Screen
         name="(dealer)"
