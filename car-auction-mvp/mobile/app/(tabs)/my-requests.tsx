@@ -55,6 +55,9 @@ const RequestCard = ({ request }: { request: CarRequest }) => {
 
   const handlePress = () => {
     if (isTradeIn) {
+      console.log(
+        `>>> Navigating to USER trade-in detail: /trade-in/${request.id}`
+      );
       router.push(`/trade-in/${request.id}`);
     } else {
       router.push(`/request/${request.id}`);

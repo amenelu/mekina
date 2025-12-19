@@ -50,7 +50,26 @@ interface TradeInOffer {
   amount: number;
   notes: string;
   created_at: string;
+  status: string;
 }
+
+const ImageWithLoader = ({ uri }: { uri: string }) => {
+  const [loading, setLoading] = useState(true);
+  return (
+    <View style={styles.photoContainer}>
+      <Image
+        source={{ uri }}
+        style={styles.photo}
+        onLoadEnd={() => setLoading(false)}
+      />
+      {loading && (
+        <View style={styles.loadingOverlay}>
+          <ActivityIndicator size="small" color={COLORS.accent} />
+        </View>
+      )}
+    </View>
+  );
+};
 
 const TradeInRequestDetailScreen = () => {
   const { id } = useLocalSearchParams();
@@ -66,18 +85,20 @@ const TradeInRequestDetailScreen = () => {
   }, [id]);
 
   const fetchDetails = async () => {
+    // Ensure we are hitting the USER endpoint, NOT the ADMIN endpoint
+    const url = `${API_URL}/trade-in/api/requests/${id}`;
+    console.log(">>> MOUNTED: User Trade-In View. Fetching:", url);
     try {
-      const response = await axios.get(
-        `${API_URL}/trade-in/api/requests/${id}`,
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
-      );
+      // Calls the USER endpoint, not the ADMIN endpoint
+      const response = await axios.get(url, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
       setRequest(response.data.request);
     } catch (error: any) {
       console.error("Error fetching trade-in details:", error);
       const msg =
         error.response?.data?.message || "Failed to load trade-in details.";
+      console.log("Server Error Message:", msg);
       Alert.alert("Error", msg);
     } finally {
       setLoading(false);
@@ -106,6 +127,36 @@ const TradeInRequestDetailScreen = () => {
     } finally {
       setSubmittingOffer(false);
     }
+  };
+
+  const handleAcceptOffer = async (offerId: number) => {
+    Alert.alert(
+      "Accept Offer",
+      "Are you sure you want to accept this offer? This action cannot be undone.",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Accept",
+          onPress: async () => {
+            setLoading(true);
+            try {
+              await axios.post(
+                `${API_URL}/trade-in/api/requests/${id}/offers/${offerId}/accept`,
+                {},
+                { headers: { Authorization: `Bearer ${token}` } }
+              );
+              Alert.alert("Success", "Offer accepted!");
+              fetchDetails();
+            } catch (error: any) {
+              const msg =
+                error.response?.data?.message || "Failed to accept offer.";
+              Alert.alert("Error", msg);
+              setLoading(false);
+            }
+          },
+        },
+      ]
+    );
   };
 
   if (loading) {
@@ -171,10 +222,9 @@ const TradeInRequestDetailScreen = () => {
             style={styles.photoScroll}
           >
             {request.photos.map((photo) => (
-              <Image
+              <ImageWithLoader
                 key={photo.id}
-                source={{ uri: `${API_URL}${photo.image_url}` }}
-                style={styles.photo}
+                uri={`${API_URL}${photo.image_url}`}
               />
             ))}
           </ScrollView>
@@ -222,9 +272,29 @@ const TradeInRequestDetailScreen = () => {
                 {request.offers && request.offers.length > 0 ? (
                   request.offers.map((offer) => (
                     <View key={offer.id} style={styles.offerItem}>
-                      <Text style={styles.offerAmount}>
-                        {offer.amount.toLocaleString()} ETB
-                      </Text>
+                      <View style={styles.offerHeader}>
+                        <Text style={styles.offerAmount}>
+                          {offer.amount.toLocaleString()} ETB
+                        </Text>
+                        {request.status === "active" &&
+                          request.viewer_role === "buyer" && (
+                            <Pressable
+                              style={styles.acceptButton}
+                              onPress={() => handleAcceptOffer(offer.id)}
+                            >
+                              <Text style={styles.acceptButtonText}>
+                                Accept
+                              </Text>
+                            </Pressable>
+                          )}
+                        {offer.status === "accepted" && (
+                          <View style={styles.acceptedBadge}>
+                            <Text style={styles.acceptedBadgeText}>
+                              Accepted
+                            </Text>
+                          </View>
+                        )}
+                      </View>
                       <Text style={styles.offerDealer}>
                         by {offer.dealer_name}
                       </Text>
@@ -309,11 +379,22 @@ const styles = StyleSheet.create({
     textAlign: "right",
   },
   photoScroll: { flexDirection: "row" },
-  photo: {
+  photoContainer: {
     width: 120,
     height: 90,
     borderRadius: 8,
     marginRight: 10,
+    backgroundColor: COLORS.card,
+    overflow: "hidden",
+  },
+  photo: {
+    width: "100%",
+    height: "100%",
+  },
+  loadingOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    justifyContent: "center",
+    alignItems: "center",
     backgroundColor: COLORS.card,
   },
   noOffersText: {
@@ -349,6 +430,11 @@ const styles = StyleSheet.create({
     borderBottomColor: COLORS.border,
     paddingVertical: 10,
   },
+  offerHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
   offerAmount: {
     color: COLORS.success,
     fontSize: 18,
@@ -362,6 +448,28 @@ const styles = StyleSheet.create({
   offerNotes: {
     color: COLORS.foreground,
     fontSize: 14,
+  },
+  acceptButton: {
+    backgroundColor: COLORS.success,
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 6,
+  },
+  acceptButtonText: {
+    color: "#fff",
+    fontWeight: "bold",
+    fontSize: 12,
+  },
+  acceptedBadge: {
+    backgroundColor: COLORS.success,
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+    borderRadius: 4,
+  },
+  acceptedBadgeText: {
+    color: "#fff",
+    fontSize: 12,
+    fontWeight: "bold",
   },
 });
 

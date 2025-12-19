@@ -229,8 +229,14 @@ def api_submit_trade_in(current_user):
 @token_required
 def api_get_my_trade_in_detail(current_user, request_id):
     """API endpoint for a user to get details of their own trade-in request."""
+    print(
+        f"DEBUG: api_get_my_trade_in_detail called for request {request_id} by user {current_user.id}"
+    )
     req = TradeInRequest.query.get_or_404(request_id)
 
+    print(
+        f"DEBUG: Checking ownership. Request Owner ID: {req.user_id}, Current User ID: {current_user.id}"
+    )
     is_owner = req.user_id == current_user.id
     is_admin = getattr(current_user, "is_admin", False)
     is_dealer = getattr(current_user, "is_dealer", False)
@@ -239,7 +245,15 @@ def api_get_my_trade_in_detail(current_user, request_id):
         print(
             f"DEBUG: Access denied. User ID: {current_user.id}, Owner ID: {req.user_id}, Status: {req.status}, IsAdmin: {is_admin}, IsDealer: {is_dealer}"
         )
-        return jsonify({"status": "error", "message": "Unauthorized"}), 403
+        return (
+            jsonify(
+                {
+                    "status": "error",
+                    "message": "Unauthorized: You are not the owner of this request.",
+                }
+            ),
+            403,
+        )
 
     response_data = req.to_dict()
 
@@ -337,7 +351,12 @@ def api_admin_get_trade_in(current_user, request_id):
     """API endpoint for admin to get details of a specific trade-in request."""
     if not current_user.is_admin:
         print(f"DEBUG: Admin access denied for user {current_user.id}")
-        return jsonify({"status": "error", "message": "Unauthorized"}), 403
+        return (
+            jsonify(
+                {"status": "error", "message": "Unauthorized: Admin access required."}
+            ),
+            403,
+        )
     req = TradeInRequest.query.get_or_404(request_id)
     data = req.to_dict()
     # Add user details manually
@@ -383,3 +402,30 @@ def api_get_active_trade_ins(current_user):
         .all()
     )
     return jsonify({"requests": [req.to_dict() for req in requests]})
+
+
+@tradein_bp.route(
+    "/api/requests/<int:request_id>/offers/<int:offer_id>/accept", methods=["POST"]
+)
+@token_required
+def api_accept_trade_in_offer(current_user, request_id, offer_id):
+    """API endpoint for a user to accept a trade-in offer."""
+    req = TradeInRequest.query.get_or_404(request_id)
+    offer = TradeInOffer.query.get_or_404(offer_id)
+
+    if req.user_id != current_user.id:
+        return jsonify({"status": "error", "message": "Unauthorized"}), 403
+
+    if req.status != "active":
+        return jsonify({"status": "error", "message": "Request is not active."}), 400
+
+    if offer.trade_in_request_id != req.id:
+        return jsonify({"status": "error", "message": "Invalid offer."}), 400
+
+    # Update statuses
+    offer.status = "accepted"
+    req.status = "completed"
+
+    db.session.commit()
+
+    return jsonify({"status": "success", "message": "Offer accepted successfully."})
