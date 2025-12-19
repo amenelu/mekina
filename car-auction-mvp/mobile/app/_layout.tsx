@@ -54,6 +54,14 @@ export default function RootLayout() {
         options={{ headerShown: false }}
       />
       <Stack.Screen name="trade-in" options={{ headerShown: false }} />
+      <Stack.Screen
+        name="(admin)"
+        options={{ headerShown: false, title: "Admin", headerBackTitle: "" }}
+      />
+      <Stack.Screen
+        name="(dealer)"
+        options={{ headerShown: false, title: "", headerBackTitle: "" }}
+      />
     </Stack>
   );
 }

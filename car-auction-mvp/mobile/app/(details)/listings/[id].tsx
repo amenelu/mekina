@@ -18,6 +18,7 @@ import DraggableFlatList, {
   ScaleDecorator,
 } from "react-native-draggable-flatlist";
 import API_BASE_URL from "@/constants/Api";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { useAuth } from "@/hooks/useAuth";
 import * as ImagePicker from "expo-image-picker";
 import { Ionicons } from "@expo/vector-icons";
@@ -365,265 +366,269 @@ const ListingDetailsPage: React.FC = () => {
   }
 
   return (
-    <ScrollView style={styles.container}>
-      <View style={styles.card}>
-        <Text style={styles.cardTitle}>Edit Listing</Text>
-        <View style={styles.inputGroup}>
-          <Text style={styles.label}>Make</Text>
-          <TextInput
-            style={styles.input}
-            value={editedListing.make}
-            onChangeText={(v) => handleValueChange("make", v)}
-          />
-        </View>
-        <View style={styles.inputGroup}>
-          <Text style={styles.label}>Model</Text>
-          <TextInput
-            style={styles.input}
-            value={editedListing.model}
-            onChangeText={(v) => handleValueChange("model", v)}
-          />
-        </View>
-        <View style={styles.inputGroup}>
-          <Text style={styles.label}>Year</Text>
-          <TextInput
-            style={styles.input}
-            value={String(editedListing.year)}
-            onChangeText={(v) => handleValueChange("year", Number(v) || 0)}
-            keyboardType="number-pad"
-          />
-        </View>
-        <View style={styles.inputGroup}>
-          <Text style={styles.label}>Description</Text>
-          <TextInput
-            style={[styles.input, { height: 100, textAlignVertical: "top" }]}
-            value={editedListing.description}
-            onChangeText={(v) => handleValueChange("description", v)}
-            multiline
-          />
-        </View>
-      </View>
-
-      <View style={styles.card}>
-        <Text style={styles.cardTitle}>Manage Images</Text>
-        <Text style={styles.label}>Current Images</Text>
-        <DraggableFlatList
-          data={editedListing.images ?? []}
-          horizontal
-          onDragEnd={({ data }) => {
-            const newImageIds = data.map((item) => item.id);
-            reorderImages(id!, newImageIds, token);
-            setEditedListing((prev) => ({ ...prev!, images: data }));
-          }}
-          keyExtractor={(item) => `draggable-item-${item.id}`}
-          renderItem={({ item, drag, isActive, getIndex }) => {
-            const index = getIndex();
-
-            return (
-              <ScaleDecorator>
-                <TouchableOpacity
-                  onLongPress={drag}
-                  disabled={isActive}
-                  style={[
-                    styles.thumbnailContainer,
-                    index === 0 && styles.coverImage,
-                  ]}
-                >
-                  <ImageThumbnail image={item} />
-                  {index === 0 && (
-                    <View style={styles.coverLabel}>
-                      <Text style={styles.coverLabelText}>Cover</Text>
-                    </View>
-                  )}
-                  <Pressable
-                    style={styles.deleteImageIcon}
-                    onPress={() => handleImageDelete(item.id)}
-                  >
-                    <Ionicons name="close-circle" size={24} color="white" />
-                  </Pressable>
-                  {index !== 0 && (
-                    <Pressable
-                      style={styles.setCoverButton}
-                      onPress={() => handleSetCoverImage(item.id)}
-                    >
-                      <Text style={styles.setCoverButtonText}>Make Cover</Text>
-                    </Pressable>
-                  )}
-                </TouchableOpacity>
-              </ScaleDecorator>
-            );
-          }}
-          containerStyle={styles.imageScrollView}
-        />
-
-        {newImages.length > 0 && (
-          <>
-            <Text style={[styles.label, { marginTop: 15 }]}>
-              New Images (will replace current)
-            </Text>
-            <ScrollView horizontal style={styles.imageScrollView}>
-              {newImages.map((img, index) => (
-                <Image
-                  key={index}
-                  source={{ uri: img.uri }}
-                  style={styles.thumbnail}
-                />
-              ))}
-            </ScrollView>
-          </>
-        )}
-
-        <Pressable style={styles.imagePickerButton} onPress={handleImagePick}>
-          <Ionicons name="camera" size={20} color={COLORS.accent} />
-          <Text style={styles.imagePickerText}>
-            {newImages.length > 0 ? "Reselect Images" : "Select New Images"}
-          </Text>
-        </Pressable>
-      </View>
-
-      <View style={styles.card}>
-        <Text style={styles.cardTitle}>Specifications</Text>
-        <View style={styles.inputGroup}>
-          <Text style={styles.label}>Condition</Text>
-          <TextInput
-            style={styles.input}
-            value={editedListing.condition ?? ""}
-            onChangeText={(v) => handleValueChange("condition", v)}
-          />
-        </View>
-        <View style={styles.inputGroup}>
-          <Text style={styles.label}>Body Type</Text>
-          <TextInput
-            style={styles.input}
-            value={editedListing.body_type ?? ""}
-            onChangeText={(v) => handleValueChange("body_type", v)}
-          />
-        </View>
-        <View style={styles.inputGroup}>
-          <Text style={styles.label}>Mileage (km)</Text>
-          <TextInput
-            style={styles.input}
-            value={String(editedListing.mileage ?? 0)}
-            onChangeText={(v) => handleValueChange("mileage", Number(v) || 0)}
-            keyboardType="number-pad"
-          />
-        </View>
-        <View style={styles.inputGroup}>
-          <Text style={styles.label}>Transmission</Text>
-          <TextInput
-            style={styles.input}
-            value={editedListing.transmission ?? ""}
-            onChangeText={(v) => handleValueChange("transmission", v)}
-          />
-        </View>
-        <View style={styles.inputGroup}>
-          <Text style={styles.label}>Drivetrain</Text>
-          <TextInput
-            style={styles.input}
-            value={editedListing.drivetrain ?? ""}
-            onChangeText={(v) => handleValueChange("drivetrain", v)}
-          />
-        </View>
-        <View style={styles.inputGroup}>
-          <Text style={styles.label}>Fuel Type</Text>
-          <TextInput
-            style={styles.input}
-            value={editedListing.fuel_type ?? ""}
-            onChangeText={(v) => handleValueChange("fuel_type", v)}
-          />
-        </View>
-      </View>
-
-      <View style={styles.card}>
-        <Text style={styles.cardTitle}>Pricing</Text>
-        {editedListing.listing_type === "sale" && (
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <ScrollView style={styles.container}>
+        <View style={styles.card}>
+          <Text style={styles.cardTitle}>Edit Listing</Text>
           <View style={styles.inputGroup}>
-            <Text style={styles.label}>Fixed Price (ETB)</Text>
+            <Text style={styles.label}>Make</Text>
             <TextInput
               style={styles.input}
-              value={String(editedListing.fixed_price ?? 0)}
-              onChangeText={(v) =>
-                handleValueChange("fixed_price", Number(v) || 0)
-              }
+              value={editedListing.make}
+              onChangeText={(v) => handleValueChange("make", v)}
+            />
+          </View>
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>Model</Text>
+            <TextInput
+              style={styles.input}
+              value={editedListing.model}
+              onChangeText={(v) => handleValueChange("model", v)}
+            />
+          </View>
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>Year</Text>
+            <TextInput
+              style={styles.input}
+              value={String(editedListing.year)}
+              onChangeText={(v) => handleValueChange("year", Number(v) || 0)}
               keyboardType="number-pad"
             />
           </View>
-        )}
-        {editedListing.listing_type === "rental" && (
           <View style={styles.inputGroup}>
-            <Text style={styles.label}>Price Per Day (ETB)</Text>
+            <Text style={styles.label}>Description</Text>
             <TextInput
-              style={styles.input}
-              value={String(editedListing.rental_listing?.price_per_day ?? 0)}
-              // Note: This is a nested property, updating it requires more complex state handling
-              // For now, this is a read-only representation.
-              editable={false}
+              style={[styles.input, { height: 100, textAlignVertical: "top" }]}
+              value={editedListing.description}
+              onChangeText={(v) => handleValueChange("description", v)}
+              multiline
             />
           </View>
-        )}
-        {editedListing.listing_type === "auction" && (
+        </View>
+
+        <View style={styles.card}>
+          <Text style={styles.cardTitle}>Manage Images</Text>
+          <Text style={styles.label}>Current Images</Text>
+          <DraggableFlatList
+            data={editedListing.images ?? []}
+            horizontal
+            onDragEnd={({ data }) => {
+              const newImageIds = data.map((item) => item.id);
+              reorderImages(id!, newImageIds, token);
+              setEditedListing((prev) => ({ ...prev!, images: data }));
+            }}
+            keyExtractor={(item) => `draggable-item-${item.id}`}
+            renderItem={({ item, drag, isActive, getIndex }) => {
+              const index = getIndex();
+
+              return (
+                <ScaleDecorator>
+                  <TouchableOpacity
+                    onLongPress={drag}
+                    disabled={isActive}
+                    style={[
+                      styles.thumbnailContainer,
+                      index === 0 && styles.coverImage,
+                    ]}
+                  >
+                    <ImageThumbnail image={item} />
+                    {index === 0 && (
+                      <View style={styles.coverLabel}>
+                        <Text style={styles.coverLabelText}>Cover</Text>
+                      </View>
+                    )}
+                    <Pressable
+                      style={styles.deleteImageIcon}
+                      onPress={() => handleImageDelete(item.id)}
+                    >
+                      <Ionicons name="close-circle" size={24} color="white" />
+                    </Pressable>
+                    {index !== 0 && (
+                      <Pressable
+                        style={styles.setCoverButton}
+                        onPress={() => handleSetCoverImage(item.id)}
+                      >
+                        <Text style={styles.setCoverButtonText}>
+                          Make Cover
+                        </Text>
+                      </Pressable>
+                    )}
+                  </TouchableOpacity>
+                </ScaleDecorator>
+              );
+            }}
+            containerStyle={styles.imageScrollView}
+          />
+
+          {newImages.length > 0 && (
+            <>
+              <Text style={[styles.label, { marginTop: 15 }]}>
+                New Images (will replace current)
+              </Text>
+              <ScrollView horizontal style={styles.imageScrollView}>
+                {newImages.map((img, index) => (
+                  <Image
+                    key={index}
+                    source={{ uri: img.uri }}
+                    style={styles.thumbnail}
+                  />
+                ))}
+              </ScrollView>
+            </>
+          )}
+
+          <Pressable style={styles.imagePickerButton} onPress={handleImagePick}>
+            <Ionicons name="camera" size={20} color={COLORS.accent} />
+            <Text style={styles.imagePickerText}>
+              {newImages.length > 0 ? "Reselect Images" : "Select New Images"}
+            </Text>
+          </Pressable>
+        </View>
+
+        <View style={styles.card}>
+          <Text style={styles.cardTitle}>Specifications</Text>
           <View style={styles.inputGroup}>
-            <Text style={styles.label}>Current Bid (ETB)</Text>
+            <Text style={styles.label}>Condition</Text>
             <TextInput
               style={styles.input}
-              value={String(editedListing.auction?.current_price ?? 0)}
-              editable={false} // Current price is not directly editable
+              value={editedListing.condition ?? ""}
+              onChangeText={(v) => handleValueChange("condition", v)}
             />
           </View>
-        )}
-      </View>
-
-      <View style={styles.card}>
-        <Text style={styles.cardTitle}>Manage Status</Text>
-        <View style={styles.switchRow}>
-          <Text style={styles.text}>Approved</Text>
-          <Switch
-            value={editedListing.is_approved}
-            onValueChange={(v) => handleValueChange("is_approved", v)}
-          />
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>Body Type</Text>
+            <TextInput
+              style={styles.input}
+              value={editedListing.body_type ?? ""}
+              onChangeText={(v) => handleValueChange("body_type", v)}
+            />
+          </View>
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>Mileage (km)</Text>
+            <TextInput
+              style={styles.input}
+              value={String(editedListing.mileage ?? 0)}
+              onChangeText={(v) => handleValueChange("mileage", Number(v) || 0)}
+              keyboardType="number-pad"
+            />
+          </View>
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>Transmission</Text>
+            <TextInput
+              style={styles.input}
+              value={editedListing.transmission ?? ""}
+              onChangeText={(v) => handleValueChange("transmission", v)}
+            />
+          </View>
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>Drivetrain</Text>
+            <TextInput
+              style={styles.input}
+              value={editedListing.drivetrain ?? ""}
+              onChangeText={(v) => handleValueChange("drivetrain", v)}
+            />
+          </View>
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>Fuel Type</Text>
+            <TextInput
+              style={styles.input}
+              value={editedListing.fuel_type ?? ""}
+              onChangeText={(v) => handleValueChange("fuel_type", v)}
+            />
+          </View>
         </View>
-        <View style={styles.switchRow}>
-          <Text style={styles.text}>Active</Text>
-          <Switch
-            value={editedListing.is_active}
-            onValueChange={(v) => handleValueChange("is_active", v)}
-          />
-        </View>
-        <View style={styles.switchRow}>
-          <Text style={styles.text}>Featured</Text>
-          <Switch
-            value={editedListing.is_featured ?? false}
-            onValueChange={(v) => handleValueChange("is_featured", v)}
-          />
-        </View>
-      </View>
 
-      <Pressable
-        style={[styles.button, styles.saveButton]}
-        onPress={handleSaveChanges}
-        disabled={isSaving}
-      >
-        <Text style={styles.buttonText}>
-          {isSaving ? "Saving..." : "Save Changes"}
-        </Text>
-      </Pressable>
+        <View style={styles.card}>
+          <Text style={styles.cardTitle}>Pricing</Text>
+          {editedListing.listing_type === "sale" && (
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>Fixed Price (ETB)</Text>
+              <TextInput
+                style={styles.input}
+                value={String(editedListing.fixed_price ?? 0)}
+                onChangeText={(v) =>
+                  handleValueChange("fixed_price", Number(v) || 0)
+                }
+                keyboardType="number-pad"
+              />
+            </View>
+          )}
+          {editedListing.listing_type === "rental" && (
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>Price Per Day (ETB)</Text>
+              <TextInput
+                style={styles.input}
+                value={String(editedListing.rental_listing?.price_per_day ?? 0)}
+                // Note: This is a nested property, updating it requires more complex state handling
+                // For now, this is a read-only representation.
+                editable={false}
+              />
+            </View>
+          )}
+          {editedListing.listing_type === "auction" && (
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>Current Bid (ETB)</Text>
+              <TextInput
+                style={styles.input}
+                value={String(editedListing.auction?.current_price ?? 0)}
+                editable={false} // Current price is not directly editable
+              />
+            </View>
+          )}
+        </View>
 
-      {!editedListing.is_approved && (
+        <View style={styles.card}>
+          <Text style={styles.cardTitle}>Manage Status</Text>
+          <View style={styles.switchRow}>
+            <Text style={styles.text}>Approved</Text>
+            <Switch
+              value={editedListing.is_approved}
+              onValueChange={(v) => handleValueChange("is_approved", v)}
+            />
+          </View>
+          <View style={styles.switchRow}>
+            <Text style={styles.text}>Active</Text>
+            <Switch
+              value={editedListing.is_active}
+              onValueChange={(v) => handleValueChange("is_active", v)}
+            />
+          </View>
+          <View style={styles.switchRow}>
+            <Text style={styles.text}>Featured</Text>
+            <Switch
+              value={editedListing.is_featured ?? false}
+              onValueChange={(v) => handleValueChange("is_featured", v)}
+            />
+          </View>
+        </View>
+
         <Pressable
-          style={[styles.button, styles.approveButton]}
-          onPress={handleApprove}
+          style={[styles.button, styles.saveButton]}
+          onPress={handleSaveChanges}
+          disabled={isSaving}
         >
-          <Text style={styles.buttonText}>Approve Now</Text>
+          <Text style={styles.buttonText}>
+            {isSaving ? "Saving..." : "Save Changes"}
+          </Text>
         </Pressable>
-      )}
 
-      <Pressable
-        style={[styles.button, styles.deleteButton]}
-        onPress={handleDelete}
-      >
-        <Text style={styles.buttonText}>Delete Listing</Text>
-      </Pressable>
-    </ScrollView>
+        {!editedListing.is_approved && (
+          <Pressable
+            style={[styles.button, styles.approveButton]}
+            onPress={handleApprove}
+          >
+            <Text style={styles.buttonText}>Approve Now</Text>
+          </Pressable>
+        )}
+
+        <Pressable
+          style={[styles.button, styles.deleteButton]}
+          onPress={handleDelete}
+        >
+          <Text style={styles.buttonText}>Delete Listing</Text>
+        </Pressable>
+      </ScrollView>
+    </GestureHandlerRootView>
   );
 };
 

@@ -24,6 +24,7 @@ const COLORS = {
   success: "#28a745",
 };
 
+
 const CarDetailScreen = () => {
   const { id } = useLocalSearchParams();
   const [car, setCar] = useState<any | null>(null); // Use 'any' for now to match API response
