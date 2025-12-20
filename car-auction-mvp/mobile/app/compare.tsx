@@ -29,9 +29,9 @@ const ComparisonCard = ({
   bestValues: any;
 }) => {
   const router = useRouter();
-  const isBestPrice = bestValues.price.ids.includes(car.id);
-  const isBestYear = bestValues.year.ids.includes(car.id);
-  const isBestMileage = bestValues.mileage.ids.includes(car.id);
+  const isBestPrice = bestValues.price.ids.includes(Number(car.id));
+  const isBestYear = bestValues.year.ids.includes(Number(car.id));
+  const isBestMileage = bestValues.mileage.ids.includes(Number(car.id));
 
   return (
     <View style={styles.comparisonCard}>

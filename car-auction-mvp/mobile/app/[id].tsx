@@ -136,18 +136,28 @@ const CarDetailScreen = () => {
                   backgroundColor:
                     car.listing_type === "sale"
                       ? COLORS.success
+                      : car.listing_type === "rental"
+                      ? COLORS.accent
                       : COLORS.accent,
                 },
               ]}
             >
-              {car.listing_type === "sale" ? "For Sale" : "Auction"}
+              {car.listing_type === "sale"
+                ? "For Sale"
+                : car.listing_type === "rental"
+                ? "For Rent"
+                : "Auction"}
             </Text>
           </View>
 
           {/* Conditional UI for Sale vs Auction */}
-          {car.listing_type === "sale" ? (
+          {car.listing_type === "sale" || car.listing_type === "rental" ? (
             <View style={styles.priceBox}>
-              <Text style={styles.priceLabel}>Fixed Price</Text>
+              <Text style={styles.priceLabel}>
+                {car.listing_type === "rental"
+                  ? "Price Per Day"
+                  : "Fixed Price"}
+              </Text>
               <Text style={styles.priceValue}>{car.price_display}</Text>
             </View>
           ) : (

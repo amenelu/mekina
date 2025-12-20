@@ -42,12 +42,7 @@ const RentalCard = ({ item }: { item: RentalVehicle }) => {
   return (
     <Pressable
       style={styles.rentalCard}
-      onPress={() =>
-        router.push({
-          pathname: "/rentals/[id]",
-          params: { id: item.id.toString() }, // The detail page expects the car ID
-        })
-      }
+      onPress={() => router.push(`/${item.id}`)}
     >
       <ImageBackground
         source={{ uri: item.image_url }}

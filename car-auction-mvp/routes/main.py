@@ -418,7 +418,10 @@ def api_car_detail(car_id):
 
     car_data = car.to_dict(include_owner=True)
     # Manually add the price_display field for consistency with other endpoints
-    car_data["price_display"] = car.get_price_display()
+    if car.listing_type == "rental" and car.rental_listing:
+        car_data["price_display"] = f"{car.rental_listing.price_per_day:,.0f} ETB/day"
+    else:
+        car_data["price_display"] = car.get_price_display()
 
     return jsonify(
         car=car_data,
