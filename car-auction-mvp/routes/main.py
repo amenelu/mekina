@@ -423,9 +423,19 @@ def api_car_detail(car_id):
     else:
         car_data["price_display"] = car.get_price_display()
 
+    similar_cars_data = []
+    for c in similar_cars:
+        c_dict = c.to_dict()
+        if c.listing_type == "rental" and c.rental_listing:
+            c_dict["price_display"] = f"{c.rental_listing.price_per_day:,.0f} ETB/day"
+        else:
+            c_dict["price_display"] = c.get_price_display()
+        c_dict["image_url"] = c_dict["primary_image_url"]
+        similar_cars_data.append(c_dict)
+
     return jsonify(
         car=car_data,
-        similar_cars=[c.to_dict() for c in similar_cars],
+        similar_cars=similar_cars_data,
         similarity_reason=similarity_reason,
     )
 

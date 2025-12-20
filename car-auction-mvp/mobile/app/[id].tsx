@@ -47,7 +47,19 @@ const CarDetailScreen = () => {
         const data = await response.json();
         if (data.car) {
           setCar(data.car);
-          setSimilarCars(data.similar_cars || []);
+          // Map similar cars to match Vehicle interface expected by VehicleCard
+          const mappedSimilarCars = (data.similar_cars || []).map(
+            (item: any) => ({
+              id: item.id,
+              year: item.year,
+              make: item.make,
+              model: item.model,
+              price: item.price_display,
+              image: item.image_url,
+              listingType: item.listing_type,
+            })
+          );
+          setSimilarCars(mappedSimilarCars);
           setMainImage(data.car.primary_image_url);
         }
       } catch (error) {
