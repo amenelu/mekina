@@ -9,10 +9,20 @@ import {
   ActivityIndicator,
   Alert,
   useWindowDimensions,
+  Modal,
+  TextInput,
+  KeyboardAvoidingView,
+  Platform,
 } from "react-native";
-import { useLocalSearchParams, Stack, useNavigation } from "expo-router";
+import {
+  useLocalSearchParams,
+  Stack,
+  useNavigation,
+  useRouter,
+} from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import VehicleCard, { Vehicle } from "./_components/VehicleCard";
+import axios from "axios";
 import API_BASE_URL from "@/constants/Api";
 import { useAuth } from "@/hooks/useAuth";
 const COLORS = {
@@ -33,7 +43,12 @@ const CarDetailScreen = () => {
   const [loading, setLoading] = useState(true);
   const navigation = useNavigation();
   const { width } = useWindowDimensions();
-  const { token } = useAuth();
+  const { token, user } = useAuth() as any;
+  const router = useRouter();
+
+  const [contactModalVisible, setContactModalVisible] = useState(false);
+  const [message, setMessage] = useState("");
+  const [sendingMessage, setSendingMessage] = useState(false);
 
   useEffect(() => {
     const fetchCarDetails = async () => {
@@ -109,6 +124,69 @@ const CarDetailScreen = () => {
     ...Array(4).fill("https://via.placeholder.com/100"),
   ];
 
+  const handleContactSeller = async () => {
+    if (!token) {
+      Alert.alert("Login Required", "Please log in to contact the seller.", [
+        { text: "Cancel", style: "cancel" },
+        { text: "Login", onPress: () => router.push("/login") },
+      ]);
+      return;
+    }
+
+    if (car.owner?.id === user?.id) {
+      Alert.alert("Info", "You cannot contact yourself.");
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const response = await axios.get(`${API_BASE_URL}/chat/history/${id}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      if (response.data.conversation_id) {
+        router.push(`/messages/${response.data.conversation_id}`);
+      } else {
+        setContactModalVisible(true);
+      }
+    } catch (error) {
+      console.error(error);
+      Alert.alert("Error", "Failed to check chat history.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const sendMessage = async () => {
+    if (!message.trim()) return;
+    setSendingMessage(true);
+    try {
+      await axios.post(
+        `${API_BASE_URL}/chat/send`,
+        { car_id: id, message: message },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      // After sending, check history again to get the new conversation ID and navigate
+      const response = await axios.get(`${API_BASE_URL}/chat/history/${id}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      setContactModalVisible(false);
+      setMessage("");
+
+      if (response.data.conversation_id) {
+        router.push(`/messages/${response.data.conversation_id}`);
+      } else {
+        Alert.alert("Success", "Message sent!");
+      }
+    } catch (error) {
+      console.error(error);
+      Alert.alert("Error", "Failed to send message.");
+    } finally {
+      setSendingMessage(false);
+    }
+  };
+
   return (
     <>
       <Stack.Screen />
@@ -161,6 +239,39 @@ const CarDetailScreen = () => {
                 : "Auction"}
             </Text>
           </View>
+
+          {car.owner && (
+            <Pressable
+              style={styles.dealerRow}
+              onPress={() => {
+                if (car.owner.is_dealer) {
+                  router.push(`/(details)/dealers/public/${car.owner.id}`);
+                }
+              }}
+              disabled={!car.owner.is_dealer}
+            >
+              <Text style={styles.dealerText}>
+                Listed by{" "}
+                <Text
+                  style={
+                    car.owner.is_dealer
+                      ? styles.dealerName
+                      : { color: COLORS.foreground }
+                  }
+                >
+                  {car.owner.username}
+                </Text>
+              </Text>
+              {car.owner.is_dealer && (
+                <Ionicons
+                  name="chevron-forward"
+                  size={14}
+                  color={COLORS.mutedForeground}
+                  style={{ marginLeft: 4 }}
+                />
+              )}
+            </Pressable>
+          )}
 
           {/* Conditional UI for Sale vs Auction */}
           {car.listing_type === "sale" || car.listing_type === "rental" ? (
@@ -231,11 +342,59 @@ const CarDetailScreen = () => {
       </ScrollView>
       {/* Floating Action Button */}
       <View style={styles.footer}>
-        <Pressable style={styles.contactButton}>
+        <Pressable style={styles.contactButton} onPress={handleContactSeller}>
           <Ionicons name="chatbubbles-outline" size={20} color="#fff" />
           <Text style={styles.contactButtonText}>Contact Seller</Text>
         </Pressable>
       </View>
+
+      {/* Contact Seller Modal */}
+      <Modal
+        animationType="slide"
+        transparent={true}
+        visible={contactModalVisible}
+        onRequestClose={() => setContactModalVisible(false)}
+      >
+        <KeyboardAvoidingView
+          behavior={Platform.OS === "ios" ? "padding" : "height"}
+          style={styles.modalOverlay}
+        >
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Contact Seller</Text>
+            <Text style={styles.modalSubtitle}>
+              Start a conversation about this {car.year} {car.make} {car.model}.
+            </Text>
+            <TextInput
+              style={styles.messageInput}
+              placeholder="Hi, is this still available?"
+              placeholderTextColor={COLORS.mutedForeground}
+              multiline
+              numberOfLines={4}
+              value={message}
+              onChangeText={setMessage}
+            />
+            <View style={styles.modalButtons}>
+              <Pressable
+                style={[styles.modalButton, styles.cancelButton]}
+                onPress={() => setContactModalVisible(false)}
+              >
+                <Text style={styles.cancelButtonText}>Cancel</Text>
+              </Pressable>
+              <Pressable
+                style={[styles.modalButton, styles.sendButton]}
+                onPress={sendMessage}
+                disabled={sendingMessage}
+              >
+                {sendingMessage ? (
+                  <ActivityIndicator color="#fff" size="small" />
+                ) : (
+                  <Text style={styles.sendButtonText}>Send</Text>
+                )}
+              </Pressable>
+            </View>
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
     </>
   );
 };
@@ -299,6 +458,19 @@ const styles = StyleSheet.create({
     color: COLORS.foreground,
     flex: 1,
     marginRight: 10,
+  },
+  dealerRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 15,
+  },
+  dealerText: {
+    color: COLORS.mutedForeground,
+    fontSize: 14,
+  },
+  dealerName: {
+    color: COLORS.accent,
+    fontWeight: "bold",
   },
   listingTypeTag: {
     color: "#fff",
@@ -398,6 +570,63 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: "bold",
     marginLeft: 10,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.5)",
+    justifyContent: "center",
+    padding: 20,
+  },
+  modalContent: {
+    backgroundColor: COLORS.card,
+    borderRadius: 12,
+    padding: 20,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: "bold",
+    color: COLORS.foreground,
+    marginBottom: 10,
+  },
+  modalSubtitle: {
+    fontSize: 14,
+    color: COLORS.mutedForeground,
+    marginBottom: 15,
+  },
+  messageInput: {
+    backgroundColor: COLORS.background,
+    color: COLORS.foreground,
+    borderRadius: 8,
+    padding: 12,
+    height: 100,
+    textAlignVertical: "top",
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+  },
+  modalButtons: {
+    flexDirection: "row",
+    justifyContent: "flex-end",
+    gap: 10,
+  },
+  modalButton: {
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderRadius: 8,
+  },
+  cancelButton: {
+    backgroundColor: COLORS.border,
+  },
+  sendButton: {
+    backgroundColor: COLORS.accent,
+  },
+  cancelButtonText: {
+    color: COLORS.foreground,
+    fontWeight: "600",
+  },
+  sendButtonText: {
+    color: "#fff",
+    fontWeight: "600",
   },
   similarSection: {
     marginTop: 20,

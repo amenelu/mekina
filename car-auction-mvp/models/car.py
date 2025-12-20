@@ -135,7 +135,11 @@ class Car(db.Model):
             }
 
         if include_owner and self.owner:
-            car_dict["owner"] = {"id": self.owner.id, "username": self.owner.username}
+            car_dict["owner"] = {
+                "id": self.owner.id,
+                "username": self.owner.username,
+                "is_dealer": self.owner.is_dealer,
+            }
         return car_dict
 
     def __repr__(self):
