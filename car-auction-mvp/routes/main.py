@@ -163,19 +163,32 @@ def notifications():
 
 
 @main_bp.route("/api/notifications")
-@login_required
 def api_notifications():
     """API endpoint to get user notifications and mark them as read."""
+    user = None
+    if "Authorization" in request.headers:
+        try:
+            token = request.headers["Authorization"].split(" ")[1]
+            user = verify_jwt(token)
+        except (IndexError, ValueError):
+            pass
+
+    if not user and current_user.is_authenticated:
+        user = current_user
+
+    if not user:
+        return jsonify({"error": "Unauthorized"}), 401
+
     # This endpoint both fetches and marks as read, simplifying client logic.
     unread_notifications = Notification.query.filter_by(
-        user_id=current_user.id, is_read=False
+        user_id=user.id, is_read=False
     ).all()
     for notification in unread_notifications:
         notification.is_read = True
     db.session.commit()
 
     all_notifications = (
-        Notification.query.filter_by(user_id=current_user.id)
+        Notification.query.filter_by(user_id=user.id)
         .order_by(Notification.timestamp.desc())
         .limit(50)
         .all()

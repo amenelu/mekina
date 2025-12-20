@@ -1,6 +1,17 @@
-import React from "react";
-import { View, Text, StyleSheet, ScrollView, Pressable } from "react-native";
-import { Link } from "expo-router";
+import React, { useState, useCallback } from "react";
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  Pressable,
+  ActivityIndicator,
+  RefreshControl,
+} from "react-native";
+import { Link, Stack, useFocusEffect } from "expo-router";
+import { useAuth } from "@/hooks/useAuth";
+import axios from "axios";
+import API_URL from "@/constants/Api";
 
 const COLORS = {
   background: "#14181F",
@@ -11,79 +22,128 @@ const COLORS = {
   border: "#313843",
 };
 
-// Mock data based on notifications.html
-const mockNotifications = [
-  {
-    id: "1",
-    message:
-      "A dealer has placed an offer on your request for a 'Toyota RAV4'.",
-    timestamp: "Oct 28, 2023 14:30",
-    is_read: false,
-    link: "/my-requests", // Example link
-  },
-  {
-    id: "2",
-    message: "Your auction for the '2021 Volkswagen ID.4' has ended.",
-    timestamp: "Oct 27, 2023 18:00",
-    is_read: true,
-    link: "/1", // Example link to a car detail page
-  },
-  {
-    id: "3",
-    message:
-      "A new message received from 'Prestige Auto' regarding your inquiry.",
-    timestamp: "Oct 27, 2023 11:15",
-    is_read: true,
-    link: "/messages/conv1", // Example link to a conversation
-  },
-  {
-    id: "4",
-    message: "Welcome to Mekina! Your account has been successfully created.",
-    timestamp: "Oct 26, 2023 09:00",
-    is_read: true,
-    link: null,
-  },
-];
+interface Notification {
+  id: number;
+  message: string;
+  timestamp: string;
+  is_read: boolean;
+  link?: string | null;
+}
 
-const NotificationItem = ({
-  notification,
-}: {
-  notification: (typeof mockNotifications)[0];
-}) => (
-  <View
-    style={[styles.notificationItem, !notification.is_read && styles.unread]}
-  >
-    <View style={styles.notificationContent}>
-      <Text style={styles.notificationText}>{notification.message}</Text>
-      <Text style={styles.notificationTime}>{notification.timestamp}</Text>
+const getMobileRoute = (webLink: string | null) => {
+  if (!webLink) return null;
+
+  // Handle Requests: /requests/123 -> /request/123
+  if (webLink.includes("/requests/") && !webLink.includes("/deal/")) {
+    const match = webLink.match(/\/requests\/(\d+)/);
+    if (match) return `/request/${match[1]}`;
+  }
+
+  // Handle Messages: /my-messages/123 -> /messages/123
+  if (webLink.includes("/my-messages/")) {
+    const match = webLink.match(/\/my-messages\/(\d+)/);
+    if (match) return `/messages/${match[1]}`;
+  }
+
+  // Handle Dealer Messages: /dealer/messages/123 -> /messages/123
+  if (webLink.includes("/dealer/messages/")) {
+    const match = webLink.match(/\/dealer\/messages\/(\d+)/);
+    if (match) return `/messages/${match[1]}`;
+  }
+
+  // Handle Deals: /requests/deal/123 -> /deal/123
+  if (webLink.includes("/deal/")) {
+    const match = webLink.match(/\/deal\/(\d+)/);
+    if (match) return `/deal/${match[1]}`;
+  }
+
+  return null;
+};
+
+const NotificationItem = ({ notification }: { notification: Notification }) => {
+  const mobileLink = getMobileRoute(notification.link || null);
+
+  return (
+    <View
+      style={[styles.notificationItem, !notification.is_read && styles.unread]}
+    >
+      <View style={styles.notificationContent}>
+        <Text style={styles.notificationText}>{notification.message}</Text>
+        <Text style={styles.notificationTime}>
+          {new Date(notification.timestamp).toLocaleString()}
+        </Text>
+      </View>
+      {mobileLink && (
+        <Link href={mobileLink as any} asChild>
+          <Pressable style={styles.notificationAction}>
+            <Text style={styles.viewText}>View</Text>
+          </Pressable>
+        </Link>
+      )}
     </View>
-    {notification.link && (
-      <Link href={notification.link as any} asChild>
-        <Pressable style={styles.notificationAction}>
-          <Text style={styles.viewText}>View</Text>
-        </Pressable>
-      </Link>
-    )}
-  </View>
-);
+  );
+};
 
 const NotificationsScreen = () => {
+  const { token } = useAuth();
+  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+
+  const fetchNotifications = async () => {
+    if (!token) return;
+    try {
+      const response = await axios.get(`${API_URL}/api/notifications`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setNotifications(response.data.notifications);
+    } catch (error) {
+      console.error("Failed to fetch notifications:", error);
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  };
+
+  useFocusEffect(
+    useCallback(() => {
+      fetchNotifications();
+    }, [token])
+  );
+
+  const onRefresh = () => {
+    setRefreshing(true);
+    fetchNotifications();
+  };
+
   return (
-    <ScrollView style={styles.container}>
-      <View style={styles.content}>
-        <View style={styles.notificationList}>
-          {mockNotifications.length > 0 ? (
-            mockNotifications.map((item) => (
-              <NotificationItem key={item.id} notification={item} />
-            ))
-          ) : (
-            <Text style={styles.noItemsText}>
-              You have no notifications yet.
-            </Text>
-          )}
+    <>
+      <Stack.Screen
+        options={{ title: "Notifications", headerTitleAlign: "left" }}
+      />
+      <ScrollView
+        style={styles.container}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        }
+      >
+        <View style={styles.content}>
+          <View style={styles.notificationList}>
+            {loading && !refreshing ? (
+              <ActivityIndicator size="large" color={COLORS.accent} />
+            ) : notifications.length > 0 ? (
+              notifications.map((item) => (
+                <NotificationItem key={item.id} notification={item} />
+              ))
+            ) : (
+              <Text style={styles.noItemsText}>
+                You have no notifications yet.
+              </Text>
+            )}
+          </View>
         </View>
-      </View>
-    </ScrollView>
+      </ScrollView>
+    </>
   );
 };
 

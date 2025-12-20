@@ -201,7 +201,9 @@ const MyRequestsScreen = () => {
 
   return (
     <>
-      <Stack.Screen options={{ title: "My Requests" }} />
+      <Stack.Screen
+        options={{ title: "My Requests", headerTitleAlign: "left" }}
+      />
       <ScrollView
         style={styles.container}
         refreshControl={
@@ -209,7 +211,6 @@ const MyRequestsScreen = () => {
         }
       >
         <View style={styles.header}>
-          <Text style={styles.headerTitle}>My Car Requests</Text>
           <Text style={styles.headerSubtitle}>
             Here are the requests you've submitted. Click "View Offers" to see
             bids from our dealer network.

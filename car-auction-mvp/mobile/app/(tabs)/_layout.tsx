@@ -127,6 +127,7 @@ export default function TabsLayout() {
         options={{
           title: "My Requests",
           headerTitle: "My Requests",
+          headerTitleAlign: "left",
           tabBarIcon: ({ color }) => (
             <Ionicons name="person-circle" size={24} color={color} />
           ),
@@ -144,6 +145,7 @@ export default function TabsLayout() {
         options={{
           title: "Notifications",
           headerTitle: "Notifications",
+          headerTitleAlign: "left",
           tabBarIcon: ({ color }) => (
             <Ionicons name="notifications" size={24} color={color} />
           ),
