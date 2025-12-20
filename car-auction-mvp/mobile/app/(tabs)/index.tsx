@@ -9,6 +9,7 @@ import {
   Image,
   FlatList,
   ActivityIndicator,
+  RefreshControl,
 } from "react-native";
 import { useRouter, useNavigation } from "expo-router";
 import { useScrollToTop } from "@react-navigation/native";
@@ -25,72 +26,6 @@ const quickFilters = [
   { label: "Hybrid", value: "Hybrid" },
   { label: "SUV", value: "SUV" },
   { label: "Sedan", value: "Sedan" },
-];
-
-const featuredCars = [
-  {
-    id: "1",
-    make: "Toyota",
-    model: "RAV4",
-    year: 2023,
-    price: "3,500,000 ETB",
-    type: "For Sale",
-    image:
-      "https://imgs.search.brave.com/ovSqY64xh9cfSufhgUjn_OinRyzlpcflAXF1s5VT7yE/rs:fit:860:0:0:0/g:ce/aHR0cHM6Ly9wbGF0/Zm9ybS5jc3RhdGlj/LWltYWdlcy5jb20v/bGFyZ2UvaW4vdjIv/YTQzNjFjZDctMGNj/MC01ZWI3LThkZGEt/NjNkYzljYmY3YTZh/LzI3MjI2YTNiLWY1/Y2QtNGMzOS05MTMz/LTdiNzA2NjQ2NjNh/Ny94QS1Tc0pRYWpn/TWRIeXVhNS1vbGlp/UzJ5VFkuanBn",
-  },
-  {
-    id: "2",
-    make: "Ford",
-    model: "Mustang Mach-E",
-    year: 2024,
-    price: "Current Bid: 4,200,000 ETB",
-    type: "For sale",
-    image:
-      "https://imgs.search.brave.com/ooRdlylf1TT_2eGNUXFQKfrsQzAbV7L_aInHnYj4oCs/rs:fit:860:0:0:0/g:ce/aHR0cHM6Ly9tZWRp/YS5nZXR0eWltYWdl/cy5jb20vaWQvMTM2/Mzg4Njg3Ni9waG90/by9mb3JkLW11c3Rh/bmctbWFjaC1lLWd0/LW9uLWEtc3RyZWV0/LmpwZz9zPTYxMng2/MTImdz0wJms9MjAm/Yz1OZ3JSVkpaMFdT/MW1WOF85NWcwSlVj/cnc1YkZDRTFVRVVr/SVp4VEROVzFZPQ",
-  },
-];
-
-const allVehicles: Vehicle[] = [
-  {
-    id: "101",
-    year: 2022,
-    make: "Hyundai",
-    model: "Ioniq 5",
-    price: "3,800,000 ETB",
-    image: "https://via.placeholder.com/300x200.png/1C212B/FFFFFF?text=Ioniq+5",
-    mileage: 25000,
-    listingType: "Sale",
-  },
-  {
-    id: "102",
-    year: 2021,
-    make: "Volkswagen",
-    model: "ID.4",
-    price: "Current Bid: 3,100,000 ETB",
-    image: "https://via.placeholder.com/300x200.png/1C212B/FFFFFF?text=ID.4",
-    mileage: 45000,
-    listingType: "Sale",
-  },
-  {
-    id: "103",
-    year: 2023,
-    make: "BYD",
-    model: "Atto 3",
-    price: "2,950,000 ETB",
-    image: "https://via.placeholder.com/300x200.png/1C212B/FFFFFF?text=Atto+3",
-    mileage: 15000,
-    listingType: "Sale",
-  },
-  {
-    id: "104",
-    year: 2020,
-    make: "Mercedes-Benz",
-    model: "EQC",
-    price: "Current Bid: 4,500,000 ETB",
-    image: "https://via.placeholder.com/300x200.png/1C212B/FFFFFF?text=EQC",
-    mileage: 60000,
-    listingType: "Auction",
-  },
 ];
 
 const trustStats = [
@@ -119,6 +54,9 @@ const HomeScreen = () => {
   const [searchResults, setSearchResults] = useState<Vehicle[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [activeFilter, setActiveFilter] = useState("");
+  const [featuredVehicles, setFeaturedVehicles] = useState<Vehicle[]>([]);
+  const [recentVehicles, setRecentVehicles] = useState<Vehicle[]>([]);
+  const [refreshing, setRefreshing] = useState(false);
 
   useEffect(() => {
     const delayDebounceFn = setTimeout(async () => {
@@ -163,6 +101,71 @@ const HomeScreen = () => {
     return () => clearTimeout(delayDebounceFn);
   }, [searchQuery, activeFilter]);
 
+  const fetchHomeData = async () => {
+    try {
+      const [featuredRes, recentRes] = await Promise.all([
+        fetch(`${API_URL}/api/home`),
+        fetch(`${API_URL}/api/listings`),
+      ]);
+
+      const featuredData = await featuredRes.json();
+      const recentData = await recentRes.json();
+
+      if (featuredData.featured_cars) {
+        setFeaturedVehicles(
+          featuredData.featured_cars.map((item: any) => {
+            let price = "N/A";
+            if (item.listing_type === "sale" && item.fixed_price) {
+              price = `${item.fixed_price.toLocaleString()} ETB`;
+            } else if (
+              item.listing_type === "auction" &&
+              item.auction_details
+            ) {
+              price = `Current Bid: ${item.auction_details.current_price.toLocaleString()} ETB`;
+            }
+            return {
+              id: item.id.toString(),
+              year: item.year,
+              make: item.make,
+              model: item.model,
+              price: price,
+              image: item.primary_image_url,
+              mileage: item.mileage || 0,
+              listingType: item.listing_type,
+            };
+          })
+        );
+      }
+
+      if (Array.isArray(recentData)) {
+        setRecentVehicles(
+          recentData.slice(0, 4).map((item: any) => ({
+            id: item.id.toString(),
+            year: item.year,
+            make: item.make,
+            model: item.model,
+            price: item.price_display || "N/A",
+            image: item.image_url,
+            mileage: item.mileage || 0,
+            listingType: item.listing_type,
+          }))
+        );
+      }
+    } catch (error) {
+      console.error("Failed to fetch home data:", error);
+    }
+  };
+
+  useEffect(() => {
+    fetchHomeData();
+  }, []);
+
+  const onRefresh = React.useCallback(async () => {
+    setRefreshing(true);
+    await fetchHomeData();
+    setRefreshing(false);
+  }, []);
+
   const handleSearch = () => {
     if (searchQuery.trim()) {
       router.push({
@@ -192,6 +195,13 @@ const HomeScreen = () => {
       ref={ref}
       style={styles.container}
       contentContainerStyle={styles.contentContainer}
+      refreshControl={
+        <RefreshControl
+          refreshing={refreshing}
+          onRefresh={onRefresh}
+          tintColor={COLORS.accent}
+        />
+      }
     >
       {/* --- Search Hero Section --- */}
       <View style={styles.searchHero}>
@@ -309,7 +319,7 @@ const HomeScreen = () => {
         <Text style={styles.sectionTitle}>Featured Vehicles</Text>
         <FlatList
           horizontal
-          data={featuredCars}
+          data={featuredVehicles}
           renderItem={({ item }) => (
             <Pressable
               style={styles.featuredCard}
@@ -340,7 +350,7 @@ const HomeScreen = () => {
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>All Vehicles for Sale</Text>
         <View style={styles.vehicleGrid}>
-          {allVehicles.map((item) => (
+          {recentVehicles.map((item) => (
             <VehicleCard key={item.id} item={item} />
           ))}
         </View>

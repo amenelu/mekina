@@ -434,7 +434,11 @@ def _get_comparison_data(car_ids):
     # Use joinedload to prevent the N+1 query problem when to_dict() is called.
     # This fetches cars and their related images/auctions in a more efficient query.
     cars = (
-        Car.query.options(joinedload(Car.images), joinedload(Car.auction))
+        Car.query.options(
+            joinedload(Car.images),
+            joinedload(Car.auction),
+            joinedload(Car.rental_listing),
+        )
         .filter(Car.id.in_(car_ids))
         .all()
     )
@@ -449,17 +453,26 @@ def _get_comparison_data(car_ids):
 
     if sorted_cars:
         for car in sorted_cars:
-            price = (
-                car.fixed_price
-                if car.listing_type == "sale"
-                else (car.auction.current_price if car.auction else float("inf"))
-            )
-            car.display_price = price  # Attach for easy access in web template
+            price = float("inf")
+            if car.listing_type == "sale":
+                price = car.fixed_price
+            elif car.listing_type == "auction" and car.auction:
+                price = car.auction.current_price
+            elif car.listing_type == "rental" and car.rental_listing:
+                price = car.rental_listing.price_per_day
 
-            if price < best_values["price"]["value"]:
-                best_values["price"]["value"] = price
+            # Ensure price is comparable (treat None as infinity)
+            compare_price = price if price is not None else float("inf")
+            car.display_price = (
+                price if price != float("inf") else None
+            )  # Attach for easy access in web template
+
+            if compare_price < best_values["price"]["value"]:
+                best_values["price"]["value"] = compare_price
                 best_values["price"]["ids"] = [car.id]
-            elif price == best_values["price"]["value"]:
+            elif compare_price == best_values["price"][
+                "value"
+            ] and compare_price != float("inf"):
                 best_values["price"]["ids"].append(car.id)
 
             mileage = car.mileage if car.mileage is not None else float("inf")
@@ -492,11 +505,28 @@ def api_compare():
 
     sorted_cars, best_values = _get_comparison_data(car_ids)
 
+    # Sanitize best_values to remove Infinity, which breaks JSON parsing on mobile
+    for key, data in best_values.items():
+        if data["value"] == float("inf") or data["value"] == float("-inf"):
+            data["value"] = None
+            data["ids"] = []  # Clear IDs if no valid best value exists
+
     # Manually add the price_display to each car's dictionary without altering the model.
     cars_data = []
     for car in sorted_cars:
         car_dict = car.to_dict()
         car_dict["price_display"] = car.get_price_display()
+        car_dict["image_url"] = car_dict["primary_image_url"]
+
+        # Add flags to help frontend highlight best values
+        car_dict["is_best_price"] = car.id in best_values["price"]["ids"]
+        car_dict["is_best_offer"] = car_dict[
+            "is_best_price"
+        ]  # Alias for frontend convenience
+        car_dict["is_best_value"] = car_dict["is_best_price"]
+        car_dict["is_best_mileage"] = car.id in best_values["mileage"]["ids"]
+        car_dict["is_best_year"] = car.id in best_values["year"]["ids"]
+
         cars_data.append(car_dict)
 
     return jsonify(cars=cars_data, best_values=best_values)
@@ -595,6 +625,21 @@ def compare():
         return redirect(url_for("main.all_listings"))
 
     sorted_cars, best_values = _get_comparison_data(car_ids)
+
+    # Sanitize best_values to ensure we don't highlight invalid values (like Infinity)
+    for key, data in best_values.items():
+        if data["value"] == float("inf") or data["value"] == float("-inf"):
+            data["value"] = None
+            data["ids"] = []
+
+    # Inject flags into car objects for easier template rendering
+    for car in sorted_cars:
+        car.is_best_price = car.id in best_values["price"]["ids"]
+        car.is_best_offer = car.is_best_price  # Alias
+        car.is_best_value = car.is_best_price
+        car.is_best_mileage = car.id in best_values["mileage"]["ids"]
+        car.is_best_year = car.id in best_values["year"]["ids"]
+
     return render_template("compare.html", cars=sorted_cars, best_values=best_values)
 
 

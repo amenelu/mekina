@@ -64,6 +64,10 @@ export default function RootLayout() {
         options={{ headerShown: false, title: "", headerBackTitle: "" }}
       />
       <Stack.Screen name="(auth)" options={{ headerShown: false }} />
+      <Stack.Screen
+        name="compare"
+        options={{ presentation: "modal", title: "Compare Vehicles" }}
+      />
     </Stack>
   );
 }
