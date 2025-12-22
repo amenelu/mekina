@@ -63,6 +63,18 @@ const getMobileRoute = (webLink: string | null) => {
 const NotificationItem = ({ notification }: { notification: Notification }) => {
   const mobileLink = getMobileRoute(notification.link || null);
 
+  const formatTime = (timestamp: string) => {
+    if (!timestamp) return "";
+    try {
+      const date = new Date(timestamp);
+      if (isNaN(date.getTime())) return "";
+      const dateString = date.toLocaleString();
+      return dateString === "Invalid Date" ? "" : dateString;
+    } catch (e) {
+      return "";
+    }
+  };
+
   return (
     <View
       style={[styles.notificationItem, !notification.is_read && styles.unread]}
@@ -70,7 +82,7 @@ const NotificationItem = ({ notification }: { notification: Notification }) => {
       <View style={styles.notificationContent}>
         <Text style={styles.notificationText}>{notification.message}</Text>
         <Text style={styles.notificationTime}>
-          {new Date(notification.timestamp).toLocaleString()}
+          {formatTime(notification.timestamp)}
         </Text>
       </View>
       {mobileLink && (

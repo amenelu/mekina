@@ -323,6 +323,14 @@ def api_dealer_dashboard(current_user):
         .all()
     )
 
+    # Fetch recent conversations using the robust to_dict method
+    recent_conversations = (
+        Conversation.query.filter_by(dealer_id=current_user.id)
+        .order_by(Conversation.created_at.desc())
+        .limit(5)  # Limit to a few recent ones for the dashboard
+        .all()
+    )
+
     return jsonify(
         requests=active_requests_data,
         my_cars=[car.to_dict() for car in my_cars],
@@ -330,45 +338,12 @@ def api_dealer_dashboard(current_user):
         unanswered_request_questions=[
             q.to_dict() for q in unanswered_request_questions
         ],
-        conversations=[
-            {
-                "id": conv.id,
-                "buyer": {"username": conv.buyer.username},
-                "car": {
-                    "year": conv.car.year,
-                    "make": conv.car.make,
-                    "model": conv.car.model,
-                },
-                "created_at": conv.created_at.isoformat() + "Z",
-            }
-            for conv in Conversation.query.filter_by(dealer_id=current_user.id)
-            .order_by(Conversation.created_at.desc())
-            .all()
-        ],
+        conversations=[conv.to_dict(current_user.id) for conv in recent_conversations],
         now=datetime.utcnow().isoformat() + "Z",
         user_points=current_user.points,
         pending_approval_count=len(pending_approvals),
         pending_approvals=[car.to_dict() for car in pending_approvals],
     )
-
-
-@dealer_bp.route("/messages")
-@login_required
-@dealer_required
-def list_messages():
-    """Lists all conversations for the dealer."""
-    # Use joinedload to efficiently fetch the related lead_score, buyer, and car objects
-    conversations = (
-        Conversation.query.options(
-            db.joinedload(Conversation.lead_score),
-            db.joinedload(Conversation.buyer),
-            db.joinedload(Conversation.car),
-        )
-        .filter_by(dealer_id=current_user.id)
-        .order_by(Conversation.created_at.desc())
-        .all()
-    )
-    return render_template("dealer_messages.html", conversations=conversations)
 
 
 @dealer_bp.route("/api/dealers/<int:dealer_id>/profile")
@@ -399,6 +374,25 @@ def api_dealer_profile(dealer_id):
         avg_rating=round(avg_rating, 2),
         review_count=len(ratings),
     )
+
+
+@dealer_bp.route("/messages")
+@login_required
+@dealer_required
+def list_messages():
+    """Lists all conversations for the dealer."""
+    # Use joinedload to efficiently fetch the related lead_score, buyer, and car objects
+    conversations = (
+        Conversation.query.options(
+            db.joinedload(Conversation.lead_score),
+            db.joinedload(Conversation.buyer),
+            db.joinedload(Conversation.car),
+        )
+        .filter_by(dealer_id=current_user.id)
+        .order_by(Conversation.created_at.desc())
+        .all()
+    )
+    return render_template("dealer_messages.html", conversations=conversations)
 
 
 @dealer_bp.route("/profile/<int:dealer_id>")
@@ -455,26 +449,6 @@ def toggle_verification(dealer_id):
     return redirect(url_for("dealer.profile", dealer_id=dealer.id))
 
 
-@dealer_bp.route("/messages/<int:conversation_id>", methods=["GET", "POST"])
-@login_required
-@dealer_required
-def view_conversation(conversation_id):
-    """Displays a single conversation and allows the dealer to reply."""
-    conversation = Conversation.query.get_or_404(conversation_id)
-
-    # Security check: ensure dealer is part of this conversation
-    if conversation.dealer_id != current_user.id:
-        abort(403)
-
-    # The logic to mark messages as read is now handled by the API endpoint.
-
-    return render_template(
-        "dealer_conversation_detail.html",
-        conversation=conversation,
-        ChatMessage=ChatMessage,
-    )
-
-
 @dealer_bp.route("/api/messages/<int:conversation_id>/unlock", methods=["POST"])
 @login_required
 @dealer_required
@@ -521,6 +495,22 @@ def api_unlock_conversation(conversation_id):
         ),
         200,
     )
+
+
+@dealer_bp.route("/messages/<int:conversation_id>", methods=["GET", "POST"])
+@login_required
+@dealer_required
+def view_conversation(conversation_id):
+    """Displays a single conversation and allows the dealer to reply."""
+    conversation = Conversation.query.get_or_404(conversation_id)
+
+    # Security check: ensure dealer is part of this conversation
+    if conversation.dealer_id != current_user.id:
+        abort(403)
+
+    # The logic to mark messages as read is now handled by the API endpoint.
+
+    return render_template("dealer_conversation_detail.html", conversation=conversation)
 
 
 @dealer_bp.route("/messages/<int:conversation_id>/unlock", methods=["POST"])

@@ -38,6 +38,18 @@ interface CarRequest {
   type?: "buy" | "trade-in";
 }
 
+const formatDate = (dateString: string) => {
+  if (!dateString) return "";
+  try {
+    const date = new Date(dateString);
+    if (isNaN(date.getTime())) return "";
+    const result = date.toLocaleDateString();
+    return result === "Invalid Date" ? "" : result;
+  } catch {
+    return "";
+  }
+};
+
 const RequestCard = ({ request }: { request: CarRequest }) => {
   const router = useRouter();
   const statusColor =
@@ -90,7 +102,7 @@ const RequestCard = ({ request }: { request: CarRequest }) => {
         <View style={styles.footerStat}>
           <Text style={styles.footerLabel}>Submitted</Text>
           <Text style={styles.footerValue}>
-            {new Date(request.created_at).toLocaleDateString()}
+            {formatDate(request.created_at)}
           </Text>
         </View>
         <View style={styles.footerStat}>

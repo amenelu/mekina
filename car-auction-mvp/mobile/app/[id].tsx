@@ -159,12 +159,16 @@ const CarDetailScreen = () => {
 
   const sendMessage = async () => {
     if (!message.trim()) return;
+    if (!token) {
+      Alert.alert("Error", "Please log in to send a message.");
+      return;
+    }
     setSendingMessage(true);
     try {
       await axios.post(
         `${API_BASE_URL}/chat/send`,
         { car_id: id, message: message },
-        { headers: { Authorization: `Bearer ${token}` } }
+        { headers: { Authorization: `Bearer ${token.trim()}` } }
       );
       // After sending, check history again to get the new conversation ID and navigate
       const response = await axios.get(`${API_BASE_URL}/chat/history/${id}`, {
@@ -259,7 +263,7 @@ const CarDetailScreen = () => {
                       : { color: COLORS.foreground }
                   }
                 >
-                  {car.owner.username}
+                  {car.owner?.username}
                 </Text>
               </Text>
               {car.owner.is_dealer && (

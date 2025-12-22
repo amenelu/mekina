@@ -1,6 +1,7 @@
 import { Stack, useNavigationContainerRef } from "expo-router";
 import { useAuth } from "@/hooks/useAuth";
 import { getFocusedRouteNameFromRoute } from "@react-navigation/native";
+import { SocketProvider } from "../contexts/SocketContext";
 
 const COLORS = {
   background: "#14181F",
@@ -16,58 +17,60 @@ export default function RootLayout() {
   const { token } = useAuth();
 
   return (
-    <Stack
-      screenOptions={{
-        headerStyle: { backgroundColor: COLORS.card },
-        headerTintColor: COLORS.foreground,
-        headerTitleStyle: { color: COLORS.foreground },
-      }}
-    >
-      <Stack.Screen name="index" options={{ headerShown: false }} />
-      <Stack.Screen
-        name="(tabs)"
-        options={({ route }) => {
-          const routeName = getFocusedRouteNameFromRoute(route) ?? "Home";
-          const titles: Record<string, string> = {
-            index: "Home",
-            rentals: "Rentals",
-            request: "Find Car",
-            "my-requests": "My Requests",
-            notifications: "Notifications",
-          };
-          return {
-            headerTitle: titles[routeName] || "Mekina",
-            headerShown: false,
-          };
+    <SocketProvider>
+      <Stack
+        screenOptions={{
+          headerStyle: { backgroundColor: COLORS.card },
+          headerTintColor: COLORS.foreground,
+          headerTitleStyle: { color: COLORS.foreground },
         }}
-      />
-      <Stack.Screen
-        name="request/[id]"
-        options={{ title: "Request", headerBackTitle: "" }}
-      />
-      <Stack.Screen name="deal/[id]" options={{ title: "Deal Summary" }} />
-      <Stack.Screen
-        name="(details)/dealers/public/[id]"
-        options={{ presentation: "modal", title: "Dealer Profile" }}
-      />
-      <Stack.Screen
-        name="(details)/dealers/[id]"
-        options={{ headerShown: false }}
-      />
-      <Stack.Screen name="trade-in" options={{ headerShown: false }} />
-      <Stack.Screen
-        name="(admin)"
-        options={{ headerShown: false, title: "", headerBackTitle: "" }}
-      />
-      <Stack.Screen
-        name="(dealer)"
-        options={{ headerShown: false, title: "", headerBackTitle: "" }}
-      />
-      <Stack.Screen name="(auth)" options={{ headerShown: false }} />
-      <Stack.Screen
-        name="compare"
-        options={{ presentation: "modal", title: "Compare Vehicles" }}
-      />
-    </Stack>
+      >
+        <Stack.Screen name="index" options={{ headerShown: false }} />
+        <Stack.Screen
+          name="(tabs)"
+          options={({ route }) => {
+            const routeName = getFocusedRouteNameFromRoute(route) ?? "Home";
+            const titles: Record<string, string> = {
+              index: "Home",
+              rentals: "Rentals",
+              request: "Find Car",
+              "my-requests": "My Requests",
+              notifications: "Notifications",
+            };
+            return {
+              headerTitle: titles[routeName] || "Mekina",
+              headerShown: false,
+            };
+          }}
+        />
+        <Stack.Screen
+          name="request/[id]"
+          options={{ title: "Request", headerBackTitle: "" }}
+        />
+        <Stack.Screen name="deal/[id]" options={{ title: "Deal Summary" }} />
+        <Stack.Screen
+          name="(details)/dealers/public/[id]"
+          options={{ presentation: "modal", title: "Dealer Profile" }}
+        />
+        <Stack.Screen
+          name="(details)/dealers/[id]"
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen name="trade-in" options={{ headerShown: false }} />
+        <Stack.Screen
+          name="(admin)"
+          options={{ headerShown: false, title: "", headerBackTitle: "" }}
+        />
+        <Stack.Screen
+          name="(dealer)"
+          options={{ headerShown: false, title: "", headerBackTitle: "" }}
+        />
+        <Stack.Screen name="(auth)" options={{ headerShown: false }} />
+        <Stack.Screen
+          name="compare"
+          options={{ presentation: "modal", title: "Compare Vehicles" }}
+        />
+      </Stack>
+    </SocketProvider>
   );
 }

@@ -92,8 +92,9 @@ def token_required(f):
     def decorated(*args, **kwargs):
         print("\n--- @token_required decorator initiated ---")
         token = None
-        if "Authorization" in request.headers:
-            auth_header = request.headers["Authorization"]
+        # Use .get() to be safe and case-insensitive
+        auth_header = request.headers.get("Authorization")
+        if auth_header:
             print(f"Found Authorization header: {auth_header[:30]}...")
             try:
                 token = auth_header.split(" ")[1]
@@ -102,9 +103,11 @@ def token_required(f):
                     "Bearer token malformed in Authorization header."
                 )
                 return jsonify({"message": "Bearer token malformed."}), 401
+        else:
+            print(f"WARNING: Authorization header missing. Headers: {request.headers}")
 
         if not token:
-            print("ERROR: Token is missing from header.")
+            print("ERROR: Token is missing or empty.")
             return jsonify({"message": "Token is missing!"}), 401
 
         try:

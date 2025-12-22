@@ -61,20 +61,6 @@ def create_app(config_class=Config):
     def load_user(user_id):
         return User.query.get(int(user_id))
 
-    # --- SocketIO Event Handlers ---
-    @socketio.on("connect")
-    def handle_connect():
-        """When a user connects, add them to a room based on their user ID."""
-        if current_user.is_authenticated:
-            join_room(str(current_user.id))
-
-    @socketio.on("join_conversation")
-    def handle_join_conversation(data):
-        """When a user opens a chat, add them to a room for that conversation."""
-        conversation_id = data.get("conversation_id")
-        if conversation_id:
-            join_room(f"conversation_{conversation_id}")
-
     # Make 'now' available to all templates
     @app.context_processor
     def inject_now():

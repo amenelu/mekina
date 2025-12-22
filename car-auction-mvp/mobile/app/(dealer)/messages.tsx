@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from "react";
+import ConversationItem from "../_components/ConversationItem";
+
 import {
   View,
   Text,
@@ -20,26 +22,19 @@ const COLORS = {
 };
 
 interface Conversation {
-  id: number;
-  buyer: { username: string };
-  car: { year: number; make: string; model: string };
-  created_at: string;
+  id: number | string;
+  other_party: {
+    username: string;
+    is_dealer: boolean;
+  } | null;
+  car: {
+    year: number;
+    make: string;
+    model: string;
+  } | null;
+  last_message_body: string;
+  last_message_timestamp: string;
 }
-
-const MessageItem = ({ item }: { item: Conversation }) => (
-  <Pressable style={styles.itemCard}>
-    <Text style={styles.itemTitle}>Chat with {item.buyer.username}</Text>
-    <Text style={styles.itemSubtitle}>
-      Regarding: {item.car.year} {item.car.make} {item.car.model}
-    </Text>
-    <Text style={styles.itemNotes}>
-      Started on: {new Date(item.created_at).toLocaleDateString()}
-    </Text>
-    <View style={styles.viewChatButton}>
-      <Text style={styles.buttonText}>View Chat</Text>
-    </View>
-  </Pressable>
-);
 
 const MessagesScreen = () => {
   const { token } = useAuth();
@@ -74,7 +69,7 @@ const MessagesScreen = () => {
       </View>
       <FlatList
         data={conversations}
-        renderItem={({ item }) => <MessageItem item={item} />}
+        renderItem={({ item }) => <ConversationItem conv={item} />}
         keyExtractor={(item) => item.id.toString()}
         ListEmptyComponent={
           <Text style={styles.emptyText}>You have no messages yet.</Text>
@@ -95,25 +90,6 @@ const styles = StyleSheet.create({
   },
   header: { padding: 20 },
   headerTitle: { fontSize: 24, fontWeight: "bold", color: COLORS.text },
-  itemCard: {
-    backgroundColor: COLORS.card,
-    marginHorizontal: 20,
-    marginBottom: 10,
-    padding: 15,
-    borderRadius: 8,
-  },
-  itemTitle: { fontSize: 16, fontWeight: "bold", color: COLORS.text },
-  itemSubtitle: { color: COLORS.textSecondary, fontSize: 12, marginTop: 4 },
-  itemNotes: { color: COLORS.textSecondary, marginTop: 8 },
-  viewChatButton: {
-    backgroundColor: "rgba(138, 148, 163, 0.5)",
-    alignSelf: "flex-start",
-    paddingHorizontal: 15,
-    paddingVertical: 8,
-    borderRadius: 6,
-    marginTop: 12,
-  },
-  buttonText: { color: "white", fontWeight: "bold" },
   emptyText: {
     color: COLORS.textSecondary,
     textAlign: "center",

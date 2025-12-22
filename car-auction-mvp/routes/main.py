@@ -11,7 +11,7 @@ from flask import (
 from flask_login import current_user, login_required
 from functools import wraps
 import re
-from routes.auth import verify_jwt
+from routes.auth import token_required, verify_jwt
 from flask_socketio import join_room
 from models.car import Car
 from models.notification import Notification
@@ -129,6 +129,14 @@ def handle_connect():
         return False
 
 
+@socketio.on("join_conversation")
+def handle_join_conversation(data):
+    """Client joins a specific conversation room."""
+    room = data.get("room")
+    if room:
+        join_room(room)
+
+
 @main_bp.route("/")
 def home():
     featured_cars = _get_featured_cars()
@@ -163,22 +171,9 @@ def notifications():
 
 
 @main_bp.route("/api/notifications")
-def api_notifications():
+@token_required
+def api_notifications(user):
     """API endpoint to get user notifications and mark them as read."""
-    user = None
-    if "Authorization" in request.headers:
-        try:
-            token = request.headers["Authorization"].split(" ")[1]
-            user = verify_jwt(token)
-        except (IndexError, ValueError):
-            pass
-
-    if not user and current_user.is_authenticated:
-        user = current_user
-
-    if not user:
-        return jsonify({"error": "Unauthorized"}), 401
-
     # This endpoint both fetches and marks as read, simplifying client logic.
     unread_notifications = Notification.query.filter_by(
         user_id=user.id, is_read=False
@@ -209,19 +204,21 @@ def my_messages():
 
 
 @main_bp.route("/api/my-messages")
-@login_required
-def api_my_messages():
+@token_required
+def api_my_messages(user):
     """API endpoint to list all conversations for the current user (buyer or dealer)."""
-    if current_user.is_dealer:
-        conversations_query = Conversation.query.filter_by(dealer_id=current_user.id)
+    if user.is_dealer:
+        conversations_query = Conversation.query.filter_by(dealer_id=user.id)
     else:
-        conversations_query = Conversation.query.filter_by(buyer_id=current_user.id)
+        conversations_query = Conversation.query.filter_by(buyer_id=user.id)
 
     conversations = conversations_query.order_by(Conversation.created_at.desc()).all()
 
-    return jsonify(
-        conversations=[convo.to_dict(current_user.id) for convo in conversations]
-    )
+    # The to_dict method is now robust enough to handle missing data,
+    # so we don't need to filter here anymore.
+    serialized_convos = [convo.to_dict(user.id) for convo in conversations]
+
+    return jsonify(conversations=serialized_convos)
 
 
 @main_bp.route("/my-messages/<int:conversation_id>")
@@ -242,19 +239,19 @@ def view_buyer_conversation(conversation_id):
 
 
 @main_bp.route("/api/my-messages/<int:conversation_id>")
-@login_required
-def api_view_buyer_conversation(conversation_id):
+@token_required
+def api_view_buyer_conversation(user, conversation_id):
     """API endpoint for a single conversation's details and messages."""
     conversation = Conversation.query.get_or_404(conversation_id)
 
     # Security check: ensure user is part of this conversation
-    if current_user.id not in [conversation.buyer_id, conversation.dealer_id]:
+    if user.id not in [conversation.buyer_id, conversation.dealer_id]:
         return jsonify({"error": "Permission denied"}), 403
 
     # Mark messages from the other party as read and emit a real-time update
     other_party_id = (
         conversation.dealer_id
-        if current_user.id == conversation.buyer_id
+        if user.id == conversation.buyer_id
         else conversation.buyer_id
     )
     unread_messages = conversation.messages.filter_by(
@@ -271,21 +268,21 @@ def api_view_buyer_conversation(conversation_id):
             .join(Conversation)
             .filter(
                 or_(
-                    Conversation.buyer_id == current_user.id,
-                    Conversation.dealer_id == current_user.id,
+                    Conversation.buyer_id == user.id,
+                    Conversation.dealer_id == user.id,
                 ),
-                ChatMessage.sender_id != current_user.id,
+                ChatMessage.sender_id != user.id,
                 ChatMessage.is_read == False,
             )
             .count()
         )
         socketio.emit(
-            "message_count_update", {"count": total_unread}, room=str(current_user.id)
+            "message_count_update", {"count": total_unread}, room=str(user.id)
         )
 
     messages = conversation.messages.order_by(ChatMessage.timestamp.asc()).all()
     return jsonify(
-        conversation=conversation.to_dict(current_user.id),
+        conversation=conversation.to_dict(user.id),
         messages=[msg.to_dict() for msg in messages],
     )
 
@@ -401,20 +398,10 @@ def car_detail(car_id):
 
 @main_bp.route("/api/cars/<int:car_id>")
 @mark_notification_as_read
-def api_car_detail(car_id):
+@token_required
+def api_car_detail(user, car_id):
     """API endpoint for a single car's details."""
     car = Car.query.get_or_404(car_id)
-
-    # Attempt to authenticate via JWT for API clients
-    user = current_user
-    if "Authorization" in request.headers:
-        try:
-            token = request.headers["Authorization"].split(" ")[1]
-            jwt_user = verify_jwt(token)
-            if jwt_user:
-                user = jwt_user
-        except (IndexError, ValueError):
-            pass
 
     # Security check: Only show approved cars
     # For the API, we can be a bit more flexible and show any listing type,
@@ -670,9 +657,11 @@ def compare():
 
 
 @main_bp.route("/chat/send", methods=["POST"])
-@login_required
-def send_chat_message():
+@token_required
+def send_chat_message(user):
     """Handles sending a new chat message."""
+    from datetime import datetime
+
     data = request.get_json()
     car_id = data.get("car_id")
     message_body = data.get("message")
@@ -690,7 +679,7 @@ def send_chat_message():
     # If the current user is the dealer, we need to find the conversation based on the car and a potential buyer.
     # Since the buyer initiates, we can assume a conversation exists if the dealer is replying.
     # A more robust solution would pass the buyer_id from the client, but for now we can infer it.
-    if current_user.id == dealer_id:  # The dealer is replying
+    if user.id == dealer_id:  # The dealer is replying
         # Find any conversation for this car. This is a simplification.
         # A better approach would be to know which buyer the dealer is talking to.
         # We'll find the first conversation for this car initiated by any buyer.
@@ -702,11 +691,11 @@ def send_chat_message():
             )
     else:  # A buyer is sending a message
         conversation = Conversation.query.filter_by(
-            car_id=car_id, buyer_id=current_user.id
+            car_id=car_id, buyer_id=user.id
         ).first()
         if not conversation:
             conversation = Conversation(
-                car_id=car_id, buyer_id=current_user.id, dealer_id=dealer_id
+                car_id=car_id, buyer_id=user.id, dealer_id=dealer_id
             )
             # Explicitly create the LeadScore at the same time
             conversation.lead_score = LeadScore(score=0)
@@ -719,18 +708,16 @@ def send_chat_message():
 
     # --- Free Message Limit Logic ---
     FREE_MESSAGE_LIMIT = 3
-    if (
-        not conversation.is_unlocked
-        and conversation.message_count >= FREE_MESSAGE_LIMIT
-    ):
-        return (
-            jsonify(
-                {
-                    "status": "error",
-                    "message": "Free message limit reached. The dealer must unlock the conversation to continue.",
-                }
-            ),
-            403,
+    # Check individual message count for the current user
+    user_message_count = ChatMessage.query.filter_by(
+        conversation_id=conversation.id, sender_id=user.id
+    ).count()
+    if not conversation.is_unlocked and user_message_count >= FREE_MESSAGE_LIMIT:
+        return jsonify(
+            {
+                "status": "limit_reached",
+                "message": "Free message limit reached. The dealer must unlock the conversation to continue.",
+            }
         )
 
     # --- Contact Info Masking & Filtering ---
@@ -752,26 +739,31 @@ def send_chat_message():
     # Create and save the new message
     # We store the (potentially masked) body for display, and the original for when it's unlocked
     new_message = ChatMessage(
-        body=message_body, original_body=original_message, sender_id=current_user.id
+        body=message_body, original_body=original_message, sender_id=user.id
     )
     conversation.messages.append(new_message)
+    # Flush the session to get the new_message.id and timestamp before creating the payload
+    db.session.flush()
+
+    # Construct a payload consistent with ChatMessage.to_dict()
     chat_message_data = {
-        "body": message_body,  # Send the masked version to the UI
-        "sender_id": new_message.sender_id,
-        "sender_username": new_message.sender.username,
+        "id": new_message.id,
+        "body": new_message.body,
         "timestamp": new_message.timestamp.isoformat() + "Z",
+        "is_read": False,
+        "sender": {"id": user.id, "username": user.username},
     }
     conversation_room = f"conversation_{conversation.id}"
 
     # --- Update Lead Score on Buyer Actions ---
-    if current_user.id == conversation.buyer_id:
+    if user.id == conversation.buyer_id:
         # Check for message frequency to increase score
-        from datetime import datetime, timedelta
+        from datetime import timedelta
 
         # Check if this is the 3rd message from the buyer in the last 24 hours
         if (
             conversation.messages.filter(
-                ChatMessage.sender_id == current_user.id,
+                ChatMessage.sender_id == user.id,
                 ChatMessage.timestamp > datetime.utcnow() - timedelta(hours=24),
             ).count()
             == 3
@@ -785,13 +777,17 @@ def send_chat_message():
     socketio.emit("new_chat_message", chat_message_data, room=conversation_room)
 
     # 2. Send a traditional notification to the *other* person in the chat
-    if current_user.id == conversation.buyer_id:  # Buyer is sending
+    if user.id == conversation.buyer_id:  # Buyer is sending
         recipient_id = conversation.dealer_id
-        notification_message = f"New message from {current_user.username} about your '{car.make} {car.model}'."
+        notification_message = (
+            f"New message from {user.username} about your '{car.make} {car.model}'."
+        )
         link_url = url_for("dealer.view_conversation", conversation_id=conversation.id)
     else:  # Dealer is sending
         recipient_id = conversation.buyer_id
-        notification_message = f"New reply from {current_user.username} about the '{car.make} {car.model}'."
+        notification_message = (
+            f"New reply from {user.username} about the '{car.make} {car.model}'."
+        )
         link_url = url_for(
             "main.view_buyer_conversation", conversation_id=conversation.id
         )
@@ -816,6 +812,12 @@ def send_chat_message():
             {"count": unread_messages_count},
             room=str(recipient_id),
         )
+        # Also emit an event to update the conversation list (e.g. move to top, show snippet)
+        socketio.emit(
+            "conversation_list_update",
+            {"conversation_id": conversation.id},
+            room=str(recipient_id),
+        )
 
     # If contact info was found, emit a special event to the dealer's room
     if is_serious:
@@ -827,20 +829,20 @@ def send_chat_message():
 
     response_data = {"status": "success", "message": "Message sent!"}
     # If the buyer's message was masked, add a flag to the response for the UI
-    if is_serious and current_user.id == conversation.buyer_id:
+    if is_serious and user.id == conversation.buyer_id:
         response_data["buyer_action_required"] = "request_call"
 
     return jsonify(response_data)
 
 
 @main_bp.route("/chat/history/<int:car_id>")
-@login_required
-def get_chat_history(car_id):
+@token_required
+def get_chat_history(user, car_id):
     """API endpoint to fetch the history of a conversation for a given car."""
     car = Car.query.get_or_404(car_id)
     conversation = None
 
-    if current_user.id == car.owner_id:
+    if user.id == car.owner_id:
         # The dealer is viewing the chat. A car can have multiple conversations.
         # For simplicity in the modal, we'll just load the first one.
         # A more advanced implementation might show a list of buyers to chat with.
@@ -848,7 +850,7 @@ def get_chat_history(car_id):
     else:
         # A buyer is viewing the chat.
         conversation = Conversation.query.filter_by(
-            car_id=car_id, buyer_id=current_user.id
+            car_id=car_id, buyer_id=user.id
         ).first()
 
     if not conversation:
