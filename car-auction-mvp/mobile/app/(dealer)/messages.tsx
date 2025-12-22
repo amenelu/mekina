@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import ConversationItem from "../_components/ConversationItem";
 
 import {
@@ -13,6 +13,7 @@ import {
 import axios from "axios";
 import { useAuth } from "@/hooks/useAuth";
 import API_BASE_URL from "@/constants/Api";
+import { useSocket } from "../../contexts/SocketContext";
 
 const COLORS = {
   background: "#14181F",
@@ -38,25 +39,42 @@ interface Conversation {
 
 const MessagesScreen = () => {
   const { token } = useAuth();
+  const { socket } = useSocket();
   const [loading, setLoading] = useState(true);
   const [conversations, setConversations] = useState<Conversation[]>([]);
 
+  const fetchMessages = async () => {
+    if (!token) return;
+    try {
+      const response = await axios.get(`${API_BASE_URL}/api/my-messages`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setConversations(response.data.conversations);
+    } catch (error) {
+      console.error("Failed to fetch messages:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    const fetchMessages = async () => {
-      if (!token) return;
-      try {
-        const response = await axios.get(`${API_BASE_URL}/api/my-messages`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        setConversations(response.data.conversations);
-      } catch (error) {
-        console.error("Failed to fetch messages:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
     fetchMessages();
   }, [token]);
+
+  useEffect(() => {
+    if (socket) {
+      const handleConversationUpdate = () => {
+        console.log("Received conversation_list_update, refetching...");
+        fetchMessages();
+      };
+
+      socket.on("conversation_list_update", handleConversationUpdate);
+
+      return () => {
+        socket.off("conversation_list_update", handleConversationUpdate);
+      };
+    }
+  }, [socket]);
 
   if (loading) {
     return <ActivityIndicator size="large" style={styles.centered} />;
@@ -74,7 +92,8 @@ const MessagesScreen = () => {
         ListEmptyComponent={
           <Text style={styles.emptyText}>You have no messages yet.</Text>
         }
-        contentContainerStyle={{ paddingBottom: 20 }}
+        contentContainerStyle={{ padding: 20 }}
+        ItemSeparatorComponent={() => <View style={{ height: 10 }} />}
       />
     </SafeAreaView>
   );
