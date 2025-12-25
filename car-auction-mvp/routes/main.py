@@ -736,6 +736,22 @@ def send_chat_message(user):
         # Buyer attempted to share contact info
         conversation.lead_score.score += 30
 
+    # Check for high-intent keywords to capture interest beyond just contact info
+    intent_keywords = [
+        "meet",
+        "see",
+        "location",
+        "where",
+        "cash",
+        "bank",
+        "pay",
+        "buy",
+        "price",
+        "negotiable",
+    ]
+    if any(word in message_body.lower() for word in intent_keywords):
+        conversation.lead_score.score += 5
+
     # Create and save the new message
     # We store the (potentially masked) body for display, and the original for when it's unlocked
     new_message = ChatMessage(
