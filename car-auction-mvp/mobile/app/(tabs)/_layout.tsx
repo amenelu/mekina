@@ -3,6 +3,7 @@ import { Tabs, usePathname } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import HeaderRight from "../_components/HeaderRight";
 import { Animated, StyleSheet, TouchableOpacity, View } from "react-native";
+import { useSocket } from "../../contexts/SocketContext";
 
 const COLORS = {
   background: "#14181F",
@@ -56,6 +57,7 @@ const PulsatingTabBarButton = ({ children, onPress }: any) => {
 
 export default function TabsLayout() {
   const pathname = usePathname();
+  const { unreadNotificationCount } = useSocket();
 
   // Determine if the tab bar should be visible.
   // We hide it on the request detail page.
@@ -149,6 +151,9 @@ export default function TabsLayout() {
           tabBarIcon: ({ color }) => (
             <Ionicons name="notifications" size={24} color={color} />
           ),
+          tabBarBadge:
+            unreadNotificationCount > 0 ? unreadNotificationCount : undefined,
+          tabBarBadgeStyle: { backgroundColor: COLORS.accent, color: "white" },
         }}
       />
       {/* --- Hidden Screens --- */}

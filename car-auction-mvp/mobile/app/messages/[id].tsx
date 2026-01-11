@@ -167,7 +167,12 @@ const ConversationDetailScreen = () => {
                   ]}
                 >
                   <Text style={styles.messageBody}>{message.body}</Text>
-                  <Text style={styles.messageTime}>
+                  <Text
+                    style={[
+                      styles.messageTime,
+                      isSentByMe ? styles.sentMessageTime : null,
+                    ]}
+                  >
                     {formatMessageTime(message.timestamp)}
                   </Text>
                 </View>
@@ -245,6 +250,9 @@ const styles = StyleSheet.create({
     fontSize: 11,
     marginTop: 4,
     textAlign: "right",
+  },
+  sentMessageTime: {
+    color: "rgba(255, 255, 255, 0.7)",
   },
   inputArea: {
     flexDirection: "row",

@@ -1,6 +1,7 @@
 import React from "react";
 import { Tabs } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
+import { useSocket } from "../../contexts/SocketContext";
 
 const COLORS = {
   background: "#14181F",
@@ -11,6 +12,8 @@ const COLORS = {
 };
 
 export default function DealerTabsLayout() {
+  const { unreadMessageCount, unreadNotificationCount } = useSocket();
+
   return (
     <Tabs
       screenOptions={{
@@ -39,6 +42,8 @@ export default function DealerTabsLayout() {
           tabBarIcon: ({ color }) => (
             <Ionicons name="chatbubbles" size={24} color={color} />
           ),
+          tabBarBadge: unreadMessageCount > 0 ? unreadMessageCount : undefined,
+          tabBarBadgeStyle: { backgroundColor: COLORS.accent, color: "white" },
         }}
       />
       <Tabs.Screen
@@ -48,6 +53,9 @@ export default function DealerTabsLayout() {
           tabBarIcon: ({ color }) => (
             <Ionicons name="notifications" size={24} color={color} />
           ),
+          tabBarBadge:
+            unreadNotificationCount > 0 ? unreadNotificationCount : undefined,
+          tabBarBadgeStyle: { backgroundColor: COLORS.accent, color: "white" },
         }}
       />
       <Tabs.Screen

@@ -25,6 +25,7 @@ interface Conversation {
   } | null;
   last_message_body: string;
   last_message_timestamp: string;
+  unread_count?: number;
 }
 
 const ConversationItem = ({ conv }: { conv: Conversation }) => {
@@ -49,6 +50,8 @@ const ConversationItem = ({ conv }: { conv: Conversation }) => {
     }
   }
 
+  const isUnread = (conv.unread_count || 0) > 0;
+
   const handlePress = () => {
     console.log(`[DEBUG] Navigating to /messages/${conv.id}`);
     router.push(`/messages/${conv.id}`);
@@ -71,12 +74,22 @@ const ConversationItem = ({ conv }: { conv: Conversation }) => {
             {conv.car?.year} {conv.car?.make} {conv.car?.model}
           </Text>
         </Text>
-        <Text style={styles.lastMessage} numberOfLines={1}>
+        <Text
+          style={[styles.lastMessage, isUnread && styles.unreadMessage]}
+          numberOfLines={1}
+        >
           {conv.last_message_body}
         </Text>
       </View>
-      <View style={styles.notificationAction}>
-        <Text style={styles.viewChatText}>View Chat</Text>
+      <View style={styles.rightColumn}>
+        {isUnread && (
+          <View style={styles.unreadBadge}>
+            <Text style={styles.unreadText}>{conv.unread_count}</Text>
+          </View>
+        )}
+        <View style={styles.notificationAction}>
+          <Text style={styles.viewChatText}>View Chat</Text>
+        </View>
       </View>
     </TouchableOpacity>
   );
@@ -111,7 +124,29 @@ const styles = StyleSheet.create({
     fontSize: 13,
     marginTop: 6,
   },
+  unreadMessage: {
+    color: COLORS.foreground,
+    fontWeight: "bold",
+  },
   notificationAction: {},
+  rightColumn: {
+    alignItems: "flex-end",
+    justifyContent: "center",
+    gap: 6,
+  },
+  unreadBadge: {
+    backgroundColor: COLORS.accent,
+    borderRadius: 12,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    minWidth: 20,
+    alignItems: "center",
+  },
+  unreadText: {
+    color: "#FFFFFF",
+    fontSize: 12,
+    fontWeight: "bold",
+  },
   viewChatText: { color: COLORS.accent, fontWeight: "600" },
 });
 

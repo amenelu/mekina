@@ -13,6 +13,7 @@ import { Link, useFocusEffect, useRouter, Stack } from "expo-router";
 import { useAuth } from "@/hooks/useAuth";
 import axios from "axios";
 import API_URL from "@/constants/Api";
+import { useSocket } from "../../contexts/SocketContext";
 
 const COLORS = {
   background: "#14181F",
@@ -139,6 +140,7 @@ const RequestCard = ({ request }: { request: CarRequest }) => {
 const MyRequestsScreen = () => {
   const { token, logout } = useAuth();
   const router = useRouter();
+  const { socket } = useSocket();
   const [requests, setRequests] = useState<CarRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -194,6 +196,18 @@ const MyRequestsScreen = () => {
       fetchRequests();
     }, [token])
   );
+
+  useEffect(() => {
+    if (socket) {
+      const handleUpdate = () => {
+        fetchRequests();
+      };
+      socket.on("new_notification", handleUpdate);
+      return () => {
+        socket.off("new_notification", handleUpdate);
+      };
+    }
+  }, [socket]);
 
   const onRefresh = () => {
     setRefreshing(true);

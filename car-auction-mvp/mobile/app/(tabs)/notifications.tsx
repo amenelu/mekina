@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useEffect } from "react";
 import {
   View,
   Text,
@@ -11,6 +11,7 @@ import {
 import { Link, Stack, useFocusEffect } from "expo-router";
 import { useAuth } from "@/hooks/useAuth";
 import axios from "axios";
+import { useSocket } from "../../contexts/SocketContext";
 import API_URL from "@/constants/Api";
 
 const COLORS = {
@@ -98,6 +99,7 @@ const NotificationItem = ({ notification }: { notification: Notification }) => {
 
 const NotificationsScreen = () => {
   const { token } = useAuth();
+  const { socket } = useSocket();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -122,6 +124,21 @@ const NotificationsScreen = () => {
       fetchNotifications();
     }, [token])
   );
+
+  // Listen for real-time notifications
+  useEffect(() => {
+    if (socket) {
+      const handleNewNotification = () => {
+        fetchNotifications();
+      };
+
+      socket.on("new_notification", handleNewNotification);
+
+      return () => {
+        socket.off("new_notification", handleNewNotification);
+      };
+    }
+  }, [socket]);
 
   const onRefresh = () => {
     setRefreshing(true);

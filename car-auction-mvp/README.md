@@ -13,26 +13,25 @@
 
 ## 📸 Screenshots
 
-|                                      Home Screen                                      | Car Details | Chat Interface |
 | :-----------------------------------------------------------------------------------: | :---------: | :------------: |
-|         <img src="docs/screenshots/home.jpg" alt="Home Screen" width="200" />         |
-|     <img src="docs/screenshots/car_details.jpg" alt="Car Details" width="200" />      |
-|       <img src="docs/screenshots/chat.jpg" alt="Chat Interface" width="200" />        |
-|     <img src="docs/screenshots/find_car.jpg" alt="Chat Interface" width="200" />      |
-| <img src="docs/screenshots/trade_in_request.jpg" alt="Chat Interface" width="200" />  |
-|   <img src="docs/screenshots/all_listings.jpg" alt="Chat Interface" width="200" />    |
-|      <img src="docs/screenshots/compare.jpg" alt="Chat Interface" width="200" />      |
-|    <img src="docs/screenshots/my_requests.jpg" alt="Chat Interface" width="200" />    |
-|   <img src="docs/screenshots/deal_summary.jpg" alt="Chat Interface" width="200" />    |
-|   <img src="docs/screenshots/notifications.jpg" alt="Chat Interface" width="200" />   |
-|   <img src="docs/screenshots/how_it_works.jpg" alt="Chat Interface" width="200" />    |
-| <img src="docs/screenshots/dealer_dashboard.jpg" alt="Chat Interface" width="200" />  |
-|  <img src="docs/screenshots/dealer_messages.jpg" alt="Chat Interface" width="200" />  |
+| <img src="docs/screenshots/home.jpg" alt="Home Screen" width="200" /> |
+| <img src="docs/screenshots/car_details.jpg" alt="Car Details" width="200" /> |
+| <img src="docs/screenshots/chat.jpg" alt="Chat Interface" width="200" /> |
+| <img src="docs/screenshots/find_car.jpg" alt="Chat Interface" width="200" /> |
+| <img src="docs/screenshots/trade_in_request.jpg" alt="Chat Interface" width="200" /> |
+| <img src="docs/screenshots/all_listings.jpg" alt="Chat Interface" width="200" /> |
+| <img src="docs/screenshots/compare.jpg" alt="Chat Interface" width="200" /> |
+| <img src="docs/screenshots/my_requests.jpg" alt="Chat Interface" width="200" /> |
+| <img src="docs/screenshots/deal_summary.jpg" alt="Chat Interface" width="200" /> |
+| <img src="docs/screenshots/notifications.jpg" alt="Chat Interface" width="200" /> |
+| <img src="docs/screenshots/how_it_works.jpg" alt="Chat Interface" width="200" /> |
+| <img src="docs/screenshots/dealer_dashboard.jpg" alt="Chat Interface" width="200" /> |
+| <img src="docs/screenshots/dealer_messages.jpg" alt="Chat Interface" width="200" /> |
 | <img src="docs/screenshots/dealer_offer_form.jpg" alt="Chat Interface" width="200" /> |
-|      <img src="docs/screenshots/rental.jpg" alt="Chat Interface" width="200" />       |
-|  <img src="docs/screenshots/admin_dashboard.jpg" alt="Chat Interface" width="200" />  |
-|  <img src="docs/screenshots/dealer_profile.jpg" alt="Chat Interface" width="200" />   |
-|  <img src="docs/screenshots/request_details.jpg" alt="Chat Interface" width="200" />  |
+| <img src="docs/screenshots/rental.jpg" alt="Chat Interface" width="200" /> |
+| <img src="docs/screenshots/admin_dashboard.jpg" alt="Chat Interface" width="200" /> |
+| <img src="docs/screenshots/dealer_profile.jpg" alt="Chat Interface" width="200" /> |
+| <img src="docs/screenshots/request_details.jpg" alt="Chat Interface" width="200" /> |
 
 ## 🏗️ Tech Stack
 
@@ -56,7 +55,45 @@
 - **Routing**: Expo Router
 - **HTTP Client**: Axios
 
-## 🚀 Getting Started
+## 📐 Architecture
+
+```mermaid
+graph TD
+    User((User))
+
+    subgraph Client_Side [Client Side]
+        Mobile[Mobile App<br/>React Native/Expo]
+        Web[Web Interface<br/>Jinja2 Templates]
+    end
+
+    subgraph Server_Side [Flask Server]
+        API[REST API Routes]
+        Socket[Socket.IO Handler]
+        Auth[Auth Middleware<br/>JWT / Session]
+        Controllers[Controllers/Business Logic]
+    end
+
+    subgraph Data_Persistence [Data Persistence]
+        DB[(SQLAlchemy ORM<br/>Database)]
+        FS[File System<br/>Static Uploads]
+    end
+
+    User -->|Interacts| Mobile
+    User -->|Interacts| Web
+
+    Mobile -->|JSON/HTTP| API
+    Mobile -->|WebSocket| Socket
+    Web -->|HTML/HTTP| API
+    Web -->|WebSocket| Socket
+
+    API --> Auth
+    Socket --> Auth
+    Auth --> Controllers
+    Controllers --> DB
+    Controllers --> FS
+```
+
+## � Getting Started
 
 Follow these instructions to set up the project on your local machine.
 

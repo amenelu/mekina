@@ -1,7 +1,8 @@
 import React from "react";
-import { View, TouchableOpacity, StyleSheet } from "react-native";
+import { View, TouchableOpacity, StyleSheet, Text } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { Link } from "expo-router";
+import { useSocket } from "../../contexts/SocketContext";
 
 const COLORS = {
   foreground: "#F8F8F8",
@@ -10,6 +11,8 @@ const COLORS = {
 };
 
 const HeaderRight = () => {
+  const { unreadMessageCount } = useSocket();
+
   return (
     <View style={styles.container}>
       <Link href="/messages" asChild>
@@ -19,8 +22,11 @@ const HeaderRight = () => {
             size={26}
             color={COLORS.mutedForeground}
           />
-          {/* Add a badge here when you have unread messages */}
-          {/* <View style={styles.badge}><Text style={styles.badgeText}>3</Text></View> */}
+          {unreadMessageCount > 0 && (
+            <View style={styles.badge}>
+              <Text style={styles.badgeText}>{unreadMessageCount}</Text>
+            </View>
+          )}
         </TouchableOpacity>
       </Link>
 

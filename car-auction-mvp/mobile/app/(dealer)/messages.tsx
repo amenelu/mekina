@@ -35,6 +35,7 @@ interface Conversation {
   } | null;
   last_message_body: string;
   last_message_timestamp: string;
+  unread_count?: number;
 }
 
 const MessagesScreen = () => {

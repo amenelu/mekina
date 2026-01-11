@@ -182,6 +182,9 @@ def api_notifications(user):
         notification.is_read = True
     db.session.commit()
 
+    # Emit update to clear the badge for the user
+    socketio.emit("notification_count_update", {"count": 0}, room=str(user.id))
+
     all_notifications = (
         Notification.query.filter_by(user_id=user.id)
         .order_by(Notification.timestamp.desc())
@@ -189,6 +192,36 @@ def api_notifications(user):
         .all()
     )
     return jsonify(notifications=[n.to_dict() for n in all_notifications])
+
+
+@main_bp.route("/api/unread-counts")
+@token_required
+def api_unread_counts(user):
+    """Returns the number of unread messages and notifications."""
+    unread_notifications = Notification.query.filter_by(
+        user_id=user.id, is_read=False
+    ).count()
+
+    unread_messages = (
+        db.session.query(ChatMessage.id)
+        .join(Conversation)
+        .filter(
+            or_(
+                Conversation.buyer_id == user.id,
+                Conversation.dealer_id == user.id,
+            ),
+            ChatMessage.sender_id != user.id,
+            ChatMessage.is_read == False,
+        )
+        .count()
+    )
+
+    return jsonify(
+        {
+            "unread_notifications": unread_notifications,
+            "unread_messages": unread_messages,
+        }
+    )
 
 
 @main_bp.route("/my-messages")
@@ -657,10 +690,26 @@ def compare():
 
 
 @main_bp.route("/chat/send", methods=["POST"])
-@token_required
-def send_chat_message(user):
+def send_chat_message():
     """Handles sending a new chat message."""
     from datetime import datetime
+
+    # Hybrid Authentication: Support both Session (Web) and JWT (Mobile)
+    user = None
+    if current_user.is_authenticated:
+        user = current_user
+    else:
+        # Check for JWT if no session user
+        auth_header = request.headers.get("Authorization")
+        if auth_header:
+            try:
+                token = auth_header.split(" ")[1]
+                user = verify_jwt(token)
+            except IndexError:
+                pass
+
+    if not user:
+        return jsonify({"status": "error", "message": "Unauthorized"}), 401
 
     data = request.get_json()
     car_id = data.get("car_id")
