@@ -7,6 +7,7 @@ import {
   FlatList,
   ActivityIndicator,
   Pressable,
+  Alert,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useAuth } from "@/hooks/useAuth";
@@ -75,6 +76,33 @@ const ProfileScreen = () => {
     }, [activeTab, token])
   );
 
+  const handleRemoveFavorite = (carId: string) => {
+    Alert.alert(
+      "Remove Favorite",
+      "Are you sure you want to remove this car from your favorites?",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Remove",
+          style: "destructive",
+          onPress: async () => {
+            if (!token) return;
+            try {
+              await axios.post(
+                `${API_BASE_URL}/api/cars/${carId}/toggle-favorite`,
+                {},
+                { headers: { Authorization: `Bearer ${token}` } }
+              );
+              setFavorites((prev) => prev.filter((item) => item.id !== carId));
+            } catch (error) {
+              console.error("Failed to remove favorite:", error);
+            }
+          },
+        },
+      ]
+    );
+  };
+
   const handleLogout = () => {
     logout();
     router.replace("/login");
@@ -103,7 +131,19 @@ const ProfileScreen = () => {
       <FlatList
         data={favorites}
         renderItem={({ item }) => (
-          <VehicleCard item={item} style={styles.card} />
+          <View style={styles.favoriteCardWrapper}>
+            <VehicleCard item={item} style={styles.card} />
+            <TouchableOpacity
+              style={styles.removeButton}
+              onPress={() => handleRemoveFavorite(item.id)}
+            >
+              <Ionicons
+                name="heart-dislike"
+                size={24}
+                color={COLORS.destructive}
+              />
+            </TouchableOpacity>
+          </View>
         )}
         keyExtractor={(item) => item.id}
         contentContainerStyle={styles.listContent}
@@ -228,8 +268,21 @@ const styles = StyleSheet.create({
     paddingBottom: 100,
   },
   card: {
-    marginBottom: 20,
+    marginBottom: 0,
     width: "100%",
+  },
+  favoriteCardWrapper: {
+    position: "relative",
+    marginBottom: 20,
+  },
+  removeButton: {
+    position: "absolute",
+    top: 10,
+    right: 10,
+    backgroundColor: "rgba(0,0,0,0.7)",
+    padding: 8,
+    borderRadius: 25,
+    zIndex: 10,
   },
   loadingContainer: {
     flex: 1,
