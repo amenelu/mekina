@@ -44,6 +44,7 @@ const CarDetailScreen = () => {
   const navigation = useNavigation();
   const { width } = useWindowDimensions();
   const { token, user } = useAuth() as any;
+  const [isFavorite, setIsFavorite] = useState(false);
   const router = useRouter();
 
   const [contactModalVisible, setContactModalVisible] = useState(false);
@@ -62,6 +63,7 @@ const CarDetailScreen = () => {
         const data = await response.json();
         if (data.car) {
           setCar(data.car);
+          setIsFavorite(data.car.is_favorite);
           // Map similar cars to match Vehicle interface expected by VehicleCard
           const mappedSimilarCars = (data.similar_cars || []).map(
             (item: any) => ({
@@ -191,6 +193,32 @@ const CarDetailScreen = () => {
     }
   };
 
+  const handleToggleFavorite = async () => {
+    if (!token) {
+      Alert.alert("Login Required", "Please log in to add to favorites.", [
+        { text: "Cancel", style: "cancel" },
+        { text: "Login", onPress: () => router.push("/login") },
+      ]);
+      return;
+    }
+
+    // Optimistic update
+    const previousState = isFavorite;
+    setIsFavorite(!isFavorite);
+
+    try {
+      await axios.post(
+        `${API_BASE_URL}/api/cars/${id}/toggle-favorite`,
+        {},
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+    } catch (error) {
+      console.error("Failed to toggle favorite:", error);
+      setIsFavorite(previousState); // Revert on error
+      Alert.alert("Error", "Failed to update favorite status.");
+    }
+  };
+
   return (
     <>
       <Stack.Screen />
@@ -207,6 +235,16 @@ const CarDetailScreen = () => {
                 <Text style={styles.featuredTag}>Featured</Text>
               </View>
             )}
+            <Pressable
+              style={styles.favoriteButton}
+              onPress={handleToggleFavorite}
+            >
+              <Ionicons
+                name={isFavorite ? "heart" : "heart-outline"}
+                size={28}
+                color={isFavorite ? "#e74c3c" : "#fff"}
+              />
+            </Pressable>
           </View>
           <ScrollView horizontal showsHorizontalScrollIndicator={false}>
             {thumbnails.map((thumbUri, index) => (
@@ -446,6 +484,15 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     borderRadius: 8,
     overflow: "hidden",
+  },
+  favoriteButton: {
+    position: "absolute",
+    top: 15,
+    right: 15,
+    zIndex: 1,
+    backgroundColor: "rgba(0,0,0,0.5)",
+    borderRadius: 20,
+    padding: 8,
   },
   contentContainer: {
     padding: 20,

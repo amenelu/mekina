@@ -1,5 +1,7 @@
 from flask import Flask
 from flask_login import current_user
+from flask import Flask
+from flask_login import current_user
 from config import Config
 from flask_socketio import join_room
 

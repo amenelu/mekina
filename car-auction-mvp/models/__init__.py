@@ -19,3 +19,4 @@ from .lead_score import LeadScore
 from .notification import Notification
 from .rental_listing import RentalListing
 from .request_question import RequestQuestion
+from .user_favorite import UserFavorite

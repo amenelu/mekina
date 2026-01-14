@@ -18,6 +18,7 @@ from models.notification import Notification
 from models.conversation import Conversation
 from models.chat_message import ChatMessage
 from models.lead_score import LeadScore
+from models.user_favorite import UserFavorite
 from extensions import db, socketio
 from sqlalchemy import or_, func
 
@@ -456,6 +457,14 @@ def api_car_detail(user, car_id):
     else:
         car_data["price_display"] = car.get_price_display()
 
+    # Check if favorited by the current user
+    is_favorite = False
+    if user:
+        favorite = UserFavorite.query.filter_by(user_id=user.id, car_id=car.id).first()
+        if favorite:
+            is_favorite = True
+    car_data["is_favorite"] = is_favorite
+
     similar_cars_data = []
     for c in similar_cars:
         c_dict = c.to_dict()
@@ -471,6 +480,72 @@ def api_car_detail(user, car_id):
         similar_cars=similar_cars_data,
         similarity_reason=similarity_reason,
     )
+
+
+@main_bp.route("/api/users/favorites")
+@token_required
+def api_user_favorites(user):
+    """API endpoint to fetch the authenticated user's favorite cars."""
+    # This is a more robust way to fetch favorites, using a direct join
+    # instead of relying on a potentially misconfigured 'user.favorites' relationship.
+    favorite_cars = (
+        Car.query.join(UserFavorite).filter(UserFavorite.user_id == user.id).all()
+    )
+
+    favorites_data = []
+    for car in favorite_cars:
+        price_display = "N/A"
+        if car.listing_type == "rental" and car.rental_listing:
+            price_display = f"{car.rental_listing.price_per_day:,.0f} ETB/day"
+        elif hasattr(car, "get_price_display"):
+            price_display = car.get_price_display()
+
+        favorites_data.append(
+            {
+                "id": car.id,
+                "year": car.year,
+                "make": car.make,
+                "model": car.model,
+                "price_display": price_display,
+                "primary_image_url": car.primary_image_url or "",
+                "mileage": car.mileage or 0,
+                "listing_type": car.listing_type,
+            }
+        )
+    return jsonify({"favorites": favorites_data})
+
+
+@main_bp.route("/api/cars/<int:car_id>/toggle-favorite", methods=["POST"])
+@token_required
+def toggle_favorite(user, car_id):
+    """Toggles a car's favorite status for the current user."""
+    car = Car.query.get_or_404(car_id)
+
+    favorite = UserFavorite.query.filter_by(user_id=user.id, car_id=car.id).first()
+
+    if favorite:
+        # Car is already a favorite, so remove it
+        db.session.delete(favorite)
+        db.session.commit()
+        return jsonify(
+            {
+                "status": "success",
+                "action": "removed",
+                "message": "Removed from favorites.",
+            }
+        )
+    else:
+        # Car is not a favorite, so add it
+        new_favorite = UserFavorite(user_id=user.id, car_id=car.id)
+        db.session.add(new_favorite)
+        db.session.commit()
+        return jsonify(
+            {
+                "status": "success",
+                "action": "added",
+                "message": "Added to favorites.",
+            }
+        )
 
 
 def _get_comparison_data(car_ids):

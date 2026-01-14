@@ -33,14 +33,18 @@ export type Vehicle = {
 type VehicleCardProps = {
   item: Vehicle;
   isCompared?: boolean;
+  isFavorite?: boolean;
   onToggleCompare?: (id: string) => void;
+  onToggleFavorite?: (id: string) => void;
   style?: StyleProp<ViewStyle>;
 };
 
 const VehicleCard = ({
   item,
   isCompared,
+  isFavorite,
   onToggleCompare,
+  onToggleFavorite,
   style,
 }: VehicleCardProps) => {
   const router = useRouter();
@@ -105,6 +109,19 @@ const VehicleCard = ({
               />
             </Pressable>
           )}
+          {onToggleFavorite && (
+            <Pressable
+              style={styles.favoriteButton}
+              onPress={() => onToggleFavorite(item.id)}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            >
+              <Ionicons
+                name={isFavorite ? "heart" : "heart-outline"}
+                size={24}
+                color={isFavorite ? "#e74c3c" : "#fff"}
+              />
+            </Pressable>
+          )}
         </View>
       </ImageBackground>
     </Pressable>
@@ -154,6 +171,7 @@ const styles = StyleSheet.create({
   vehicleCardTitle: { fontSize: 16, fontWeight: "600", color: "#FFFFFF" },
   vehicleCardPrice: { fontSize: 14, color: COLORS.accent, marginTop: 5 },
   compareButton: {},
+  favoriteButton: { marginLeft: 10 },
   featuredTagContainer: {
     position: "absolute",
     top: 10,
