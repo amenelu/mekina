@@ -357,7 +357,7 @@ def api_dealer_profile(dealer_id):
         .all()
     )
 
-    ratings = dealer.ratings_received.order_by(DealerRating.timestamp.desc()).all()
+    ratings = dealer.reviews_received.order_by(DealerRating.timestamp.desc()).all()
     avg_rating = 0
     if ratings:
         avg_rating = sum(r.rating for r in ratings) / len(ratings)
@@ -408,7 +408,7 @@ def profile(dealer_id):
     )
 
     # Calculate average rating
-    ratings = dealer.ratings_received.order_by(DealerRating.timestamp.desc()).all()
+    ratings = dealer.reviews_received.order_by(DealerRating.timestamp.desc()).all()
     avg_rating = 0
     if ratings:
         avg_rating = sum(r.rating for r in ratings) / len(ratings)

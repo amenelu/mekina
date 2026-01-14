@@ -802,7 +802,14 @@ def api_deal_summary(current_user, deal_id):
     ):
         return jsonify({"error": "Permission denied"}), 403
 
-    return jsonify(deal=deal.to_dict())
+    deal_data = deal.to_dict()
+
+    # Check if the current user (buyer) has already rated this deal
+    if current_user.id == deal.customer_id:
+        existing_rating = DealerRating.query.filter_by(deal_id=deal.id).first()
+        deal_data["has_rated"] = True if existing_rating else False
+
+    return jsonify(deal=deal_data)
 
 
 @request_bp.route("/api/requests", methods=["POST"])
@@ -917,8 +924,8 @@ def rate_dealer(deal_id):
 
 
 @request_bp.route("/api/deals/<int:deal_id>/rate", methods=["POST"])
-@login_required
-def api_rate_dealer(deal_id):
+@token_required
+def api_rate_dealer(current_user, deal_id):
     """API endpoint for a buyer to submit a rating for a dealer."""
     deal = Deal.query.get_or_404(deal_id)
 
@@ -937,12 +944,22 @@ def api_rate_dealer(deal_id):
         )
 
     data = request.get_json()
-    if not data or "rating" not in data:
-        return jsonify({"status": "error", "message": "A rating is required."}), 400
+    if (
+        not data
+        or "rating" not in data
+        or not isinstance(data.get("rating"), int)
+        or not (1 <= data.get("rating") <= 5)
+    ):
+        return (
+            jsonify(
+                {"status": "error", "message": "A valid rating (1-5) is required."}
+            ),
+            400,
+        )
 
     new_rating = DealerRating(
         rating=data.get("rating"),
-        review_text=data.get("review_text"),
+        review_text=data.get("review_text") or None,
         dealer_id=deal.dealer_id,
         buyer_id=deal.customer_id,
         deal_id=deal.id,

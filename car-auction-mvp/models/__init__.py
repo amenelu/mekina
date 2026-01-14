@@ -13,7 +13,6 @@ from .chat_message import ChatMessage
 from .conversation import Conversation
 from .dealer_rating import DealerRating
 from .dealer_request_view import DealerRequestView
-from .dealer_review import DealerReview
 from .equipment import Equipment
 from .lead_score import LeadScore
 from .notification import Notification

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useCallback } from "react";
 import {
   View,
   Text,
@@ -7,8 +7,14 @@ import {
   ActivityIndicator,
   Alert,
   Pressable,
+  TextInput,
 } from "react-native";
-import { useLocalSearchParams, Stack, useRouter } from "expo-router";
+import {
+  useLocalSearchParams,
+  Stack,
+  useRouter,
+  useFocusEffect,
+} from "expo-router";
 import { useAuth } from "@/hooks/useAuth";
 import axios from "axios";
 import API_BASE_URL from "@/constants/Api";
@@ -38,6 +44,7 @@ interface Deal {
     condition: string;
     mileage: number;
   };
+  has_rated?: boolean;
 }
 
 const DealSummaryScreen = () => {
@@ -46,27 +53,67 @@ const DealSummaryScreen = () => {
   const router = useRouter();
   const [deal, setDeal] = useState<Deal | null>(null);
   const [loading, setLoading] = useState(true);
+  const [rating, setRating] = useState(0);
+  const [reviewText, setReviewText] = useState("");
+  const [submittingReview, setSubmittingReview] = useState(false);
 
-  useEffect(() => {
-    const fetchDeal = async () => {
-      if (!token || !id) return;
-      try {
-        const response = await axios.get(
-          `${API_BASE_URL}/requests/api/deals/${id}`,
-          {
-            headers: { Authorization: `Bearer ${token}` },
-          }
-        );
-        setDeal(response.data.deal);
-      } catch (error) {
-        console.error("Failed to fetch deal details:", error);
-        Alert.alert("Error", "Could not load deal summary.");
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchDeal();
+  const fetchDeal = useCallback(async () => {
+    if (!token || !id) return;
+    setLoading(true);
+    try {
+      const response = await axios.get(
+        `${API_BASE_URL}/requests/api/deals/${id}`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+      setDeal(response.data.deal);
+    } catch (error) {
+      console.error("Failed to fetch deal details:", error);
+      Alert.alert("Error", "Could not load deal summary.");
+    } finally {
+      setLoading(false);
+    }
   }, [id, token]);
+
+  useFocusEffect(
+    useCallback(() => {
+      fetchDeal();
+    }, [fetchDeal])
+  );
+
+  const handleSubmitReview = async () => {
+    if (rating === 0) {
+      Alert.alert("Rating Required", "Please select a star rating.");
+      return;
+    }
+    setSubmittingReview(true);
+    try {
+      const response = await axios.post(
+        `${API_BASE_URL}/requests/api/deals/${id}/rate`,
+        {
+          rating,
+          review_text: reviewText,
+        },
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+      if (response.status === 201) {
+        Alert.alert("Success", "Thank you for your review!");
+        // Re-fetch data from the server to get the authoritative state
+        await fetchDeal();
+      }
+    } catch (error: any) {
+      console.error("Failed to submit review:", error);
+      Alert.alert(
+        "Error",
+        error.response?.data?.message || "Failed to submit review."
+      );
+    } finally {
+      setSubmittingReview(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -143,6 +190,60 @@ const DealSummaryScreen = () => {
                 Mileage: {deal.accepted_bid.mileage.toLocaleString()} km
               </Text>
             </View>
+
+            {/* Rating Section - Only for Customer if not rated yet */}
+            {deal.has_rated === false && (
+              <View style={styles.section}>
+                <Text style={styles.sectionTitle}>Rate Your Experience</Text>
+                <View style={styles.ratingContainer}>
+                  <Text style={styles.ratingLabel}>
+                    How was your experience with {deal.dealer.username}?
+                  </Text>
+                  <View style={styles.starsRow}>
+                    {[1, 2, 3, 4, 5].map((star) => (
+                      <Pressable key={star} onPress={() => setRating(star)}>
+                        <Ionicons
+                          name={star <= rating ? "star" : "star-outline"}
+                          size={32}
+                          color="#FFD700"
+                          style={{ marginHorizontal: 5 }}
+                        />
+                      </Pressable>
+                    ))}
+                  </View>
+                  <TextInput
+                    style={styles.reviewInput}
+                    placeholder="Write a review (optional)..."
+                    placeholderTextColor={COLORS.mutedForeground}
+                    multiline
+                    value={reviewText}
+                    onChangeText={setReviewText}
+                  />
+                  <Pressable
+                    style={styles.submitReviewButton}
+                    onPress={handleSubmitReview}
+                    disabled={submittingReview}
+                  >
+                    {submittingReview ? (
+                      <ActivityIndicator color="#fff" size="small" />
+                    ) : (
+                      <Text style={styles.submitReviewButtonText}>
+                        Submit Review
+                      </Text>
+                    )}
+                  </Pressable>
+                </View>
+              </View>
+            )}
+
+            {deal.has_rated === true && (
+              <View style={styles.section}>
+                <Text style={styles.sectionTitle}>Review Submitted</Text>
+                <Text style={{ color: COLORS.mutedForeground }}>
+                  You have already reviewed this transaction.
+                </Text>
+              </View>
+            )}
           </View>
 
           <Pressable
@@ -232,6 +333,47 @@ const styles = StyleSheet.create({
     color: COLORS.foreground,
     fontSize: 18,
     fontWeight: "bold",
+  },
+  ratingContainer: {
+    backgroundColor: COLORS.background,
+    padding: 15,
+    borderRadius: 12,
+    marginTop: 10,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+  },
+  ratingLabel: {
+    color: COLORS.foreground,
+    fontSize: 16,
+    marginBottom: 10,
+    textAlign: "center",
+  },
+  starsRow: {
+    flexDirection: "row",
+    justifyContent: "center",
+    marginBottom: 15,
+  },
+  reviewInput: {
+    backgroundColor: COLORS.card,
+    color: COLORS.foreground,
+    borderRadius: 8,
+    padding: 12,
+    height: 80,
+    textAlignVertical: "top",
+    marginBottom: 15,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+  },
+  submitReviewButton: {
+    backgroundColor: COLORS.accent,
+    padding: 12,
+    borderRadius: 8,
+    alignItems: "center",
+  },
+  submitReviewButtonText: {
+    color: "#fff",
+    fontWeight: "bold",
+    fontSize: 16,
   },
 });
 
