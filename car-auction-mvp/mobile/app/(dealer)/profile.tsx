@@ -14,7 +14,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { router } from "expo-router";
 import API_BASE_URL from "@/constants/Api";
 import { Ionicons } from "@expo/vector-icons";
-import VehicleCard, { Vehicle } from "../_components/VehicleCard";
+import VehicleCard from "../_components/VehicleCard";
 
 const COLORS = {
   background: "#14181F",
@@ -39,8 +39,19 @@ interface Review {
   id: number;
   rating: number;
   review_text: string;
-  buyer: { username: string };
+  buyer?: { username: string };
   timestamp: string;
+}
+
+interface ApiCar {
+  id: number;
+  year: number;
+  make: string;
+  model: string;
+  mileage: number;
+  price_display?: string;
+  primary_image_url?: string;
+  listing_type?: string;
 }
 
 const StarRating = ({ rating }: { rating: number }) => {
@@ -64,7 +75,7 @@ const ReviewItem = ({ item }: { item: Review }) => (
     <View style={styles.reviewHeader}>
       <StarRating rating={item.rating} />
       <Text style={styles.reviewMeta}>
-        by {item.buyer.username} on{" "}
+        {item.buyer?.username || "Anonymous"} on{" "}
         {new Date(item.timestamp).toLocaleDateString()}
       </Text>
     </View>
@@ -77,7 +88,7 @@ const ProfileScreen = () => {
   const [loading, setLoading] = useState(true);
   const [profileData, setProfileData] = useState<{
     dealer: DealerProfile;
-    listings: Vehicle[];
+    listings: ApiCar[];
     ratings: Review[];
     avg_rating: number;
     review_count: number;
@@ -176,11 +187,12 @@ const ProfileScreen = () => {
                         model: item.model,
                         mileage: item.mileage,
                         // Map API fields to VehicleCard's expected fields
-                        price: (item as any).price_display || "N/A",
-                        image: (item as any).primary_image_url || "",
-                        listingType:
-                          (item as any).listing_type?.charAt(0).toUpperCase() +
-                            (item as any).listing_type?.slice(1) || "Sale",
+                        price: item.price_display || "N/A",
+                        image: item.primary_image_url || "",
+                        listingType: (item.listing_type
+                          ? item.listing_type.charAt(0).toUpperCase() +
+                            item.listing_type.slice(1)
+                          : "Sale") as any,
                       }}
                       style={{ width: "100%" }}
                     />

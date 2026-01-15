@@ -250,7 +250,12 @@ def api_my_messages(user):
 
     # The to_dict method is now robust enough to handle missing data,
     # so we don't need to filter here anymore.
-    serialized_convos = [convo.to_dict(user.id) for convo in conversations]
+    serialized_convos = []
+    for convo in conversations:
+        c_dict = convo.to_dict(user.id)
+        if user.is_dealer and convo.lead_score:
+            c_dict["lead_score"] = convo.lead_score.score
+        serialized_convos.append(c_dict)
 
     return jsonify(conversations=serialized_convos)
 

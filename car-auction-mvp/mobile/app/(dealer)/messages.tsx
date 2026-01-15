@@ -20,6 +20,7 @@ const COLORS = {
   card: "#1C212B",
   text: "#F8F8F8",
   textSecondary: "#8A94A3",
+  accent: "#A370F7",
 };
 
 interface Conversation {
@@ -36,6 +37,7 @@ interface Conversation {
   last_message_body: string;
   last_message_timestamp: string;
   unread_count?: number;
+  lead_score?: number;
 }
 
 const MessagesScreen = () => {
@@ -88,7 +90,18 @@ const MessagesScreen = () => {
       </View>
       <FlatList
         data={conversations}
-        renderItem={({ item }) => <ConversationItem conv={item} />}
+        renderItem={({ item }) => (
+          <View>
+            <ConversationItem conv={item} />
+            {item.lead_score !== undefined && (
+              <View style={styles.leadScoreBadge}>
+                <Text style={styles.leadScoreText}>
+                  Score: {item.lead_score}
+                </Text>
+              </View>
+            )}
+          </View>
+        )}
         keyExtractor={(item) => item.id.toString()}
         ListEmptyComponent={
           <Text style={styles.emptyText}>You have no messages yet.</Text>
@@ -114,6 +127,21 @@ const styles = StyleSheet.create({
     color: COLORS.textSecondary,
     textAlign: "center",
     marginTop: 30,
+  },
+  leadScoreBadge: {
+    position: "absolute",
+    top: 10,
+    right: 10,
+    backgroundColor: COLORS.accent,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+    zIndex: 10,
+  },
+  leadScoreText: {
+    color: "white",
+    fontSize: 10,
+    fontWeight: "bold",
   },
 });
 
