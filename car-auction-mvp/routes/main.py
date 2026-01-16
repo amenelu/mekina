@@ -877,8 +877,35 @@ def send_chat_message():
         "buy",
         "price",
         "negotiable",
+        "test drive",
+        "financing",
+        "loan",
+        "appointment",
+        "trade-in",
     ]
     if any(word in message_body.lower() for word in intent_keywords):
+        conversation.lead_score.score += 5
+
+    # [NEW] Message Length: Longer messages often indicate higher effort/interest
+    if len(message_body) > 40:
+        conversation.lead_score.score += 5
+
+    # [NEW] Responsiveness: If replying to a dealer within 2 hours
+    if user.id == conversation.buyer_id:
+        last_dealer_msg = (
+            ChatMessage.query.filter_by(
+                conversation_id=conversation.id, sender_id=conversation.dealer_id
+            )
+            .order_by(ChatMessage.timestamp.desc())
+            .first()
+        )
+        if last_dealer_msg:
+            time_diff = datetime.utcnow() - last_dealer_msg.timestamp
+            if time_diff.total_seconds() < 7200:  # 2 hours
+                conversation.lead_score.score += 10
+
+    # [NEW] Favorite Status: Interacting with a favorited item implies higher intent
+    if UserFavorite.query.filter_by(user_id=user.id, car_id=car.id).first():
         conversation.lead_score.score += 5
 
     # Create and save the new message
