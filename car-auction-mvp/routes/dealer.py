@@ -51,6 +51,7 @@ from wtforms import FileField
 from flask_wtf.file import FileAllowed
 from routes.main import mark_notification_as_read
 from routes.seller import save_base64_image, token_required
+from routes.main import send_push_notification
 
 dealer_bp = Blueprint("dealer", __name__, url_prefix="/dealer")
 
@@ -664,6 +665,7 @@ def place_bid(request_id):
         socketio.emit(
             "new_notification", notification_data, room=str(car_request.user_id)
         )
+        send_push_notification(car_request.user_id, notification.message)
 
         flash(
             f"Your offer of {form.price.data:,.2f} ETB has been sent to the customer!",
@@ -829,6 +831,7 @@ def api_place_dealer_bid(current_user, request_id):
         socketio.emit(
             "new_notification", notification_data, room=str(car_request.user_id)
         )
+        send_push_notification(car_request.user_id, notification.message)
 
         # --- Real-time Dashboard Update for ALL Dealers ---
         # After a bid is placed, we need to update the stats for this request
@@ -1044,6 +1047,7 @@ def answer_request_question(question_id):
             "count": unread_count,
         }
         socketio.emit("new_notification", notification_data, room=str(question.user_id))
+        send_push_notification(question.user_id, notification.message)
 
         flash("Your answer has been posted.", "success")
         # Redirect back to the dealer dashboard, which is a more logical flow.

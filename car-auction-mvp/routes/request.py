@@ -20,6 +20,7 @@ from models.dealer_rating import DealerRating
 from models.notification import Notification
 from models.request_question import RequestQuestion
 from routes.main import mark_notification_as_read
+from routes.main import send_push_notification
 from routes.auth import token_required
 from flask_wtf import FlaskForm
 from wtforms import (
@@ -568,6 +569,7 @@ def ask_dealer_question(bid_id):
             "count": unread_count,
         }
         socketio.emit("new_notification", notification_data, room=str(bid.dealer_id))
+        send_push_notification(bid.dealer_id, new_notification.message)
 
         return jsonify(
             {
@@ -659,6 +661,7 @@ def accept_offer(bid_id):
         socketio.emit(
             "new_notification", notification_data, room=str(bid_to_accept.dealer_id)
         )
+        send_push_notification(bid_to_accept.dealer_id, deal_notification.message)
 
         flash(
             "Offer accepted! The dealer has been notified and you can see the deal summary below.",
@@ -725,6 +728,7 @@ def api_ask_dealer_question(current_user, bid_id):
         "count": unread_count,
     }
     socketio.emit("new_notification", notification_data, room=str(bid.dealer_id))
+    send_push_notification(bid.dealer_id, new_notification.message)
 
     return (
         jsonify({"status": "success", "message": "Your question has been sent."}),
@@ -757,6 +761,7 @@ def api_accept_offer(current_user, bid_id):
         socketio.emit(
             "new_notification", notification_data, room=str(new_deal.dealer_id)
         )
+        send_push_notification(new_deal.dealer_id, deal_notification.message)
 
         return jsonify({"status": "success", "deal": new_deal.to_dict()}), 200
 

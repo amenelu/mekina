@@ -19,6 +19,7 @@ from models.conversation import Conversation
 from models.chat_message import ChatMessage
 from models.lead_score import LeadScore
 from models.user_favorite import UserFavorite
+from models.user import User
 from extensions import db, socketio
 from sqlalchemy import or_, func
 
@@ -110,6 +111,25 @@ def mask_contact_info(message):
     return masked_message, found_contact_info
 
 
+def send_push_notification(user_id, message_body, data=None):
+    """
+    Sends a push notification to the user if they have an FCM token.
+    This is a placeholder for actual Firebase/APNs integration.
+    """
+    try:
+        user = User.query.get(user_id)
+        if user and user.fcm_token:
+            # TODO: Integrate Firebase Admin SDK here
+            # send_to_fcm(user.fcm_token, title="Mekina", body=message_body, data=data)
+            print(
+                f"--- [MOCK PUSH] To User {user.username} (ID {user_id}): {message_body} ---"
+            )
+        else:
+            print(f"--- [MOCK PUSH] Skipped for User ID {user_id}: No FCM token ---")
+    except Exception as e:
+        print(f"Error sending push notification: {e}")
+
+
 main_bp = Blueprint("main", __name__)
 
 
@@ -136,6 +156,19 @@ def handle_join_conversation(data):
     room = data.get("room")
     if room:
         join_room(room)
+
+
+@main_bp.route("/api/users/push-token", methods=["POST"])
+@token_required
+def update_push_token(user):
+    """Updates the FCM push token for the authenticated user."""
+    data = request.get_json()
+    token = data.get("token")
+    if not token:
+        return jsonify({"status": "error", "message": "Token is required"}), 400
+    user.fcm_token = token
+    db.session.commit()
+    return jsonify({"status": "success", "message": "Push token updated"})
 
 
 @main_bp.route("/")
@@ -989,6 +1022,11 @@ def send_chat_message():
             "conversation_list_update",
             {"conversation_id": conversation.id},
             room=str(recipient_id),
+        )
+        send_push_notification(
+            recipient_id,
+            notification_message,
+            data={"conversation_id": conversation.id},
         )
 
     # If contact info was found, emit a special event to the dealer's room

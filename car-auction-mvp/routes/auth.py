@@ -194,6 +194,11 @@ def api_login():
     if not user or not user.check_password(data["password"]):
         return jsonify({"message": "Invalid credentials"}), 401
 
+    # Update FCM token if provided during login
+    if "fcm_token" in data:
+        user.fcm_token = data["fcm_token"]
+        db.session.commit()
+
     token = generate_jwt(user)
     return jsonify({"token": token, "user": user.to_dict(detail_level="owner")}), 200
 

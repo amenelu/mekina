@@ -23,6 +23,7 @@ from models.car_image import CarImage
 from models.trade_in import TradeInRequest
 from routes.seller import CarSubmissionForm, save_seller_document
 from routes.auth import admin_token_required
+from routes.main import send_push_notification
 from functools import wraps
 
 from flask_wtf import FlaskForm
@@ -647,6 +648,7 @@ def approve_car(car_id):
         "count": unread_count,
     }
     socketio.emit("new_notification", notification_data, room=str(car.owner_id))
+    send_push_notification(car.owner_id, new_notification.message)
 
     flash(f"Car {car.make} {car.model} has been approved.", "success")
     return redirect(url_for("admin.dashboard"))
@@ -948,6 +950,7 @@ def api_manage_listing(current_user, car_id):
                 },
                 room=str(car.owner_id),
             )
+            send_push_notification(car.owner_id, notification.message)
             return jsonify({"status": "success", "message": "Car has been approved."})
 
         return jsonify({"status": "error", "message": "Invalid action."}), 400

@@ -16,6 +16,7 @@ class User(UserMixin, db.Model):
     points = db.Column(
         db.Integer, nullable=False, default=5
     )  # Points for dealers to bid
+    fcm_token = db.Column(db.String(255), nullable=True)
 
     # Relationships
     cars = db.relationship("Car", backref="owner", lazy="dynamic")
