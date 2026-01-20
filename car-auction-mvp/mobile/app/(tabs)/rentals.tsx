@@ -174,6 +174,19 @@ const RentalsScreen = () => {
             value={searchQuery}
             onChangeText={setSearchQuery}
           />
+          {searchQuery.length > 0 && (
+            <Pressable
+              onPress={() => setSearchQuery("")}
+              hitSlop={10}
+              style={{ padding: 4 }}
+            >
+              <Ionicons
+                name="close-circle"
+                size={20}
+                color={COLORS.mutedForeground}
+              />
+            </Pressable>
+          )}
         </View>
         <ScrollView
           horizontal

@@ -212,6 +212,19 @@ const AllListingsScreen = () => {
                 value={searchQuery}
                 onChangeText={setSearchQuery}
               />
+              {searchQuery.length > 0 && (
+                <Pressable
+                  onPress={() => setSearchQuery("")}
+                  hitSlop={10}
+                  style={{ padding: 4 }}
+                >
+                  <Ionicons
+                    name="close-circle"
+                    size={20}
+                    color={COLORS.mutedForeground}
+                  />
+                </Pressable>
+              )}
             </View>
             <View style={styles.quickFiltersContainer}>
               <Pressable
@@ -237,6 +250,7 @@ const AllListingsScreen = () => {
               item={item}
               isCompared={compareItems.some((c) => c.id === item.id)}
               onToggleCompare={handleToggleCompare}
+              style={{ width: "100%" }}
             />
           </View>
         )}
