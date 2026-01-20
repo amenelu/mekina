@@ -6,7 +6,9 @@ import {
   ScrollView,
   Pressable,
   ActivityIndicator,
+  RefreshControl,
 } from "react-native";
+import { useRouter } from "expo-router";
 import { useAuth } from "@/hooks/useAuth";
 import axios from "axios";
 import API_URL from "@/constants/Api";
@@ -64,34 +66,55 @@ const PendingListingRow = ({ car }: { car: PendingCar }) => (
 );
 
 const AdminDashboardScreen = () => {
-  const { token } = useAuth();
+  const { token, isLoading } = useAuth() as any;
+  const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState<Stats | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
   const [pendingCars, setPendingCars] = useState<PendingCar[]>([]);
 
-  useEffect(() => {
-    const fetchData = async () => {
-      if (!token) return;
-      try {
-        setLoading(true);
-        const response = await axios.get(`${API_URL}/admin/api/dashboard`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        setStats(response.data.stats);
-        setPendingCars(response.data.pending_approvals);
-      } catch (error) {
-        console.error("Failed to fetch admin dashboard data:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
+  const fetchData = async (isRefresh = false) => {
+    if (!token) return;
+    try {
+      if (!isRefresh) setLoading(true);
+      const response = await axios.get(`${API_URL}/admin/api/dashboard`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setStats(response.data.stats);
+      setPendingCars(response.data.pending_approvals);
+    } catch (error) {
+      console.error("Failed to fetch admin dashboard data:", error);
+    } finally {
+      setLoading(false);
+      if (isRefresh) setRefreshing(false);
+    }
+  };
 
+  useEffect(() => {
+    if (!isLoading && !token) {
+      router.replace("/(auth)/login");
+      return;
+    }
     fetchData();
   }, [token]);
 
+  const onRefresh = () => {
+    setRefreshing(true);
+    fetchData(true);
+  };
+
   return (
     <React.Fragment>
-      <ScrollView style={styles.container}>
+      <ScrollView
+        style={styles.container}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor={COLORS.accent}
+          />
+        }
+      >
         {/* Header */}
         <View style={styles.header}>
           <Text style={styles.headerTitle}>Admin Dashboard</Text>
@@ -100,7 +123,7 @@ const AdminDashboardScreen = () => {
           </Text>
         </View>
 
-        {loading ? (
+        {loading && !refreshing ? (
           <ActivityIndicator size="large" color={COLORS.accent} />
         ) : (
           stats && (

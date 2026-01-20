@@ -6,11 +6,13 @@ import {
   ScrollView,
   TextInput,
   Pressable,
+  FlatList,
   Image,
   ActivityIndicator,
   Alert,
   Modal,
   TouchableOpacity,
+  RefreshControl,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter, useLocalSearchParams } from "expo-router";
@@ -40,6 +42,7 @@ const AllListingsScreen = () => {
   const [compareItems, setCompareItems] = useState<
     { id: string; image: string }[]
   >([]);
+  const [refreshing, setRefreshing] = useState(false);
 
   // Filter states
   const [filters, setFilters] = useState({
@@ -68,60 +71,66 @@ const AllListingsScreen = () => {
     };
   }, [searchQuery]);
 
-  React.useEffect(() => {
-    const fetchVehicles = async () => {
-      setLoading(true);
-      try {
-        const params = new URLSearchParams();
-        if (debouncedSearchQuery) {
-          params.append("q", debouncedSearchQuery);
-        }
-        if (filters.condition) {
-          params.append("condition", filters.condition);
-        }
-        if (filters.body_type) {
-          params.append("body_type", filters.body_type);
-        }
-        if (filters.fuel_type) {
-          params.append("fuel_type", filters.fuel_type);
-        }
-
-        const response = await fetch(
-          `${API_URL}/api/listings?${params.toString()}`
-        );
-
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
-        }
-
-        const data = await response.json();
-
-        const formattedData = data.map((item: any) => ({
-          id: item.id.toString(),
-          year: item.year,
-          make: item.make,
-          model: item.model,
-          price: item.price_display || "N/A",
-          image: item.image_url,
-          mileage: item.mileage || 0,
-          is_featured: item.is_featured,
-          listingType: item.listing_type,
-        }));
-
-        setAllVehicles(formattedData);
-      } catch (error) {
-        console.error("Failed to fetch vehicles:", error);
-        Alert.alert(
-          "Connection Error",
-          "Could not connect to the server. Please make sure your backend is running and you are on the same network."
-        );
-      } finally {
-        setLoading(false);
+  const fetchVehicles = async (isRefresh = false) => {
+    if (!isRefresh) setLoading(true);
+    try {
+      const params = new URLSearchParams();
+      if (debouncedSearchQuery) {
+        params.append("q", debouncedSearchQuery);
       }
-    };
+      if (filters.condition) {
+        params.append("condition", filters.condition);
+      }
+      if (filters.body_type) {
+        params.append("body_type", filters.body_type);
+      }
+      if (filters.fuel_type) {
+        params.append("fuel_type", filters.fuel_type);
+      }
 
+      const response = await fetch(
+        `${API_URL}/api/listings?${params.toString()}`
+      );
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+
+      const formattedData = data.map((item: any) => ({
+        id: item.id.toString(),
+        year: item.year,
+        make: item.make,
+        model: item.model,
+        price: item.price_display || "N/A",
+        image: item.image_url,
+        mileage: item.mileage || 0,
+        is_featured: item.is_featured,
+        listingType: item.listing_type,
+      }));
+
+      setAllVehicles(formattedData);
+    } catch (error) {
+      console.error("Failed to fetch vehicles:", error);
+      Alert.alert(
+        "Connection Error",
+        "Could not connect to the server. Please make sure your backend is running and you are on the same network."
+      );
+    } finally {
+      setLoading(false);
+      if (isRefresh) setRefreshing(false);
+    }
+  };
+
+  React.useEffect(() => {
     fetchVehicles();
   }, [debouncedSearchQuery, filters]);
+
+  const onRefresh = () => {
+    setRefreshing(true);
+    fetchVehicles(true);
+  };
 
   const handleToggleCompare = (itemId: string) => {
     const isCurrentlyCompared = compareItems.some((item) => item.id === itemId);
@@ -162,7 +171,7 @@ const AllListingsScreen = () => {
   };
   return (
     <>
-      {loading && (
+      {loading && !refreshing && (
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={COLORS.accent} />
           <Text style={{ color: COLORS.foreground, marginTop: 10 }}>
@@ -170,63 +179,76 @@ const AllListingsScreen = () => {
           </Text>
         </View>
       )}
-      <ScrollView style={styles.container}>
-        {/* --- Search & Filter Section --- */}
-        <View style={styles.filterContainer}>
-          <View style={styles.searchBar}>
-            <Ionicons
-              name="search"
-              size={20}
-              color={COLORS.mutedForeground}
-              style={styles.searchIcon}
-            />
-            <TextInput
-              style={styles.searchInput}
-              placeholder="Search by make, model, or year..."
-              placeholderTextColor={COLORS.mutedForeground}
-              value={searchQuery}
-              onChangeText={setSearchQuery}
-            />
-          </View>
-          <View style={styles.quickFiltersContainer}>
-            <Pressable
-              style={styles.filterButton}
-              onPress={() => {
-                setTempFilters(filters); // Sync temp state with active filters
-                setFilterModalVisible(true);
-              }}
-            >
+      <FlatList
+        style={styles.container}
+        data={!loading ? allVehicles : []}
+        keyExtractor={(item, index) => `${item.id}-${index}`}
+        numColumns={2}
+        columnWrapperStyle={{
+          justifyContent: "space-between",
+          paddingHorizontal: 20,
+        }}
+        contentContainerStyle={{ paddingBottom: 20 }}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor={COLORS.accent}
+          />
+        }
+        ListHeaderComponent={
+          <View style={styles.filterContainer}>
+            <View style={styles.searchBar}>
               <Ionicons
-                name="options-outline"
+                name="search"
                 size={20}
                 color={COLORS.mutedForeground}
+                style={styles.searchIcon}
               />
-              <Text style={styles.filterButtonText}>Filter</Text>
-            </Pressable>
-            {/* You can add a clear all button here if desired */}
-          </View>
-        </View>
-
-        {/* --- Listings Grid --- */}
-        <View style={styles.gridContainer}>
-          {!loading && allVehicles.length > 0
-            ? allVehicles.map((item, index) => (
-                <VehicleCard
-                  key={`${item.id}-${index}`}
-                  item={item}
-                  isCompared={compareItems.some((c) => c.id === item.id)}
-                  onToggleCompare={handleToggleCompare}
+              <TextInput
+                style={styles.searchInput}
+                placeholder="Search by make, model, or year..."
+                placeholderTextColor={COLORS.mutedForeground}
+                value={searchQuery}
+                onChangeText={setSearchQuery}
+              />
+            </View>
+            <View style={styles.quickFiltersContainer}>
+              <Pressable
+                style={styles.filterButton}
+                onPress={() => {
+                  setTempFilters(filters);
+                  setFilterModalVisible(true);
+                }}
+              >
+                <Ionicons
+                  name="options-outline"
+                  size={20}
+                  color={COLORS.mutedForeground}
                 />
-              ))
-            : !loading && (
-                <Text style={styles.noResultsText}>
-                  No listings match your search criteria.
-                </Text>
-              )}
-        </View>
-
-        <Footer />
-      </ScrollView>
+                <Text style={styles.filterButtonText}>Filter</Text>
+              </Pressable>
+            </View>
+          </View>
+        }
+        renderItem={({ item }) => (
+          <View style={{ width: "48%", marginBottom: 15 }}>
+            <VehicleCard
+              item={item}
+              isCompared={compareItems.some((c) => c.id === item.id)}
+              onToggleCompare={handleToggleCompare}
+            />
+          </View>
+        )}
+        ListFooterComponent={<Footer />}
+        ListEmptyComponent={
+          !loading ? (
+            <Text style={styles.noResultsText}>
+              No listings match your search criteria.
+            </Text>
+          ) : null
+        }
+      />
       {compareItems.length > 0 && (
         <View style={styles.comparisonBar}>
           <View style={styles.comparisonContent}>

@@ -470,20 +470,31 @@ def car_detail(car_id):
 
 @main_bp.route("/api/cars/<int:car_id>")
 @mark_notification_as_read
-@token_required
-def api_car_detail(user, car_id):
+def api_car_detail(car_id):
     """API endpoint for a single car's details."""
+    # Optional authentication to check for favorites/ownership
+    user = None
+    if current_user.is_authenticated:
+        user = current_user
+    else:
+        auth_header = request.headers.get("Authorization")
+        if auth_header:
+            try:
+                token = auth_header.split(" ")[1]
+                user = verify_jwt(token)
+            except (IndexError, ValueError, Exception):
+                pass
+
     car = Car.query.get_or_404(car_id)
 
     # Security check: Only show approved cars
     # For the API, we can be a bit more flexible and show any listing type,
     # not just 'sale', as the mobile app will handle the display logic.
-    is_owner = user.is_authenticated and car.owner_id == user.id
-    if (
-        not car.is_approved
-        and not (user.is_authenticated and user.is_admin)
-        and not is_owner
-    ):
+    is_authenticated = user is not None
+    is_owner = is_authenticated and car.owner_id == user.id
+    is_admin = is_authenticated and getattr(user, "is_admin", False)
+
+    if not car.is_approved and not is_admin and not is_owner:
         return jsonify({"error": "Listing not found or not approved"}), 404
 
     similar_cars, similarity_reason = get_similar_cars(car, car.listing_type)

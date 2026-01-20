@@ -6,22 +6,10 @@ import { View, ActivityIndicator, StyleSheet, Image } from "react-native";
 export default function Index() {
   // Use 'as any' to bypass the missing type definition for isLoading if necessary
   const { user, isLoading } = useAuth() as any;
-  const [isSplashAnimationComplete, setSplashAnimationComplete] =
-    useState(false);
 
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setSplashAnimationComplete(true);
-    }, 3000); // Keep splash screen for 3 seconds
-
-    return () => clearTimeout(timer);
-  }, []);
-
-  // Treat undefined user as loading state if isLoading is not explicitly returned
+  // Show splash while auth state is loading
   const showSplash =
-    !isSplashAnimationComplete ||
-    isLoading ||
-    (isLoading === undefined && user === undefined);
+    isLoading || (isLoading === undefined && user === undefined);
 
   if (showSplash) {
     return (

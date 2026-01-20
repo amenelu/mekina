@@ -8,6 +8,7 @@ import {
   ActivityIndicator,
   Pressable,
   Alert,
+  RefreshControl,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useAuth } from "@/hooks/useAuth";
@@ -28,17 +29,18 @@ const COLORS = {
 };
 
 const ProfileScreen = () => {
-  const { user, logout, token } = useAuth();
+  const { user, logout, token, isLoading } = useAuth() as any;
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<"favorites" | "settings">(
     "favorites"
   );
   const [favorites, setFavorites] = useState<Vehicle[]>([]);
   const [loading, setLoading] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
 
-  const fetchFavorites = async () => {
+  const fetchFavorites = async (isRefresh = false) => {
     if (!token) return;
-    setLoading(true);
+    if (!isRefresh) setLoading(true);
     try {
       const response = await axios.get(`${API_BASE_URL}/api/users/favorites`, {
         headers: { Authorization: `Bearer ${token}` },
@@ -65,16 +67,22 @@ const ProfileScreen = () => {
       console.error("Failed to fetch favorites:", error);
     } finally {
       setLoading(false);
+      if (isRefresh) setRefreshing(false);
     }
   };
 
   useFocusEffect(
     useCallback(() => {
-      if (activeTab === "favorites") {
+      if (token && activeTab === "favorites") {
         fetchFavorites();
       }
     }, [activeTab, token])
   );
+
+  const onRefresh = () => {
+    setRefreshing(true);
+    fetchFavorites(true);
+  };
 
   const handleRemoveFavorite = (carId: string) => {
     Alert.alert(
@@ -105,8 +113,31 @@ const ProfileScreen = () => {
 
   const handleLogout = () => {
     logout();
-    router.replace("/login");
+    router.replace("/(tabs)/");
   };
+
+  if (!isLoading && !token) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.emptyContainer}>
+          <Ionicons
+            name="person-circle-outline"
+            size={64}
+            color={COLORS.mutedForeground}
+          />
+          <Text style={styles.emptyText}>
+            Please log in to view your profile.
+          </Text>
+          <TouchableOpacity
+            style={styles.browseButton}
+            onPress={() => router.push("/(auth)/login")}
+          >
+            <Text style={styles.browseButtonText}>Login / Register</Text>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   const renderContent = () => {
     if (activeTab === "settings") {
@@ -119,7 +150,7 @@ const ProfileScreen = () => {
       );
     }
 
-    if (loading) {
+    if (loading && !refreshing) {
       return (
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={COLORS.accent} />
@@ -148,6 +179,13 @@ const ProfileScreen = () => {
         keyExtractor={(item) => item.id}
         contentContainerStyle={styles.listContent}
         showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor={COLORS.accent}
+          />
+        }
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
             <Ionicons

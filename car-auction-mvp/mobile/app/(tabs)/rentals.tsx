@@ -9,6 +9,7 @@ import {
   ImageBackground,
   ActivityIndicator,
   Alert,
+  RefreshControl,
 } from "react-native";
 import { useNavigation } from "expo-router";
 import { useScrollToTop } from "@react-navigation/native";
@@ -66,6 +67,7 @@ const RentalsScreen = () => {
   const ref = useRef<ScrollView>(null);
   const [rentalVehicles, setRentalVehicles] = useState<RentalVehicle[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
 
   // This hook handles scrolling to top when the active tab is pressed
@@ -83,43 +85,49 @@ const RentalsScreen = () => {
     });
   }, [navigation]);
 
-  useEffect(() => {
-    const fetchRentals = async () => {
-      setLoading(true);
-      try {
-        // The backend uses the main listings endpoint with a query parameter for rentals.
-        const response = await fetch(
-          `${API_URL}/api/listings?listing_type=rental`
-        );
+  const fetchRentals = async (isRefresh = false) => {
+    if (!isRefresh) setLoading(true);
+    try {
+      // The backend uses the main listings endpoint with a query parameter for rentals.
+      const response = await fetch(
+        `${API_URL}/api/listings?listing_type=rental`
+      );
 
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
-        }
-
-        const data = await response.json();
-        // The API sends a list of car objects. We need to map them to the RentalVehicle type.
-        const formattedData = (data.rentals || []).map((item: any) => ({
-          id: item.id,
-          year: item.year,
-          make: item.make,
-          model: item.model,
-          price_display: item.price_display || "N/A", // Ensure price_display is mapped
-          image_url: item.image_url,
-        }));
-        setRentalVehicles(formattedData);
-      } catch (error) {
-        console.error("Failed to fetch rental vehicles:", error);
-        Alert.alert(
-          "Connection Error",
-          "Could not load rental listings. Please try again later."
-        );
-      } finally {
-        setLoading(false);
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
       }
-    };
 
+      const data = await response.json();
+      // The API sends a list of car objects. We need to map them to the RentalVehicle type.
+      const formattedData = (data.rentals || []).map((item: any) => ({
+        id: item.id,
+        year: item.year,
+        make: item.make,
+        model: item.model,
+        price_display: item.price_display || "N/A", // Ensure price_display is mapped
+        image_url: item.image_url,
+      }));
+      setRentalVehicles(formattedData);
+    } catch (error) {
+      console.error("Failed to fetch rental vehicles:", error);
+      Alert.alert(
+        "Connection Error",
+        "Could not load rental listings. Please try again later."
+      );
+    } finally {
+      setLoading(false);
+      if (isRefresh) setRefreshing(false);
+    }
+  };
+
+  useEffect(() => {
     fetchRentals();
   }, []);
+
+  const onRefresh = () => {
+    setRefreshing(true);
+    fetchRentals(true);
+  };
 
   const filteredVehicles = rentalVehicles.filter((vehicle) =>
     `${vehicle.year} ${vehicle.make} ${vehicle.model}`
@@ -127,7 +135,7 @@ const RentalsScreen = () => {
       .includes(searchQuery.toLowerCase())
   );
 
-  if (loading) {
+  if (loading && !refreshing) {
     return (
       <View style={styles.centered}>
         <ActivityIndicator size="large" color={COLORS.accent} />
@@ -139,7 +147,17 @@ const RentalsScreen = () => {
   }
 
   return (
-    <ScrollView style={styles.container} ref={ref}>
+    <ScrollView
+      style={styles.container}
+      ref={ref}
+      refreshControl={
+        <RefreshControl
+          refreshing={refreshing}
+          onRefresh={onRefresh}
+          tintColor={COLORS.accent}
+        />
+      }
+    >
       {/* --- Search & Filter Section --- */}
       <View style={styles.filterContainer}>
         <View style={styles.searchBar}>

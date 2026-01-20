@@ -203,7 +203,7 @@ const RequestItem = ({ item }: { item: CustomerRequest }) => {
 };
 
 const DealerDashboard = () => {
-  const { token, user } = useAuth();
+  const { token, user, isLoading } = useAuth() as any;
   const navigation = useNavigation();
 
   const [loading, setLoading] = useState(true);
@@ -218,6 +218,10 @@ const DealerDashboard = () => {
   >("requests");
 
   useEffect(() => {
+    if (!isLoading && !token) {
+      router.replace("/(auth)/login");
+      return;
+    }
     if (!token) return;
 
     const socket = io(API_BASE_URL, {

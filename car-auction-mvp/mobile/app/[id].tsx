@@ -13,6 +13,7 @@ import {
   TextInput,
   KeyboardAvoidingView,
   Platform,
+  RefreshControl,
 } from "react-native";
 import {
   useLocalSearchParams,
@@ -41,9 +42,10 @@ const CarDetailScreen = () => {
   const [similarCars, setSimilarCars] = useState<Vehicle[]>([]);
   const [mainImage, setMainImage] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const navigation = useNavigation();
   const { width } = useWindowDimensions();
-  const { token, user } = useAuth() as any;
+  const { token, user, isLoading } = useAuth() as any;
   const [isFavorite, setIsFavorite] = useState(false);
   const router = useRouter();
 
@@ -51,44 +53,51 @@ const CarDetailScreen = () => {
   const [message, setMessage] = useState("");
   const [sendingMessage, setSendingMessage] = useState(false);
 
-  useEffect(() => {
-    const fetchCarDetails = async () => {
-      if (!id) return;
-      setLoading(true);
-      try {
-        // IMPORTANT: Replace with your computer's local IP address
-        const response = await fetch(`${API_BASE_URL}/api/cars/${id}`, {
-          headers: token ? { Authorization: `Bearer ${token}` } : undefined,
-        });
-        const data = await response.json();
-        if (data.car) {
-          setCar(data.car);
-          setIsFavorite(data.car.is_favorite);
-          // Map similar cars to match Vehicle interface expected by VehicleCard
-          const mappedSimilarCars = (data.similar_cars || []).map(
-            (item: any) => ({
-              id: item.id,
-              year: item.year,
-              make: item.make,
-              model: item.model,
-              price: item.price_display,
-              image: item.image_url,
-              listingType: item.listing_type,
-            })
-          );
-          setSimilarCars(mappedSimilarCars);
-          setMainImage(data.car.primary_image_url);
-        }
-      } catch (error) {
-        console.error("Failed to fetch car details:", error);
-        Alert.alert("Error", "Could not load car details.");
-      } finally {
-        setLoading(false);
-      }
-    };
+  const fetchCarDetails = async (isRefresh = false) => {
+    if (!id) return;
+    if (!isRefresh) setLoading(true);
+    try {
+      // IMPORTANT: Replace with your computer's local IP address
+      const response = await fetch(`${API_BASE_URL}/api/cars/${id}`, {
+        headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+      });
 
+      const data = await response.json();
+      if (data.car) {
+        setCar(data.car);
+        setIsFavorite(data.car.is_favorite);
+        // Map similar cars to match Vehicle interface expected by VehicleCard
+        const mappedSimilarCars = (data.similar_cars || []).map(
+          (item: any) => ({
+            id: item.id,
+            year: item.year,
+            make: item.make,
+            model: item.model,
+            price: item.price_display,
+            image: item.image_url,
+            listingType: item.listing_type,
+          })
+        );
+        setSimilarCars(mappedSimilarCars);
+        setMainImage(data.car.primary_image_url);
+      }
+    } catch (error: any) {
+      console.error("Failed to fetch car details:", error);
+      Alert.alert("Error", error.message || "Could not load car details.");
+    } finally {
+      setLoading(false);
+      if (isRefresh) setRefreshing(false);
+    }
+  };
+
+  useEffect(() => {
     fetchCarDetails();
-  }, [id]);
+  }, [id, token]);
+
+  const onRefresh = () => {
+    setRefreshing(true);
+    fetchCarDetails(true);
+  };
 
   // Use a layout effect to set the title. This runs before the paint,
   // preventing the `[id]` from ever showing.
@@ -101,7 +110,7 @@ const CarDetailScreen = () => {
     navigation.setOptions({ title });
   }, [navigation, car, id]);
 
-  if (loading) {
+  if (loading && !refreshing) {
     return (
       <View style={styles.centered}>
         <ActivityIndicator size="large" color={COLORS.accent} />
@@ -222,7 +231,16 @@ const CarDetailScreen = () => {
   return (
     <>
       <Stack.Screen />
-      <ScrollView style={styles.container}>
+      <ScrollView
+        style={styles.container}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor={COLORS.accent}
+          />
+        }
+      >
         {/* Image Gallery */}
         <View style={styles.imageGallery}>
           <View>

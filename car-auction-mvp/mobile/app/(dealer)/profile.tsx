@@ -8,6 +8,7 @@ import {
   ScrollView,
   ActivityIndicator,
   FlatList,
+  RefreshControl,
 } from "react-native";
 import axios from "axios";
 import { useAuth } from "@/hooks/useAuth";
@@ -86,6 +87,7 @@ const ReviewItem = ({ item }: { item: Review }) => (
 const ProfileScreen = () => {
   const { logout, user, token } = useAuth();
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [profileData, setProfileData] = useState<{
     dealer: DealerProfile;
     listings: ApiCar[];
@@ -94,32 +96,38 @@ const ProfileScreen = () => {
     review_count: number;
   } | null>(null);
 
-  useEffect(() => {
-    const fetchProfile = async () => {
-      if (!user?.id || !token) return;
-      setLoading(true);
-      try {
-        const response = await axios.get(
-          `${API_BASE_URL}/dealer/api/dealers/${user.id}/profile`,
-          { headers: { Authorization: `Bearer ${token}` } }
-        );
-        setProfileData(response.data);
-      } catch (error) {
-        console.error("Failed to fetch dealer profile:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
+  const fetchProfile = async (isRefresh = false) => {
+    if (!user?.id || !token) return;
+    if (!isRefresh) setLoading(true);
+    try {
+      const response = await axios.get(
+        `${API_BASE_URL}/dealer/api/dealers/${user.id}/profile`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      setProfileData(response.data);
+    } catch (error) {
+      console.error("Failed to fetch dealer profile:", error);
+    } finally {
+      setLoading(false);
+      if (isRefresh) setRefreshing(false);
+    }
+  };
 
+  useEffect(() => {
     fetchProfile();
   }, [user, token]);
 
-  const handleLogout = () => {
-    logout();
-    router.replace("/(auth)/login");
+  const onRefresh = () => {
+    setRefreshing(true);
+    fetchProfile(true);
   };
 
-  if (loading) {
+  const handleLogout = () => {
+    logout();
+    router.replace("/(tabs)/");
+  };
+
+  if (loading && !refreshing) {
     return (
       <ActivityIndicator
         size="large"
@@ -142,7 +150,15 @@ const ProfileScreen = () => {
         </Pressable>
       </View>
 
-      <ScrollView>
+      <ScrollView
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor={COLORS.accent}
+          />
+        }
+      >
         {profileData && (
           <>
             <View style={styles.profileHeader}>

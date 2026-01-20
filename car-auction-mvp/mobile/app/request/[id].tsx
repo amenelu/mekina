@@ -104,7 +104,7 @@ const OfferImage = ({ uri, onPress }: { uri: string; onPress: () => void }) => {
 
 const RequestDetailScreen = () => {
   const { id } = useLocalSearchParams();
-  const { token, logout } = useAuth();
+  const { token, logout, isLoading } = useAuth() as any;
   const router = useRouter();
 
   const [request, setRequest] = useState<CarRequest | null>(null);
@@ -152,8 +152,12 @@ const RequestDetailScreen = () => {
   }, [id, token]);
 
   useEffect(() => {
+    if (!isLoading && !token) {
+      router.replace("/(auth)/login");
+      return;
+    }
     fetchRequestDetails();
-  }, [fetchRequestDetails]);
+  }, [fetchRequestDetails, token, isLoading]);
 
   const onRefresh = () => {
     setRefreshing(true);

@@ -9,6 +9,7 @@ import {
   ActivityIndicator,
   Pressable,
   SafeAreaView,
+  RefreshControl,
 } from "react-native";
 import axios from "axios";
 import { useAuth } from "@/hooks/useAuth";
@@ -44,10 +45,12 @@ const MessagesScreen = () => {
   const { token } = useAuth();
   const { socket } = useSocket();
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [conversations, setConversations] = useState<Conversation[]>([]);
 
-  const fetchMessages = async () => {
+  const fetchMessages = async (isRefresh = false) => {
     if (!token) return;
+    if (!isRefresh) setLoading(true);
     try {
       const response = await axios.get(`${API_BASE_URL}/api/my-messages`, {
         headers: { Authorization: `Bearer ${token}` },
@@ -57,6 +60,7 @@ const MessagesScreen = () => {
       console.error("Failed to fetch messages:", error);
     } finally {
       setLoading(false);
+      if (isRefresh) setRefreshing(false);
     }
   };
 
@@ -79,7 +83,12 @@ const MessagesScreen = () => {
     }
   }, [socket]);
 
-  if (loading) {
+  const onRefresh = () => {
+    setRefreshing(true);
+    fetchMessages(true);
+  };
+
+  if (loading && !refreshing) {
     return <ActivityIndicator size="large" style={styles.centered} />;
   }
 
@@ -108,6 +117,13 @@ const MessagesScreen = () => {
         }
         contentContainerStyle={{ padding: 20 }}
         ItemSeparatorComponent={() => <View style={{ height: 10 }} />}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor={COLORS.accent}
+          />
+        }
       />
     </SafeAreaView>
   );

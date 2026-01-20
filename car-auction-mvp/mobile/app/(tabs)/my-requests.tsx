@@ -138,7 +138,7 @@ const RequestCard = ({ request }: { request: CarRequest }) => {
 };
 
 const MyRequestsScreen = () => {
-  const { token, logout } = useAuth();
+  const { token, logout, isLoading } = useAuth() as any;
   const router = useRouter();
   const { socket } = useSocket();
   const [requests, setRequests] = useState<CarRequest[]>([]);
@@ -192,8 +192,10 @@ const MyRequestsScreen = () => {
   // useFocusEffect will re-fetch data every time the screen comes into view
   useFocusEffect(
     useCallback(() => {
-      setLoading(true); // Show loader when screen is focused
-      fetchRequests();
+      if (token) {
+        setLoading(true); // Show loader when screen is focused
+        fetchRequests();
+      }
     }, [token])
   );
 
@@ -213,6 +215,33 @@ const MyRequestsScreen = () => {
     setRefreshing(true);
     fetchRequests();
   };
+
+  if (!isLoading && !token) {
+    return (
+      <View
+        style={[
+          styles.container,
+          { justifyContent: "center", alignItems: "center", padding: 20 },
+        ]}
+      >
+        <Text
+          style={{
+            color: COLORS.mutedForeground,
+            fontSize: 16,
+            textAlign: "center",
+            marginBottom: 20,
+          }}
+        >
+          Please log in to view your requests.
+        </Text>
+        <Link href="/(auth)/login" asChild>
+          <Pressable style={styles.viewOffersButton}>
+            <Text style={styles.viewOffersButtonText}>Login</Text>
+          </Pressable>
+        </Link>
+      </View>
+    );
+  }
 
   if (loading && !refreshing) {
     return (

@@ -98,7 +98,7 @@ const NotificationItem = ({ notification }: { notification: Notification }) => {
 };
 
 const NotificationsScreen = () => {
-  const { token } = useAuth();
+  const { token, isLoading } = useAuth() as any;
   const { socket } = useSocket();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
@@ -121,7 +121,9 @@ const NotificationsScreen = () => {
 
   useFocusEffect(
     useCallback(() => {
-      fetchNotifications();
+      if (token) {
+        fetchNotifications();
+      }
     }, [token])
   );
 
@@ -144,6 +146,41 @@ const NotificationsScreen = () => {
     setRefreshing(true);
     fetchNotifications();
   };
+
+  if (!isLoading && !token) {
+    return (
+      <View
+        style={[
+          styles.container,
+          { justifyContent: "center", alignItems: "center", padding: 20 },
+        ]}
+      >
+        <Text
+          style={{
+            color: COLORS.mutedForeground,
+            fontSize: 16,
+            textAlign: "center",
+            marginBottom: 20,
+          }}
+        >
+          Please log in to view notifications.
+        </Text>
+        <Link href="/(auth)/login" asChild>
+          <Pressable
+            style={{
+              backgroundColor: COLORS.accent,
+              padding: 10,
+              borderRadius: 8,
+            }}
+          >
+            <Text style={{ color: COLORS.foreground, fontWeight: "bold" }}>
+              Login
+            </Text>
+          </Pressable>
+        </Link>
+      </View>
+    );
+  }
 
   return (
     <>

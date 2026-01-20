@@ -8,6 +8,7 @@ import {
   Alert,
   Pressable,
   TextInput,
+  RefreshControl,
 } from "react-native";
 import {
   useLocalSearchParams,
@@ -49,38 +50,52 @@ interface Deal {
 
 const DealSummaryScreen = () => {
   const { id } = useLocalSearchParams();
-  const { token } = useAuth();
+  const { token, isLoading } = useAuth() as any;
   const router = useRouter();
   const [deal, setDeal] = useState<Deal | null>(null);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [rating, setRating] = useState(0);
   const [reviewText, setReviewText] = useState("");
   const [submittingReview, setSubmittingReview] = useState(false);
 
-  const fetchDeal = useCallback(async () => {
-    if (!token || !id) return;
-    setLoading(true);
-    try {
-      const response = await axios.get(
-        `${API_BASE_URL}/requests/api/deals/${id}`,
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
-      );
-      setDeal(response.data.deal);
-    } catch (error) {
-      console.error("Failed to fetch deal details:", error);
-      Alert.alert("Error", "Could not load deal summary.");
-    } finally {
-      setLoading(false);
-    }
-  }, [id, token]);
+  const fetchDeal = useCallback(
+    async (isRefresh = false) => {
+      if (!token || !id) return;
+      if (!isRefresh) setLoading(true);
+      try {
+        const response = await axios.get(
+          `${API_BASE_URL}/requests/api/deals/${id}`,
+          {
+            headers: { Authorization: `Bearer ${token}` },
+          }
+        );
+        setDeal(response.data.deal);
+      } catch (error) {
+        console.error("Failed to fetch deal details:", error);
+        Alert.alert("Error", "Could not load deal summary.");
+      } finally {
+        setLoading(false);
+        if (isRefresh) setRefreshing(false);
+      }
+    },
+    [id, token]
+  );
 
   useFocusEffect(
     useCallback(() => {
+      if (!isLoading && !token) {
+        router.replace("/(auth)/login");
+        return;
+      }
       fetchDeal();
-    }, [fetchDeal])
+    }, [fetchDeal, token, isLoading])
   );
+
+  const onRefresh = () => {
+    setRefreshing(true);
+    fetchDeal(true);
+  };
 
   const handleSubmitReview = async () => {
     if (rating === 0) {
@@ -115,7 +130,7 @@ const DealSummaryScreen = () => {
     }
   };
 
-  if (loading) {
+  if (loading && !refreshing) {
     return (
       <View style={styles.centered}>
         <ActivityIndicator size="large" color={COLORS.accent} />
@@ -134,7 +149,16 @@ const DealSummaryScreen = () => {
   return (
     <>
       <Stack.Screen options={{ title: `Deal #${deal.id}` }} />
-      <ScrollView style={styles.container}>
+      <ScrollView
+        style={styles.container}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor={COLORS.accent}
+          />
+        }
+      >
         <View style={styles.content}>
           <View style={styles.header}>
             <Text style={styles.headerTitle}>Deal Confirmed!</Text>

@@ -7,8 +7,12 @@ import {
   TextInput,
   TouchableOpacity,
   ActivityIndicator,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
 } from "react-native";
 import BouncyCheckbox from "react-native-bouncy-checkbox";
+import * as SecureStore from "expo-secure-store";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Link, useRouter } from "expo-router";
 import { useAuth } from "@/hooks/useAuth";
@@ -39,6 +43,15 @@ export default function LoginScreen() {
         password,
       });
       const { user, token } = response.data;
+
+      if (rememberMe) {
+        await SecureStore.setItemAsync("token", token);
+        await SecureStore.setItemAsync("user", JSON.stringify(user));
+      } else {
+        await SecureStore.deleteItemAsync("token");
+        await SecureStore.deleteItemAsync("user");
+      }
+
       setAuth(user, token);
 
       // Role-based redirection
@@ -64,74 +77,81 @@ export default function LoginScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <View style={styles.content}>
-        <Text style={styles.title}>Login</Text>
+      <KeyboardAvoidingView
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        style={{ flex: 1 }}
+      >
+        <ScrollView contentContainerStyle={{ flexGrow: 1 }}>
+          <View style={styles.content}>
+            <Text style={styles.title}>Login</Text>
 
-        <View style={styles.formGroup}>
-          <Text style={styles.label}>Username or Email</Text>
-          <TextInput
-            style={[
-              styles.input,
-              focusedInput === "login" && styles.inputFocused,
-            ]}
-            value={login}
-            onChangeText={setLogin}
-            keyboardType="email-address"
-            autoCapitalize="none"
-            onFocus={() => setFocusedInput("login")}
-            onBlur={() => setFocusedInput(null)}
-          />
-        </View>
+            <View style={styles.formGroup}>
+              <Text style={styles.label}>Username or Email</Text>
+              <TextInput
+                style={[
+                  styles.input,
+                  focusedInput === "login" && styles.inputFocused,
+                ]}
+                value={login}
+                onChangeText={setLogin}
+                keyboardType="email-address"
+                autoCapitalize="none"
+                onFocus={() => setFocusedInput("login")}
+                onBlur={() => setFocusedInput(null)}
+              />
+            </View>
 
-        <View style={styles.formGroup}>
-          <Text style={styles.label}>Password</Text>
-          <TextInput
-            style={[
-              styles.input,
-              focusedInput === "password" && styles.inputFocused,
-            ]}
-            value={password}
-            onChangeText={setPassword}
-            secureTextEntry
-            onFocus={() => setFocusedInput("password")}
-            onBlur={() => setFocusedInput(null)}
-          />
-        </View>
+            <View style={styles.formGroup}>
+              <Text style={styles.label}>Password</Text>
+              <TextInput
+                style={[
+                  styles.input,
+                  focusedInput === "password" && styles.inputFocused,
+                ]}
+                value={password}
+                onChangeText={setPassword}
+                secureTextEntry
+                onFocus={() => setFocusedInput("password")}
+                onBlur={() => setFocusedInput(null)}
+              />
+            </View>
 
-        <View style={styles.checkboxContainer}>
-          <BouncyCheckbox
-            size={22}
-            fillColor="#6118d7ff"
-            unFillColor="#FFFFFF"
-            text="Remember me"
-            iconStyle={{ borderColor: "#ced4da" }}
-            innerIconStyle={{ borderWidth: 2 }}
-            textStyle={{ textDecorationLine: "none", fontSize: 16 }}
-            onPress={(isChecked: boolean) => setRememberMe(isChecked)}
-          />
-        </View>
+            <View style={styles.checkboxContainer}>
+              <BouncyCheckbox
+                size={22}
+                fillColor="#6118d7ff"
+                unFillColor="#FFFFFF"
+                text="Remember me"
+                iconStyle={{ borderColor: "#ced4da" }}
+                innerIconStyle={{ borderWidth: 2 }}
+                textStyle={{ textDecorationLine: "none", fontSize: 16 }}
+                onPress={(isChecked: boolean) => setRememberMe(isChecked)}
+              />
+            </View>
 
-        <TouchableOpacity
-          style={styles.loginButton}
-          onPress={handleLogin}
-          disabled={isLoading}
-        >
-          {isLoading ? (
-            <ActivityIndicator color="#ffffff" />
-          ) : (
-            <Text style={styles.loginButtonText}>Submit</Text>
-          )}
-        </TouchableOpacity>
-
-        <View style={styles.registerContainer}>
-          <Text style={styles.registerText}>Don't have an account? </Text>
-          <Link href="/register" asChild>
-            <TouchableOpacity>
-              <Text style={styles.registerLinkText}>Register</Text>
+            <TouchableOpacity
+              style={styles.loginButton}
+              onPress={handleLogin}
+              disabled={isLoading}
+            >
+              {isLoading ? (
+                <ActivityIndicator color="#ffffff" />
+              ) : (
+                <Text style={styles.loginButtonText}>Submit</Text>
+              )}
             </TouchableOpacity>
-          </Link>
-        </View>
-      </View>
+
+            <View style={styles.registerContainer}>
+              <Text style={styles.registerText}>Don't have an account? </Text>
+              <Link href="/register" asChild>
+                <TouchableOpacity>
+                  <Text style={styles.registerLinkText}>Register</Text>
+                </TouchableOpacity>
+              </Link>
+            </View>
+          </View>
+        </ScrollView>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
