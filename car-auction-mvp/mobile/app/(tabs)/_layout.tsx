@@ -1,9 +1,16 @@
 import React, { useEffect, useRef } from "react";
-import { Tabs, usePathname } from "expo-router";
+import { Tabs, usePathname, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import HeaderRight from "../_components/HeaderRight";
-import { Animated, StyleSheet, TouchableOpacity, View } from "react-native";
+import {
+  Animated,
+  StyleSheet,
+  TouchableOpacity,
+  View,
+  Alert,
+} from "react-native";
 import { useSocket } from "../../contexts/SocketContext";
+import { useAuth } from "@/hooks/useAuth";
 
 const COLORS = {
   background: "#14181F",
@@ -57,7 +64,9 @@ const PulsatingTabBarButton = ({ children, onPress }: any) => {
 
 export default function TabsLayout() {
   const pathname = usePathname();
+  const router = useRouter();
   const { unreadNotificationCount } = useSocket();
+  const { user } = useAuth();
 
   // Determine if the tab bar should be visible.
   // We hide it on the request detail page.
@@ -120,7 +129,25 @@ export default function TabsLayout() {
               color={focused ? COLORS.accent : "#fff"}
             />
           ),
-          tabBarButton: (props) => <PulsatingTabBarButton {...props} />,
+          tabBarButton: (props) => (
+            <PulsatingTabBarButton
+              {...props}
+              onPress={(e: any) => {
+                if (!user) {
+                  Alert.alert(
+                    "Login Required",
+                    "Please log in to find a car.",
+                    [
+                      { text: "Cancel", style: "cancel" },
+                      { text: "Login", onPress: () => router.push("/login") },
+                    ]
+                  );
+                } else {
+                  props.onPress?.(e);
+                }
+              }}
+            />
+          ),
           headerShown: false, // This will hide the main header for the request flow
         }}
       />

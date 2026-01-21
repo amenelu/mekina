@@ -10,11 +10,13 @@ import {
   FlatList,
   ActivityIndicator,
   RefreshControl,
+  Alert,
 } from "react-native";
 import { useRouter, useNavigation } from "expo-router";
 import { useScrollToTop } from "@react-navigation/native";
 import { Ionicons } from "@expo/vector-icons";
 import API_URL from "@/constants/Api";
+import { useAuth } from "@/hooks/useAuth";
 
 import Footer from "../_components/Footer";
 import VehicleCard, { Vehicle } from "../_components/VehicleCard";
@@ -48,6 +50,7 @@ const COLORS = {
 const HomeScreen = () => {
   const router = useRouter();
   const navigation = useNavigation();
+  const { user } = useAuth();
   const ref = useRef<ScrollView>(null);
 
   const [searchQuery, setSearchQuery] = useState("");
@@ -307,7 +310,20 @@ const HomeScreen = () => {
           <View style={{ flex: 1, marginRight: 8 }}>
             <Pressable
               style={[styles.heroButton, styles.primaryButton]}
-              onPress={() => router.push("/request")}
+              onPress={() => {
+                if (!user) {
+                  Alert.alert(
+                    "Login Required",
+                    "Please log in to let us find a car for you.",
+                    [
+                      { text: "Cancel", style: "cancel" },
+                      { text: "Login", onPress: () => router.push("/login") },
+                    ]
+                  );
+                } else {
+                  router.push("/request");
+                }
+              }}
             >
               <Text style={[styles.heroButtonText, styles.primaryButtonText]}>
                 Let Us Find It For You
@@ -317,7 +333,20 @@ const HomeScreen = () => {
           <View style={{ flex: 1, marginLeft: 8 }}>
             <Pressable
               style={[styles.heroButton, styles.secondaryButton]}
-              onPress={() => router.push("/trade-in")}
+              onPress={() => {
+                if (!user) {
+                  Alert.alert(
+                    "Login Required",
+                    "Please log in to get a trade-in offer.",
+                    [
+                      { text: "Cancel", style: "cancel" },
+                      { text: "Login", onPress: () => router.push("/login") },
+                    ]
+                  );
+                } else {
+                  router.push("/trade-in");
+                }
+              }}
             >
               <Text style={[styles.heroButtonText, styles.secondaryButtonText]}>
                 Get a Trade-in Offer
