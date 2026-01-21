@@ -59,11 +59,14 @@ const fetchDealerProfile = async (
   id: string,
   token: string | null
 ): Promise<ProfileData> => {
-  if (!token) throw new Error("Authentication token not found.");
+  const headers: any = {};
+  if (token) {
+    headers.Authorization = `Bearer ${token}`;
+  }
   const response = await axios.get(
     `${API_BASE_URL}/dealer/api/dealers/${id}/profile`,
     {
-      headers: { Authorization: `Bearer ${token}` },
+      headers,
     }
   );
   return response.data;
@@ -101,7 +104,7 @@ const DealerPublicProfilePage: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (id && token) {
+    if (id) {
       setLoading(true);
       setError(null);
       fetchDealerProfile(id, token)
@@ -113,7 +116,7 @@ const DealerPublicProfilePage: React.FC = () => {
           setLoading(false);
         });
     }
-  }, [id, token]);
+  }, [id]); // Removed token dependency to avoid re-fetching on login state change if not needed, or keep it if you want to refresh on login
 
   if (loading) {
     return <ActivityIndicator size="large" style={styles.centered} />;

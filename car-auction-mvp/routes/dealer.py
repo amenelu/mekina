@@ -52,6 +52,7 @@ from flask_wtf.file import FileAllowed
 from routes.main import mark_notification_as_read
 from routes.seller import save_base64_image, token_required
 from routes.main import send_push_notification
+from routes.auth import verify_jwt
 
 dealer_bp = Blueprint("dealer", __name__, url_prefix="/dealer")
 
@@ -350,6 +351,19 @@ def api_dealer_dashboard(current_user):
 @dealer_bp.route("/api/dealers/<int:dealer_id>/profile")
 def api_dealer_profile(dealer_id):
     """API endpoint for a dealer's public profile, listings, and ratings."""
+    # Handle optional token authentication for mobile users
+    user = current_user
+    if not user.is_authenticated:
+        auth_header = request.headers.get("Authorization")
+        if auth_header:
+            try:
+                token = auth_header.split(" ")[1]
+                jwt_user = verify_jwt(token)
+                if jwt_user:
+                    user = jwt_user
+            except (IndexError, ValueError, Exception):
+                pass
+
     dealer = User.query.filter_by(id=dealer_id, is_dealer=True).first_or_404()
 
     active_listings = (
@@ -364,8 +378,8 @@ def api_dealer_profile(dealer_id):
         avg_rating = sum(r.rating for r in ratings) / len(ratings)
 
     # Determine if the current user can view the phone number (for API, this might be handled client-side)
-    can_view_phone = current_user.is_authenticated and (
-        current_user.id == dealer.id or current_user.is_admin
+    can_view_phone = user.is_authenticated and (
+        user.id == dealer.id or getattr(user, "is_admin", False)
     )
 
     return jsonify(
