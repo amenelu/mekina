@@ -17,6 +17,7 @@ import { useScrollToTop } from "@react-navigation/native";
 import { Ionicons } from "@expo/vector-icons";
 import API_URL from "@/constants/Api";
 import { useAuth } from "@/hooks/useAuth";
+import * as SecureStore from "expo-secure-store";
 
 import Footer from "../_components/Footer";
 import VehicleCard, { Vehicle } from "../_components/VehicleCard";
@@ -60,6 +61,26 @@ const HomeScreen = () => {
   const [featuredVehicles, setFeaturedVehicles] = useState<Vehicle[]>([]);
   const [recentVehicles, setRecentVehicles] = useState<Vehicle[]>([]);
   const [refreshing, setRefreshing] = useState(false);
+  const [showInfo, setShowInfo] = useState(false);
+
+  useEffect(() => {
+    const checkInfoStatus = async () => {
+      if (user) {
+        const hasSeen = await SecureStore.getItemAsync("has_seen_request_info");
+        if (!hasSeen) {
+          setShowInfo(true);
+        }
+      } else {
+        setShowInfo(false);
+      }
+    };
+    checkInfoStatus();
+  }, [user]);
+
+  const handleDismissInfo = async () => {
+    setShowInfo(false);
+    await SecureStore.setItemAsync("has_seen_request_info", "true");
+  };
 
   useEffect(() => {
     const delayDebounceFn = setTimeout(async () => {
@@ -354,6 +375,24 @@ const HomeScreen = () => {
             </Pressable>
           </View>
         </View>
+        {user && showInfo && (
+          <View style={styles.infoContainer}>
+            <Ionicons
+              name="information-circle-outline"
+              size={20}
+              color={COLORS.accent}
+              style={{ marginRight: 8 }}
+            />
+            <Text style={styles.infoText}>
+              Your request is sent to our verified dealer network. Dealers will
+              review your needs and send you competitive offers or trade-in
+              valuations directly in the app.
+            </Text>
+            <Pressable onPress={handleDismissInfo} hitSlop={10}>
+              <Ionicons name="close" size={20} color={COLORS.mutedForeground} />
+            </Pressable>
+          </View>
+        )}
       </View>
 
       {/* --- Featured Cars Section --- */}
@@ -563,6 +602,20 @@ const styles = StyleSheet.create({
   },
   secondaryButtonText: {
     color: COLORS.primary,
+  },
+  infoContainer: {
+    marginTop: 20,
+    flexDirection: "row",
+    backgroundColor: "rgba(163, 112, 247, 0.1)",
+    padding: 12,
+    borderRadius: 8,
+    alignItems: "center",
+  },
+  infoText: {
+    flex: 1,
+    color: COLORS.mutedForeground,
+    fontSize: 13,
+    lineHeight: 18,
   },
   // General Section
   section: {
