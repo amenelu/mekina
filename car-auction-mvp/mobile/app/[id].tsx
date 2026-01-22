@@ -168,6 +168,65 @@ const CarDetailScreen = () => {
     }
   };
 
+  const handleRequestCar = async () => {
+    if (!token) {
+      Alert.alert("Login Required", "Please log in to request this car.", [
+        { text: "Cancel", style: "cancel" },
+        { text: "Login", onPress: () => router.push("/login") },
+      ]);
+      return;
+    }
+
+    if (car.owner?.id === user?.id) {
+      Alert.alert("Info", "You cannot request your own car.");
+      return;
+    }
+
+    Alert.alert(
+      "Confirm Request",
+      `Do you want to submit a request for this ${car.year} ${car.make} ${car.model}?`,
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Confirm",
+          onPress: async () => {
+            setLoading(true);
+            try {
+              await axios.post(
+                `${API_BASE_URL}/requests/api/requests`,
+                {
+                  make: car.make,
+                  model: car.model,
+                  min_year: car.year,
+                  notes: `I am interested in purchasing this specific vehicle: ${car.year} ${car.make} ${car.model}.`,
+                },
+                { headers: { Authorization: `Bearer ${token}` } }
+              );
+              Alert.alert(
+                "Success",
+                "Your request has been submitted successfully!",
+                [
+                  {
+                    text: "View Requests",
+                    onPress: () => router.push("/(tabs)/my-requests"),
+                  },
+                  { text: "OK" },
+                ]
+              );
+            } catch (error: any) {
+              console.error(error);
+              const errorMessage =
+                error.response?.data?.message || "Failed to submit request.";
+              Alert.alert("Error", errorMessage);
+            } finally {
+              setLoading(false);
+            }
+          },
+        },
+      ]
+    );
+  };
+
   const sendMessage = async () => {
     if (!message.trim()) return;
     if (!token) {
@@ -402,6 +461,9 @@ const CarDetailScreen = () => {
       </ScrollView>
       {/* Floating Action Button */}
       <View style={styles.footer}>
+        <Pressable style={styles.requestButton} onPress={handleRequestCar}>
+          <Text style={styles.requestButtonText}>Request This Car</Text>
+        </Pressable>
         <Pressable style={styles.contactButton} onPress={handleContactSeller}>
           <Ionicons name="chatbubbles-outline" size={20} color="#fff" />
           <Text style={styles.contactButtonText}>Contact Seller</Text>
@@ -625,6 +687,8 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.card,
     borderTopWidth: 1,
     borderTopColor: COLORS.border,
+    flexDirection: "row",
+    gap: 10,
   },
   contactButton: {
     backgroundColor: COLORS.accent,
@@ -633,12 +697,28 @@ const styles = StyleSheet.create({
     alignItems: "center",
     flexDirection: "row",
     justifyContent: "center",
+    flex: 1,
   },
   contactButtonText: {
     color: "#fff",
     fontSize: 18,
     fontWeight: "bold",
     marginLeft: 10,
+  },
+  requestButton: {
+    backgroundColor: "transparent",
+    borderWidth: 1,
+    borderColor: COLORS.accent,
+    padding: 15,
+    borderRadius: 12,
+    alignItems: "center",
+    justifyContent: "center",
+    flex: 1,
+  },
+  requestButtonText: {
+    color: COLORS.accent,
+    fontSize: 16,
+    fontWeight: "bold",
   },
   modalOverlay: {
     flex: 1,

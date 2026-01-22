@@ -23,7 +23,7 @@ from wtforms.validators import DataRequired, Length, NumberRange, Optional
 from flask_wtf.file import FileAllowed
 from werkzeug.utils import secure_filename
 import os
-from datetime import datetime
+from datetime import datetime, timedelta
 import base64
 import uuid
 
@@ -79,6 +79,23 @@ class TradeInForm(FlaskForm):
     submit = SubmitField("Get My Trade-in Offer")
 
 
+def get_recent_trade_in_count(user_id):
+    """Helper to count trade-in requests made by a user in the last 24 hours."""
+    last_24h = datetime.utcnow() - timedelta(hours=24)
+    return TradeInRequest.query.filter(
+        TradeInRequest.user_id == user_id, TradeInRequest.created_at >= last_24h
+    ).count()
+
+
+@tradein_bp.context_processor
+def inject_remaining_trade_ins():
+    """Injects the remaining number of trade-in requests allowed for the day into templates."""
+    if current_user.is_authenticated:
+        count = get_recent_trade_in_count(current_user.id)
+        return {"remaining_trade_ins": max(0, 3 - count)}
+    return {}
+
+
 def save_trade_in_photo(file):
     """Saves an uploaded photo for a trade-in and returns its web-accessible path."""
     if not file or file.filename == "":
@@ -130,6 +147,13 @@ def submit_trade_in():
     """Displays and processes the trade-in submission form."""
     form = TradeInForm()
     if form.validate_on_submit():
+        if get_recent_trade_in_count(current_user.id) >= 3:
+            flash(
+                "You have reached the daily limit of 3 trade-in requests. Please try again later.",
+                "danger",
+            )
+            return redirect(url_for("main.home"))
+
         # NOTE: The following lines are commented out as the models do not exist yet.
         # You would uncomment this when you create the TradeInRequest and TradeInPhoto models.
 
@@ -171,6 +195,17 @@ def submit_trade_in():
 @token_required
 def api_submit_trade_in(current_user):
     """API endpoint for submitting a trade-in request (for mobile apps)."""
+    if get_recent_trade_in_count(current_user.id) >= 3:
+        return (
+            jsonify(
+                {
+                    "status": "error",
+                    "message": "You have reached the daily limit of 3 trade-in requests.",
+                }
+            ),
+            429,
+        )
+
     data = request.get_json()
     if not data:
         return jsonify({"status": "error", "message": "Invalid JSON payload."}), 400

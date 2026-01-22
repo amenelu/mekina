@@ -34,6 +34,7 @@ from wtforms import (
     widgets,
     validators,
 )
+from datetime import datetime, timedelta
 from wtforms.validators import DataRequired, NumberRange, Optional, Length
 
 request_bp = Blueprint("request", __name__, url_prefix="/requests")
@@ -160,6 +161,23 @@ class DealerRatingForm(FlaskForm):
     submit = SubmitField("Submit Review")
 
 
+def get_recent_request_count(user_id):
+    """Helper to count requests made by a user in the last 24 hours."""
+    last_24h = datetime.utcnow() - timedelta(hours=24)
+    return CarRequest.query.filter(
+        CarRequest.user_id == user_id, CarRequest.created_at >= last_24h
+    ).count()
+
+
+@request_bp.context_processor
+def inject_remaining_requests():
+    """Injects the remaining number of requests allowed for the day into templates."""
+    if current_user.is_authenticated:
+        count = get_recent_request_count(current_user.id)
+        return {"remaining_requests": max(0, 3 - count)}
+    return {}
+
+
 @request_bp.route("/start")
 @login_required
 def start_request():
@@ -211,6 +229,14 @@ def step4_notes():
         return redirect(url_for("request.start_request"))
     form = RequestStep4_Notes()
     if form.validate_on_submit():
+        # Check daily request limit (3 per 24 hours)
+        if get_recent_request_count(current_user.id) >= 3:
+            flash(
+                "You have reached the daily limit of 3 requests. Please try again later.",
+                "danger",
+            )
+            return redirect(url_for("main.home"))
+
         data = session.get("car_request_data", {})
         new_req = CarRequest(
             make=data.get("make"),
@@ -338,6 +364,14 @@ def step_guided_brand():
         return redirect(url_for("request.start_request"))
     form = RequestGuided_Brand()
     if form.validate_on_submit():
+        # Check daily request limit (3 per 24 hours)
+        if get_recent_request_count(current_user.id) >= 3:
+            flash(
+                "You have reached the daily limit of 3 requests. Please try again later.",
+                "danger",
+            )
+            return redirect(url_for("main.home"))
+
         data = session.get("car_request_data", {})
         notes = (
             f"Customer is looking for a car with the following preferences:\n"
@@ -824,6 +858,22 @@ def api_create_request(current_user):
     API endpoint for creating a new car request from a mobile client.
     The client is expected to send all collected data in a single JSON payload.
     """
+    # Check daily request limit (3 per 24 hours)
+    last_24h = datetime.utcnow() - timedelta(hours=24)
+    recent_requests_count = CarRequest.query.filter(
+        CarRequest.user_id == current_user.id, CarRequest.created_at >= last_24h
+    ).count()
+    if recent_requests_count >= 3:
+        return (
+            jsonify(
+                {
+                    "status": "error",
+                    "message": "You have reached the daily limit of 3 requests.",
+                }
+            ),
+            429,
+        )
+
     data = request.get_json()
     if not data:
         return jsonify({"status": "error", "message": "Invalid JSON payload."}), 400
