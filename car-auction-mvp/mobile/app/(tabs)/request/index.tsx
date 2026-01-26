@@ -22,6 +22,11 @@ const choiceOptions = [
       "We'll guide you through some options to find the perfect fit.",
     href: "/request/budget",
   },
+  {
+    label: "I have a picture of what I want",
+    description: "Upload a photo and we'll find it for you.",
+    href: "/request/upload",
+  },
 ];
 
 const RequestChoiceScreen = () => {

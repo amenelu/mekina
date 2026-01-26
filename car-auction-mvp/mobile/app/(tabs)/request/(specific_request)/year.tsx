@@ -1,19 +1,18 @@
 import React, { useState } from "react";
-import API_URL from "@/constants/Api";
 import {
   View,
   Text,
   StyleSheet,
   TextInput,
   TouchableOpacity,
-  KeyboardAvoidingView,
-  Platform,
   Alert,
+  ActivityIndicator,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useAuth } from "@/hooks/useAuth";
 import { useRouter, useLocalSearchParams } from "expo-router";
-import { ActivityIndicator } from "react-native";
+import axios from "axios";
+import API_URL from "@/constants/Api";
+import { useAuth } from "@/hooks/useAuth";
 
 const COLORS = {
   background: "#14181F",
@@ -36,31 +35,20 @@ const RequestYearScreen = () => {
       Alert.alert("Invalid Year", "Please enter a valid 4-digit year.");
       return;
     }
+
     setLoading(true);
-
-    const finalRequest = {
-      make: params.make,
-      model: params.model,
-      min_year: year, // The API expects min_year
-    };
-
     try {
-      const response = await fetch(`${API_URL}/requests/api/requests`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
+      await axios.post(
+        `${API_URL}/requests/api/requests`,
+        {
+          make: params.make,
+          model: params.model,
+          min_year: year,
         },
-        body: JSON.stringify(finalRequest),
-      });
-
-      const responseData = await response.json();
-
-      if (!response.ok) {
-        throw new Error(
-          responseData.message || "An error occurred while submitting."
-        );
-      }
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
 
       Alert.alert(
         "Request Submitted!",
@@ -69,48 +57,48 @@ const RequestYearScreen = () => {
       );
     } catch (error: any) {
       console.error("Failed to submit request:", error);
-      Alert.alert(
-        "Submission Failed",
-        error.message || "An unknown error occurred."
-      );
+      const message =
+        error.response?.data?.message || "An unknown error occurred.";
+      Alert.alert("Submission Failed", message);
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: COLORS.background }}>
-      <KeyboardAvoidingView
-        behavior={Platform.OS === "ios" ? "padding" : "height"}
-        style={styles.container}
-      >
-        <Text style={styles.counter}>3 / 3</Text>
-        <Text style={styles.title}>What year was it made?</Text>
+    <SafeAreaView style={styles.container}>
+      <Text style={styles.counter}>3 / 4</Text>
+      <Text style={styles.title}>
+        What's the minimum year you're looking for?
+      </Text>
 
-        <TextInput
-          style={styles.input}
-          placeholder="e.g., 2022"
-          placeholderTextColor={COLORS.mutedForeground}
-          value={year}
-          onChangeText={setYear}
-          keyboardType="number-pad"
-          maxLength={4}
-        />
+      <TextInput
+        style={styles.input}
+        placeholder="e.g., 2022"
+        placeholderTextColor={COLORS.mutedForeground}
+        value={year}
+        onChangeText={setYear}
+        keyboardType="number-pad"
+        maxLength={4}
+      />
 
-        <TouchableOpacity style={styles.submitButton} onPress={handleSubmit}>
-          {loading ? (
-            <ActivityIndicator color={COLORS.foreground} />
-          ) : (
-            <Text style={styles.submitButtonText}>Finish Request</Text>
-          )}
-        </TouchableOpacity>
-      </KeyboardAvoidingView>
+      <TouchableOpacity style={styles.submitButton} onPress={handleSubmit}>
+        {loading ? (
+          <ActivityIndicator color={COLORS.foreground} />
+        ) : (
+          <Text style={styles.submitButtonText}>Finish Request</Text>
+        )}
+      </TouchableOpacity>
     </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 20, backgroundColor: COLORS.background },
+  container: {
+    flex: 1,
+    padding: 20,
+    backgroundColor: COLORS.background,
+  },
   counter: {
     fontSize: 16,
     fontWeight: "600",

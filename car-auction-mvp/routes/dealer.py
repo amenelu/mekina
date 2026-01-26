@@ -47,7 +47,7 @@ from wtforms.validators import (
     Length,
     ValidationError,
 )  # Import FileField and FileAllowed
-from wtforms import FileField
+from wtforms import FileField, MultipleFileField
 from flask_wtf.file import FileAllowed
 from routes.main import mark_notification_as_read
 from routes.seller import save_base64_image, token_required
@@ -115,8 +115,8 @@ class DealerBidForm(FlaskForm):
     message = TextAreaField(
         "Message to Customer (Optional)", validators=[Optional(), Length(max=1000)]
     )
-    photo = FileField(
-        "Car Photo (Optional)",
+    photos = MultipleFileField(
+        "Car Photos (Optional)",
         validators=[FileAllowed(["jpg", "png", "jpeg", "gif"], "Images only!")],
     )  # New photo field
     submit = SubmitField("Submit Offer")
@@ -588,23 +588,30 @@ def place_bid(request_id):
     if form.validate_on_submit():
         # --- Point System Logic ---
         # Handle photo upload
-        photo_filename = None
-        if form.photo.data:
-            filename = secure_filename(form.photo.data.filename)
-            # Construct the absolute path to the upload directory
-            upload_dir_abs = os.path.join(
-                current_app.root_path, BID_PHOTO_UPLOAD_FOLDER
-            )
-            os.makedirs(upload_dir_abs, exist_ok=True)  # Ensure the directory exists
+        uploaded_images = []
+        if form.photos.data:
+            for file in form.photos.data:
+                if not file or not file.filename:
+                    continue
+                filename = secure_filename(file.filename)
+                # Construct the absolute path to the upload directory
+                upload_dir_abs = os.path.join(
+                    current_app.root_path, BID_PHOTO_UPLOAD_FOLDER
+                )
+                os.makedirs(
+                    upload_dir_abs, exist_ok=True
+                )  # Ensure the directory exists
 
-            # Construct the full absolute path to save the file
-            file_path_abs = os.path.join(upload_dir_abs, filename)
-            form.photo.data.save(file_path_abs)
-            photo_filename = os.path.join(
-                "/", BID_PHOTO_UPLOAD_FOLDER, filename
-            ).replace(
-                os.sep, "/"
-            )  # Store relative path for web access, ensure forward slashes
+                # Construct the full absolute path to save the file
+                file_path_abs = os.path.join(upload_dir_abs, filename)
+                file.save(file_path_abs)
+                photo_filename = os.path.join(
+                    "/", BID_PHOTO_UPLOAD_FOLDER, filename
+                ).replace(
+                    os.sep, "/"
+                )  # Store relative path for web access, ensure forward slashes
+                uploaded_images.append(photo_filename)
+
         # Check if the dealer has enough points to place a bid.
         if current_user.points <= 0:
             flash(
@@ -632,8 +639,8 @@ def place_bid(request_id):
         db.session.add(new_bid)
 
         # If a photo was uploaded, create a DealerBidImage and associate it
-        if photo_filename:
-            new_image = DealerBidImage(image_url=photo_filename)
+        for img_url in uploaded_images:
+            new_image = DealerBidImage(image_url=img_url)
             new_bid.images.append(new_image)
 
         # Deduct one point from the dealer's account
@@ -778,13 +785,22 @@ def api_place_dealer_bid(current_user, request_id):
                 400,
             )
 
-        photo_filename = None
-        if data.get("image_base64"):
+        uploaded_images = []
+        if data.get("images_base64"):
+            for img_b64 in data["images_base64"]:
+                fname = save_base64_image(
+                    img_b64, filename_prefix=f"dealer_bid_{car_request.id}"
+                )
+                if fname:
+                    uploaded_images.append(fname)
+        elif data.get("image_base64"):
             photo_filename = save_base64_image(
                 data["image_base64"], filename_prefix=f"dealer_bid_{car_request.id}"
             )
+            if photo_filename:
+                uploaded_images.append(photo_filename)
         elif data.get("image_url"):
-            photo_filename = data["image_url"]
+            uploaded_images.append(data["image_url"])
 
         new_bid = DealerBid(
             price=price,
@@ -804,8 +820,8 @@ def api_place_dealer_bid(current_user, request_id):
         db.session.add(new_bid)
 
         # If a photo was uploaded, create a DealerBidImage and associate it
-        if photo_filename:
-            new_image = DealerBidImage(image_url=photo_filename)
+        for img_url in uploaded_images:
+            new_image = DealerBidImage(image_url=img_url)
             new_bid.images.append(new_image)
 
         current_user.points -= 1  # Deduct point
@@ -978,20 +994,24 @@ def edit_bid(bid_id):
 
     if form.validate_on_submit():
         # Handle photo upload on edit
-        photo_filename = bid.image_url  # Keep existing photo if no new one is uploaded
-        if form.photo.data:
-            filename = secure_filename(form.photo.data.filename)
-            upload_dir_abs = os.path.join(
-                current_app.root_path, BID_PHOTO_UPLOAD_FOLDER
-            )
-            os.makedirs(upload_dir_abs, exist_ok=True)
+        if form.photos.data:
+            for file in form.photos.data:
+                if not file or not file.filename:
+                    continue
+                filename = secure_filename(file.filename)
+                upload_dir_abs = os.path.join(
+                    current_app.root_path, BID_PHOTO_UPLOAD_FOLDER
+                )
+                os.makedirs(upload_dir_abs, exist_ok=True)
 
-            file_path_abs = os.path.join(upload_dir_abs, filename)
-            form.photo.data.save(file_path_abs)
+                file_path_abs = os.path.join(upload_dir_abs, filename)
+                file.save(file_path_abs)
 
-            photo_filename = os.path.join(
-                "/", BID_PHOTO_UPLOAD_FOLDER, filename
-            ).replace(os.sep, "/")
+                photo_filename = os.path.join(
+                    "/", BID_PHOTO_UPLOAD_FOLDER, filename
+                ).replace(os.sep, "/")
+                new_image = DealerBidImage(image_url=photo_filename)
+                bid.images.append(new_image)
 
         # Update the bid object with the new form data
         form.populate_obj(bid)

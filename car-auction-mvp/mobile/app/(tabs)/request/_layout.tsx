@@ -35,6 +35,7 @@ export default function RequestLayout() {
         name="(specific_request)"
         options={{ headerShown: false }}
       />
+      <Stack.Screen name="upload" options={{ headerShown: false }} />
     </Stack>
   );
 }

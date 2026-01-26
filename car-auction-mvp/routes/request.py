@@ -13,6 +13,7 @@ from flask import (
 from flask_login import login_required, current_user
 from models.car_request import CarRequest
 from models.dealer_bid import DealerBid
+from models.car_request_image import CarRequestImage
 from models.trade_in import TradeInRequest
 from models.deal import Deal
 from extensions import db, socketio
@@ -20,6 +21,7 @@ from models.dealer_rating import DealerRating
 from models.notification import Notification
 from models.request_question import RequestQuestion
 from routes.main import mark_notification_as_read
+from routes.seller import save_base64_image
 from routes.main import send_push_notification
 from routes.auth import token_required
 from flask_wtf import FlaskForm
@@ -31,13 +33,18 @@ from wtforms import (
     RadioField,
     SelectField,
     SelectMultipleField,
+    MultipleFileField,
     widgets,
     validators,
 )
+from flask_wtf.file import FileAllowed
+from werkzeug.utils import secure_filename
+import os
 from datetime import datetime, timedelta
 from wtforms.validators import DataRequired, NumberRange, Optional, Length
 
 request_bp = Blueprint("request", __name__, url_prefix="/requests")
+REQUEST_UPLOAD_FOLDER = "static/uploads/requests"
 
 
 # --- Initial Choice Form ---
@@ -74,6 +81,10 @@ class RequestStep3_Year(FlaskForm):
 class RequestStep4_Notes(FlaskForm):
     notes = TextAreaField(
         "Any other details? (e.g., color, trim, condition)", validators=[Optional()]
+    )
+    images = MultipleFileField(
+        "Upload photos of the car you want (Optional)",
+        validators=[FileAllowed(["jpg", "png", "jpeg"], "Images only!")],
     )
     submit = SubmitField("Finish Request")
 
@@ -124,6 +135,10 @@ class RequestGuided_Fuel(FlaskForm):
 class RequestGuided_Brand(FlaskForm):
     brand = StringField(
         "Are you considering any specific brands? (Optional)", validators=[Optional()]
+    )
+    images = MultipleFileField(
+        "Reference Photos (Optional)",
+        validators=[FileAllowed(["jpg", "png", "jpeg"], "Images only!")],
     )
     submit = SubmitField("Finish Request")
 
@@ -246,6 +261,25 @@ def step4_notes():
             user_id=current_user.id,
         )
         db.session.add(new_req)
+        db.session.flush()  # Flush to get ID
+
+        # Handle images
+        if form.images.data:
+            for file in form.images.data:
+                if not file or not file.filename:
+                    continue
+                filename = secure_filename(file.filename)
+                upload_dir = os.path.join(current_app.root_path, REQUEST_UPLOAD_FOLDER)
+                os.makedirs(upload_dir, exist_ok=True)
+                file_path = os.path.join(upload_dir, filename)
+                file.save(file_path)
+                image_url = os.path.join("/", REQUEST_UPLOAD_FOLDER, filename).replace(
+                    os.sep, "/"
+                )
+
+                new_img = CarRequestImage(image_url=image_url, request_id=new_req.id)
+                db.session.add(new_img)
+
         db.session.commit()
         session.pop("car_request_data", None)
 
@@ -388,6 +422,25 @@ def step_guided_brand():
             or None,  # Save the brand to the structured 'make' field
         )
         db.session.add(new_req)
+        db.session.flush()  # Flush to get ID
+
+        # Handle images
+        if form.images.data:
+            for file in form.images.data:
+                if not file or not file.filename:
+                    continue
+                filename = secure_filename(file.filename)
+                upload_dir = os.path.join(current_app.root_path, REQUEST_UPLOAD_FOLDER)
+                os.makedirs(upload_dir, exist_ok=True)
+                file_path = os.path.join(upload_dir, filename)
+                file.save(file_path)
+                image_url = os.path.join("/", REQUEST_UPLOAD_FOLDER, filename).replace(
+                    os.sep, "/"
+                )
+
+                new_img = CarRequestImage(image_url=image_url, request_id=new_req.id)
+                db.session.add(new_img)
+
         db.session.commit()
         session.pop("car_request_data", None)
 
@@ -874,9 +927,16 @@ def api_create_request(current_user):
             429,
         )
 
-    data = request.get_json()
+    # Handle both JSON and Multipart/Form-Data
+    if request.content_type and "multipart/form-data" in request.content_type:
+        data = request.form.to_dict()
+        files = request.files.getlist("images")
+    else:
+        data = request.get_json()
+        files = []
+
     if not data:
-        return jsonify({"status": "error", "message": "Invalid JSON payload."}), 400
+        return jsonify({"status": "error", "message": "Invalid payload."}), 400
 
     # --- Logic to handle both "I know what I want" and "Help me decide" paths ---
     is_guided_path = "price" in data or "body_type" in data
@@ -890,7 +950,10 @@ def api_create_request(current_user):
             "awd": "All-Wheel Drive",
         }
         # Get the list of equipment values from the request
-        equipment_values = data.get("equipment", [])
+        if request.content_type and "multipart/form-data" in request.content_type:
+            equipment_values = request.form.getlist("equipment")
+        else:
+            equipment_values = data.get("equipment", [])
         # Map the values to their labels, defaulting to the value itself if not found
         equipment_labels = [equipment_map.get(val, val) for val in equipment_values]
 
@@ -929,6 +992,33 @@ def api_create_request(current_user):
         )
 
     db.session.add(new_req)
+    db.session.flush()
+
+    if data.get("images_base64"):
+        for img_b64 in data["images_base64"]:
+            image_url = save_base64_image(
+                img_b64, filename_prefix=f"request_{new_req.id}"
+            )
+            if image_url:
+                new_img = CarRequestImage(image_url=image_url, request_id=new_req.id)
+                db.session.add(new_img)
+
+    # Handle File uploads (Multipart)
+    if files:
+        for file in files:
+            if not file or not file.filename:
+                continue
+            filename = secure_filename(file.filename)
+            upload_dir = os.path.join(current_app.root_path, REQUEST_UPLOAD_FOLDER)
+            os.makedirs(upload_dir, exist_ok=True)
+            file_path = os.path.join(upload_dir, filename)
+            file.save(file_path)
+            image_url = os.path.join("/", REQUEST_UPLOAD_FOLDER, filename).replace(
+                os.sep, "/"
+            )
+            new_img = CarRequestImage(image_url=image_url, request_id=new_req.id)
+            db.session.add(new_img)
+
     db.session.commit()
 
     return (

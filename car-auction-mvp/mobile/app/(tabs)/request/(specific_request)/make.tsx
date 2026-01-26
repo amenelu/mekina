@@ -31,7 +31,7 @@ const RequestMakeScreen = () => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <Text style={styles.counter}>1 / 3</Text>
+      <Text style={styles.counter}>1 / 4</Text>
       <Text style={styles.title}>What make of car are you looking for?</Text>
 
       <TextInput

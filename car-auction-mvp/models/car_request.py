@@ -1,5 +1,6 @@
 from extensions import db
 from datetime import datetime
+from flask import url_for
 from .dealer_bid import DealerBid
 
 
@@ -28,6 +29,14 @@ class CarRequest(db.Model):
         foreign_keys="DealerBid.request_id",
         backref="car_request",
         lazy="dynamic",
+        cascade="all, delete-orphan",
+    )
+
+    # Relationship to images
+    images = db.relationship(
+        "CarRequestImage",
+        backref="car_request",
+        lazy=True,
         cascade="all, delete-orphan",
     )
 
@@ -61,4 +70,13 @@ class CarRequest(db.Model):
             "offer_count": self.dealer_bids.count(),  # Added for mobile app
             "accepted_bid_id": self.accepted_bid_id,
             "deal_id": deal_id,
+            "image_urls": [
+                url_for(
+                    "static",
+                    filename=img.image_url.split("/static/")[1],
+                    _external=True,
+                )
+                for img in self.images
+                if img.image_url and "/static/" in img.image_url
+            ],
         }

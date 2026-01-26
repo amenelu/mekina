@@ -34,7 +34,7 @@ const RequestModelScreen = () => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <Text style={styles.counter}>2 / 3</Text>
+      <Text style={styles.counter}>2 / 4</Text>
       <Text style={styles.title}>
         Great! What model of {params.make} are you looking for?
       </Text>
