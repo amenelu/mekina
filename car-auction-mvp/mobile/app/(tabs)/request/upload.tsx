@@ -55,6 +55,14 @@ const RequestUploadScreen = () => {
   };
 
   const handleSubmit = async () => {
+    if (images.length === 0 && !notes.trim() && !params.make) {
+      Alert.alert(
+        "Missing Information",
+        "Please provide either notes or an image to submit your request."
+      );
+      return;
+    }
+
     setLoading(true);
 
     const formData = new FormData();

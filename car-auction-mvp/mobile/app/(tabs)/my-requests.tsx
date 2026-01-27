@@ -8,6 +8,7 @@ import {
   ActivityIndicator,
   RefreshControl,
   Alert,
+  Image,
 } from "react-native";
 import { Link, useFocusEffect, useRouter, Stack } from "expo-router";
 import { useAuth } from "@/hooks/useAuth";
@@ -37,6 +38,7 @@ interface CarRequest {
   offer_count?: number;
   deal_id: number | null;
   type?: "buy" | "trade-in";
+  images?: { image_url: string }[];
 }
 
 const formatDate = (dateString: string) => {
@@ -65,6 +67,7 @@ const RequestCard = ({ request }: { request: CarRequest }) => {
   const statusText =
     request.status.charAt(0).toUpperCase() + request.status.slice(1);
   const isTradeIn = request.type === "trade-in";
+  const isImageBased = request.images && request.images.length > 0;
 
   const handlePress = () => {
     if (isTradeIn) {
@@ -80,14 +83,24 @@ const RequestCard = ({ request }: { request: CarRequest }) => {
   return (
     <View style={styles.requestCard}>
       <Pressable onPress={handlePress}>
+        {isImageBased && request.images && (
+          <Image
+            source={{ uri: `${API_URL}${request.images[0].image_url}` }}
+            style={styles.cardImage}
+            resizeMode="cover"
+          />
+        )}
         <View style={styles.cardHeader}>
           <View>
             <Text style={styles.cardTitle}>
               {request.make && request.model
                 ? `${request.make} ${request.model}`
+                : isImageBased
+                ? "Image Based Request"
                 : "General Request"}
             </Text>
-            {isTradeIn && <Text style={styles.tradeInTag}>Trade-in</Text>}
+            {isTradeIn && <Text style={styles.tagText}>Trade-in</Text>}
+            {isImageBased && <Text style={styles.tagText}>Image Request</Text>}
           </View>
           <Text style={[styles.statusTag, { backgroundColor: statusColor }]}>
             {statusText}
@@ -319,6 +332,10 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     overflow: "hidden",
   },
+  cardImage: {
+    width: "100%",
+    height: 150,
+  },
   cardHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -327,7 +344,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: COLORS.border,
   },
-  tradeInTag: {
+  tagText: {
     color: COLORS.accent,
     fontSize: 12,
     fontWeight: "bold",

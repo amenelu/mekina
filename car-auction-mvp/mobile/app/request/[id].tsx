@@ -41,6 +41,7 @@ interface CarRequest {
   created_at: string;
   equipment: string | null; // e.g., "sunroof,leather_seats"
   bid_count: number;
+  images?: { image_url: string }[];
 }
 
 interface QuestionAnswer {
@@ -324,6 +325,38 @@ const RequestDetailScreen = () => {
               <Text style={styles.detailLabel}>Notes:</Text>
             </View>
             <Text style={styles.notesText}>{request.notes}</Text>
+
+            {request.images && request.images.length > 0 && (
+              <View style={styles.requestImagesContainer}>
+                <Text style={[styles.detailLabel, { marginBottom: 8 }]}>
+                  Reference Photos:
+                </Text>
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  style={styles.requestImagesScroll}
+                >
+                  {request.images.map((img, idx) => (
+                    <Pressable
+                      key={idx}
+                      onPress={() =>
+                        openImageViewer(
+                          request.images!.map(
+                            (i) => API_BASE_URL + i.image_url
+                          ),
+                          idx
+                        )
+                      }
+                    >
+                      <Image
+                        source={{ uri: API_BASE_URL + img.image_url }}
+                        style={styles.requestImage}
+                      />
+                    </Pressable>
+                  ))}
+                </ScrollView>
+              </View>
+            )}
           </View>
           {request.equipment && (
             <View style={styles.card}>
@@ -685,6 +718,20 @@ const styles = StyleSheet.create({
     color: COLORS.mutedForeground,
     lineHeight: 22,
     marginTop: 5,
+  },
+  requestImagesContainer: {
+    marginTop: 15,
+    borderTopWidth: 1,
+    borderTopColor: COLORS.border,
+    paddingTop: 10,
+  },
+  requestImagesScroll: { flexDirection: "row" },
+  requestImage: {
+    width: 100,
+    height: 80,
+    borderRadius: 8,
+    marginRight: 10,
+    backgroundColor: COLORS.muted,
   },
   noBidsText: {
     fontSize: 16,

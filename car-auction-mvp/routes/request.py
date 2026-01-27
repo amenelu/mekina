@@ -508,6 +508,8 @@ def api_my_requests(current_user):
         for req in buy_requests:
             d = req.to_dict()
             d["type"] = "buy"
+            if "images" not in d:
+                d["images"] = [{"image_url": img.image_url} for img in req.images]
             requests_data.append(d)
 
         # Fetch Trade-in Requests
@@ -573,8 +575,14 @@ def api_request_detail(current_user, request_id):
 
     all_bids = car_request.dealer_bids.all()
 
+    req_data = car_request.to_dict()
+    if "images" not in req_data:
+        req_data["images"] = [
+            {"image_url": img.image_url} for img in car_request.images
+        ]
+
     if not all_bids:
-        return jsonify({"request": car_request.to_dict(), "bids": []})
+        return jsonify({"request": req_data, "bids": []})
 
     # Find the lowest priced and newest bids
     lowest_bid = min(all_bids, key=lambda b: b.price)
@@ -601,7 +609,7 @@ def api_request_detail(current_user, request_id):
 
     return jsonify(
         {
-            "request": car_request.to_dict(),
+            "request": req_data,
             "bids": [
                 bid.to_dict(is_newest=(bid.id == newest_bid.id)) for bid in sorted_bids
             ],
@@ -972,12 +980,17 @@ def api_create_request(current_user):
             make=data.get("brand") or None,  # Save brand to the structured 'make' field
         )
     else:  # "I know what I want" path
-        if not data.get("make") and not data.get("notes"):
+        if (
+            not data.get("make")
+            and not data.get("notes")
+            and not files
+            and not data.get("images_base64")
+        ):
             return (
                 jsonify(
                     {
                         "status": "error",
-                        "message": "Either make/model or notes are required.",
+                        "message": "Either make/model, notes, or an image is required.",
                     }
                 ),
                 400,
