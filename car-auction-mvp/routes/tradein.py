@@ -260,6 +260,19 @@ def api_submit_trade_in(current_user):
     )
 
 
+@tradein_bp.route("/api/requests/<int:request_id>", methods=["DELETE"])
+@token_required
+def api_delete_trade_in(current_user, request_id):
+    """API endpoint to delete a trade-in request."""
+    req = TradeInRequest.query.get_or_404(request_id)
+    if req.user_id != current_user.id:
+        return jsonify({"status": "error", "message": "Unauthorized"}), 403
+
+    db.session.delete(req)
+    db.session.commit()
+    return jsonify({"status": "success", "message": "Trade-in request deleted."})
+
+
 @tradein_bp.route("/api/requests/<int:request_id>", methods=["GET"])
 @token_required
 def api_get_my_trade_in_detail(current_user, request_id):

@@ -15,6 +15,7 @@ import { useAuth } from "@/hooks/useAuth";
 import axios from "axios";
 import API_URL from "@/constants/Api";
 import { useSocket } from "../../contexts/SocketContext";
+import { Ionicons } from "@expo/vector-icons";
 
 const COLORS = {
   background: "#14181F",
@@ -39,6 +40,7 @@ interface CarRequest {
   deal_id: number | null;
   type?: "buy" | "trade-in";
   images?: { image_url: string }[];
+  detail_score?: number;
 }
 
 const formatDate = (dateString: string) => {
@@ -53,7 +55,13 @@ const formatDate = (dateString: string) => {
   }
 };
 
-const RequestCard = ({ request }: { request: CarRequest }) => {
+const RequestCard = ({
+  request,
+  onDelete,
+}: {
+  request: CarRequest;
+  onDelete: (req: CarRequest) => void;
+}) => {
   const router = useRouter();
   const statusColor =
     request.status.toLowerCase() === "completed"
@@ -80,6 +88,21 @@ const RequestCard = ({ request }: { request: CarRequest }) => {
     }
   };
 
+  const handleDelete = () => {
+    Alert.alert(
+      "Delete Request",
+      "Are you sure you want to delete this request?",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Delete",
+          style: "destructive",
+          onPress: () => onDelete(request),
+        },
+      ]
+    );
+  };
+
   return (
     <View style={styles.requestCard}>
       <Pressable onPress={handlePress}>
@@ -99,12 +122,37 @@ const RequestCard = ({ request }: { request: CarRequest }) => {
                 ? "Image Based Request"
                 : "General Request"}
             </Text>
-            {isTradeIn && <Text style={styles.tagText}>Trade-in</Text>}
-            {isImageBased && <Text style={styles.tagText}>Image Request</Text>}
+            <View
+              style={{
+                flexDirection: "row",
+                gap: 8,
+                alignItems: "center",
+                marginTop: 4,
+              }}
+            >
+              {isTradeIn && <Text style={styles.tagText}>Trade-in</Text>}
+              {isImageBased && (
+                <Text style={styles.tagText}>Image Request</Text>
+              )}
+              {request.detail_score !== undefined && (
+                <Text style={styles.scoreText}>
+                  Strength: {request.detail_score}%
+                </Text>
+              )}
+            </View>
           </View>
-          <Text style={[styles.statusTag, { backgroundColor: statusColor }]}>
-            {statusText}
-          </Text>
+          <View style={{ alignItems: "flex-end", gap: 8 }}>
+            <Text style={[styles.statusTag, { backgroundColor: statusColor }]}>
+              {statusText}
+            </Text>
+            <Pressable onPress={handleDelete} hitSlop={10}>
+              <Ionicons
+                name="trash-outline"
+                size={20}
+                color={COLORS.mutedForeground}
+              />
+            </Pressable>
+          </View>
         </View>
         <View style={styles.cardBody}>
           <Text style={styles.cardNotes} numberOfLines={3}>
@@ -229,6 +277,28 @@ const MyRequestsScreen = () => {
     fetchRequests();
   };
 
+  const handleDeleteRequest = async (req: CarRequest) => {
+    try {
+      setLoading(true);
+      if (req.type === "trade-in") {
+        await axios.delete(`${API_URL}/trade-in/api/requests/${req.id}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+      } else {
+        await axios.delete(`${API_URL}/requests/api/requests/${req.id}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+      }
+      // Refresh list
+      fetchRequests();
+      Alert.alert("Success", "Request deleted successfully.");
+    } catch (error) {
+      console.error("Failed to delete request:", error);
+      Alert.alert("Error", "Failed to delete request.");
+      setLoading(false);
+    }
+  };
+
   if (!isLoading && !token) {
     return (
       <View
@@ -292,7 +362,11 @@ const MyRequestsScreen = () => {
           )}
           {!error && requests.length > 0
             ? requests.map((req) => (
-                <RequestCard key={`${req.type}-${req.id}`} request={req} />
+                <RequestCard
+                  key={`${req.type}-${req.id}`}
+                  request={req}
+                  onDelete={handleDeleteRequest}
+                />
               ))
             : !error &&
               !loading && (
@@ -359,6 +433,11 @@ const styles = StyleSheet.create({
     borderRadius: 6,
     fontSize: 12,
     overflow: "hidden",
+  },
+  scoreText: {
+    color: COLORS.accent,
+    fontSize: 11,
+    fontWeight: "bold",
   },
   cardBody: { padding: 15 },
   cardNotes: { color: COLORS.mutedForeground, fontSize: 15, lineHeight: 22 },

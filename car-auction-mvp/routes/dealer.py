@@ -144,6 +144,35 @@ class RequestAnswerForm(FlaskForm):
     submit = SubmitField("Post Answer")
 
 
+def calculate_request_score(req):
+    """Calculates a score (0-100) representing the detail level of a request."""
+    score = 10
+
+    if req.make and req.model:
+        score += 30
+    elif req.make:
+        score += 10
+
+    if req.min_year:
+        score += 10
+
+    if req.notes:
+        if len(req.notes) > 50:
+            score += 20
+        elif len(req.notes) > 10:
+            score += 10
+
+    image_count = (
+        len(req.images) if hasattr(req.images, "__len__") else req.images.count()
+    )
+    if image_count > 0:
+        score += 20
+    if image_count > 2:
+        score += 10
+
+    return min(score, 100)
+
+
 @dealer_bp.route("/dashboard")
 @login_required
 @dealer_required
@@ -295,6 +324,7 @@ def api_dealer_dashboard(current_user):
         req_dict["bid_count"] = bid_count or 0
         req_dict["lowest_offer"] = lowest_offer
         req_dict["has_been_viewed"] = has_been_viewed
+        req_dict["detail_score"] = calculate_request_score(req)
         active_requests_data.append(req_dict)
 
     my_cars = (

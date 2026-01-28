@@ -60,6 +60,7 @@ interface CustomerRequest {
   bid_count?: number;
   lowest_offer?: number;
   has_been_viewed?: boolean;
+  detail_score?: number;
 }
 
 interface Conversation {
@@ -145,6 +146,12 @@ const RequestItem = ({ item }: { item: CustomerRequest }) => {
     });
   };
 
+  const getScoreColor = (score: number = 0) => {
+    if (score >= 80) return COLORS.success;
+    if (score >= 50) return COLORS.warning;
+    return COLORS.textSecondary;
+  };
+
   return (
     <Pressable style={styles.itemCard} onPress={handlePress}>
       <View style={styles.requestCardHeader}>
@@ -152,6 +159,16 @@ const RequestItem = ({ item }: { item: CustomerRequest }) => {
           {item.make || "Any Make"} {item.model || ""} ({item.min_year || "Any"}
           +)
         </Text>
+        {item.detail_score !== undefined && (
+          <View
+            style={[
+              styles.scoreBadge,
+              { backgroundColor: getScoreColor(item.detail_score) },
+            ]}
+          >
+            <Text style={styles.scoreText}>{item.detail_score}%</Text>
+          </View>
+        )}
         {!item.has_been_viewed && (
           <View style={styles.newBadge}>
             <Text style={styles.newBadgeText}>NEW</Text>
@@ -553,6 +570,17 @@ const styles = StyleSheet.create({
     color: "black",
     fontWeight: "bold",
     fontSize: 12,
+  },
+  scoreBadge: {
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+    marginLeft: 8,
+  },
+  scoreText: {
+    color: "#fff",
+    fontSize: 10,
+    fontWeight: "bold",
   },
   requestCardBody: {
     flexDirection: "row",

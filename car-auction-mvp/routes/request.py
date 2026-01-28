@@ -193,6 +193,35 @@ def inject_remaining_requests():
     return {}
 
 
+def calculate_request_score(req):
+    """Calculates a score (0-100) representing the detail level of a request."""
+    score = 10
+
+    if req.make and req.model:
+        score += 30
+    elif req.make:
+        score += 10
+
+    if req.min_year:
+        score += 10
+
+    if req.notes:
+        if len(req.notes) > 50:
+            score += 20
+        elif len(req.notes) > 10:
+            score += 10
+
+    image_count = (
+        len(req.images) if hasattr(req.images, "__len__") else req.images.count()
+    )
+    if image_count > 0:
+        score += 20
+    if image_count > 2:
+        score += 10
+
+    return min(score, 100)
+
+
 @request_bp.route("/start")
 @login_required
 def start_request():
@@ -510,6 +539,7 @@ def api_my_requests(current_user):
             d["type"] = "buy"
             if "images" not in d:
                 d["images"] = [{"image_url": img.image_url} for img in req.images]
+            d["detail_score"] = calculate_request_score(req)
             requests_data.append(d)
 
         # Fetch Trade-in Requests
@@ -538,6 +568,19 @@ def api_my_requests(current_user):
             ),
             500,
         )
+
+
+@request_bp.route("/api/requests/<int:request_id>", methods=["DELETE"])
+@token_required
+def api_delete_request(current_user, request_id):
+    """API endpoint to delete a car request."""
+    req = CarRequest.query.get_or_404(request_id)
+    if req.user_id != current_user.id:
+        return jsonify({"status": "error", "message": "Unauthorized"}), 403
+
+    db.session.delete(req)
+    db.session.commit()
+    return jsonify({"status": "success", "message": "Request deleted successfully."})
 
 
 @request_bp.route("/<int:request_id>")
