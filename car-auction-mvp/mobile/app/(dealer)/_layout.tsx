@@ -67,28 +67,6 @@ export default function DealerTabsLayout() {
           ),
         }}
       />
-      <Tabs.Screen
-        name="submit"
-        options={{
-          title: "submit",
-          href: null,
-        }}
-      />
-      <Tabs.Screen
-        name="place-offer"
-        options={{
-          title: "place-offer",
-          href: null,
-          headerShown: false, // Use custom header in the screen
-        }}
-      />
-      <Tabs.Screen
-        name="edit-listing"
-        options={{
-          href: null, // Hide from tab bar
-          headerShown: false,
-        }}
-      />
     </Tabs>
   );
 }

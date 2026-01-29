@@ -100,7 +100,7 @@ const StatCard = ({
 const ListingItem = ({ item }: { item: Listing }) => {
   const handlePress = () => {
     router.push({
-      pathname: "/(dealer)/edit-listing",
+      pathname: "/(dealer_actions)/edit-listing" as any,
       params: { id: item.id.toString() },
     });
   };
@@ -141,7 +141,7 @@ const ListingItem = ({ item }: { item: Listing }) => {
 const RequestItem = ({ item }: { item: CustomerRequest }) => {
   const handlePress = () => {
     router.push({
-      pathname: "/(dealer)/place-offer",
+      pathname: "/(dealer_actions)/place-offer" as any,
       params: { request_id: item.id },
     });
   };
@@ -350,7 +350,7 @@ const DealerDashboard = () => {
           </View>
           <Pressable
             style={styles.headerButton}
-            onPress={() => router.push("/(dealer)/submit")}
+            onPress={() => router.push("/(dealer_actions)/submit" as any)}
           >
             <Ionicons
               name="add-circle-outline"

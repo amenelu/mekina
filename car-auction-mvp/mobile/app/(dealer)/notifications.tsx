@@ -38,7 +38,7 @@ const getMobileRoute = (webLink: string | null) => {
   // Handle Requests: /requests/123 -> /request/123
   if (webLink.includes("/requests/") && !webLink.includes("/deal/")) {
     const match = webLink.match(/\/requests\/(\d+)/);
-    if (match) return `/(dealer)/place-offer?request_id=${match[1]}`;
+    if (match) return `/(dealer_actions)/place-offer?request_id=${match[1]}`;
   }
 
   // Handle Dealer Messages

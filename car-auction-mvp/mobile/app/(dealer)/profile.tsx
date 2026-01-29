@@ -195,23 +195,33 @@ const ProfileScreen = () => {
                 <FlatList
                   data={profileData.listings}
                   renderItem={({ item }) => (
-                    <VehicleCard
-                      item={{
-                        id: item.id.toString(), // Ensure ID is string for router
-                        year: item.year,
-                        make: item.make,
-                        model: item.model,
-                        mileage: item.mileage,
-                        // Map API fields to VehicleCard's expected fields
-                        price: item.price_display || "N/A",
-                        image: item.primary_image_url || "",
-                        listingType: (item.listing_type
-                          ? item.listing_type.charAt(0).toUpperCase() +
-                            item.listing_type.slice(1)
-                          : "Sale") as any,
+                    <Pressable
+                      onPress={() => {
+                        router.push({
+                          pathname: "/(dealer_actions)/edit-listing" as any,
+                          params: { id: item.id.toString() },
+                        });
                       }}
                       style={{ width: "100%" }}
-                    />
+                    >
+                      <VehicleCard
+                        item={{
+                          id: item.id.toString(),
+                          year: item.year,
+                          make: item.make,
+                          model: item.model,
+                          mileage: item.mileage,
+                          // Map API fields to VehicleCard's expected fields
+                          price: item.price_display || "N/A",
+                          image: item.primary_image_url || "",
+                          listingType: (item.listing_type
+                            ? item.listing_type.charAt(0).toUpperCase() +
+                              item.listing_type.slice(1)
+                            : "Sale") as any,
+                        }}
+                        style={{ width: "100%" }}
+                      />
+                    </Pressable>
                   )}
                   keyExtractor={(item) => item.id.toString()}
                   scrollEnabled={false}
