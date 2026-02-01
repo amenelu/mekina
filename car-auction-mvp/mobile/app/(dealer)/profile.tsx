@@ -198,7 +198,7 @@ const ProfileScreen = () => {
                     <Pressable
                       onPress={() => {
                         router.push({
-                          pathname: "/(dealer_actions)/edit-listing" as any,
+                          pathname: "/(dealer)/edit-listing" as any,
                           params: { id: item.id.toString() },
                         });
                       }}

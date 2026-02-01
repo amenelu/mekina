@@ -100,7 +100,7 @@ const StatCard = ({
 const ListingItem = ({ item }: { item: Listing }) => {
   const handlePress = () => {
     router.push({
-      pathname: "/(dealer_actions)/edit-listing" as any,
+      pathname: "/(dealer)/edit-listing" as any,
       params: { id: item.id.toString() },
     });
   };
@@ -141,8 +141,8 @@ const ListingItem = ({ item }: { item: Listing }) => {
 const RequestItem = ({ item }: { item: CustomerRequest }) => {
   const handlePress = () => {
     router.push({
-      pathname: "/(dealer_actions)/place-offer" as any,
-      params: { request_id: item.id },
+      pathname: "/(dealer)/place-offer" as any,
+      params: { request_id: item.id.toString() },
     });
   };
 
@@ -211,10 +211,6 @@ const RequestItem = ({ item }: { item: CustomerRequest }) => {
       <Text style={styles.itemNotes} numberOfLines={2}>
         {item.message}
       </Text>
-
-      <View style={styles.offerButton}>
-        <Text style={styles.offerButtonText}>Place Offer</Text>
-      </View>
     </Pressable>
   );
 };
@@ -350,7 +346,7 @@ const DealerDashboard = () => {
           </View>
           <Pressable
             style={styles.headerButton}
-            onPress={() => router.push("/(dealer_actions)/submit" as any)}
+            onPress={() => router.push("/(dealer)/submit" as any)}
           >
             <Ionicons
               name="add-circle-outline"
@@ -532,15 +528,6 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(138, 148, 163, 0.3)",
     color: COLORS.textSecondary,
   },
-  offerButton: {
-    backgroundColor: COLORS.accent,
-    alignSelf: "flex-start",
-    paddingHorizontal: 15,
-    paddingVertical: 8,
-    borderRadius: 6,
-    marginTop: 12,
-  },
-  offerButtonText: { color: "white", fontWeight: "bold" },
   viewChatButton: {
     backgroundColor: "rgba(138, 148, 163, 0.5)",
     alignSelf: "flex-start",

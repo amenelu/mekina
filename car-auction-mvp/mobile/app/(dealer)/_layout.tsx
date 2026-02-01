@@ -67,6 +67,24 @@ export default function DealerTabsLayout() {
           ),
         }}
       />
+      <Tabs.Screen
+        name="place-offer"
+        options={{
+          href: null,
+        }}
+      />
+      <Tabs.Screen
+        name="edit-listing"
+        options={{
+          href: null,
+        }}
+      />
+      <Tabs.Screen
+        name="submit"
+        options={{
+          href: null,
+        }}
+      />
     </Tabs>
   );
 }
