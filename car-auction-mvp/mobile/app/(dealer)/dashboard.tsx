@@ -50,8 +50,9 @@ interface CustomerRequest {
   id: number;
   make: string;
   model: string;
-  min_year: number;
-  message: string;
+  min_year?: number;
+  message?: string;
+  notes?: string;
   created_at: string;
   min_price?: number;
   max_price?: number;
@@ -209,7 +210,7 @@ const RequestItem = ({ item }: { item: CustomerRequest }) => {
       </View>
 
       <Text style={styles.itemNotes} numberOfLines={2}>
-        {item.message}
+        {item.notes || item.message}
       </Text>
     </Pressable>
   );

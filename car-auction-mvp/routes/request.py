@@ -1005,6 +1005,14 @@ def api_create_request(current_user):
             equipment_values = request.form.getlist("equipment")
         else:
             equipment_values = data.get("equipment", [])
+
+        # Ensure equipment_values is a list to prevent iterating over a string (which yields characters)
+        if isinstance(equipment_values, str):
+            if "," in equipment_values:
+                equipment_values = [e.strip() for e in equipment_values.split(",")]
+            else:
+                equipment_values = [equipment_values]
+
         # Map the values to their labels, defaulting to the value itself if not found
         equipment_labels = [equipment_map.get(val, val) for val in equipment_values]
 

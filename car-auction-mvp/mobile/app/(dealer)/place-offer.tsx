@@ -25,13 +25,16 @@ interface CustomerRequest {
   id: number;
   make: string;
   model: string;
-  year: number;
+  year?: number;
+  min_year?: number;
   min_price?: number;
+  max_mileage?: number;
   max_price?: number;
   condition?: string;
   transmission?: string;
   fuel_type?: string;
   message?: string;
+  notes?: string;
 }
 
 interface DealerBid {
@@ -117,6 +120,30 @@ const CustomPicker = ({
       </Modal>
     </>
   );
+};
+
+const parseGuidedNotes = (notes: string) => {
+  if (
+    !notes ||
+    !notes.includes(
+      "Customer is looking for a car with the following preferences:"
+    )
+  ) {
+    return null;
+  }
+  const result: any = {};
+  const lines = notes.split("\n");
+  lines.forEach((line) => {
+    if (line.includes("- Budget:"))
+      result.budget = line.split("- Budget:")[1].trim();
+    if (line.includes("- Body Type:"))
+      result.bodyType = line.split("- Body Type:")[1].trim();
+    if (line.includes("- Fuel Type:"))
+      result.fuelType = line.split("- Fuel Type:")[1].trim();
+    if (line.includes("- Important Features:"))
+      result.features = line.split("- Important Features:")[1].trim();
+  });
+  return result;
 };
 
 const PlaceOfferScreen = () => {
@@ -239,6 +266,13 @@ const PlaceOfferScreen = () => {
       setImage(result.assets[0]);
     }
   };
+
+  const guidedData = React.useMemo(() => {
+    if (!requestDetails) return null;
+    return parseGuidedNotes(
+      requestDetails.notes || requestDetails.message || ""
+    );
+  }, [requestDetails]);
 
   if (loading) {
     return (
@@ -440,56 +474,98 @@ const PlaceOfferScreen = () => {
             {requestDetails && (
               <View style={styles.formCard}>
                 <Text style={styles.sectionTitle}>Customer Request</Text>
-                <View style={styles.detailRow}>
-                  <Text style={styles.detailLabel}>Make:</Text>
-                  <Text style={styles.detailValue}>
-                    {requestDetails.make || "Any"}
-                  </Text>
-                </View>
-                <View style={styles.detailRow}>
-                  <Text style={styles.detailLabel}>Model:</Text>
-                  <Text style={styles.detailValue}>
-                    {requestDetails.model || "Any"}
-                  </Text>
-                </View>
-                <View style={styles.detailRow}>
-                  <Text style={styles.detailLabel}>Year:</Text>
-                  <Text style={styles.detailValue}>
-                    {requestDetails.year ? `${requestDetails.year}+` : "Any"}
-                  </Text>
-                </View>
-                <View style={styles.detailRow}>
-                  <Text style={styles.detailLabel}>Budget:</Text>
-                  <Text style={styles.detailValue}>
+                <Text style={styles.requestTitle}>
+                  {requestDetails.make || "Any Make"}{" "}
+                  {requestDetails.model || ""}
+                </Text>
+                <Text style={styles.requestSubtitle}>
+                  Year:{" "}
+                  {requestDetails.min_year || requestDetails.year
+                    ? `${requestDetails.min_year || requestDetails.year}+`
+                    : "Any"}
+                </Text>
+
+                <View style={styles.requestSection}>
+                  <Text style={styles.requestSectionTitle}>Budget</Text>
+                  <Text style={styles.requestBudgetValue}>
                     {requestDetails.min_price && requestDetails.max_price
                       ? `${requestDetails.min_price.toLocaleString()} - ${requestDetails.max_price.toLocaleString()} ETB`
-                      : "Not Specified"}
+                      : guidedData?.budget || "Not Specified"}
                   </Text>
                 </View>
-                <View style={styles.detailRow}>
-                  <Text style={styles.detailLabel}>Condition:</Text>
-                  <Text style={styles.detailValue}>
-                    {requestDetails.condition || "Any"}
-                  </Text>
+
+                <View style={styles.requestSection}>
+                  <Text style={styles.requestSectionTitle}>Specifications</Text>
+                  <View style={styles.specsGrid}>
+                    <View style={styles.specItem}>
+                      <Text style={styles.specLabel}>Condition</Text>
+                      <Text style={styles.specValue}>
+                        {requestDetails.condition || "Any"}
+                      </Text>
+                    </View>
+                    <View style={styles.specItem}>
+                      <Text style={styles.specLabel}>Transmission</Text>
+                      <Text style={styles.specValue}>
+                        {requestDetails.transmission || "Any"}
+                      </Text>
+                    </View>
+                    <View style={styles.specItem}>
+                      <Text style={styles.specLabel}>Fuel Type</Text>
+                      <Text style={styles.specValue}>
+                        {requestDetails.fuel_type ||
+                          guidedData?.fuelType ||
+                          "Any"}
+                      </Text>
+                    </View>
+                    <View style={styles.specItem}>
+                      <Text style={styles.specLabel}>Body Type</Text>
+                      <Text style={styles.specValue}>
+                        {guidedData?.bodyType || "Any"}
+                      </Text>
+                    </View>
+                    <View style={styles.specItem}>
+                      <Text style={styles.specLabel}>Max Mileage</Text>
+                      <Text style={styles.specValue}>
+                        {requestDetails.max_mileage
+                          ? `${requestDetails.max_mileage.toLocaleString()} km`
+                          : "Any"}
+                      </Text>
+                    </View>
+                  </View>
                 </View>
-                <View style={styles.detailRow}>
-                  <Text style={styles.detailLabel}>Transmission:</Text>
-                  <Text style={styles.detailValue}>
-                    {requestDetails.transmission || "Any"}
-                  </Text>
-                </View>
-                <View style={styles.detailRow}>
-                  <Text style={styles.detailLabel}>Fuel Type:</Text>
-                  <Text style={styles.detailValue}>
-                    {requestDetails.fuel_type || "Any"}
-                  </Text>
-                </View>
-                <View style={styles.detailRow}>
-                  <Text style={styles.detailLabel}>Message:</Text>
-                  <Text style={styles.detailValue}>
-                    {requestDetails.message || "N/A"}
-                  </Text>
-                </View>
+
+                {guidedData?.features && guidedData.features !== "None" && (
+                  <View style={styles.requestSection}>
+                    <Text style={styles.requestSectionTitle}>
+                      Desired Features
+                    </Text>
+                    <View style={styles.featuresListContainer}>
+                      {guidedData.features
+                        .split(",")
+                        .map((feature: string, index: number) => {
+                          const cleanFeature = feature.trim();
+                          if (!cleanFeature) return null;
+                          const formattedFeature = cleanFeature
+                            .replace(/_/g, " ")
+                            .replace(/\b\w/g, (l) => l.toUpperCase());
+                          return (
+                            <Text key={index} style={styles.featureListItem}>
+                              • {formattedFeature}
+                            </Text>
+                          );
+                        })}
+                    </View>
+                  </View>
+                )}
+
+                {!guidedData && (
+                  <View style={styles.requestSection}>
+                    <Text style={styles.requestSectionTitle}>Message</Text>
+                    <Text style={styles.requestMessage}>
+                      {requestDetails.notes || requestDetails.message || "N/A"}
+                    </Text>
+                  </View>
+                )}
               </View>
             )}
 
@@ -736,6 +812,67 @@ const styles = StyleSheet.create({
     borderBottomRightRadius: 6,
     fontSize: 12,
     fontWeight: "bold",
+  },
+  requestTitle: {
+    fontSize: 20,
+    fontWeight: "bold",
+    color: COLORS.text,
+    marginBottom: 4,
+  },
+  requestSubtitle: {
+    fontSize: 16,
+    color: COLORS.textSecondary,
+    marginBottom: 16,
+  },
+  requestSection: {
+    borderTopWidth: 1,
+    borderColor: COLORS.border,
+    paddingTop: 12,
+    marginTop: 12,
+  },
+  requestSectionTitle: {
+    fontSize: 14,
+    color: COLORS.textSecondary,
+    marginBottom: 8,
+    textTransform: "uppercase",
+    fontWeight: "600",
+  },
+  requestBudgetValue: {
+    fontSize: 18,
+    fontWeight: "bold",
+    color: COLORS.accent,
+  },
+  specsGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "space-between",
+  },
+  specItem: {
+    width: "48%",
+    marginBottom: 12,
+  },
+  specLabel: {
+    fontSize: 14,
+    color: COLORS.textSecondary,
+  },
+  specValue: {
+    fontSize: 16,
+    color: COLORS.text,
+    fontWeight: "600",
+  },
+  requestMessage: {
+    fontSize: 15,
+    color: COLORS.text,
+    lineHeight: 22,
+  },
+  featuresListContainer: {
+    marginTop: 5,
+  },
+  featureListItem: {
+    color: COLORS.text,
+    fontSize: 15,
+    marginBottom: 4,
+    lineHeight: 22,
   },
 });
 
