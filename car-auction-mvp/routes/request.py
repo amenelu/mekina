@@ -197,27 +197,43 @@ def calculate_request_score(req):
     """Calculates a score (0-100) representing the detail level of a request."""
     score = 10
 
+    # Specificity: Make, Model, Year, Mileage
     if req.make and req.model:
-        score += 30
+        score += 45
     elif req.make:
-        score += 10
+        score += 20
 
     if req.min_year:
         score += 10
 
+    if req.max_mileage:
+        score += 10
+
+    # Clarity: Notes
     if req.notes:
-        if len(req.notes) > 50:
+        if "Customer is looking for a car" in req.notes:  # Guided flow requests
+            score += 20  # Base score for a guided request
+            if "- Budget:" in req.notes and "Not specified" not in req.notes:
+                score += 10
+            if "- Body Type:" in req.notes and "Not specified" not in req.notes:
+                score += 5
+            if "- Fuel Type:" in req.notes and "Not specified" not in req.notes:
+                score += 5
+            if "- Important Features:" in req.notes and "None" not in req.notes:
+                score += 5
+        elif len(req.notes) > 50:
             score += 20
-        elif len(req.notes) > 10:
+        elif len(req.notes) > 5:
             score += 10
 
+    # Visuals: Images
     image_count = (
         len(req.images) if hasattr(req.images, "__len__") else req.images.count()
     )
     if image_count > 0:
-        score += 20
-    if image_count > 2:
         score += 10
+    if image_count > 2:
+        score += 5
 
     return min(score, 100)
 
