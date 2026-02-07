@@ -21,7 +21,9 @@ from models.lead_score import LeadScore
 from models.user_favorite import UserFavorite
 from models.user import User
 from extensions import db, socketio
+from models.search_query import SearchQuery
 from sqlalchemy import or_, func
+from datetime import datetime, timedelta
 
 
 def mark_notification_as_read(f):
@@ -369,6 +371,24 @@ def search_suggestions():
 
     q = request.args.get("q", "").strip()
     if q and len(q) >= 2:
+        # --- Log Search Query ---
+        user_id = None
+        auth_header = request.headers.get("Authorization")
+        if auth_header:
+            try:
+                token = auth_header.split(" ")[1]
+                user = verify_jwt(token)
+                if user:
+                    user_id = user.id
+            except Exception:
+                pass  # Ignore if token is invalid
+        elif current_user.is_authenticated:
+            user_id = current_user.id
+
+        new_search = SearchQuery(query_text=q.lower(), user_id=user_id)
+        db.session.add(new_search)
+        db.session.commit()
+        # --- End Log ---
         search_terms = q.lower().split()
         conditions = []
         for term in search_terms:
@@ -431,6 +451,56 @@ def search_suggestions():
         )
 
     return jsonify(results)
+
+
+@main_bp.route("/api/trending-searches")
+def api_trending_searches():
+    """Returns top search terms for the public UI (last 7 days)."""
+    seven_days_ago = datetime.utcnow() - timedelta(days=7)
+
+    trending = (
+        db.session.query(
+            SearchQuery.query_text, func.count(SearchQuery.query_text).label("count")
+        )
+        .filter(SearchQuery.timestamp >= seven_days_ago)
+        .group_by(SearchQuery.query_text)
+        .order_by(func.count(SearchQuery.query_text).desc())
+        .limit(8)
+        .all()
+    )
+
+    return jsonify({"trending": [term for term, count in trending]})
+
+
+@main_bp.route("/api/seed-searches")
+def seed_searches():
+    """Temporary route to seed search data for testing."""
+    import random
+
+    terms = [
+        "toyota",
+        "corolla",
+        "vitz",
+        "yaris",
+        "ford",
+        "ranger",
+        "isuzu",
+        "hilux",
+        "bmw",
+        "mercedes",
+    ]
+
+    for _ in range(30):
+        term = random.choice(terms)
+        # Random time within last 5 days
+        timestamp = datetime.utcnow() - timedelta(
+            days=random.randint(0, 5), hours=random.randint(0, 23)
+        )
+        new_search = SearchQuery(query_text=term, timestamp=timestamp)
+        db.session.add(new_search)
+
+    db.session.commit()
+    return jsonify({"message": "Seeded 30 search queries."})
 
 
 @main_bp.route("/how-it-works")
@@ -720,6 +790,25 @@ def api_listings():
 
     # Generic search filter
     if q := request.args.get("q"):  # Use the same forgiving logic for main search
+        # --- Log Search Query ---
+        user_id = None
+        auth_header = request.headers.get("Authorization")
+        if auth_header:
+            try:
+                token = auth_header.split(" ")[1]
+                user = verify_jwt(token)
+                if user:
+                    user_id = user.id
+            except Exception:
+                pass  # Ignore if token is invalid
+        elif current_user.is_authenticated:
+            user_id = current_user.id
+
+        new_search = SearchQuery(query_text=q.lower().strip(), user_id=user_id)
+        db.session.add(new_search)
+        db.session.commit()
+        # --- End Log ---
+
         search_terms = q.lower().split()
         conditions = []
         for term in search_terms:

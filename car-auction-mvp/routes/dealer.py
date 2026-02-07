@@ -25,6 +25,7 @@ from models.chat_message import ChatMessage
 from models.notification import Notification
 from models.dealer_rating import DealerRating
 from models.dealer_request_view import DealerRequestView
+from models.search_query import SearchQuery
 from extensions import db, socketio
 from sqlalchemy import func, or_
 from functools import wraps
@@ -393,6 +394,65 @@ def api_dealer_dashboard(current_user):
         pending_approvals=[car.to_dict() for car in pending_approvals],
     )
 
+@dealer_bp.route("/api/analytics/popular-requests")
+@token_required
+def api_popular_requests(current_user):
+    """Provides analytics on popular car requests."""
+    if not (current_user.is_dealer or current_user.is_admin):
+        abort(403)
+
+    thirty_days_ago = datetime.utcnow() - timedelta(days=30)
+
+    # Aggregate popular makes
+    popular_makes = (
+        db.session.query(CarRequest.make, func.count(CarRequest.make).label("count"))
+        .filter(
+            CarRequest.make.isnot(None),
+            CarRequest.make != "",
+            CarRequest.created_at >= thirty_days_ago,
+        )
+        .group_by(CarRequest.make)
+        .order_by(func.count(CarRequest.make).desc())
+        .limit(10)
+        .all()
+    )
+
+    # Aggregate popular models
+    popular_models = (
+        db.session.query(
+            CarRequest.make, CarRequest.model, func.count(CarRequest.model).label("count")
+        )
+        .filter(
+            CarRequest.model.isnot(None),
+            CarRequest.model != "",
+            CarRequest.created_at >= thirty_days_ago,
+        )
+        .group_by(CarRequest.make, CarRequest.model)
+        .order_by(func.count(CarRequest.model).desc())
+        .limit(10)
+        .all()
+    )
+
+    return jsonify(
+        {
+            "popular_makes": [{"make": make, "count": count} for make, count in popular_makes],
+            "popular_models": [{"make": make, "model": model, "count": count} for make, model, count in popular_models],
+        }
+    )
+
+
+@dealer_bp.route("/api/analytics/popular-searches")
+@token_required
+def api_popular_searches(current_user):
+    """Provides analytics on popular search terms."""
+    if not (current_user.is_dealer or current_user.is_admin):
+        abort(403)
+
+    thirty_days_ago = datetime.utcnow() - timedelta(days=30)
+
+    popular_searches = db.session.query(SearchQuery.query_text, func.count(SearchQuery.query_text).label("count")).filter(SearchQuery.timestamp >= thirty_days_ago).group_by(SearchQuery.query_text).order_by(func.count(SearchQuery.query_text).desc()).limit(20).all()
+
+    return jsonify({"popular_searches": [{"term": term, "count": count} for term, count in popular_searches]})
 
 @dealer_bp.route("/api/dealers/<int:dealer_id>/profile")
 def api_dealer_profile(dealer_id):

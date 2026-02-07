@@ -36,6 +36,15 @@ export default function DealerTabsLayout() {
         }}
       />
       <Tabs.Screen
+        name="analytics"
+        options={{
+          title: "Analytics",
+          tabBarIcon: ({ color }) => (
+            <Ionicons name="stats-chart" size={24} color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
         name="messages"
         options={{
           title: "Messages",

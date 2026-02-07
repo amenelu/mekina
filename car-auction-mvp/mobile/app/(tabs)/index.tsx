@@ -60,6 +60,7 @@ const HomeScreen = () => {
   const [activeFilter, setActiveFilter] = useState("");
   const [featuredVehicles, setFeaturedVehicles] = useState<Vehicle[]>([]);
   const [recentVehicles, setRecentVehicles] = useState<Vehicle[]>([]);
+  const [trendingSearches, setTrendingSearches] = useState<string[]>([]);
   const [refreshing, setRefreshing] = useState(false);
   const [showInfo, setShowInfo] = useState(false);
 
@@ -127,13 +128,15 @@ const HomeScreen = () => {
 
   const fetchHomeData = async () => {
     try {
-      const [featuredRes, recentRes] = await Promise.all([
+      const [featuredRes, recentRes, trendingRes] = await Promise.all([
         fetch(`${API_URL}/api/home`),
         fetch(`${API_URL}/api/listings`),
+        fetch(`${API_URL}/api/trending-searches`),
       ]);
 
       const featuredData = await featuredRes.json();
       const recentData = await recentRes.json();
+      const trendingData = await trendingRes.json();
 
       if (featuredData.featured_cars) {
         setFeaturedVehicles(
@@ -174,6 +177,10 @@ const HomeScreen = () => {
             listingType: item.listing_type,
           }))
         );
+      }
+
+      if (trendingData.trending) {
+        setTrendingSearches(trendingData.trending);
       }
     } catch (error) {
       console.error("Failed to fetch home data:", error);
@@ -294,6 +301,25 @@ const HomeScreen = () => {
               </Pressable>
             ))}
           </ScrollView>
+
+          {/* Trending Searches Section */}
+          {trendingSearches.length > 0 && !searchQuery && (
+            <View style={styles.trendingContainer}>
+              <Text style={styles.trendingLabel}>Trending:</Text>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                {trendingSearches.map((term, index) => (
+                  <Pressable
+                    key={index}
+                    style={styles.trendingChip}
+                    onPress={() => setSearchQuery(term)}
+                  >
+                    <Text style={styles.trendingChipText}>{term}</Text>
+                  </Pressable>
+                ))}
+              </ScrollView>
+            </View>
+          )}
+
           {searchQuery.length > 0 && (
             <View style={styles.searchDropdown}>
               {isSearching ? (
@@ -721,6 +747,32 @@ const styles = StyleSheet.create({
   },
   activeFilterButtonText: {
     color: "#FFFFFF",
+  },
+  trendingContainer: {
+    marginTop: 15,
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  trendingLabel: {
+    color: COLORS.mutedForeground,
+    fontSize: 12,
+    fontWeight: "bold",
+    marginRight: 8,
+  },
+  trendingChip: {
+    backgroundColor: "rgba(163, 112, 247, 0.15)",
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+    marginRight: 8,
+    borderWidth: 1,
+    borderColor: "rgba(163, 112, 247, 0.3)",
+  },
+  trendingChipText: {
+    color: COLORS.accent,
+    fontSize: 12,
+    fontWeight: "500",
+    textTransform: "capitalize",
   },
 });
 

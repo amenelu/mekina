@@ -20,3 +20,4 @@ from .rental_listing import RentalListing
 from .request_question import RequestQuestion
 from .user_favorite import UserFavorite
 from .car_request_image import CarRequestImage
+from .search_query import SearchQuery
