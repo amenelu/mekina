@@ -208,6 +208,8 @@ def calculate_request_score(req):
 
     if req.max_mileage:
         score += 10
+    elif req.min_year and req.min_year >= datetime.utcnow().year - 1:
+        score += 10
 
     # Clarity: Notes
     if req.notes:

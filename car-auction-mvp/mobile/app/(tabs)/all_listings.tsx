@@ -170,7 +170,53 @@ const AllListingsScreen = () => {
     setSearchQuery("");
   };
   return (
-    <>
+    <View style={styles.container}>
+      <View style={styles.filterContainer}>
+        <View style={styles.searchBar}>
+          <Ionicons
+            name="search"
+            size={20}
+            color={COLORS.mutedForeground}
+            style={styles.searchIcon}
+          />
+          <TextInput
+            style={styles.searchInput}
+            placeholder="Search by make, model, or year..."
+            placeholderTextColor={COLORS.mutedForeground}
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+          />
+          {searchQuery.length > 0 && (
+            <Pressable
+              onPress={() => setSearchQuery("")}
+              hitSlop={10}
+              style={{ padding: 4 }}
+            >
+              <Ionicons
+                name="close-circle"
+                size={20}
+                color={COLORS.mutedForeground}
+              />
+            </Pressable>
+          )}
+        </View>
+        <View style={styles.quickFiltersContainer}>
+          <Pressable
+            style={styles.filterButton}
+            onPress={() => {
+              setTempFilters(filters);
+              setFilterModalVisible(true);
+            }}
+          >
+            <Ionicons
+              name="options-outline"
+              size={20}
+              color={COLORS.mutedForeground}
+            />
+            <Text style={styles.filterButtonText}>Filter</Text>
+          </Pressable>
+        </View>
+      </View>
       {loading && !refreshing && (
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={COLORS.accent} />
@@ -180,7 +226,7 @@ const AllListingsScreen = () => {
         </View>
       )}
       <FlatList
-        style={styles.container}
+        style={{ flex: 1 }}
         data={!loading ? allVehicles : []}
         keyExtractor={(item, index) => `${item.id}-${index}`}
         numColumns={2}
@@ -188,61 +234,13 @@ const AllListingsScreen = () => {
           justifyContent: "space-between",
           paddingHorizontal: 20,
         }}
-        contentContainerStyle={{ paddingBottom: 20 }}
+        contentContainerStyle={{ paddingBottom: 20, paddingTop: 20 }}
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
             onRefresh={onRefresh}
             tintColor={COLORS.accent}
           />
-        }
-        ListHeaderComponent={
-          <View style={styles.filterContainer}>
-            <View style={styles.searchBar}>
-              <Ionicons
-                name="search"
-                size={20}
-                color={COLORS.mutedForeground}
-                style={styles.searchIcon}
-              />
-              <TextInput
-                style={styles.searchInput}
-                placeholder="Search by make, model, or year..."
-                placeholderTextColor={COLORS.mutedForeground}
-                value={searchQuery}
-                onChangeText={setSearchQuery}
-              />
-              {searchQuery.length > 0 && (
-                <Pressable
-                  onPress={() => setSearchQuery("")}
-                  hitSlop={10}
-                  style={{ padding: 4 }}
-                >
-                  <Ionicons
-                    name="close-circle"
-                    size={20}
-                    color={COLORS.mutedForeground}
-                  />
-                </Pressable>
-              )}
-            </View>
-            <View style={styles.quickFiltersContainer}>
-              <Pressable
-                style={styles.filterButton}
-                onPress={() => {
-                  setTempFilters(filters);
-                  setFilterModalVisible(true);
-                }}
-              >
-                <Ionicons
-                  name="options-outline"
-                  size={20}
-                  color={COLORS.mutedForeground}
-                />
-                <Text style={styles.filterButtonText}>Filter</Text>
-              </Pressable>
-            </View>
-          </View>
         }
         renderItem={({ item }) => (
           <View style={{ width: "48%", marginBottom: 15 }}>
@@ -444,7 +442,7 @@ const AllListingsScreen = () => {
           </View>
         </Pressable>
       </Modal>
-    </>
+    </View>
   );
 };
 

@@ -371,24 +371,6 @@ def search_suggestions():
 
     q = request.args.get("q", "").strip()
     if q and len(q) >= 2:
-        # --- Log Search Query ---
-        user_id = None
-        auth_header = request.headers.get("Authorization")
-        if auth_header:
-            try:
-                token = auth_header.split(" ")[1]
-                user = verify_jwt(token)
-                if user:
-                    user_id = user.id
-            except Exception:
-                pass  # Ignore if token is invalid
-        elif current_user.is_authenticated:
-            user_id = current_user.id
-
-        new_search = SearchQuery(query_text=q.lower(), user_id=user_id)
-        db.session.add(new_search)
-        db.session.commit()
-        # --- End Log ---
         search_terms = q.lower().split()
         conditions = []
         for term in search_terms:
@@ -470,6 +452,33 @@ def api_trending_searches():
     )
 
     return jsonify({"trending": [term for term, count in trending]})
+
+
+@main_bp.route("/api/log-search", methods=["POST"])
+def api_log_search():
+    """Explicitly logs a search query."""
+    data = request.get_json()
+    q = data.get("q", "").strip()
+
+    if q and len(q) >= 2:
+        user_id = None
+        auth_header = request.headers.get("Authorization")
+        if auth_header:
+            try:
+                token = auth_header.split(" ")[1]
+                user = verify_jwt(token)
+                if user:
+                    user_id = user.id
+            except Exception:
+                pass
+        elif current_user.is_authenticated:
+            user_id = current_user.id
+
+        new_search = SearchQuery(query_text=q.lower(), user_id=user_id)
+        db.session.add(new_search)
+        db.session.commit()
+
+    return jsonify({"status": "success"})
 
 
 @main_bp.route("/api/seed-searches")
@@ -790,25 +799,6 @@ def api_listings():
 
     # Generic search filter
     if q := request.args.get("q"):  # Use the same forgiving logic for main search
-        # --- Log Search Query ---
-        user_id = None
-        auth_header = request.headers.get("Authorization")
-        if auth_header:
-            try:
-                token = auth_header.split(" ")[1]
-                user = verify_jwt(token)
-                if user:
-                    user_id = user.id
-            except Exception:
-                pass  # Ignore if token is invalid
-        elif current_user.is_authenticated:
-            user_id = current_user.id
-
-        new_search = SearchQuery(query_text=q.lower().strip(), user_id=user_id)
-        db.session.add(new_search)
-        db.session.commit()
-        # --- End Log ---
-
         search_terms = q.lower().split()
         conditions = []
         for term in search_terms:

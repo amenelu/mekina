@@ -16,6 +16,7 @@ export default function SpecificRequestLayout() {
       <Stack.Screen name="make" />
       <Stack.Screen name="model" />
       <Stack.Screen name="year" />
+      <Stack.Screen name="details" />
     </Stack>
   );
 }

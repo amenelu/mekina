@@ -51,7 +51,7 @@ const COLORS = {
 const HomeScreen = () => {
   const router = useRouter();
   const navigation = useNavigation();
-  const { user } = useAuth();
+  const { user, token } = useAuth();
   const ref = useRef<ScrollView>(null);
 
   const [searchQuery, setSearchQuery] = useState("");
@@ -197,8 +197,24 @@ const HomeScreen = () => {
     setRefreshing(false);
   }, []);
 
+  const logSearch = async (term: string) => {
+    try {
+      await fetch(`${API_URL}/api/log-search`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({ q: term }),
+      });
+    } catch (error) {
+      console.error("Failed to log search:", error);
+    }
+  };
+
   const handleSearch = () => {
     if (searchQuery.trim()) {
+      logSearch(searchQuery);
       router.push({
         pathname: "/all_listings",
         params: { q: searchQuery },
@@ -333,7 +349,10 @@ const HomeScreen = () => {
                   <Pressable
                     key={car.id}
                     style={styles.searchResultItem}
-                    onPress={() => router.push(`/${car.id}`)}
+                    onPress={() => {
+                      logSearch(searchQuery);
+                      router.push(`/${car.id}`);
+                    }}
                   >
                     <Image
                       source={{ uri: car.image }}

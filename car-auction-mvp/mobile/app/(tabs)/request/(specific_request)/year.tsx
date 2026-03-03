@@ -6,13 +6,9 @@ import {
   TextInput,
   TouchableOpacity,
   Alert,
-  ActivityIndicator,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter, useLocalSearchParams } from "expo-router";
-import axios from "axios";
-import API_URL from "@/constants/Api";
-import { useAuth } from "@/hooks/useAuth";
 
 const COLORS = {
   background: "#14181F",
@@ -27,42 +23,17 @@ const RequestYearScreen = () => {
   const router = useRouter();
   const params = useLocalSearchParams();
   const [year, setYear] = useState("");
-  const [loading, setLoading] = useState(false);
-  const { token } = useAuth();
 
-  const handleSubmit = async () => {
+  const handleNext = () => {
     if (!year.trim() || !/^\d{4}$/.test(year)) {
       Alert.alert("Invalid Year", "Please enter a valid 4-digit year.");
       return;
     }
 
-    setLoading(true);
-    try {
-      await axios.post(
-        `${API_URL}/requests/api/requests`,
-        {
-          make: params.make,
-          model: params.model,
-          min_year: year,
-        },
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
-      );
-
-      Alert.alert(
-        "Request Submitted!",
-        "Your request has been sent to our dealers. They will contact you with offers soon.",
-        [{ text: "OK", onPress: () => router.replace("/(tabs)/my-requests") }]
-      );
-    } catch (error: any) {
-      console.error("Failed to submit request:", error);
-      const message =
-        error.response?.data?.message || "An unknown error occurred.";
-      Alert.alert("Submission Failed", message);
-    } finally {
-      setLoading(false);
-    }
+    router.push({
+      pathname: "./details",
+      params: { ...params, min_year: year },
+    });
   };
 
   return (
@@ -82,12 +53,8 @@ const RequestYearScreen = () => {
         maxLength={4}
       />
 
-      <TouchableOpacity style={styles.submitButton} onPress={handleSubmit}>
-        {loading ? (
-          <ActivityIndicator color={COLORS.foreground} />
-        ) : (
-          <Text style={styles.submitButtonText}>Finish Request</Text>
-        )}
+      <TouchableOpacity style={styles.submitButton} onPress={handleNext}>
+        <Text style={styles.submitButtonText}>Next</Text>
       </TouchableOpacity>
     </SafeAreaView>
   );
