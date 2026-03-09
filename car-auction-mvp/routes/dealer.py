@@ -396,6 +396,7 @@ def api_dealer_dashboard(current_user):
         pending_approvals=[car.to_dict() for car in pending_approvals],
     )
 
+
 @dealer_bp.route("/api/analytics/popular-requests")
 @token_required
 def api_popular_requests(current_user):
@@ -422,7 +423,9 @@ def api_popular_requests(current_user):
     # Aggregate popular models
     popular_models = (
         db.session.query(
-            CarRequest.make, CarRequest.model, func.count(CarRequest.model).label("count")
+            CarRequest.make,
+            CarRequest.model,
+            func.count(CarRequest.model).label("count"),
         )
         .filter(
             CarRequest.model.isnot(None),
@@ -437,8 +440,13 @@ def api_popular_requests(current_user):
 
     return jsonify(
         {
-            "popular_makes": [{"make": make, "count": count} for make, count in popular_makes],
-            "popular_models": [{"make": make, "model": model, "count": count} for make, model, count in popular_models],
+            "popular_makes": [
+                {"make": make, "count": count} for make, count in popular_makes
+            ],
+            "popular_models": [
+                {"make": make, "model": model, "count": count}
+                for make, model, count in popular_models
+            ],
         }
     )
 
@@ -452,9 +460,124 @@ def api_popular_searches(current_user):
 
     thirty_days_ago = datetime.utcnow() - timedelta(days=30)
 
-    popular_searches = db.session.query(SearchQuery.query_text, func.count(SearchQuery.query_text).label("count")).filter(SearchQuery.timestamp >= thirty_days_ago).group_by(SearchQuery.query_text).order_by(func.count(SearchQuery.query_text).desc()).limit(20).all()
+    popular_searches = (
+        db.session.query(
+            SearchQuery.query_text, func.count(SearchQuery.query_text).label("count")
+        )
+        .filter(SearchQuery.timestamp >= thirty_days_ago)
+        .group_by(SearchQuery.query_text)
+        .order_by(func.count(SearchQuery.query_text).desc())
+        .limit(20)
+        .all()
+    )
 
-    return jsonify({"popular_searches": [{"term": term, "count": count} for term, count in popular_searches]})
+    return jsonify(
+        {
+            "popular_searches": [
+                {"term": term, "count": count} for term, count in popular_searches
+            ]
+        }
+    )
+
+
+@dealer_bp.route("/api/analytics/advanced")
+@token_required
+def api_advanced_analytics(current_user):
+    """Provides advanced analytics for the dealer dashboard."""
+    if not (current_user.is_dealer or current_user.is_admin):
+        abort(403)
+
+    # 1. Market Demand (Budget Distribution from Requests)
+    budget_counts = {"Under 1M": 0, "1M - 3M": 0, "3M - 5M": 0, "Over 5M": 0}
+
+    # Analyze last 100 requests for budget trends
+    recent_requests = (
+        CarRequest.query.order_by(CarRequest.created_at.desc()).limit(100).all()
+    )
+
+    for req in recent_requests:
+        if not req.notes:
+            continue
+        note_lower = req.notes.lower()
+        if "under 1,000,000" in note_lower or "under 1m" in note_lower:
+            budget_counts["Under 1M"] += 1
+        elif "1m - 3m" in note_lower or "1,000,000 - 3,000,000" in note_lower:
+            budget_counts["1M - 3M"] += 1
+        elif "3m - 5m" in note_lower or "3,000,000 - 5,000,000" in note_lower:
+            budget_counts["3M - 5M"] += 1
+        elif "over 5,000,000" in note_lower or "over 5m" in note_lower:
+            budget_counts["Over 5M"] += 1
+
+    market_demand = [{"label": k, "value": v} for k, v in budget_counts.items()]
+
+    # 2. Pricing Intelligence (Avg Price of Top Makes)
+    top_makes = (
+        db.session.query(Car.make, func.count(Car.id))
+        .filter(Car.listing_type == "sale")
+        .group_by(Car.make)
+        .order_by(func.count(Car.id).desc())
+        .limit(5)
+        .all()
+    )
+    pricing_intel = []
+    for make, _ in top_makes:
+        avg_price = (
+            db.session.query(func.avg(Car.fixed_price))
+            .filter(Car.make == make, Car.listing_type == "sale", Car.fixed_price > 0)
+            .scalar()
+        )
+        if avg_price:
+            pricing_intel.append({"make": make, "avg_price": round(float(avg_price))})
+
+    # 3. Inventory Performance
+    my_listings_count = Car.query.filter_by(
+        owner_id=current_user.id, is_active=True
+    ).count()
+    my_bids_count = DealerBid.query.filter_by(dealer_id=current_user.id).count()
+    my_wins_count = DealerBid.query.filter_by(
+        dealer_id=current_user.id, status="accepted"
+    ).count()
+    my_win_rate = (my_wins_count / my_bids_count * 100) if my_bids_count > 0 else 0
+
+    # 4. Competitive Benchmarking
+    global_avg_rating = db.session.query(func.avg(DealerRating.rating)).scalar() or 0
+    my_avg_rating = current_user.get_average_rating() or 0
+
+    total_bids = DealerBid.query.count()
+    total_wins = DealerBid.query.filter_by(status="accepted").count()
+    global_win_rate = (total_wins / total_bids * 100) if total_bids > 0 else 0
+
+    # 5. Buyer Behaviour (Body Types from Search)
+    body_types = ["suv", "sedan", "hatchback", "pickup", "coupe"]
+    buyer_behaviour = []
+    for bt in body_types:
+        count = SearchQuery.query.filter(
+            SearchQuery.query_text.ilike(f"%{bt}%")
+        ).count()
+        buyer_behaviour.append({"type": bt.capitalize(), "count": count})
+
+    buyer_behaviour.sort(key=lambda x: x["count"], reverse=True)
+
+    return jsonify(
+        {
+            "market_demand": market_demand,
+            "pricing_intelligence": pricing_intel,
+            "inventory_performance": {
+                "active_listings": my_listings_count,
+                "bids_placed": my_bids_count,
+                "bids_won": my_wins_count,
+                "win_rate": round(my_win_rate, 1),
+            },
+            "competitive_benchmarking": {
+                "my_rating": round(my_avg_rating, 1),
+                "market_avg_rating": round(float(global_avg_rating), 1),
+                "my_win_rate": round(my_win_rate, 1),
+                "market_win_rate": round(global_win_rate, 1),
+            },
+            "buyer_behaviour": buyer_behaviour,
+        }
+    )
+
 
 @dealer_bp.route("/api/dealers/<int:dealer_id>/profile")
 def api_dealer_profile(dealer_id):

@@ -649,6 +649,45 @@ def api_request_detail(current_user, request_id):
     lowest_bid = min(all_bids, key=lambda b: b.price)
     newest_bid = max(all_bids, key=lambda b: b.timestamp)
 
+    # --- Calculate "Best Deal" Score ---
+    # Factors: Price (40%), Year (30%), Mileage (20%), Dealer Rating (10%)
+    best_deal_bid = None
+    if all_bids:
+        prices = [b.price for b in all_bids]
+        years = [b.car_year for b in all_bids]
+        mileages = [b.mileage for b in all_bids]
+
+        min_price, max_price = min(prices), max(prices)
+        min_year, max_year = min(years), max(years)
+        min_mileage, max_mileage = min(mileages), max(mileages)
+
+        highest_score = -1
+
+        for bid in all_bids:
+            score = 0
+            # Price (Lower is better)
+            if max_price > min_price:
+                score += (1 - ((bid.price - min_price) / (max_price - min_price))) * 40
+            else:
+                score += 40
+            # Year (Higher is better)
+            if max_year > min_year:
+                score += ((bid.car_year - min_year) / (max_year - min_year)) * 30
+            else:
+                score += 30
+            # Mileage (Lower is better)
+            if max_mileage > min_mileage:
+                score += (1 - ((bid.mileage - min_mileage) / (max_mileage - min_mileage))) * 20
+            else:
+                score += 20
+            # Rating (Higher is better)
+            rating = bid.dealer.get_average_rating() or 0
+            score += (rating / 5) * 10
+
+            if score > highest_score:
+                highest_score = score
+                best_deal_bid = bid
+
     # Create a sorted list
     sorted_bids = []
     processed_bid_ids = set()
@@ -672,7 +711,10 @@ def api_request_detail(current_user, request_id):
         {
             "request": req_data,
             "bids": [
-                bid.to_dict(is_newest=(bid.id == newest_bid.id)) for bid in sorted_bids
+                bid.to_dict(
+                    is_newest=(bid.id == newest_bid.id),
+                    is_best_deal=(best_deal_bid and bid.id == best_deal_bid.id)
+                ) for bid in sorted_bids
             ],
         }
     )
