@@ -26,6 +26,7 @@ from models.notification import Notification
 from models.dealer_rating import DealerRating
 from models.dealer_request_view import DealerRequestView
 from models.search_query import SearchQuery
+from models.point_transaction import PointTransaction
 from extensions import db, socketio
 from sqlalchemy import func, or_
 from functools import wraps
@@ -483,10 +484,52 @@ def api_popular_searches(current_user):
 @dealer_bp.route("/api/analytics/advanced")
 @token_required
 def api_advanced_analytics(current_user):
-    """Provides advanced analytics for the dealer dashboard."""
+    """Provides advanced analytics for the dealer dashboard if spending thresholds are met."""
     if not (current_user.is_dealer or current_user.is_admin):
         abort(403)
 
+    # --- Check Spending Thresholds ---
+    WEEKLY_THRESHOLD = 5
+    MONTHLY_THRESHOLD = 20
+
+    now = datetime.utcnow()
+    week_ago = now - timedelta(days=7)
+    month_ago = now - timedelta(days=30)
+
+    spent_week = abs(
+        db.session.query(func.sum(PointTransaction.amount))
+        .filter(
+            PointTransaction.user_id == current_user.id,
+            PointTransaction.amount < 0,
+            PointTransaction.created_at >= week_ago,
+        )
+        .scalar()
+        or 0
+    )
+    spent_month = abs(
+        db.session.query(func.sum(PointTransaction.amount))
+        .filter(
+            PointTransaction.user_id == current_user.id,
+            PointTransaction.amount < 0,
+            PointTransaction.created_at >= month_ago,
+        )
+        .scalar()
+        or 0
+    )
+
+    if spent_week < WEEKLY_THRESHOLD and spent_month < MONTHLY_THRESHOLD:
+        return jsonify(
+            {
+                "is_locked": True,
+                "spent_week": spent_week,
+                "spent_month": spent_month,
+                "threshold_week": WEEKLY_THRESHOLD,
+                "threshold_month": MONTHLY_THRESHOLD,
+                "message": f"Unlock advanced market insights by spending {WEEKLY_THRESHOLD} credits/week or {MONTHLY_THRESHOLD} credits/month.",
+            }
+        )
+
+    # --- Analytics Generation (Existing Code) ---
     # 1. Market Demand (Budget Distribution from Requests)
     budget_counts = {"Under 1M": 0, "1M - 3M": 0, "3M - 5M": 0, "Over 5M": 0}
 
@@ -558,8 +601,20 @@ def api_advanced_analytics(current_user):
 
     buyer_behaviour.sort(key=lambda x: x["count"], reverse=True)
 
+    # 6. Drivetrain Preferences (from SearchQuery)
+    drivetrain_types = ["awd", "fwd", "rwd", "4wd"]
+    drivetrain_demand = []
+    for dt in drivetrain_types:
+        count = SearchQuery.query.filter(
+            SearchQuery.query_text.ilike(f"%{dt}%")
+        ).count()
+        drivetrain_demand.append({"type": dt.upper(), "count": count})
+
+    drivetrain_demand.sort(key=lambda x: x["count"], reverse=True)
+
     return jsonify(
         {
+            "is_locked": False,
             "market_demand": market_demand,
             "pricing_intelligence": pricing_intel,
             "inventory_performance": {
@@ -575,6 +630,7 @@ def api_advanced_analytics(current_user):
                 "market_win_rate": round(global_win_rate, 1),
             },
             "buyer_behaviour": buyer_behaviour,
+            "drivetrain_demand": drivetrain_demand,
         }
     )
 
@@ -719,6 +775,15 @@ def api_unlock_conversation(conversation_id):
     if not conversation.is_unlocked:
         current_user.points -= 1
         conversation.is_unlocked = True
+        # Log Transaction
+        txn = PointTransaction(
+            user_id=current_user.id,
+            amount=-1,
+            transaction_type="unlock_chat",
+            description=f"Unlocked conversation #{conversation.id}",
+        )
+        db.session.add(txn)
+
         # Masked messages need to be unmasked for the dealer
         for msg in conversation.messages.filter(
             ChatMessage.sender_id == conversation.buyer_id
@@ -781,6 +846,14 @@ def unlock_conversation(conversation_id):
         # Deduct point and unlock
         current_user.points -= 1
         conversation.is_unlocked = True
+        # Log Transaction
+        txn = PointTransaction(
+            user_id=current_user.id,
+            amount=-1,
+            transaction_type="unlock_chat",
+            description=f"Unlocked conversation #{conversation.id}",
+        )
+        db.session.add(txn)
         db.session.commit()
         flash(
             "Conversation unlocked! You can now see the buyer's full messages.",
@@ -876,6 +949,14 @@ def place_bid(request_id):
 
         # Deduct one point from the dealer's account
         current_user.points -= 1
+        # Log Transaction
+        txn = PointTransaction(
+            user_id=current_user.id,
+            amount=-1,
+            transaction_type="bid",
+            description=f"Bid on request #{car_request.id}",
+        )
+        db.session.add(txn)
 
         # --- Notify the customer who made the request ---
         request_description = (
@@ -1056,6 +1137,14 @@ def api_place_dealer_bid(current_user, request_id):
             new_bid.images.append(new_image)
 
         current_user.points -= 1  # Deduct point
+        # Log Transaction
+        txn = PointTransaction(
+            user_id=current_user.id,
+            amount=-1,
+            transaction_type="bid",
+            description=f"Bid on request #{car_request.id}",
+        )
+        db.session.add(txn)
         db.session.commit()
 
         # Notify the customer
@@ -1164,6 +1253,14 @@ def api_update_car(current_user, car_id):
                 402,
             )  # 402 Payment Required
         current_user.points -= 1
+        # Log Transaction
+        txn = PointTransaction(
+            user_id=current_user.id,
+            amount=-1,
+            transaction_type="edit_listing",
+            description=f"Updated listing #{car.id}",
+        )
+        db.session.add(txn)
         success_message = (
             "Listing updated and sent for re-approval. 1 point was deducted."
         )

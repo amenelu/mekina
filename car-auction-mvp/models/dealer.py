@@ -25,6 +25,7 @@ from models.chat_message import ChatMessage
 from models.notification import Notification
 from models.dealer_rating import DealerRating
 from models.dealer_request_view import DealerRequestView
+from models.point_transaction import PointTransaction
 from extensions import db, socketio
 from sqlalchemy import func, or_
 from functools import wraps
@@ -474,6 +475,16 @@ def api_unlock_conversation(conversation_id):
         current_user.points -= 1
         conversation.is_unlocked = True
         # Masked messages need to be unmasked for the dealer
+
+        # Record transaction
+        txn = PointTransaction(
+            user_id=current_user.id,
+            amount=-1,
+            transaction_type="unlock_conversation",
+            description=f"Unlocked conversation {conversation.id}",
+        )
+        db.session.add(txn)
+
         for msg in conversation.messages.filter(
             ChatMessage.sender_id == conversation.buyer_id
         ):
@@ -535,6 +546,15 @@ def unlock_conversation(conversation_id):
         # Deduct point and unlock
         current_user.points -= 1
         conversation.is_unlocked = True
+
+        # Record transaction
+        txn = PointTransaction(
+            user_id=current_user.id,
+            amount=-1,
+            transaction_type="unlock_conversation",
+            description=f"Unlocked conversation {conversation.id}",
+        )
+        db.session.add(txn)
         db.session.commit()
         flash(
             "Conversation unlocked! You can now see the buyer's full messages.",
@@ -623,6 +643,15 @@ def place_bid(request_id):
 
         # Deduct one point from the dealer's account
         current_user.points -= 1
+
+        # Record transaction
+        txn = PointTransaction(
+            user_id=current_user.id,
+            amount=-1,
+            transaction_type="place_bid",
+            description=f"Placed bid on request {car_request.id}",
+        )
+        db.session.add(txn)
 
         # --- Notify the customer who made the request ---
         request_description = (
@@ -793,6 +822,15 @@ def api_place_dealer_bid(current_user, request_id):
             new_bid.images.append(new_image)
 
         current_user.points -= 1  # Deduct point
+
+        # Record transaction
+        txn = PointTransaction(
+            user_id=current_user.id,
+            amount=-1,
+            transaction_type="place_bid",
+            description=f"Placed bid on request {car_request.id}",
+        )
+        db.session.add(txn)
         db.session.commit()
 
         # Notify the customer
@@ -900,6 +938,14 @@ def api_update_car(current_user, car_id):
                 402,
             )  # 402 Payment Required
         current_user.points -= 1
+        # Record transaction
+        txn = PointTransaction(
+            user_id=current_user.id,
+            amount=-1,
+            transaction_type="edit_listing",
+            description=f"Edited listing {car.id}",
+        )
+        db.session.add(txn)
         success_message = (
             "Listing updated and sent for re-approval. 1 point was deducted."
         )

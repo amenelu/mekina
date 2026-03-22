@@ -56,6 +56,52 @@ class User(UserMixin, db.Model):
         )
         return float(avg_rating) if avg_rating is not None else 0
 
+    def get_analytics_status(self):
+        """
+        Calculates if the dealer has unlocked advanced analytics based on credit spending.
+        Returns a dict with locked status and progress metrics.
+        """
+        from models.point_transaction import PointTransaction
+        from datetime import datetime, timedelta
+
+        # Define thresholds for unlocking
+        WEEKLY_THRESHOLD = 50
+        MONTHLY_THRESHOLD = 200
+
+        now = datetime.utcnow()
+        week_ago = now - timedelta(days=7)
+        month_ago = now - timedelta(days=30)
+
+        def calculate_spend(since_date):
+            # Sum all negative amounts (spending) since the date
+            total_spend = (
+                db.session.query(db.func.sum(PointTransaction.amount))
+                .filter(PointTransaction.user_id == self.id)
+                .filter(PointTransaction.amount < 0)
+                .filter(PointTransaction.created_at >= since_date)
+                .scalar()
+            )
+            return abs(total_spend) if total_spend else 0
+
+        spent_week = calculate_spend(week_ago)
+        spent_month = calculate_spend(month_ago)
+
+        # Unlock if either threshold is met
+        is_unlocked = spent_week >= WEEKLY_THRESHOLD or spent_month >= MONTHLY_THRESHOLD
+
+        return {
+            "is_locked": not is_unlocked,
+            "spent_week": spent_week,
+            "threshold_week": WEEKLY_THRESHOLD,
+            "spent_month": spent_month,
+            "threshold_month": MONTHLY_THRESHOLD,
+            "message": (
+                "Unlock advanced insights by spending credits on bids."
+                if not is_unlocked
+                else "Analytics Unlocked"
+            ),
+        }
+
     def to_dict(self, detail_level="public"):
         """
         Serializes the User object to a dictionary.

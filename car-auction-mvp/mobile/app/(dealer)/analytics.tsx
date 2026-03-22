@@ -11,6 +11,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import axios from "axios";
 import { useAuth } from "@/hooks/useAuth";
 import API_BASE_URL from "@/constants/Api";
+import { Ionicons } from "@expo/vector-icons";
 
 const COLORS = {
   background: "#14181F",
@@ -40,6 +41,12 @@ interface PopularSearch {
 }
 
 interface AdvancedAnalytics {
+  is_locked?: boolean;
+  spent_week?: number;
+  spent_month?: number;
+  threshold_week?: number;
+  threshold_month?: number;
+  message?: string;
   market_demand: { label: string; value: number }[];
   pricing_intelligence: { make: string; avg_price: number }[];
   inventory_performance: {
@@ -55,6 +62,7 @@ interface AdvancedAnalytics {
     market_win_rate: number;
   };
   buyer_behaviour: { type: string; count: number }[];
+  drivetrain_demand: { type: string; count: number }[];
 }
 
 const AnalyticsScreen = () => {
@@ -147,14 +155,22 @@ const AnalyticsScreen = () => {
           const percentage = maxValue > 0 ? (value / maxValue) * 100 : 0;
           return (
             <View key={index} style={styles.chartRow}>
-              <Text style={styles.chartLabel}>{item[labelKey]}</Text>
+              <Text
+                style={styles.chartLabel}
+                numberOfLines={1}
+                ellipsizeMode="tail"
+              >
+                {item[labelKey]}
+              </Text>
               <View style={styles.chartBarContainer}>
-                <View
-                  style={[
-                    styles.chartBar,
-                    { width: `${percentage}%`, backgroundColor: color },
-                  ]}
-                />
+                <View style={styles.chartBarBackground}>
+                  <View
+                    style={[
+                      styles.chartBar,
+                      { width: `${percentage}%`, backgroundColor: color },
+                    ]}
+                  />
+                </View>
                 <Text style={styles.chartValue}>
                   {formatValue ? formatValue(value) : value}
                 </Text>
@@ -235,7 +251,41 @@ const AnalyticsScreen = () => {
           </Text>
         </View>
 
-        {advancedData && (
+        {advancedData && advancedData.is_locked && (
+          <View style={styles.lockedContainer}>
+            <Ionicons name="lock-closed" size={48} color={COLORS.textSecondary} />
+            <Text style={styles.lockedTitle}>Advanced Analytics Locked</Text>
+            <Text style={styles.lockedText}>{advancedData.message}</Text>
+            
+            <View style={styles.progressSection}>
+              <Text style={styles.progressLabel}>Weekly Spending: {advancedData.spent_week} / {advancedData.threshold_week}</Text>
+              <View style={styles.progressBarBg}>
+                <View 
+                  style={[
+                    styles.progressBarFill, 
+                    { width: `${Math.min(((advancedData.spent_week || 0) / (advancedData.threshold_week || 1)) * 100, 100)}%` }
+                  ]} 
+                />
+              </View>
+            </View>
+
+            <View style={styles.progressSection}>
+              <Text style={styles.progressLabel}>Monthly Spending: {advancedData.spent_month} / {advancedData.threshold_month}</Text>
+              <View style={styles.progressBarBg}>
+                <View 
+                  style={[
+                    styles.progressBarFill, 
+                    { width: `${Math.min(((advancedData.spent_month || 0) / (advancedData.threshold_month || 1)) * 100, 100)}%` }
+                  ]} 
+                />
+              </View>
+            </View>
+
+            <Text style={styles.lockedHint}>Place bids or unlock conversations to gain access.</Text>
+          </View>
+        )}
+
+        {advancedData && !advancedData.is_locked && (
           <>
             <AnalyticsCard title="Inventory Performance">
               <View style={styles.statsGrid}>
@@ -311,6 +361,17 @@ const AnalyticsScreen = () => {
                 labelKey="type"
                 valueKey="count"
                 color={COLORS.warning}
+              />
+            </AnalyticsCard>
+
+            <AnalyticsCard title="Drivetrain Demand">
+              <SimpleBarChart
+                data={advancedData.drivetrain_demand}
+                maxValue={Math.max(
+                  ...advancedData.drivetrain_demand.map((d) => d.count)
+                )}
+                labelKey="type"
+                valueKey="count"
               />
             </AnalyticsCard>
           </>
@@ -417,17 +478,27 @@ const styles = StyleSheet.create({
     textAlign: "center",
     paddingVertical: 20,
   },
-
   // Chart Styles
   chartContainer: { marginTop: 10 },
   chartRow: { marginBottom: 12 },
-  chartLabel: { color: COLORS.textSecondary, fontSize: 14, marginBottom: 4 },
-  chartBarContainer: { flexDirection: "row", alignItems: "center", height: 24 },
-  chartBar: { height: "100%", borderRadius: 4, minWidth: 4 },
+  chartLabel: {
+    color: COLORS.textSecondary,
+    fontSize: 14,
+    marginBottom: 4,
+    textTransform: "capitalize",
+  },
+  chartBarContainer: { flexDirection: "row", alignItems: "center" },
+  chartBarBackground: {
+    flex: 1,
+    height: 24,
+    backgroundColor: COLORS.border,
+    borderRadius: 4,
+    marginRight: 8,
+  },
+  chartBar: { height: "100%", borderRadius: 4 },
   chartValue: {
     color: COLORS.text,
     fontSize: 12,
-    marginLeft: 8,
     fontWeight: "bold",
   },
 
@@ -449,6 +520,35 @@ const styles = StyleSheet.create({
   comparisonItem: { marginBottom: 6 },
   comparisonBar: { height: 8, borderRadius: 4, marginBottom: 4 },
   comparisonValue: { color: COLORS.textSecondary, fontSize: 12 },
+
+  // Locked State
+  lockedContainer: {
+    backgroundColor: COLORS.card,
+    marginHorizontal: 20,
+    marginBottom: 20,
+    padding: 30,
+    borderRadius: 12,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: COLORS.border,
+  },
+  lockedTitle: { fontSize: 20, fontWeight: 'bold', color: COLORS.text, marginTop: 15, marginBottom: 10 },
+  lockedText: { fontSize: 16, color: COLORS.textSecondary, textAlign: 'center', marginBottom: 20 },
+  lockedHint: { fontSize: 14, color: COLORS.accent, marginTop: 20, fontStyle: 'italic' },
+  progressSection: { width: '100%', marginBottom: 15 },
+  progressLabel: { color: COLORS.text, marginBottom: 8, fontSize: 14, fontWeight: '600' },
+  progressBarBg: {
+    height: 10,
+    backgroundColor: COLORS.border,
+    borderRadius: 5,
+    width: '100%',
+    overflow: 'hidden',
+  },
+  progressBarFill: {
+    height: '100%',
+    backgroundColor: COLORS.accent,
+    borderRadius: 5,
+  },
 });
 
 export default AnalyticsScreen;
