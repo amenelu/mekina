@@ -677,7 +677,9 @@ def api_request_detail(current_user, request_id):
                 score += 30
             # Mileage (Lower is better)
             if max_mileage > min_mileage:
-                score += (1 - ((bid.mileage - min_mileage) / (max_mileage - min_mileage))) * 20
+                score += (
+                    1 - ((bid.mileage - min_mileage) / (max_mileage - min_mileage))
+                ) * 20
             else:
                 score += 20
             # Rating (Higher is better)
@@ -713,11 +715,140 @@ def api_request_detail(current_user, request_id):
             "bids": [
                 bid.to_dict(
                     is_newest=(bid.id == newest_bid.id),
-                    is_best_deal=(best_deal_bid and bid.id == best_deal_bid.id)
-                ) for bid in sorted_bids
+                    is_best_deal=(best_deal_bid and bid.id == best_deal_bid.id),
+                )
+                for bid in sorted_bids
             ],
         }
     )
+
+
+@request_bp.route("/bids/compare")
+@login_required
+def compare_bids():
+    """Displays a side-by-side comparison of selected dealer bids."""
+    bid_ids_str = request.args.get("ids")
+    if not bid_ids_str:
+        flash("No bids selected for comparison.", "warning")
+        return redirect(url_for("request.my_requests"))
+
+    try:
+        bid_ids = [int(id) for id in bid_ids_str.split(",") if id.isdigit()]
+    except ValueError:
+        abort(400)
+
+    # Fetch bids ensuring they belong to the current user's requests
+    bids = (
+        DealerBid.query.join(
+            CarRequest, DealerBid.request_id == CarRequest.id
+        )  # Explicit join condition
+        .filter(DealerBid.id.in_(bid_ids), CarRequest.user_id == current_user.id)
+        .all()
+    )
+
+    if not bids:
+        flash("No valid bids found for comparison.", "danger")
+        return redirect(url_for("request.my_requests"))
+
+    # Calculate best values for highlighting
+    best_values = {
+        "price": {"value": float("inf"), "ids": []},
+        "mileage": {"value": float("inf"), "ids": []},
+        "year": {"value": float("-inf"), "ids": []},
+    }
+
+    for bid in bids:
+        # Price (lower is better)
+        if bid.price is not None and bid.price < best_values["price"]["value"]:
+            best_values["price"]["value"] = bid.price
+            best_values["price"]["ids"] = [bid.id]
+        elif bid.price is not None and bid.price == best_values["price"]["value"]:
+            best_values["price"]["ids"].append(bid.id)
+
+        # Mileage (lower is better)
+        if bid.mileage is not None and bid.mileage < best_values["mileage"]["value"]:
+            best_values["mileage"]["value"] = bid.mileage
+            best_values["mileage"]["ids"] = [bid.id]
+        elif bid.mileage is not None and bid.mileage == best_values["mileage"]["value"]:
+            best_values["mileage"]["ids"].append(bid.id)
+
+        # Year (higher is better)
+        if bid.car_year is not None and bid.car_year > best_values["year"]["value"]:
+            best_values["year"]["value"] = bid.car_year
+            best_values["year"]["ids"] = [bid.id]
+        elif bid.car_year is not None and bid.car_year == best_values["year"]["value"]:
+            best_values["year"]["ids"].append(bid.id)
+
+    # Inject flags for template
+    for bid in bids:
+        bid.is_best_price = bid.id in best_values["price"]["ids"]
+        bid.is_best_mileage = bid.id in best_values["mileage"]["ids"]
+        bid.is_best_year = bid.id in best_values["year"]["ids"]
+
+    return render_template("compare_bids.html", bids=bids)
+
+
+@request_bp.route("/api/bids/compare")
+@token_required
+def api_compare_bids(current_user):
+    """API endpoint to compare selected dealer bids."""
+    bid_ids_str = request.args.get("ids")
+    if not bid_ids_str:
+        return jsonify({"status": "error", "message": "No bid IDs provided."}), 400
+
+    try:
+        bid_ids = [int(id) for id in bid_ids_str.split(",") if id.isdigit()]
+    except ValueError:
+        return jsonify({"status": "error", "message": "Invalid bid IDs."}), 400
+
+    bids = (
+        DealerBid.query.join(
+            CarRequest, DealerBid.request_id == CarRequest.id
+        )  # Explicit join condition
+        .filter(DealerBid.id.in_(bid_ids), CarRequest.user_id == current_user.id)
+        .all()
+    )
+
+    if not bids:
+        return jsonify({"status": "error", "message": "No valid bids found."}), 404
+
+    # Determine best values (reusing logic logic for API consistency)
+    best_values = {
+        "price": {"value": float("inf"), "ids": []},
+        "mileage": {"value": float("inf"), "ids": []},
+        "year": {"value": float("-inf"), "ids": []},
+    }
+
+    for bid in bids:
+        for key, val, op in [
+            ("price", bid.price, lambda x, y: x < y),
+            ("mileage", bid.mileage, lambda x, y: x < y),
+            ("year", bid.car_year, lambda x, y: x > y),
+        ]:
+            if val is None:
+                continue
+
+            current_best = best_values[key]["value"]
+            if op(val, current_best):
+                best_values[key]["value"] = val
+                best_values[key]["ids"] = [bid.id]
+            elif val == current_best:
+                best_values[key]["ids"].append(bid.id)
+
+    # Sanitize infinity for JSON response
+    for k in best_values:
+        if best_values[k]["value"] in [float("inf"), float("-inf")]:
+            best_values[k]["value"] = None
+
+    bids_data = []
+    for bid in bids:
+        b_dict = bid.to_dict()
+        b_dict["is_best_price"] = bid.id in best_values["price"]["ids"]
+        b_dict["is_best_mileage"] = bid.id in best_values["mileage"]["ids"]
+        b_dict["is_best_year"] = bid.id in best_values["year"]["ids"]
+        bids_data.append(b_dict)
+
+    return jsonify({"bids": bids_data, "best_values": best_values})
 
 
 @request_bp.route("/bid/<int:bid_id>/ask", methods=["POST"])

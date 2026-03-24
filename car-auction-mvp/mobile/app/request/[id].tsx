@@ -118,6 +118,8 @@ const RequestDetailScreen = () => {
     {}
   );
   const [refreshing, setRefreshing] = useState(false);
+  const [selectionMode, setSelectionMode] = useState(false);
+  const [selectedBids, setSelectedBids] = useState<number[]>([]);
 
   const fetchRequestDetails = useCallback(async () => {
     if (!token || !id) {
@@ -378,221 +380,274 @@ const RequestDetailScreen = () => {
 
         {/* Dealer Offers Section */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Dealer Offers ({bids.length})</Text>
-          {bids.length > 0 ? (
-            bids.map((bid, index) => (
-              <View
-                key={bid.id}
-                style={[styles.card, index === 0 && styles.lowestOfferCard]}
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>
+              Dealer Offers ({bids.length})
+            </Text>
+            {bids.length > 1 && (
+              <Pressable
+                onPress={() => {
+                  setSelectionMode((prev) => !prev);
+                  setSelectedBids([]); // Reset on toggle
+                }}
               >
-                {index === 0 && (
-                  <View style={styles.lowestOfferTag}>
-                    <Text style={styles.lowestOfferText}>Lowest Offer</Text>
-                  </View>
-                )}
-                {bid.is_newest && index !== 0 && (
-                  <View style={[styles.lowestOfferTag, styles.newestOfferTag]}>
-                    <Text style={styles.lowestOfferText}>Newest Offer</Text>
-                  </View>
-                )}
-                <View style={styles.bidHeader}>
-                  <View>
-                    <Link
-                      href={`/(details)/dealers/public/${bid.dealer.id}`}
-                      asChild
-                    >
-                      <Pressable>
-                        <Text style={styles.dealerName}>
-                          {bid.dealer.username}
-                        </Text>
-                      </Pressable>
-                    </Link>
-                    <View style={styles.dealerRating}>
-                      <Ionicons name="star" size={16} color="#FFD700" />
-                      <Text style={styles.dealerRatingText}>
-                        {bid.dealer.avg_rating?.toFixed(1) || "New"}{" "}
-                        <Text style={{ color: COLORS.mutedForeground }}>
-                          Rating
-                        </Text>
-                      </Text>
-                    </View>
-                  </View>
-                </View>
-
-                {bid.image_urls && bid.image_urls.length > 0 && (
-                  <FlatList
-                    horizontal
-                    data={bid.image_urls}
-                    renderItem={({ item, index }) => (
-                      <OfferImage
-                        uri={item}
-                        onPress={() => openImageViewer(bid.image_urls, index)}
-                      />
-                    )}
-                    keyExtractor={(item, index) => `${bid.id}-img-${index}`}
-                    showsHorizontalScrollIndicator={false}
-                    style={styles.offerImageContainer}
-                  />
-                )}
-
-                <View style={styles.timestampContainer}>
-                  <Text style={styles.timestampText}>
-                    {formatDistanceToNow(new Date(bid.timestamp), {
-                      addSuffix: true,
-                    })}
-                  </Text>
-                </View>
-
-                <View style={styles.offerDetailsContainer}>
-                  <Text style={styles.offerCarTitle}>
-                    {bid.car_year} {bid.make} {bid.model}
-                  </Text>
-                  <View style={styles.offerDetailRow}>
-                    <OfferDetailChip
-                      icon="speedometer-outline"
-                      text={`${bid.mileage.toLocaleString()} km`}
-                    />
-                    <OfferDetailChip
-                      icon="build-outline"
-                      text={bid.condition}
-                    />
-                    <OfferDetailChip
-                      icon="calendar-outline"
-                      text={bid.availability}
-                    />
-                  </View>
-                </View>
-
-                <View style={styles.priceContainer}>
-                  <View style={styles.priceItem}>
-                    <Text style={styles.priceLabel}>Cash Offer</Text>
-                    <Text style={styles.bidPrice}>
-                      {bid.price.toLocaleString()} ETB
-                    </Text>
-                  </View>
-                  {bid.price_with_loan && (
-                    <View style={styles.priceItem}>
-                      <Text style={styles.priceLabel}>With Loan</Text>
-                      <Text style={styles.bidPrice}>
-                        {bid.price_with_loan.toLocaleString()} ETB
-                      </Text>
-                    </View>
-                  )}
-                </View>
-
-                {(bid.message || bid.extras) && (
-                  <View style={styles.notesSection}>
-                    {bid.message && (
-                      <Text style={styles.notesText}>{bid.message}</Text>
-                    )}
-                    {bid.extras && (
-                      <View style={{ marginTop: bid.message ? 10 : 0 }}>
-                        <Text style={styles.extrasLabel}>Extras:</Text>
-                        <Text style={styles.notesText}>{bid.extras}</Text>
-                      </View>
-                    )}
-                  </View>
-                )}
-
-                <Text style={styles.validUntilText}>
-                  Offer valid until:{" "}
-                  {new Date(bid.valid_until).toLocaleDateString()}
+                <Text style={styles.selectButtonText}>
+                  {selectionMode ? "Cancel" : "Compare"}
                 </Text>
-
-                {bid.questions && bid.questions.length > 0 && (
-                  <View style={styles.qnaSection}>
-                    <Pressable
-                      style={styles.qnaHeader}
-                      onPress={() => toggleQA(bid.id)}
-                    >
-                      <Text style={styles.qnaHeaderText}>
-                        Questions & Answers ({bid.questions.length})
-                      </Text>
-                      <Ionicons
-                        name={
-                          expandedQAs[bid.id] ? "chevron-up" : "chevron-down"
-                        }
-                        size={20}
-                        color={COLORS.mutedForeground}
-                      />
-                    </Pressable>
-                    {expandedQAs[bid.id] && (
-                      <View style={styles.qnaList}>
-                        {bid.questions.map((qna) => (
-                          <View key={qna.id} style={styles.qnaItem}>
-                            <View style={styles.qnaBubble}>
-                              <Text style={styles.qnaLabel}>Q:</Text>
-                              <Text style={styles.qnaText}>
-                                {qna.question_text}
-                              </Text>
-                            </View>
-                            {qna.answer_text && (
-                              <View
-                                style={[
-                                  styles.qnaBubble,
-                                  styles.qnaAnswerBubble,
-                                ]}
-                              >
-                                <Text style={styles.qnaLabel}>A:</Text>
-                                <Text style={styles.qnaText}>
-                                  {qna.answer_text}
-                                </Text>
-                              </View>
-                            )}
-                            {!qna.answer_text && (
-                              <View
-                                style={[
-                                  styles.qnaBubble,
-                                  styles.qnaPendingBubble,
-                                ]}
-                              >
-                                <Text style={styles.qnaPendingText}>
-                                  Awaiting dealer response...
-                                </Text>
-                              </View>
-                            )}
-                          </View>
-                        ))}
+              </Pressable>
+            )}
+          </View>
+          {bids.length > 0 ? (
+            bids.map((bid, index) => {
+              const isSelected = selectedBids.includes(bid.id);
+              return (
+                <Pressable
+                  key={bid.id}
+                  onPress={() => {
+                    if (selectionMode) {
+                      if (isSelected) {
+                        setSelectedBids((prev) =>
+                          prev.filter((id) => id !== bid.id)
+                        );
+                      } else {
+                        setSelectedBids((prev) => [...prev, bid.id]);
+                      }
+                    }
+                  }}
+                  disabled={!selectionMode}
+                >
+                  <View
+                    style={[
+                      styles.card,
+                      index === 0 && styles.lowestOfferCard,
+                      isSelected && styles.selectedCard,
+                    ]}
+                  >
+                    {selectionMode && (
+                      <View style={styles.selectionOverlay}>
+                        <Ionicons
+                          name={isSelected ? "checkbox" : "square-outline"}
+                          size={24}
+                          color={COLORS.foreground}
+                        />
                       </View>
                     )}
-                  </View>
-                )}
+                    {index === 0 && (
+                      <View style={styles.lowestOfferTag}>
+                        <Text style={styles.lowestOfferText}>Lowest Offer</Text>
+                      </View>
+                    )}
+                    {bid.is_newest && index !== 0 && (
+                      <View
+                        style={[styles.lowestOfferTag, styles.newestOfferTag]}
+                      >
+                        <Text style={styles.lowestOfferText}>Newest Offer</Text>
+                      </View>
+                    )}
+                    <View style={styles.bidHeader}>
+                      <View>
+                        <Link
+                          href={`/(details)/dealers/public/${bid.dealer.id}`}
+                          asChild
+                        >
+                          <Pressable>
+                            <Text style={styles.dealerName}>
+                              {bid.dealer.username}
+                            </Text>
+                          </Pressable>
+                        </Link>
+                        <View style={styles.dealerRating}>
+                          <Ionicons name="star" size={16} color="#FFD700" />
+                          <Text style={styles.dealerRatingText}>
+                            {bid.dealer.avg_rating?.toFixed(1) || "New"}{" "}
+                            <Text style={{ color: COLORS.mutedForeground }}>
+                              Rating
+                            </Text>
+                          </Text>
+                        </View>
+                      </View>
+                    </View>
 
-                <View
-                  style={[
-                    styles.bidFooter,
-                    request.status !== "active" && { opacity: 0.5 },
-                  ]}
-                >
-                  <Pressable
-                    style={styles.acceptButton}
-                    onPress={() => handleAcceptOffer(bid)}
-                    disabled={request.status !== "active"}
-                  >
-                    <Text style={styles.buttonText}>Accept Offer</Text>
-                  </Pressable>
-                  <Pressable
-                    style={styles.chatButton}
-                    onPress={() => handleAskQuestion(bid.id)}
-                    disabled={request.status !== "active"}
-                  >
-                    <Ionicons
-                      name="chatbubble-ellipses-outline"
-                      size={18}
-                      color={COLORS.accent}
-                    />
-                    <Text
+                    {bid.image_urls && bid.image_urls.length > 0 && (
+                      <FlatList
+                        horizontal
+                        data={bid.image_urls}
+                        renderItem={({ item, index }) => (
+                          <OfferImage
+                            uri={item}
+                            onPress={() =>
+                              openImageViewer(bid.image_urls, index)
+                            }
+                          />
+                        )}
+                        keyExtractor={(item, index) => `${bid.id}-img-${index}`}
+                        showsHorizontalScrollIndicator={false}
+                        style={styles.offerImageContainer}
+                      />
+                    )}
+
+                    <View style={styles.timestampContainer}>
+                      <Text style={styles.timestampText}>
+                        {formatDistanceToNow(new Date(bid.timestamp), {
+                          addSuffix: true,
+                        })}
+                      </Text>
+                    </View>
+
+                    <View style={styles.offerDetailsContainer}>
+                      <Text style={styles.offerCarTitle}>
+                        {bid.car_year} {bid.make} {bid.model}
+                      </Text>
+                      <View style={styles.offerDetailRow}>
+                        <OfferDetailChip
+                          icon="speedometer-outline"
+                          text={`${bid.mileage.toLocaleString()} km`}
+                        />
+                        <OfferDetailChip
+                          icon="build-outline"
+                          text={bid.condition}
+                        />
+                        <OfferDetailChip
+                          icon="calendar-outline"
+                          text={bid.availability}
+                        />
+                      </View>
+                    </View>
+
+                    <View style={styles.priceContainer}>
+                      <View style={styles.priceItem}>
+                        <Text style={styles.priceLabel}>Cash Offer</Text>
+                        <Text style={styles.bidPrice}>
+                          {bid.price.toLocaleString()} ETB
+                        </Text>
+                      </View>
+                      {bid.price_with_loan && (
+                        <View style={styles.priceItem}>
+                          <Text style={styles.priceLabel}>With Loan</Text>
+                          <Text style={styles.bidPrice}>
+                            {bid.price_with_loan.toLocaleString()} ETB
+                          </Text>
+                        </View>
+                      )}
+                    </View>
+
+                    {(bid.message || bid.extras) && (
+                      <View style={styles.notesSection}>
+                        {bid.message && (
+                          <Text style={styles.notesText}>{bid.message}</Text>
+                        )}
+                        {bid.extras && (
+                          <View style={{ marginTop: bid.message ? 10 : 0 }}>
+                            <Text style={styles.extrasLabel}>Extras:</Text>
+                            <Text style={styles.notesText}>{bid.extras}</Text>
+                          </View>
+                        )}
+                      </View>
+                    )}
+
+                    <Text style={styles.validUntilText}>
+                      Offer valid until:{" "}
+                      {new Date(bid.valid_until).toLocaleDateString()}
+                    </Text>
+
+                    {bid.questions && bid.questions.length > 0 && (
+                      <View style={styles.qnaSection}>
+                        <Pressable
+                          style={styles.qnaHeader}
+                          onPress={() => toggleQA(bid.id)}
+                        >
+                          <Text style={styles.qnaHeaderText}>
+                            Questions & Answers ({bid.questions.length})
+                          </Text>
+                          <Ionicons
+                            name={
+                              expandedQAs[bid.id]
+                                ? "chevron-up"
+                                : "chevron-down"
+                            }
+                            size={20}
+                            color={COLORS.mutedForeground}
+                          />
+                        </Pressable>
+                        {expandedQAs[bid.id] && (
+                          <View style={styles.qnaList}>
+                            {bid.questions.map((qna) => (
+                              <View key={qna.id} style={styles.qnaItem}>
+                                <View style={styles.qnaBubble}>
+                                  <Text style={styles.qnaLabel}>Q:</Text>
+                                  <Text style={styles.qnaText}>
+                                    {qna.question_text}
+                                  </Text>
+                                </View>
+                                {qna.answer_text && (
+                                  <View
+                                    style={[
+                                      styles.qnaBubble,
+                                      styles.qnaAnswerBubble,
+                                    ]}
+                                  >
+                                    <Text style={styles.qnaLabel}>A:</Text>
+                                    <Text style={styles.qnaText}>
+                                      {qna.answer_text}
+                                    </Text>
+                                  </View>
+                                )}
+                                {!qna.answer_text && (
+                                  <View
+                                    style={[
+                                      styles.qnaBubble,
+                                      styles.qnaPendingBubble,
+                                    ]}
+                                  >
+                                    <Text style={styles.qnaPendingText}>
+                                      Awaiting dealer response...
+                                    </Text>
+                                  </View>
+                                )}
+                              </View>
+                            ))}
+                          </View>
+                        )}
+                      </View>
+                    )}
+
+                    <View
                       style={[
-                        styles.buttonText,
-                        { color: COLORS.accent, marginLeft: 8 },
+                        styles.bidFooter,
+                        request.status !== "active" && { opacity: 0.5 },
                       ]}
                     >
-                      Ask Question
-                    </Text>
-                  </Pressable>
-                </View>
-              </View>
-            ))
+                      <Pressable
+                        style={styles.acceptButton}
+                        onPress={() => handleAcceptOffer(bid)}
+                        disabled={request.status !== "active"}
+                      >
+                        <Text style={styles.buttonText}>Accept Offer</Text>
+                      </Pressable>
+                      <Pressable
+                        style={styles.chatButton}
+                        onPress={() => handleAskQuestion(bid.id)}
+                        disabled={request.status !== "active"}
+                      >
+                        <Ionicons
+                          name="chatbubble-ellipses-outline"
+                          size={18}
+                          color={COLORS.accent}
+                        />
+                        <Text
+                          style={[
+                            styles.buttonText,
+                            { color: COLORS.accent, marginLeft: 8 },
+                          ]}
+                        >
+                          Ask Question
+                        </Text>
+                      </Pressable>
+                    </View>
+                  </View>
+                </Pressable>
+              );
+            })
           ) : (
             <View style={styles.card}>
               <Text style={styles.noBidsText}>
@@ -602,6 +657,32 @@ const RequestDetailScreen = () => {
           )}
         </View>
       </ScrollView>
+
+      {selectionMode && (
+        <View style={styles.compareFooter}>
+          <Pressable
+            style={[
+              styles.compareButton,
+              selectedBids.length < 2 && styles.disabledButton,
+            ]}
+            disabled={selectedBids.length < 2}
+            onPress={() => {
+              if (selectedBids.length >= 2) {
+                router.push({
+                  pathname: "/compare-bids",
+                  params: { ids: selectedBids.join(",") },
+                });
+                setSelectionMode(false);
+                setSelectedBids([]);
+              }
+            }}
+          >
+            <Text style={styles.compareButtonText}>
+              Compare ({selectedBids.length})
+            </Text>
+          </Pressable>
+        </View>
+      )}
 
       <Modal
         visible={isImageViewerVisible}
@@ -680,11 +761,28 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.background,
   },
   errorText: { color: COLORS.destructive, fontSize: 16 },
+  sectionHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  selectButtonText: {
+    color: COLORS.accent,
+    fontSize: 16,
+    fontWeight: "600",
+    padding: 5,
+  },
   section: { paddingHorizontal: 20, marginBottom: 20 },
   sectionTitle: {
     fontSize: 22,
     fontWeight: "bold",
     color: COLORS.foreground,
+    marginBottom: 15,
+  },
+  sectionHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     marginBottom: 15,
   },
   sectionTitleSmall: {
@@ -698,6 +796,23 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     padding: 15,
     marginBottom: 15,
+  },
+  selectedCard: {
+    borderColor: COLORS.accent,
+    borderWidth: 2,
+    backgroundColor: "#2E2245",
+  },
+  selectionOverlay: {
+    position: "absolute",
+    top: 10,
+    left: 10,
+    zIndex: 1,
+    backgroundColor: "rgba(0,0,0,0.5)",
+    borderRadius: 5,
+    width: 30,
+    height: 30,
+    justifyContent: "center",
+    alignItems: "center",
   },
   requestTitle: {
     fontSize: 20,
@@ -968,6 +1083,27 @@ const styles = StyleSheet.create({
     borderRadius: 25,
   },
   buttonText: { color: COLORS.foreground, fontWeight: "bold" },
+  compareFooter: {
+    padding: 20,
+    paddingBottom: 30, // For safe area
+    backgroundColor: COLORS.card,
+    borderTopWidth: 1,
+    borderColor: COLORS.border,
+  },
+  compareButton: {
+    backgroundColor: COLORS.accent,
+    padding: 15,
+    borderRadius: 10,
+    alignItems: "center",
+  },
+  disabledButton: {
+    backgroundColor: COLORS.muted,
+  },
+  compareButtonText: {
+    color: COLORS.foreground,
+    fontSize: 18,
+    fontWeight: "bold",
+  },
 });
 
 export default RequestDetailScreen;
