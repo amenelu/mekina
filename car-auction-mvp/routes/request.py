@@ -739,9 +739,7 @@ def compare_bids():
 
     # Fetch bids ensuring they belong to the current user's requests
     bids = (
-        DealerBid.query.join(
-            CarRequest, DealerBid.request_id == CarRequest.id
-        )  # Explicit join condition
+        DealerBid.query.join(CarRequest, DealerBid.request_id == CarRequest.id)
         .filter(DealerBid.id.in_(bid_ids), CarRequest.user_id == current_user.id)
         .all()
     )
@@ -802,9 +800,7 @@ def api_compare_bids(current_user):
         return jsonify({"status": "error", "message": "Invalid bid IDs."}), 400
 
     bids = (
-        DealerBid.query.join(
-            CarRequest, DealerBid.request_id == CarRequest.id
-        )  # Explicit join condition
+        DealerBid.query.join(CarRequest, DealerBid.request_id == CarRequest.id)
         .filter(DealerBid.id.in_(bid_ids), CarRequest.user_id == current_user.id)
         .all()
     )
@@ -825,9 +821,6 @@ def api_compare_bids(current_user):
             ("mileage", bid.mileage, lambda x, y: x < y),
             ("year", bid.car_year, lambda x, y: x > y),
         ]:
-            if val is None:
-                continue
-
             current_best = best_values[key]["value"]
             if op(val, current_best):
                 best_values[key]["value"] = val

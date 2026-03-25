@@ -19,6 +19,7 @@ import axios from "axios";
 import API_BASE_URL from "@/constants/Api";
 import { Ionicons } from "@expo/vector-icons";
 
+const SCREEN_WIDTH = Dimensions.get("window").width;
 const COLORS = {
   background: "#14181F",
   foreground: "#F8F8F8",
@@ -30,6 +31,7 @@ const COLORS = {
   success: "#28a745",
   destructive: "#dc3545",
 };
+const CARD_WIDTH = SCREEN_WIDTH * 0.8;
 
 interface CarRequest {
   id: number;
@@ -78,6 +80,28 @@ interface DealerBid {
   };
 }
 
+// New interface for comparison data
+interface ComparisonBid {
+  id: number;
+  price: number;
+  mileage: number;
+  car_year: number;
+  make: string;
+  model: string;
+  condition: string;
+  availability: string;
+  valid_until: string;
+  message?: string;
+  extras?: string;
+  dealer_id: number;
+  dealer_username?: string;
+  dealer?: { username: string; avg_rating: number };
+  image_url?: string;
+  is_best_price?: boolean;
+  is_best_mileage?: boolean;
+  is_best_year?: boolean;
+}
+
 /**
  * A component to display an offer image with a loading indicator.
  */
@@ -120,6 +144,10 @@ const RequestDetailScreen = () => {
   const [refreshing, setRefreshing] = useState(false);
   const [selectionMode, setSelectionMode] = useState(false);
   const [selectedBids, setSelectedBids] = useState<number[]>([]);
+  // New state for comparison modal
+  const [isCompareModalVisible, setCompareModalVisible] = useState(false);
+  const [comparisonBids, setComparisonBids] = useState<ComparisonBid[]>([]);
+  const [isComparisonLoading, setComparisonLoading] = useState(false);
 
   const fetchRequestDetails = useCallback(async () => {
     if (!token || !id) {
@@ -264,6 +292,32 @@ const RequestDetailScreen = () => {
         }
       }
     );
+  };
+
+  const handleCompare = async () => {
+    if (selectedBids.length < 2 || !token) return;
+
+    setComparisonLoading(true);
+    setCompareModalVisible(true);
+
+    try {
+      const response = await axios.get(
+        `${API_BASE_URL}/requests/api/bids/compare`,
+        {
+          params: { ids: selectedBids.join(",") },
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+      setComparisonBids(response.data.bids);
+    } catch (error) {
+      console.error("Failed to fetch comparison:", error);
+      Alert.alert("Error", "Could not load comparison data. Please try again.");
+      setCompareModalVisible(false); // Close modal on error
+    } finally {
+      setComparisonLoading(false);
+      setSelectionMode(false);
+      setSelectedBids([]);
+    }
   };
 
   if (loading) {
@@ -665,17 +719,8 @@ const RequestDetailScreen = () => {
               styles.compareButton,
               selectedBids.length < 2 && styles.disabledButton,
             ]}
-            disabled={selectedBids.length < 2}
-            onPress={() => {
-              if (selectedBids.length >= 2) {
-                router.push({
-                  pathname: "/compare-bids",
-                  params: { ids: selectedBids.join(",") },
-                });
-                setSelectionMode(false);
-                setSelectedBids([]);
-              }
-            }}
+            onPress={handleCompare}
+            disabled={selectedBids.length < 2 || isComparisonLoading}
           >
             <Text style={styles.compareButtonText}>
               Compare ({selectedBids.length})
@@ -683,6 +728,123 @@ const RequestDetailScreen = () => {
           </Pressable>
         </View>
       )}
+
+      {/* Comparison Modal */}
+      <Modal
+        animationType="slide"
+        visible={isCompareModalVisible}
+        onRequestClose={() => {
+          setCompareModalVisible(false);
+          setComparisonBids([]);
+        }}
+      >
+        <View style={styles.compareContainer}>
+          <View style={styles.compareHeader}>
+            <Text style={styles.compareTitle}>Side-by-Side Comparison</Text>
+            <Pressable
+              style={styles.compareCloseButton}
+              onPress={() => setCompareModalVisible(false)}
+            >
+              <Ionicons name="close" size={30} color={COLORS.foreground} />
+            </Pressable>
+          </View>
+
+          {isComparisonLoading ? (
+            <ActivityIndicator
+              size="large"
+              color={COLORS.accent}
+              style={{ marginTop: 50 }}
+            />
+          ) : (
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.compareCardsContainer}
+              decelerationRate="fast"
+              snapToInterval={CARD_WIDTH + 15} // Card width + margin
+            >
+              {comparisonBids.map((bid) => (
+                <View key={bid.id} style={styles.compareCard}>
+                  {/* Header / Dealer Info */}
+                  <View style={styles.compareCardHeader}>
+                    <Text style={styles.compareDealerName}>
+                      {bid.dealer?.username || "Dealer"}
+                    </Text>
+                    <View style={styles.compareRatingBadge}>
+                      <Ionicons name="star" size={12} color="#FFD700" />
+                      <Text style={styles.compareRatingText}>
+                        {bid.dealer?.avg_rating?.toFixed(1) || "N/A"}
+                      </Text>
+                    </View>
+                  </View>
+
+                  {/* Car Image */}
+                  <View style={styles.compareImageContainer}>
+                    {bid.image_url ? (
+                      <Image
+                        source={{ uri: `${API_BASE_URL}${bid.image_url}` }}
+                        style={styles.compareImage}
+                      />
+                    ) : (
+                      <View
+                        style={[
+                          styles.compareImage,
+                          styles.comparePlaceholderImage,
+                        ]}
+                      >
+                        <Ionicons
+                          name="car-sport"
+                          size={40}
+                          color={COLORS.mutedForeground}
+                        />
+                      </View>
+                    )}
+                  </View>
+
+                  {/* Key Specs */}
+                  <View style={styles.compareSpecsContainer}>
+                    <Text style={styles.compareCarTitle}>
+                      {bid.car_year} {bid.make} {bid.model}
+                    </Text>
+
+                    <View
+                      style={[
+                        styles.compareRow,
+                        bid.is_best_price && styles.compareHighlightRow,
+                      ]}
+                    >
+                      <Text style={styles.compareLabel}>Price</Text>
+                      <Text
+                        style={[styles.compareValue, styles.comparePriceValue]}
+                      >
+                        {bid.price.toLocaleString()} ETB
+                      </Text>
+                      {bid.is_best_price && (
+                        <Ionicons
+                          name="checkmark-circle"
+                          size={16}
+                          color={COLORS.success}
+                          style={styles.compareBestIcon}
+                        />
+                      )}
+                    </View>
+
+                    {/* Other comparison rows... */}
+                  </View>
+
+                  {/* Action Button */}
+                  <Pressable
+                    style={styles.compareSelectButton}
+                    onPress={() => setCompareModalVisible(false)}
+                  >
+                    <Text style={styles.compareSelectButtonText}>Close</Text>
+                  </Pressable>
+                </View>
+              ))}
+            </ScrollView>
+          )}
+        </View>
+      </Modal>
 
       <Modal
         visible={isImageViewerVisible}
@@ -761,11 +923,6 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.background,
   },
   errorText: { color: COLORS.destructive, fontSize: 16 },
-  sectionHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-  },
   selectButtonText: {
     color: COLORS.accent,
     fontSize: 16,
@@ -805,7 +962,7 @@ const styles = StyleSheet.create({
   selectionOverlay: {
     position: "absolute",
     top: 10,
-    left: 10,
+    right: 10,
     zIndex: 1,
     backgroundColor: "rgba(0,0,0,0.5)",
     borderRadius: 5,
@@ -1104,6 +1261,101 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: "bold",
   },
+  // Comparison Modal Styles
+  compareContainer: {
+    flex: 1,
+    backgroundColor: COLORS.background,
+    paddingTop: 40,
+  },
+  compareHeader: {
+    paddingHorizontal: 20,
+    paddingBottom: 10,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  compareTitle: { fontSize: 22, fontWeight: "bold", color: COLORS.foreground },
+  compareCloseButton: { padding: 5 },
+  compareScrollContent: { paddingBottom: 40 },
+  compareCardsContainer: { paddingHorizontal: 15, paddingVertical: 20 },
+  compareCard: {
+    backgroundColor: COLORS.card,
+    width: CARD_WIDTH,
+    borderRadius: 16,
+    padding: 15,
+    marginHorizontal: 8,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+  },
+  compareCardHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 10,
+  },
+  compareDealerName: {
+    fontSize: 16,
+    fontWeight: "bold",
+    color: COLORS.foreground,
+  },
+  compareRatingBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#2E2245",
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
+  compareRatingText: {
+    color: COLORS.foreground,
+    fontSize: 12,
+    marginLeft: 4,
+    fontWeight: "bold",
+  },
+  compareImageContainer: {
+    height: 140,
+    borderRadius: 8,
+    overflow: "hidden",
+    marginBottom: 15,
+  },
+  compareImage: { width: "100%", height: "100%", resizeMode: "cover" },
+  comparePlaceholderImage: {
+    backgroundColor: COLORS.border,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  compareSpecsContainer: { gap: 10 },
+  compareCarTitle: {
+    fontSize: 18,
+    fontWeight: "bold",
+    color: COLORS.foreground,
+    marginBottom: 5,
+  },
+  compareRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingVertical: 4,
+  },
+  compareHighlightRow: {
+    backgroundColor: "rgba(40, 167, 69, 0.1)",
+    borderRadius: 4,
+    paddingHorizontal: 4,
+    marginHorizontal: -4,
+  },
+  compareLabel: { color: COLORS.mutedForeground, fontSize: 14 },
+  compareValue: { color: COLORS.foreground, fontSize: 15, fontWeight: "500" },
+  comparePriceValue: { color: COLORS.accent, fontWeight: "bold", fontSize: 16 },
+  compareBestIcon: { marginLeft: 6 },
+  compareSelectButton: {
+    marginTop: "auto", // Pushes button to the bottom
+    paddingTop: 15,
+    backgroundColor: COLORS.accent,
+    padding: 12,
+    borderRadius: 10,
+    alignItems: "center",
+  },
+  compareSelectButtonText: { color: "white", fontWeight: "bold", fontSize: 16 },
 });
 
 export default RequestDetailScreen;
