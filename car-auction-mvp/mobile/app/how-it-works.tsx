@@ -39,10 +39,7 @@ const HowItWorksScreen = () => {
         <View style={styles.content}>
           <Text style={styles.mainTitle}>How Mekina Works</Text>
           <Text style={styles.mainParagraph}>
-            Our platform is designed to be the simplest and most transparent way
-            to buy, sell, or rent cars in Ethiopia. Whether you're a buyer
-            looking for your dream car, a seller, or a rental company, here’s
-            how it works.
+            {"Our platform is designed to be the simplest and most transparent way to buy, sell, or rent cars in Ethiopia. Whether you\'re a buyer looking for your dream car, a seller, or a rental company, here\'s how it works."}
           </Text>
 
           <Text style={styles.sectionTitle}>For Buyers</Text>
@@ -60,8 +57,7 @@ const HowItWorksScreen = () => {
                 <Text style={styles.linkText}>Submit a Request</Text>
               </Link>
               <Text style={styles.stepParagraph}>
-                {" "}
-                if you can't find what you're looking for.
+                {" if you can\'t find what you\'re looking for."}
               </Text>
             </Text>
           </StepCard>
@@ -86,8 +82,7 @@ const HowItWorksScreen = () => {
             </Text>
           </StepCard>
           <StepCard number="2" title="Admin Review">
-            Our team reviews every submission to ensure quality and accuracy. We
-            may mark your car as "Featured"!
+            {'Our team reviews every submission to ensure quality and accuracy. We may mark your car as "Featured"!'}
           </StepCard>
           <StepCard number="3" title="Manage Your Listing">
             Once live, you have full control from your dashboard to answer
@@ -178,3 +173,4 @@ const styles = StyleSheet.create({
 });
 
 export default HowItWorksScreen;
+

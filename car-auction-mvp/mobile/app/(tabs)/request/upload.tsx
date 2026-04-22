@@ -111,8 +111,9 @@ const RequestUploadScreen = () => {
       <ScrollView>
         <Text style={styles.title}>Upload a Picture</Text>
         <Text style={styles.subtitle}>
-          Upload a photo of the car you are looking for and we'll find it for
-          you.
+          {
+            "Upload a photo of the car you are looking for and we'll find it for you."
+          }
         </Text>
 
         <View style={styles.formCard}>

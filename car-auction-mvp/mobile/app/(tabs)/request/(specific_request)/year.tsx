@@ -40,7 +40,7 @@ const RequestYearScreen = () => {
     <SafeAreaView style={styles.container}>
       <Text style={styles.counter}>3 / 4</Text>
       <Text style={styles.title}>
-        What's the minimum year you're looking for?
+        {"What's the minimum year you're looking for?"}
       </Text>
 
       <TextInput

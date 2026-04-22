@@ -100,7 +100,7 @@ Follow these instructions to set up the project on your local machine.
 ### Prerequisites
 
 - **Node.js** & **npm** installed.
-- **Python 3.8+** installed.
+- **Python 3.11** installed. The current backend dependency set is tested with Python 3.11.
 - **Expo Go** app installed on your phone (optional, for testing).
 
 ### 1️⃣ Backend & Web App Setup

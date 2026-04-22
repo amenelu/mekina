@@ -350,8 +350,9 @@ const MyRequestsScreen = () => {
       >
         <View style={styles.header}>
           <Text style={styles.headerSubtitle}>
-            Here are the requests you've submitted. Click "View Offers" to see
-            bids from our dealer network.
+            {
+              'Here are the requests you\'ve submitted. Click "View Offers" to see bids from our dealer network.'
+            }
           </Text>
         </View>
         <View style={styles.content}>

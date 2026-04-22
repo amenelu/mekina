@@ -254,7 +254,7 @@ const HomeScreen = () => {
       <View style={styles.searchHero}>
         <Text style={styles.heroTitle}>Find Your Next Car</Text>
         <Text style={styles.heroSubtitle}>
-          Search Ethiopia's best selection of modern cars for sale.
+          {"Search Ethiopia's best selection of modern cars for sale."}
         </Text>
         <View style={{ zIndex: 10 }}>
           <View style={styles.searchBar}>

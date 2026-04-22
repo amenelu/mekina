@@ -194,7 +194,7 @@ const ProfileScreen = () => {
               color={COLORS.mutedForeground}
             />
             <Text style={styles.emptyText}>
-              You haven't liked any cars yet.
+              {"You haven't liked any cars yet."}
             </Text>
             <TouchableOpacity
               style={styles.browseButton}
