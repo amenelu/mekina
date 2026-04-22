@@ -8,6 +8,7 @@ from flask import (
     abort,
     request,
     jsonify,
+    current_app,
 )
 from flask_login import login_required, current_user
 from extensions import db, socketio
@@ -804,11 +805,13 @@ def api_manage_listing(current_user, car_id):
 
     elif request.method == "PUT":
         # This now handles multipart/form-data for image uploads
-        print("\n--- ADMIN API: PUT /api/listings/<id> ---")
         data = request.form.to_dict()
         files = request.files.getlist("images")
-        print(f"Received form data: {data}")
-        print(f"Received files: {[f.filename for f in files]}")
+        current_app.logger.debug(
+            "Admin listing update received for car_id=%s with %s uploaded files.",
+            car_id,
+            len([f for f in files if f.filename]),
+        )
 
         # Update basic car fields
         for field in [
@@ -868,7 +871,7 @@ def api_manage_listing(current_user, car_id):
 
         # If new images are uploaded, replace the old ones
         if files and any(f.filename for f in files):
-            print("New files detected. Appending to existing images.")
+            current_app.logger.debug("Appending new images to car_id=%s.", car_id)
             # Find the highest current order number to append new images correctly
             highest_order = (
                 db.session.query(func.max(CarImage.order))
@@ -879,7 +882,6 @@ def api_manage_listing(current_user, car_id):
 
             for image_file in files:
                 image_url = save_seller_document(image_file)
-                print(f"Saved image, URL: {image_url}")
                 if image_url:
                     highest_order += 1
                     new_image = CarImage(
@@ -888,7 +890,6 @@ def api_manage_listing(current_user, car_id):
                     db.session.add(new_image)
 
         db.session.commit()
-        print("Committed changes to DB.")
         # Manually construct the response to include detailed image data for the mobile app
         car_data = car.to_dict(include_owner=True)
         car_data["images"] = [
@@ -904,7 +905,6 @@ def api_manage_listing(current_user, car_id):
             for img in sorted(car.images, key=lambda i: i.order)
             if img.image_url and "/static/" in img.image_url
         ]
-        print(f"Returning car_data: {car_data}\n")
         return jsonify(
             {
                 "status": "success",

@@ -546,8 +546,6 @@ def my_requests():
 @token_required
 def api_my_requests(current_user):
     """API endpoint to get the current user's car requests."""
-    # This print statement confirms the function is being reached after the decorator.
-    print(f"--- Executing api_my_requests for user: {current_user.username} ---")
     try:
         # Fetch Buy Requests
         buy_requests = CarRequest.query.filter_by(user_id=current_user.id).all()
@@ -570,13 +568,14 @@ def api_my_requests(current_user):
         # Sort combined list by created_at descending
         requests_data.sort(key=lambda x: x["created_at"], reverse=True)
 
-        # This print statement shows you the exact data being sent back.
-        print(
-            f"--- Found {len(requests_data)} requests. Sending data: {requests_data} ---"
+        current_app.logger.debug(
+            "Found %s combined requests for user_id=%s.",
+            len(requests_data),
+            current_user.id,
         )
         return jsonify(requests=requests_data)
     except Exception as e:
-        print(f"!!! DATABASE ERROR in api_my_requests: {e} !!!")
+        current_app.logger.exception("Database error in api_my_requests: %s", e)
         return (
             jsonify(
                 {

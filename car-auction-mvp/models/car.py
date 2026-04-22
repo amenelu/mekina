@@ -39,6 +39,7 @@ class Car(db.Model):
     )  # 'auction', 'sale', 'rental'
     fixed_price = db.Column(db.Float, nullable=True)  # For 'sale' listing_type
     last_changes = db.Column(db.String(255), nullable=True)
+    ai_review = db.Column(db.Text, nullable=True)
 
     # Relationship
     auction = db.relationship(
@@ -111,6 +112,7 @@ class Car(db.Model):
             "condition": self.condition,
             "body_type": self.body_type,
             "listing_type": self.listing_type,
+            "ai_review": self.ai_review,
             "primary_image_url": self.primary_image_url,
             "image_urls": [
                 url_for(

@@ -53,7 +53,9 @@ class RegistrationForm(FlaskForm):
 
 def generate_jwt(user):
     """Generates a JWT for the given user."""
-    expiration_time = datetime.utcnow() + timedelta(days=30)  # Token valid for 30 days
+    expiration_time = datetime.utcnow() + timedelta(
+        days=current_app.config.get("JWT_EXPIRATION_DAYS", 30)
+    )
     payload = {"user_id": user.id, "exp": expiration_time}
     token = jwt.encode(payload, current_app.config["SECRET_KEY"], algorithm="HS256")
     return token
@@ -62,26 +64,23 @@ def generate_jwt(user):
 def verify_jwt(token):
     """Verifies the JWT and returns the user if valid."""
     try:
-        print("--- Verifying JWT ---")
         payload = jwt.decode(
             token, current_app.config["SECRET_KEY"], algorithms=["HS256"]
         )
-        print(f"JWT Payload decoded: {payload}")
         user_id = payload.get("user_id")
         if not user_id:
-            print("ERROR: user_id not in JWT payload.")
+            current_app.logger.warning("JWT payload missing user_id.")
             return None
         user = User.query.get(user_id)
         if not user:
-            print(f"ERROR: User with ID {user_id} not found in database.")
+            current_app.logger.warning("JWT user_id does not match an existing user.")
             return None
-        print(f"SUCCESS: Found user {user.username} from JWT.")
         return user
     except jwt.ExpiredSignatureError:
-        print("ERROR: JWT has expired.")
+        current_app.logger.info("JWT expired.")
         return None  # Token has expired
     except jwt.InvalidTokenError as e:
-        print(f"ERROR: JWT is invalid: {e}")
+        current_app.logger.warning("JWT is invalid: %s", e)
         return None  # Invalid token
 
 
@@ -90,24 +89,26 @@ def token_required(f):
 
     @wraps(f)
     def decorated(*args, **kwargs):
-        print("\n--- @token_required decorator initiated ---")
         token = None
-        # Use .get() to be safe and case-insensitive
         auth_header = request.headers.get("Authorization")
         if auth_header:
-            print(f"Found Authorization header: {auth_header[:30]}...")
             try:
-                token = auth_header.split(" ")[1]
+                scheme, token = auth_header.split(" ", 1)
+                if scheme.lower() != "bearer" or not token.strip():
+                    raise ValueError
+                token = token.strip()
             except IndexError:
                 current_app.logger.warning(
                     "Bearer token malformed in Authorization header."
                 )
                 return jsonify({"message": "Bearer token malformed."}), 401
+            except ValueError:
+                current_app.logger.warning("Authorization header is not a Bearer token.")
+                return jsonify({"message": "Bearer token malformed."}), 401
         else:
-            print(f"WARNING: Authorization header missing. Headers: {request.headers}")
+            current_app.logger.debug("Authorization header missing.")
 
         if not token:
-            print("ERROR: Token is missing or empty.")
             return jsonify({"message": "Token is missing!"}), 401
 
         try:

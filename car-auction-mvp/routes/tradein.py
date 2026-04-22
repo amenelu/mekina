@@ -277,21 +277,24 @@ def api_delete_trade_in(current_user, request_id):
 @token_required
 def api_get_my_trade_in_detail(current_user, request_id):
     """API endpoint for a user to get details of their own trade-in request."""
-    print(
-        f"DEBUG: api_get_my_trade_in_detail called for request {request_id} by user {current_user.id}"
+    current_app.logger.debug(
+        "Trade-in detail requested: request_id=%s user_id=%s",
+        request_id,
+        current_user.id,
     )
     req = TradeInRequest.query.get_or_404(request_id)
 
-    print(
-        f"DEBUG: Checking ownership. Request Owner ID: {req.user_id}, Current User ID: {current_user.id}"
-    )
     is_owner = req.user_id == current_user.id
     is_admin = getattr(current_user, "is_admin", False)
     is_dealer = getattr(current_user, "is_dealer", False)
 
     if not (is_owner or is_admin or (is_dealer and req.status == "active")):
-        print(
-            f"DEBUG: Access denied. User ID: {current_user.id}, Owner ID: {req.user_id}, Status: {req.status}, IsAdmin: {is_admin}, IsDealer: {is_dealer}"
+        current_app.logger.warning(
+            "Trade-in access denied: request_id=%s user_id=%s owner_id=%s status=%s",
+            request_id,
+            current_user.id,
+            req.user_id,
+            req.status,
         )
         return (
             jsonify(
@@ -398,7 +401,9 @@ def admin_update_trade_in_status(request_id):
 def api_admin_get_trade_in(current_user, request_id):
     """API endpoint for admin to get details of a specific trade-in request."""
     if not current_user.is_admin:
-        print(f"DEBUG: Admin access denied for user {current_user.id}")
+        current_app.logger.warning(
+            "Trade-in admin detail denied for user_id=%s.", current_user.id
+        )
         return (
             jsonify(
                 {"status": "error", "message": "Unauthorized: Admin access required."}

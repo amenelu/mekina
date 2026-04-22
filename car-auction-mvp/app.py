@@ -1,11 +1,8 @@
 from flask import Flask
 from flask_login import current_user
-from flask import Flask
-from flask_login import current_user
-from config import Config
-from flask_socketio import join_room
+from config import Config, config_by_name
+import os
 
-# Import extensions from the new extensions.py file
 from extensions import db, socketio, login_manager, migrate
 
 login_manager.login_view = (
@@ -13,14 +10,15 @@ login_manager.login_view = (
 )
 
 
-def create_app(config_class=Config):
+def create_app(config_class=None):
     """Create and configure an instance of the Flask application."""
     app = Flask(__name__)
 
-    app.secret_key = "b9f8d2c4e7a1f6b3d5c8e2a4f9b1d7c3"
-    # Enable the 'do' extension for Jinja2 templates
     app.jinja_env.add_extension("jinja2.ext.do")
 
+    if config_class is None:
+        env_name = os.environ.get("FLASK_ENV") or os.environ.get("APP_ENV") or "default"
+        config_class = config_by_name.get(env_name, Config)
     app.config.from_object(config_class)
 
     # Initialize Flask extensions here
@@ -120,4 +118,9 @@ def create_app(config_class=Config):
 
 if __name__ == "__main__":
     app = create_app()
-    socketio.run(app, host="0.0.0.0", port=5001, debug=True, allow_unsafe_werkzeug=True)
+    socketio.run(
+        app,
+        host=os.environ.get("HOST", "0.0.0.0"),
+        port=int(os.environ.get("PORT", 5001)),
+        debug=app.config.get("FLASK_DEBUG", False),
+    )

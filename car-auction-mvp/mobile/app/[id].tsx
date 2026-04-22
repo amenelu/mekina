@@ -417,6 +417,17 @@ const CarDetailScreen = () => {
             </View>
           )}
 
+          {/* AI Generated Review Section */}
+          {car.ai_review && (
+            <View style={styles.aiSection}>
+              <View style={styles.aiHeader}>
+                <Ionicons name="sparkles" size={18} color={COLORS.accent} />
+                <Text style={styles.aiTitle}>Expert Insights & History</Text>
+              </View>
+              <Text style={styles.aiContent}>{car.ai_review}</Text>
+            </View>
+          )}
+
           <Text style={styles.sectionTitle}>Description</Text>
           <Text style={styles.description}>{car.description}</Text>
 
@@ -681,6 +692,31 @@ const styles = StyleSheet.create({
     color: COLORS.foreground,
     fontSize: 16,
     fontWeight: "600",
+  },
+  aiSection: {
+    backgroundColor: "rgba(163, 112, 247, 0.05)",
+    borderRadius: 12,
+    padding: 15,
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: "rgba(163, 112, 247, 0.2)",
+  },
+  aiHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 10,
+    gap: 8,
+  },
+  aiTitle: {
+    fontSize: 18,
+    fontWeight: "bold",
+    color: COLORS.accent,
+  },
+  aiContent: {
+    fontSize: 15,
+    color: COLORS.foreground,
+    lineHeight: 22,
+    fontStyle: "italic",
   },
   footer: {
     padding: 20,
