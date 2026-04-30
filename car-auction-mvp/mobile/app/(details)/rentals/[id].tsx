@@ -196,7 +196,7 @@ const RentalDetailsPage: React.FC = () => {
         title: `Manage: ${editedRental.year} ${editedRental.make}`,
       });
     }
-  }, [editedRental]);
+  }, [editedRental, navigation]);
 
   const handleValueChange = (
     field: keyof Rental,
@@ -282,7 +282,7 @@ const RentalDetailsPage: React.FC = () => {
               await deleteListing(id, token);
               Alert.alert("Success", "Listing has been deleted.");
               navigation.goBack();
-            } catch (err) {
+            } catch {
               Alert.alert("Error", "Failed to delete listing.");
             }
           },

@@ -36,7 +36,7 @@ const RequestBudgetScreen = () => {
         Image.prefetch(source.uri);
       }
     });
-  }, []);
+  }, [router]);
 
   const handleSelect = (value: string) => {
     // By passing the object directly, TypeScript can infer the literal type of `pathname`.

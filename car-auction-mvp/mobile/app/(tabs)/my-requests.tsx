@@ -12,7 +12,7 @@ import {
 } from "react-native";
 import { Link, useFocusEffect, useRouter, Stack } from "expo-router";
 import { useAuth } from "@/hooks/useAuth";
-import axios from "axios";
+import axios, { isAxiosError } from "axios";
 import API_URL from "@/constants/Api";
 import { useSocket } from "../../contexts/SocketContext";
 import { Ionicons } from "@expo/vector-icons";
@@ -208,7 +208,7 @@ const MyRequestsScreen = () => {
   const [error, setError] = useState<string | null>(null);
 
   // This function will fetch the requests from the API
-  const fetchRequests = async () => {
+  const fetchRequests = useCallback(async () => {
     if (!token) {
       setLoading(false);
       setError("You are not logged in.");
@@ -229,7 +229,7 @@ const MyRequestsScreen = () => {
       );
       setRequests(sortedRequests);
     } catch (err) {
-      if (axios.isAxiosError(err) && err.response?.status === 401) {
+      if (isAxiosError(err) && err.response?.status === 401) {
         // Handle token expiration
         console.log("Token expired or invalid. Logging out.");
         Alert.alert("Session Expired", "Please log in again.", [
@@ -248,7 +248,7 @@ const MyRequestsScreen = () => {
       setLoading(false);
       setRefreshing(false);
     }
-  };
+  }, [logout, router, token]);
 
   // useFocusEffect will re-fetch data every time the screen comes into view
   useFocusEffect(
@@ -257,7 +257,7 @@ const MyRequestsScreen = () => {
         setLoading(true); // Show loader when screen is focused
         fetchRequests();
       }
-    }, [token])
+    }, [fetchRequests, token])
   );
 
   useEffect(() => {
@@ -270,7 +270,7 @@ const MyRequestsScreen = () => {
         socket.off("new_notification", handleUpdate);
       };
     }
-  }, [socket]);
+  }, [fetchRequests, socket]);
 
   const onRefresh = () => {
     setRefreshing(true);

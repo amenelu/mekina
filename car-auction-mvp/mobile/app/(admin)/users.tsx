@@ -7,12 +7,12 @@ import {
   ActivityIndicator,
   TextInput,
   Pressable,
-  Alert,
 } from "react-native";
 import axios from "axios";
 import API_BASE_URL from "@/constants/Api";
 import { useAuth } from "@/hooks/useAuth"; // Keep this import
 import { Ionicons } from "@expo/vector-icons";
+import { useRouter } from "expo-router";
 
 const COLORS = {
   background: "#14181F",
@@ -34,7 +34,6 @@ interface User {
   is_rental_company: boolean;
   points: number;
 }
-import { useRouter } from "expo-router";
 const AdminUsersScreen = () => {
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);

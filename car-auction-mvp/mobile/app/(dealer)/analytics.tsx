@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import {
   View,
   Text,
@@ -76,7 +76,7 @@ const AnalyticsScreen = () => {
     null
   );
 
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     if (!token) return;
     try {
       const [requestsRes, searchesRes, advancedRes] = await Promise.all([
@@ -100,11 +100,11 @@ const AnalyticsScreen = () => {
       setLoading(false);
       setRefreshing(false);
     }
-  };
+  }, [token]);
 
   useEffect(() => {
     fetchData();
-  }, [token]);
+  }, [fetchData]);
 
   const onRefresh = () => {
     setRefreshing(true);

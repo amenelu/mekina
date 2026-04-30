@@ -80,7 +80,7 @@ const RequestUploadScreen = () => {
     });
 
     try {
-      const response = await axios.post(
+      await axios.post(
         `${API_URL}/requests/api/requests`,
         formData,
         {

@@ -229,7 +229,7 @@ const ListingDetailsPage: React.FC = () => {
         title: `Manage: ${editedListing.year} ${editedListing.make}`,
       });
     }
-  }, [editedListing]);
+  }, [editedListing, navigation]);
 
   const getFieldStyle = (fieldName: string) => {
     if (listing?.last_changes?.includes(fieldName)) {
@@ -338,7 +338,7 @@ const ListingDetailsPage: React.FC = () => {
       const updatedState = { ...editedListing, is_approved: true } as Listing;
       setListing(updatedState);
       setEditedListing(updatedState);
-    } catch (err) {
+    } catch {
       Alert.alert("Error", "Failed to approve listing.");
     }
   };
@@ -358,7 +358,7 @@ const ListingDetailsPage: React.FC = () => {
               await manageListingAction(id, "delete", token);
               Alert.alert("Success", "Listing has been deleted.");
               navigation.goBack();
-            } catch (err) {
+            } catch {
               Alert.alert("Error", "Failed to delete listing.");
             }
           },

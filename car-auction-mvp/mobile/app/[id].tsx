@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import {
   StyleSheet,
   Text,
@@ -26,6 +26,7 @@ import VehicleCard, { Vehicle } from "./_components/VehicleCard";
 import axios from "axios";
 import API_BASE_URL from "@/constants/Api";
 import { useAuth } from "@/hooks/useAuth";
+import { getListing } from "@/lib/api/listings";
 const COLORS = {
   background: "#14181F",
   foreground: "#F8F8F8",
@@ -45,7 +46,7 @@ const CarDetailScreen = () => {
   const [refreshing, setRefreshing] = useState(false);
   const navigation = useNavigation();
   const { width } = useWindowDimensions();
-  const { token, user, isLoading } = useAuth() as any;
+  const { token, user } = useAuth() as any;
   const [isFavorite, setIsFavorite] = useState(false);
   const router = useRouter();
 
@@ -53,16 +54,12 @@ const CarDetailScreen = () => {
   const [message, setMessage] = useState("");
   const [sendingMessage, setSendingMessage] = useState(false);
 
-  const fetchCarDetails = async (isRefresh = false) => {
+  const fetchCarDetails = useCallback(async (isRefresh = false) => {
     if (!id) return;
     if (!isRefresh) setLoading(true);
     try {
-      // IMPORTANT: Replace with your computer's local IP address
-      const response = await fetch(`${API_BASE_URL}/api/cars/${id}`, {
-        headers: token ? { Authorization: `Bearer ${token}` } : undefined,
-      });
-
-      const data = await response.json();
+      const response = await getListing(String(id));
+      const data = response.data;
       if (data.car) {
         setCar(data.car);
         setIsFavorite(data.car.is_favorite);
@@ -88,11 +85,11 @@ const CarDetailScreen = () => {
       setLoading(false);
       if (isRefresh) setRefreshing(false);
     }
-  };
+  }, [id]);
 
   useEffect(() => {
     fetchCarDetails();
-  }, [id, token]);
+  }, [fetchCarDetails]);
 
   const onRefresh = () => {
     setRefreshing(true);

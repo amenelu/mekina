@@ -11,8 +11,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
-import axios from "axios";
-import API_URL from "@/constants/Api";
+import { register as registerRequest } from "@/lib/api/auth";
 
 const RegisterScreen = () => {
   const [username, setUsername] = useState("");
@@ -47,8 +46,7 @@ const RegisterScreen = () => {
     }
 
     setIsLoading(true);
-    axios
-      .post(`${API_URL}/auth/api/register`, {
+    registerRequest({
         username,
         email,
         phone_number: phoneNumber,

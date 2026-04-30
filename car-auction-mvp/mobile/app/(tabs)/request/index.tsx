@@ -1,6 +1,6 @@
 import React from "react";
 import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
-import { Stack, useRouter, Link } from "expo-router";
+import { Stack, Link } from "expo-router";
 
 const COLORS = {
   background: "#14181F",
@@ -30,8 +30,6 @@ const choiceOptions = [
 ];
 
 const RequestChoiceScreen = () => {
-  const router = useRouter();
-
   return (
     <View style={styles.container}>
       <Stack.Screen options={{ title: "Let's Find Your Next Car" }} />

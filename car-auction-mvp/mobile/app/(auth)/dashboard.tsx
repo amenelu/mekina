@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import {
   View,
   Text,
@@ -73,7 +73,7 @@ const AdminDashboardScreen = () => {
   const [refreshing, setRefreshing] = useState(false);
   const [pendingCars, setPendingCars] = useState<PendingCar[]>([]);
 
-  const fetchData = async (isRefresh = false) => {
+  const fetchData = useCallback(async (isRefresh = false) => {
     if (!token) return;
     try {
       if (!isRefresh) setLoading(true);
@@ -88,7 +88,7 @@ const AdminDashboardScreen = () => {
       setLoading(false);
       if (isRefresh) setRefreshing(false);
     }
-  };
+  }, [token]);
 
   useEffect(() => {
     if (!isLoading && !token) {
@@ -96,7 +96,7 @@ const AdminDashboardScreen = () => {
       return;
     }
     fetchData();
-  }, [token]);
+  }, [fetchData, isLoading, router, token]);
 
   const onRefresh = () => {
     setRefreshing(true);

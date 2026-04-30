@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import {
   View,
   Text,
@@ -96,7 +96,7 @@ const ProfileScreen = () => {
     review_count: number;
   } | null>(null);
 
-  const fetchProfile = async (isRefresh = false) => {
+  const fetchProfile = useCallback(async (isRefresh = false) => {
     if (!user?.id || !token) return;
     if (!isRefresh) setLoading(true);
     try {
@@ -111,11 +111,11 @@ const ProfileScreen = () => {
       setLoading(false);
       if (isRefresh) setRefreshing(false);
     }
-  };
+  }, [token, user?.id]);
 
   useEffect(() => {
     fetchProfile();
-  }, [user, token]);
+  }, [fetchProfile]);
 
   const onRefresh = () => {
     setRefreshing(true);

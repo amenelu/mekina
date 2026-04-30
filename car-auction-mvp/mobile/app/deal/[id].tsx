@@ -89,7 +89,7 @@ const DealSummaryScreen = () => {
         return;
       }
       fetchDeal();
-    }, [fetchDeal, token, isLoading])
+    }, [fetchDeal, isLoading, router, token])
   );
 
   const onRefresh = () => {

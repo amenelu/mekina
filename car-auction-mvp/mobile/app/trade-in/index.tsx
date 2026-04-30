@@ -37,7 +37,7 @@ const TradeInScreen = () => {
   const [vin, setVin] = useState("");
   const [comments, setComments] = useState("");
   const [targetCar, setTargetCar] = useState("");
-  const [condition, setCondition] = useState("Good");
+  const [condition] = useState("Good");
   const [images, setImages] = useState<string[]>([]);
   const [base64Images, setBase64Images] = useState<string[]>([]);
 

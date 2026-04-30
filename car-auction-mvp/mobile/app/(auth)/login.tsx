@@ -16,8 +16,7 @@ import * as SecureStore from "expo-secure-store";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Link, useRouter } from "expo-router";
 import { useAuth } from "@/hooks/useAuth";
-import axios from "axios";
-import API_URL from "@/constants/Api";
+import { login as loginRequest } from "@/lib/api/auth";
 
 export default function LoginScreen() {
   const [login, setLogin] = useState("");
@@ -38,10 +37,7 @@ export default function LoginScreen() {
     }
     setIsLoading(true);
     try {
-      const response = await axios.post(`${API_URL}/auth/api/login`, {
-        login,
-        password,
-      });
+      const response = await loginRequest(login, password);
       const { user, token } = response.data;
 
       if (rememberMe) {

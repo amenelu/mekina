@@ -1,17 +1,16 @@
 import React, { useState } from "react";
 import API_URL from "@/constants/Api";
 import {
-  View,
   Text,
   StyleSheet,
   TouchableOpacity,
   TextInput,
   Alert,
-} from "react-native";
+ ActivityIndicator } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useAuth } from "@/hooks/useAuth";
 import { useRouter, useLocalSearchParams } from "expo-router";
-import { ActivityIndicator } from "react-native";
+
 
 const COLORS = {
   background: "#14181F",

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import {
   View,
   Text,
@@ -10,7 +10,7 @@ import {
   RefreshControl,
   SafeAreaView,
 } from "react-native";
-import { useNavigation, router } from "expo-router";
+import { router } from "expo-router";
 import axios from "axios";
 import { useAuth } from "@/hooks/useAuth";
 import API_BASE_URL from "@/constants/Api";
@@ -62,13 +62,6 @@ interface CustomerRequest {
   lowest_offer?: number;
   has_been_viewed?: boolean;
   detail_score?: number;
-}
-
-interface Conversation {
-  id: number;
-  buyer: { username: string };
-  car: { year: number; make: string; model: string };
-  created_at: string;
 }
 
 const StatCard = ({
@@ -218,7 +211,6 @@ const RequestItem = ({ item }: { item: CustomerRequest }) => {
 
 const DealerDashboard = () => {
   const { token, user, isLoading } = useAuth() as any;
-  const navigation = useNavigation();
 
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -226,7 +218,6 @@ const DealerDashboard = () => {
   const [listings, setListings] = useState<Listing[]>([]);
   const [pendingListings, setPendingListings] = useState<Listing[]>([]);
   const [requests, setRequests] = useState<CustomerRequest[]>([]);
-  const [conversations, setConversations] = useState<Conversation[]>([]);
   const [activeTab, setActiveTab] = useState<
     "listings" | "requests" | "pending"
   >("requests");
@@ -275,9 +266,9 @@ const DealerDashboard = () => {
     return () => {
       socket.disconnect();
     };
-  }, [token]);
+  }, [isLoading, token]);
 
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     try {
       const response = await axios.get(`${API_BASE_URL}/dealer/api/dashboard`, {
         headers: { Authorization: `Bearer ${token}` },
@@ -306,20 +297,19 @@ const DealerDashboard = () => {
           new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
       );
       setRequests(sortedRequests);
-      setConversations(data.conversations || []);
     } catch (error) {
       console.error("Failed to fetch dealer dashboard data:", error);
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
-  };
+  }, [token]);
 
   useEffect(() => {
     if (token) {
       fetchData();
     }
-  }, [token]);
+  }, [fetchData, token]);
 
   const onRefresh = () => {
     setRefreshing(true);

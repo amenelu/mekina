@@ -11,11 +11,13 @@ import {
   Alert,
   RefreshControl,
 } from "react-native";
-import { useNavigation } from "expo-router";
+import { useNavigation , useRouter } from "expo-router";
 import { useScrollToTop } from "@react-navigation/native";
 import { Ionicons } from "@expo/vector-icons";
 import Footer from "../_components/Footer";
 import API_URL from "@/constants/Api";
+
+
 
 const COLORS = {
   background: "#14181F",
@@ -35,8 +37,6 @@ export type RentalVehicle = {
   price_display: string;
   image_url: string;
 };
-
-import { useRouter } from "expo-router";
 
 const RentalCard = ({ item }: { item: RentalVehicle }) => {
   const router = useRouter();

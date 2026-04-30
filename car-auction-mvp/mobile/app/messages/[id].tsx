@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import {
   View,
   Text,
@@ -38,7 +38,7 @@ const ConversationDetailScreen = () => {
   const [sending, setSending] = useState(false);
   const scrollViewRef = useRef<ScrollView>(null);
 
-  const fetchConversation = async () => {
+  const fetchConversation = useCallback(async () => {
     if (!token || !id) return;
     try {
       const response = await axios.get(`${API_URL}/api/my-messages/${id}`, {
@@ -52,7 +52,7 @@ const ConversationDetailScreen = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [id, token]);
 
   useEffect(() => {
     fetchConversation();
@@ -72,7 +72,7 @@ const ConversationDetailScreen = () => {
         socket.off("new_chat_message", handleNewMessage);
       };
     }
-  }, [id, token, socket]);
+  }, [fetchConversation, id, socket]);
 
   const handleSend = async () => {
     if (!inputText.trim() || !conversation) return;
@@ -118,7 +118,7 @@ const ConversationDetailScreen = () => {
         minute: "2-digit",
       });
       return timeString === "Invalid Date" ? "" : timeString;
-    } catch (e) {
+    } catch {
       return "";
     }
   };

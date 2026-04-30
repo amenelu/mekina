@@ -13,6 +13,7 @@ import axios from "axios";
 import API_URL from "@/constants/Api";
 import { useAuth } from "@/hooks/useAuth"; // Keep this import
 import { Ionicons } from "@expo/vector-icons";
+import { useRouter } from "expo-router";
 
 const COLORS = {
   background: "#14181F",
@@ -37,7 +38,6 @@ interface Rental {
   is_approved: boolean;
   is_active: boolean;
 }
-import { useRouter } from "expo-router";
 // AdminRentalsScreen component
 const AdminRentalsScreen = () => {
   const [rentals, setRentals] = useState<Rental[]>([]);
@@ -93,7 +93,7 @@ const AdminRentalsScreen = () => {
               });
               setRentals((prev) => prev.filter((r) => r.id !== rental.id));
               Alert.alert("Success", "Rental listing has been deleted.");
-            } catch (err) {
+            } catch {
               Alert.alert("Error", "Failed to delete rental listing.");
             }
           },

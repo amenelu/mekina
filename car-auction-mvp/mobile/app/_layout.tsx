@@ -1,5 +1,4 @@
-import { Stack, useNavigationContainerRef } from "expo-router";
-import { useAuth } from "@/hooks/useAuth";
+import { Stack } from "expo-router";
 import {
   getFocusedRouteNameFromRoute,
   ThemeProvider,
@@ -28,10 +27,6 @@ const MyDarkTheme = {
 };
 
 export default function RootLayout() {
-  const navigationRef = useNavigationContainerRef();
-
-  const { token } = useAuth();
-
   return (
     <SocketProvider>
       <ThemeProvider value={MyDarkTheme}>

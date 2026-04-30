@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import {
   View,
   Text,
@@ -9,11 +9,10 @@ import {
   Pressable,
   Alert,
 } from "react-native";
-import { useLocalSearchParams, Stack, useRouter } from "expo-router";
+import { useLocalSearchParams, Stack } from "expo-router";
 import axios from "axios";
 import API_URL from "@/constants/Api";
 import { useAuth } from "@/hooks/useAuth";
-import { Ionicons } from "@expo/vector-icons";
 
 const COLORS = {
   background: "#14181F",
@@ -51,16 +50,11 @@ interface TradeInDetail {
 const TradeInAdminDetailScreen = () => {
   const { id } = useLocalSearchParams();
   const { token } = useAuth();
-  const router = useRouter();
   const [request, setRequest] = useState<TradeInDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState(false);
 
-  useEffect(() => {
-    fetchDetails();
-  }, [id]);
-
-  const fetchDetails = async () => {
+  const fetchDetails = useCallback(async () => {
     try {
       const response = await axios.get(
         `${API_URL}/trade-in/api/admin/requests/${id}`,
@@ -75,7 +69,11 @@ const TradeInAdminDetailScreen = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [id, token]);
+
+  useEffect(() => {
+    fetchDetails();
+  }, [fetchDetails]);
 
   const updateStatus = async (newStatus: string) => {
     setUpdating(true);

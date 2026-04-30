@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import {
   View,
   Text,
@@ -80,11 +80,7 @@ const TradeInRequestDetailScreen = () => {
   const [offerNotes, setOfferNotes] = useState("");
   const [submittingOffer, setSubmittingOffer] = useState(false);
 
-  useEffect(() => {
-    fetchDetails();
-  }, [id]);
-
-  const fetchDetails = async () => {
+  const fetchDetails = useCallback(async () => {
     // Ensure we are hitting the USER endpoint, NOT the ADMIN endpoint
     const url = `${API_URL}/trade-in/api/requests/${id}`;
     console.log(">>> MOUNTED: User Trade-In View. Fetching:", url);
@@ -103,7 +99,11 @@ const TradeInRequestDetailScreen = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [id, token]);
+
+  useEffect(() => {
+    fetchDetails();
+  }, [fetchDetails]);
 
   const submitOffer = async () => {
     if (!offerAmount) {

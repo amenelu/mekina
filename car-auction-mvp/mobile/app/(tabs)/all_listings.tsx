@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useCallback, useState } from "react";
 import {
   StyleSheet,
   Text,
@@ -17,10 +17,9 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter, useLocalSearchParams } from "expo-router";
 
-import HeaderRight from "../_components/HeaderRight";
 import Footer from "../_components/Footer";
 import VehicleCard, { Vehicle } from "../_components/VehicleCard";
-import API_URL from "@/constants/Api";
+import { getListings } from "@/lib/api/listings";
 
 const COLORS = {
   background: "#14181F",
@@ -71,32 +70,25 @@ const AllListingsScreen = () => {
     };
   }, [searchQuery]);
 
-  const fetchVehicles = async (isRefresh = false) => {
+  const fetchVehicles = useCallback(async (isRefresh = false) => {
     if (!isRefresh) setLoading(true);
     try {
-      const params = new URLSearchParams();
+      const params: Record<string, string> = {};
       if (debouncedSearchQuery) {
-        params.append("q", debouncedSearchQuery);
+        params.q = debouncedSearchQuery;
       }
       if (filters.condition) {
-        params.append("condition", filters.condition);
+        params.condition = filters.condition;
       }
       if (filters.body_type) {
-        params.append("body_type", filters.body_type);
+        params.body_type = filters.body_type;
       }
       if (filters.fuel_type) {
-        params.append("fuel_type", filters.fuel_type);
+        params.fuel_type = filters.fuel_type;
       }
 
-      const response = await fetch(
-        `${API_URL}/api/listings?${params.toString()}`
-      );
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const data = await response.json();
+      const response = await getListings(params);
+      const data = response.data;
 
       const formattedData = data.map((item: any) => ({
         id: item.id.toString(),
@@ -121,11 +113,11 @@ const AllListingsScreen = () => {
       setLoading(false);
       if (isRefresh) setRefreshing(false);
     }
-  };
+  }, [debouncedSearchQuery, filters]);
 
   React.useEffect(() => {
     fetchVehicles();
-  }, [debouncedSearchQuery, filters]);
+  }, [fetchVehicles]);
 
   const onRefresh = () => {
     setRefreshing(true);
@@ -161,14 +153,6 @@ const AllListingsScreen = () => {
     fuel_type: ["Gasoline", "Diesel", "Electric", "Hybrid"],
   };
 
-  const clearAllFilters = () => {
-    setFilters({
-      condition: "",
-      body_type: "",
-      fuel_type: "",
-    });
-    setSearchQuery("");
-  };
   return (
     <View style={styles.container}>
       <View style={styles.filterContainer}>

@@ -10,10 +10,11 @@ import {
   Alert,
   Image,
 } from "react-native";
-import axios, { AxiosError } from "axios";
+import axios from "axios";
 import API_URL from "@/constants/Api";
 import { useAuth } from "@/hooks/useAuth"; // Keep this import
 import { Ionicons } from "@expo/vector-icons";
+import { useRouter, useFocusEffect } from "expo-router";
 
 const COLORS = {
   background: "#14181F",
@@ -38,16 +39,14 @@ interface Listing {
   is_approved: boolean;
   is_active: boolean;
 }
-import { useRouter, useFocusEffect } from "expo-router";
 const AdminListingsScreen = () => {
   const [listings, setListings] = useState<Listing[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const { token } = useAuth();
-  const router = useRouter();
 
   // Function to fetch listings
-  const fetchListings = async () => {
+  const fetchListings = useCallback(async () => {
     if (!token) return;
     setLoading(true);
     try {
@@ -66,7 +65,7 @@ const AdminListingsScreen = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [search, token]);
 
   // Fetch on initial load and when search changes (debounced)
   useEffect(() => {
@@ -74,13 +73,13 @@ const AdminListingsScreen = () => {
       fetchListings();
     }, 300);
     return () => clearTimeout(debounceFetch);
-  }, [search, token]);
+  }, [fetchListings]);
 
   // Re-fetch when the screen comes into focus
   useFocusEffect(
     useCallback(() => {
       fetchListings();
-    }, [token])
+    }, [fetchListings])
   );
 
   const handleDelete = (listing: Listing) => {
@@ -100,7 +99,7 @@ const AdminListingsScreen = () => {
               );
               setListings((prev) => prev.filter((l) => l.id !== listing.id));
               Alert.alert("Success", "Listing has been deleted.");
-            } catch (err) {
+            } catch {
               Alert.alert("Error", "Failed to delete listing.");
             }
           },

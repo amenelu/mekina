@@ -116,7 +116,7 @@ const DealerPublicProfilePage: React.FC = () => {
           setLoading(false);
         });
     }
-  }, [id]); // Removed token dependency to avoid re-fetching on login state change if not needed, or keep it if you want to refresh on login
+  }, [id, token]);
 
   if (loading) {
     return <ActivityIndicator size="large" style={styles.centered} />;

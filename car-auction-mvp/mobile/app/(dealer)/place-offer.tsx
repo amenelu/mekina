@@ -11,7 +11,6 @@ import {
   ActivityIndicator,
   Image,
   Modal,
-  Platform,
 } from "react-native";
 import { useLocalSearchParams, useNavigation, router } from "expo-router";
 import axios from "axios";

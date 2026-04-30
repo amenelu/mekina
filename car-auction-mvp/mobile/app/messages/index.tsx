@@ -30,7 +30,7 @@ const MessagesScreen = () => {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
-  const fetchConversations = async () => {
+  const fetchConversations = useCallback(async () => {
     if (!token) return;
     try {
       const response = await axios.get(`${API_URL}/api/my-messages`, {
@@ -43,12 +43,12 @@ const MessagesScreen = () => {
       setLoading(false);
       setRefreshing(false);
     }
-  };
+  }, [token]);
 
   useFocusEffect(
     useCallback(() => {
       fetchConversations();
-    }, [token])
+    }, [fetchConversations])
   );
 
   useEffect(() => {
@@ -64,7 +64,7 @@ const MessagesScreen = () => {
         socket.off("conversation_list_update", handleConversationUpdate);
       };
     }
-  }, [socket]);
+  }, [fetchConversations, socket]);
 
   const onRefresh = () => {
     setRefreshing(true);

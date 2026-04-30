@@ -13,6 +13,7 @@ import axios from "axios";
 import API_URL from "@/constants/Api";
 import { useAuth } from "@/hooks/useAuth"; // Keep this import
 import { Ionicons } from "@expo/vector-icons";
+import { useRouter } from "expo-router";
 
 const COLORS = {
   background: "#14181F",
@@ -33,7 +34,6 @@ interface Dealer {
   avg_rating: number;
   review_count: number;
 }
-import { useRouter } from "expo-router";
 const AdminDealersScreen = () => {
   const [dealers, setDealers] = useState<Dealer[]>([]);
   const [loading, setLoading] = useState(true);
@@ -85,7 +85,7 @@ const AdminDealersScreen = () => {
                 prevDealers.filter((d) => d.id !== dealer.id)
               );
               Alert.alert("Success", "Dealer has been deleted.");
-            } catch (err) {
+            } catch {
               Alert.alert("Error", "Failed to delete dealer.");
             }
           },

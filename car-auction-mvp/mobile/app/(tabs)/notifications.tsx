@@ -71,7 +71,7 @@ const NotificationItem = ({ notification }: { notification: Notification }) => {
       if (isNaN(date.getTime())) return "";
       const dateString = date.toLocaleString();
       return dateString === "Invalid Date" ? "" : dateString;
-    } catch (e) {
+    } catch {
       return "";
     }
   };
@@ -104,7 +104,7 @@ const NotificationsScreen = () => {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
-  const fetchNotifications = async () => {
+  const fetchNotifications = useCallback(async () => {
     if (!token) return;
     try {
       const response = await axios.get(`${API_URL}/api/notifications`, {
@@ -117,14 +117,14 @@ const NotificationsScreen = () => {
       setLoading(false);
       setRefreshing(false);
     }
-  };
+  }, [token]);
 
   useFocusEffect(
     useCallback(() => {
       if (token) {
         fetchNotifications();
       }
-    }, [token])
+    }, [fetchNotifications, token])
   );
 
   // Listen for real-time notifications
@@ -140,7 +140,7 @@ const NotificationsScreen = () => {
         socket.off("new_notification", handleNewNotification);
       };
     }
-  }, [socket]);
+  }, [fetchNotifications, socket]);
 
   const onRefresh = () => {
     setRefreshing(true);

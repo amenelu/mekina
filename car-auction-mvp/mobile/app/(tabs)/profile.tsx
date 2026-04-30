@@ -38,7 +38,7 @@ const ProfileScreen = () => {
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
 
-  const fetchFavorites = async (isRefresh = false) => {
+  const fetchFavorites = useCallback(async (isRefresh = false) => {
     if (!token) return;
     if (!isRefresh) setLoading(true);
     try {
@@ -69,14 +69,14 @@ const ProfileScreen = () => {
       setLoading(false);
       if (isRefresh) setRefreshing(false);
     }
-  };
+  }, [token]);
 
   useFocusEffect(
     useCallback(() => {
       if (token && activeTab === "favorites") {
         fetchFavorites();
       }
-    }, [activeTab, token])
+    }, [activeTab, fetchFavorites, token])
   );
 
   const onRefresh = () => {

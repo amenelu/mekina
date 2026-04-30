@@ -7,7 +7,6 @@ import {
   StyleSheet,
   FlatList,
   ActivityIndicator,
-  Pressable,
   SafeAreaView,
   RefreshControl,
 } from "react-native";
@@ -48,7 +47,7 @@ const MessagesScreen = () => {
   const [refreshing, setRefreshing] = useState(false);
   const [conversations, setConversations] = useState<Conversation[]>([]);
 
-  const fetchMessages = async (isRefresh = false) => {
+  const fetchMessages = useCallback(async (isRefresh = false) => {
     if (!token) return;
     if (!isRefresh) setLoading(true);
     try {
@@ -62,11 +61,11 @@ const MessagesScreen = () => {
       setLoading(false);
       if (isRefresh) setRefreshing(false);
     }
-  };
+  }, [token]);
 
   useEffect(() => {
     fetchMessages();
-  }, [token]);
+  }, [fetchMessages]);
 
   useEffect(() => {
     if (socket) {
@@ -81,7 +80,7 @@ const MessagesScreen = () => {
         socket.off("conversation_list_update", handleConversationUpdate);
       };
     }
-  }, [socket]);
+  }, [fetchMessages, socket]);
 
   const onRefresh = () => {
     setRefreshing(true);

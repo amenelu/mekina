@@ -15,7 +15,7 @@ import {
 } from "react-native";
 import { useLocalSearchParams, useRouter, Stack, Link } from "expo-router";
 import { useAuth } from "@/hooks/useAuth";
-import axios from "axios";
+import axios, { isAxiosError } from "axios";
 import API_BASE_URL from "@/constants/Api";
 import { Ionicons } from "@expo/vector-icons";
 
@@ -164,7 +164,7 @@ const RequestDetailScreen = () => {
       setRequest(response.data.request);
       setBids(response.data.bids);
     } catch (err) {
-      if (axios.isAxiosError(err) && err.response?.status === 401) {
+      if (isAxiosError(err) && err.response?.status === 401) {
         Alert.alert("Session Expired", "Please log in again.", [
           { text: "OK", onPress: () => logout() },
         ]);
@@ -180,7 +180,7 @@ const RequestDetailScreen = () => {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [id, token]);
+  }, [id, logout, router, token]);
 
   useEffect(() => {
     if (!isLoading && !token) {
@@ -188,7 +188,7 @@ const RequestDetailScreen = () => {
       return;
     }
     fetchRequestDetails();
-  }, [fetchRequestDetails, token, isLoading]);
+  }, [fetchRequestDetails, isLoading, router, token]);
 
   const onRefresh = () => {
     setRefreshing(true);
