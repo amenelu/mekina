@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, Pressable } from "react-native";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { useRequestDraftPersistence } from "@/hooks/useRequestDraftPersistence";
 
 const COLORS = {
   background: "#14181F",
@@ -23,7 +24,19 @@ const equipmentOptions = [
 const RequestEquipmentScreen = () => {
   const router = useRouter();
   const params = useLocalSearchParams();
-  const [selectedEquipment, setSelectedEquipment] = useState<string[]>([]);
+  const [selectedEquipment, setSelectedEquipment] = useState<string[]>(() => {
+    const equipment = params.equipment;
+    if (Array.isArray(equipment)) return equipment.map(String);
+    if (typeof equipment === "string" && equipment.length > 0) {
+      return [equipment];
+    }
+    return [];
+  });
+
+  useRequestDraftPersistence("/request/equipment", {
+    ...params,
+    equipment: selectedEquipment,
+  });
 
   const toggleSelection = (value: string) => {
     setSelectedEquipment((prev) =>

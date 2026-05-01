@@ -2,6 +2,7 @@ import React from "react";
 import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { useRequestDraftPersistence } from "@/hooks/useRequestDraftPersistence";
 
 const COLORS = {
   background: "#14181F",
@@ -22,6 +23,8 @@ const fuelTypeOptions = [
 const RequestFuelTypeScreen = () => {
   const router = useRouter();
   const params = useLocalSearchParams();
+
+  useRequestDraftPersistence("/request/fuel-type", { ...params });
 
   const handleSelect = (value: string) => {
     router.push({

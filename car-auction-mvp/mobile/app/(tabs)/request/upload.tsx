@@ -17,6 +17,8 @@ import * as ImagePicker from "expo-image-picker";
 import { Ionicons } from "@expo/vector-icons";
 import axios from "axios";
 import API_URL from "@/constants/Api";
+import { clearRequestDraft } from "@/lib/requestDraft";
+import { useRequestDraftPersistence } from "@/hooks/useRequestDraftPersistence";
 
 const COLORS = {
   background: "#14181F",
@@ -33,7 +35,12 @@ const RequestUploadScreen = () => {
   const { token } = useAuth();
   const [images, setImages] = useState<ImagePicker.ImagePickerAsset[]>([]);
   const [loading, setLoading] = useState(false);
-  const [notes, setNotes] = useState("");
+  const [notes, setNotes] = useState(String(params.notes || ""));
+
+  useRequestDraftPersistence("/request/upload", {
+    ...params,
+    notes,
+  });
 
   const handleImagePick = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -94,7 +101,15 @@ const RequestUploadScreen = () => {
       Alert.alert(
         "Request Submitted!",
         "Your request has been sent to our dealers. They will contact you with offers soon.",
-        [{ text: "OK", onPress: () => router.replace("/(tabs)/my-requests") }]
+        [
+          {
+            text: "OK",
+            onPress: async () => {
+              await clearRequestDraft();
+              router.replace("/(tabs)/my-requests");
+            },
+          },
+        ]
       );
     } catch (error: any) {
       console.error("Failed to submit request:", error);

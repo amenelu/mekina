@@ -8,6 +8,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter, useLocalSearchParams } from "expo-router";
+import { useRequestDraftPersistence } from "@/hooks/useRequestDraftPersistence";
 
 const COLORS = {
   background: "#14181F",
@@ -21,7 +22,9 @@ const COLORS = {
 const RequestYearScreen = () => {
   const router = useRouter();
   const params = useLocalSearchParams();
-  const [year, setYear] = useState("");
+  const [year, setYear] = useState(String(params.min_year || ""));
+
+  useRequestDraftPersistence("/request/year", { ...params, min_year: year });
 
   const handleNext = () => {
     if (!year.trim() || !/^\d{4}$/.test(year)) {

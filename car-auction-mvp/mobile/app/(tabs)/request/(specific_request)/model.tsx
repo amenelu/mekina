@@ -7,6 +7,7 @@ import {
 } from "react-native";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { useRequestDraftPersistence } from "@/hooks/useRequestDraftPersistence";
 
 const COLORS = {
   background: "#14181F",
@@ -20,7 +21,9 @@ const COLORS = {
 const RequestModelScreen = () => {
   const router = useRouter();
   const params = useLocalSearchParams();
-  const [model, setModel] = useState("");
+  const [model, setModel] = useState(String(params.model || ""));
+
+  useRequestDraftPersistence("/request/model", { ...params, model });
 
   const handleNext = () => {
     if (model.trim()) {

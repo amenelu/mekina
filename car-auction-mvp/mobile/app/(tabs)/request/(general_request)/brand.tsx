@@ -14,6 +14,8 @@ import { useRouter, useLocalSearchParams } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import BrandPickerModal from "@/app/_components/BrandPickerModal";
 import { CAR_BRANDS } from "@/constants/carBrands";
+import { clearRequestDraft } from "@/lib/requestDraft";
+import { useRequestDraftPersistence } from "@/hooks/useRequestDraftPersistence";
 
 
 const COLORS = {
@@ -28,10 +30,12 @@ const COLORS = {
 const RequestBrandScreen = () => {
   const router = useRouter();
   const params = useLocalSearchParams();
-  const [brand, setBrand] = useState("");
+  const [brand, setBrand] = useState(String(params.brand || ""));
   const [loading, setLoading] = useState(false);
   const [isBrandPickerVisible, setBrandPickerVisible] = useState(false);
   const { token } = useAuth();
+
+  useRequestDraftPersistence("/request/brand", { ...params, brand });
 
   const handleSubmit = async () => {
     setLoading(true);
@@ -62,7 +66,15 @@ const RequestBrandScreen = () => {
       Alert.alert(
         "Request Submitted!",
         "Your request has been sent to our dealers. They will contact you with offers soon.",
-        [{ text: "OK", onPress: () => router.replace("/(tabs)/my-requests") }]
+        [
+          {
+            text: "OK",
+            onPress: async () => {
+              await clearRequestDraft();
+              router.replace("/(tabs)/my-requests");
+            },
+          },
+        ]
       );
     } catch (error: any) {
       console.error("Failed to submit request:", error);

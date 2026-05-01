@@ -10,6 +10,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import BrandPickerModal from "@/app/_components/BrandPickerModal";
 import { CAR_BRANDS } from "@/constants/carBrands";
+import { useRequestDraftPersistence } from "@/hooks/useRequestDraftPersistence";
 
 const COLORS = {
   background: "#14181F",
@@ -24,6 +25,8 @@ const RequestMakeScreen = () => {
   const router = useRouter();
   const [make, setMake] = useState("");
   const [isBrandPickerVisible, setBrandPickerVisible] = useState(false);
+
+  useRequestDraftPersistence("/request/make", { make });
 
   const handleNext = () => {
     if (make.trim()) {

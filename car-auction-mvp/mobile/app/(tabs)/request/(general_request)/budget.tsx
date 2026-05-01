@@ -4,6 +4,7 @@ import { useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { bodyTypeOptions } from "./body-type";
 import resolveAssetSource from "react-native/Libraries/Image/resolveAssetSource";
+import { useRequestDraftPersistence } from "@/hooks/useRequestDraftPersistence";
 
 const COLORS = {
   background: "#14181F",
@@ -24,6 +25,8 @@ const budgetOptions = [
 const RequestBudgetScreen = () => {
   // Renaming component for clarity
   const router = useRouter();
+
+  useRequestDraftPersistence("/request/budget", {});
 
   // Prefetch the next screen to make the transition feel faster.
   useEffect(() => {

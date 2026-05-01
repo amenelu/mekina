@@ -9,6 +9,7 @@ import {
 } from "react-native";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { useRequestDraftPersistence } from "@/hooks/useRequestDraftPersistence";
 
 const COLORS = {
   background: "#14181F",
@@ -45,6 +46,8 @@ export const bodyTypeOptions = [
 const RequestBodyTypeScreen = () => {
   const router = useRouter();
   const params = useLocalSearchParams();
+
+  useRequestDraftPersistence("/request/body-type", { ...params });
 
   const handleSelect = (value: string) => {
     router.push({
