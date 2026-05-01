@@ -285,7 +285,7 @@
         } else {
           params.delete("random"); // Ensure we don't get random results when filtering
         }
-        fetch(`{{ url_for('auctions.all_listings_api') }}?${params.toString()}`)
+        fetch(`{{ url_for('main.api_listings') }}?${params.toString()}`)
           .then((response) => response.json())
           .then((data) => {
             loadingSpinner.style.display = "none";

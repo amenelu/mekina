@@ -50,6 +50,62 @@ def mark_notification_as_read(f):
     return decorated_function
 
 
+def _format_listing_time_left(end_time):
+    """Format auction time remaining for listing cards."""
+    if not end_time:
+        return ""
+
+    remaining = end_time - datetime.utcnow()
+    if remaining.total_seconds() <= 0:
+        return "Ended"
+
+    days = remaining.days
+    hours, remainder = divmod(remaining.seconds, 3600)
+    minutes, _ = divmod(remainder, 60)
+
+    if days > 0:
+        return f"{days} day{'s' if days != 1 else ''} left"
+    if hours > 0:
+        return f"{hours} hour{'s' if hours != 1 else ''} left"
+    if minutes > 0:
+        return f"{minutes} minute{'s' if minutes != 1 else ''} left"
+    return "Ending soon"
+
+
+def _get_owner_role(owner):
+    if not owner:
+        return None
+    if owner.is_admin:
+        return "Admin"
+    if owner.is_dealer:
+        return "Dealer"
+    if owner.is_rental_company:
+        return "Rental"
+    return None
+
+
+def _serialize_listing_card(car):
+    """Shared listing payload for website cards and mobile catalog responses."""
+    car_dict = car.to_dict()
+
+    if car.listing_type == "rental" and car.rental_listing:
+        car_dict["price_display"] = f"{car.rental_listing.price_per_day:,.0f} ETB/day"
+        car_dict["detail_url"] = url_for("rentals.rental_detail", listing_id=car.id)
+        car_dict["time_left"] = ""
+    elif car.listing_type == "auction" and car.auction:
+        car_dict["price_display"] = car.get_price_display()
+        car_dict["detail_url"] = url_for("auctions.auction_detail", auction_id=car.auction.id)
+        car_dict["time_left"] = _format_listing_time_left(car.auction.end_time)
+    else:
+        car_dict["price_display"] = car.get_price_display()
+        car_dict["detail_url"] = url_for("main.car_detail", car_id=car.id)
+        car_dict["time_left"] = ""
+
+    car_dict["image_url"] = car_dict["primary_image_url"]
+    car_dict["owner_role"] = _get_owner_role(car.owner)
+    return car_dict
+
+
 def get_similar_cars(car, listing_type_filter):
     """
     Finds similar cars based on a hierarchy of criteria and returns them
@@ -845,22 +901,17 @@ def api_listings():
             )
         )
 
-    query = query.order_by(Car.is_featured.desc(), Car.id.desc())
+    if request.args.get("random") == "true":
+        query = query.order_by(func.random())
+    else:
+        query = query.order_by(Car.is_featured.desc(), Car.id.desc())
+
+    if limit := request.args.get("limit", type=int):
+        query = query.limit(limit)
+
     cars = query.all()
 
-    results = []
-    for car in cars:
-        car_dict = car.to_dict()
-        # Manually construct price_display and ensure primary_image_url is present for all types
-        if car.listing_type == "rental" and car.rental_listing:
-            car_dict["price_display"] = (
-                f"{car.rental_listing.price_per_day:,.0f} ETB/day"
-            )
-        else:
-            car_dict["price_display"] = car.get_price_display()
-        # Ensure 'image_url' is present for mobile app consistency, using the absolute URL from to_dict()
-        car_dict["image_url"] = car_dict["primary_image_url"]
-        results.append(car_dict)
+    results = [_serialize_listing_card(car) for car in cars]
 
     # The mobile app's rental page expects a specific JSON structure.
     if listing_type_filter == "rental":

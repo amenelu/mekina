@@ -58,7 +58,7 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }
 
-        fetch(`{{ url_for('auctions.all_listings_api') }}?${params.toString()}`)
+        fetch(`{{ url_for('main.api_listings') }}?${params.toString()}`)
             .then(response => response.json())
             .then(data => {
                 gridContainer.innerHTML = ''; // Clear existing results
