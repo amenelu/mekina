@@ -4,7 +4,12 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "scss": "sass --watch static/scss/style.scss:static/css/style.css"
+    "scss": "sass --watch static/scss/style.scss:static/css/style.css",
+    "start": "npm --prefix mobile start",
+    "android": "npm --prefix mobile run android",
+    "ios": "npm --prefix mobile run ios",
+    "web": "npm --prefix mobile run web",
+    "mobile:lint": "npm --prefix mobile run lint"
   },
   "keywords": [],
   "author": "",

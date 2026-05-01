@@ -10,9 +10,9 @@ from flask import (
 )
 from flask_login import current_user, login_required
 from functools import wraps
-import threading
 import os
 import re
+import json
 from routes.auth import token_required, verify_jwt
 from flask_socketio import join_room
 from models.car import Car
@@ -138,81 +138,6 @@ def send_push_notification(user_id, message_body, data=None):
             )
     except Exception as e:
         current_app.logger.exception("Error sending push notification: %s", e)
-
-
-def _generate_and_save_ai_review_task(
-    app, car_id, make, model, year, mileage, body_type, transmission, fuel_type, condition
-):
-    """
-    Background task to generate an AI review and save it to the database.
-    This function runs in a separate thread to avoid blocking the main request.
-    """
-    # Simulate a delay for AI generation (e.g., an actual LLM API call time)
-    import time
-
-    time.sleep(5)  # Simulate 5 seconds of work for the AI generation
-
-    # Reconstruct a mock car object for the generate_ai_car_review function.
-    class MockCar:
-        def __init__(
-            self,
-            make,
-            model,
-            year,
-            mileage,
-            body_type,
-            transmission,
-            fuel_type,
-            condition,
-        ):
-            self.make = make
-            self.model = model
-            self.year = year
-            self.mileage = mileage
-            self.body_type = body_type
-            self.transmission = transmission
-            self.fuel_type = fuel_type
-            self.condition = condition
-
-    mock_car = MockCar(
-        make, model, year, mileage, body_type, transmission, fuel_type, condition
-    )
-    generated_review = generate_ai_car_review(mock_car)
-
-    with app.app_context():
-        car = Car.query.get(car_id)
-        if car:
-            car.ai_review = generated_review
-            db.session.commit()
-            app.logger.info("AI review generated and saved for car_id=%s.", car_id)
-        else:
-            app.logger.warning("Car not found for AI review update: car_id=%s.", car_id)
-
-
-def generate_ai_car_review(car):
-    """
-    Uses an LLM (like Gemini) to generate a manufacturer-style review and
-    detailed overview of the vehicle based on its specs.
-    """
-    # Placeholder for actual Gemini API call
-    # In a real scenario, you'd use:
-    # model = GenerativeModel("gemini-1.5-pro")
-    # response = model.generate_content(f"Write a 300-word manufacturer review for a {car.year} {car.make} {car.model}...")
-
-    # Mock response for implementation demonstration
-    return (
-        f"The {car.year} {car.make} {car.model} is a standout in the {car.body_type} segment. "
-        f"This specific {car.condition} unit features a {car.transmission} transmission and runs on {car.fuel_type}. "
-        f"With {car.mileage or 'low'} km on the clock, it retains much of its original performance profile.\n\n"
-        f"Pros:\n"
-        f"• Excellent fuel economy typical of {car.make}'s engineering.\n"
-        f"• High resale value and proven reliability for the {car.model} series.\n"
-        f"• The {car.transmission} gearbox offers a smooth and responsive driving experience.\n\n"
-        f"Cons:\n"
-        f"• Maintenance costs for {car.year} models can be higher than newer iterations.\n"
-        f"• Interior tech might feel slightly dated compared to current standards.\n"
-        f"• {car.body_type} dimensions might make parking in tight urban spaces challenging."
-    )
 
 
 main_bp = Blueprint("main", __name__)
@@ -667,33 +592,6 @@ def api_car_detail(car_id):
         car_data["price_display"] = f"{car.rental_listing.price_per_day:,.0f} ETB/day"
     else:
         car_data["price_display"] = car.get_price_display()
-
-    # Integrate AI Generated Article
-    # To avoid affecting load time, generate it asynchronously if not present.
-    if car.ai_review:
-        car_data["ai_review"] = car.ai_review
-    else:
-        # Trigger background generation if not already present.
-        # The main request will not wait for this to complete.
-        thread = threading.Thread(
-            target=_generate_and_save_ai_review_task,
-            args=(
-                current_app._get_current_object(),
-                car.id,
-                car.make,
-                car.model,
-                car.year,
-                car.mileage,
-                car.body_type,
-                car.transmission,
-                car.fuel_type,
-                car.condition,
-            ),
-        )
-        thread.daemon = True  # Allow the main program to exit even if thread is running
-        thread.start()
-        # The car_data will not include ai_review for this initial request.
-        # It will be available on subsequent requests after generation.
 
     # Check if favorited by the current user
     is_favorite = False
