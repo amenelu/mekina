@@ -53,6 +53,12 @@ const AllListingsScreen = () => {
   const [isFilterModalVisible, setFilterModalVisible] = useState(false);
   const [tempFilters, setTempFilters] = useState(filters);
 
+  const activeFilterEntries = (
+    Object.entries(filters) as [keyof typeof filters, string][]
+  ).filter(([, value]) => Boolean(value));
+  const activeFilterCount = activeFilterEntries.length;
+  const hasActiveFilters = activeFilterCount > 0;
+
   React.useEffect(() => {
     if (q) {
       setSearchQuery(q);
@@ -153,40 +159,70 @@ const AllListingsScreen = () => {
     fuel_type: ["Gasoline", "Diesel", "Electric", "Hybrid"],
   };
 
+  const filterLabels: Record<keyof typeof filters, string> = {
+    condition: "Condition",
+    body_type: "Body Type",
+    fuel_type: "Fuel Type",
+  };
+
+  const clearSingleFilter = (key: keyof typeof filters) => {
+    setFilters((prev) => ({
+      ...prev,
+      [key]: "",
+    }));
+    setTempFilters((prev) => ({
+      ...prev,
+      [key]: "",
+    }));
+  };
+
+  const clearAllFilters = () => {
+    const clearedFilters = {
+      condition: "",
+      body_type: "",
+      fuel_type: "",
+    };
+    setFilters(clearedFilters);
+    setTempFilters(clearedFilters);
+  };
+
   return (
     <View style={styles.container}>
       <View style={styles.filterContainer}>
-        <View style={styles.searchBar}>
-          <Ionicons
-            name="search"
-            size={20}
-            color={COLORS.mutedForeground}
-            style={styles.searchIcon}
-          />
-          <TextInput
-            style={styles.searchInput}
-            placeholder="Search by make, model, or year..."
-            placeholderTextColor={COLORS.mutedForeground}
-            value={searchQuery}
-            onChangeText={setSearchQuery}
-          />
-          {searchQuery.length > 0 && (
-            <Pressable
-              onPress={() => setSearchQuery("")}
-              hitSlop={10}
-              style={{ padding: 4 }}
-            >
-              <Ionicons
-                name="close-circle"
-                size={20}
-                color={COLORS.mutedForeground}
-              />
-            </Pressable>
-          )}
-        </View>
-        <View style={styles.quickFiltersContainer}>
+        <View style={styles.searchRow}>
+          <View style={styles.searchBar}>
+            <Ionicons
+              name="search"
+              size={20}
+              color={COLORS.mutedForeground}
+              style={styles.searchIcon}
+            />
+            <TextInput
+              style={styles.searchInput}
+              placeholder="Search by make, model, or year..."
+              placeholderTextColor={COLORS.mutedForeground}
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+            />
+            {searchQuery.length > 0 && (
+              <Pressable
+                onPress={() => setSearchQuery("")}
+                hitSlop={10}
+                style={{ padding: 4 }}
+              >
+                <Ionicons
+                  name="close-circle"
+                  size={20}
+                  color={COLORS.mutedForeground}
+                />
+              </Pressable>
+            )}
+          </View>
           <Pressable
-            style={styles.filterButton}
+            style={[
+              styles.filterButtonInline,
+              hasActiveFilters && styles.filterButtonInlineActive,
+            ]}
             onPress={() => {
               setTempFilters(filters);
               setFilterModalVisible(true);
@@ -195,11 +231,51 @@ const AllListingsScreen = () => {
             <Ionicons
               name="options-outline"
               size={20}
-              color={COLORS.mutedForeground}
+              color={hasActiveFilters ? COLORS.foreground : COLORS.mutedForeground}
             />
-            <Text style={styles.filterButtonText}>Filter</Text>
+            {hasActiveFilters && (
+              <View style={styles.filterCountBadge}>
+                <Text style={styles.filterCountBadgeText}>
+                  {activeFilterCount}
+                </Text>
+              </View>
+            )}
           </Pressable>
         </View>
+        {hasActiveFilters && (
+          <View style={styles.activeFiltersRow}>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              keyboardDismissMode="on-drag"
+              keyboardShouldPersistTaps="handled"
+              contentContainerStyle={styles.activeFiltersContent}
+            >
+              {activeFilterEntries.map(([key, value]) => (
+                <Pressable
+                  key={key}
+                  style={styles.filterChip}
+                  onPress={() => clearSingleFilter(key)}
+                >
+                  <Text style={styles.filterChipText}>
+                    {filterLabels[key]}: {value}
+                  </Text>
+                  <Ionicons
+                    name="close"
+                    size={14}
+                    color={COLORS.foreground}
+                  />
+                </Pressable>
+              ))}
+            </ScrollView>
+            <Pressable
+              style={styles.clearFiltersInlineButton}
+              onPress={clearAllFilters}
+            >
+              <Text style={styles.clearFiltersInlineText}>Clear all</Text>
+            </Pressable>
+          </View>
+        )}
       </View>
       {loading && !refreshing && (
         <View style={styles.loadingContainer}>
@@ -214,6 +290,8 @@ const AllListingsScreen = () => {
         data={!loading ? allVehicles : []}
         keyExtractor={(item, index) => `${item.id}-${index}`}
         numColumns={2}
+        keyboardDismissMode="on-drag"
+        keyboardShouldPersistTaps="handled"
         columnWrapperStyle={{
           justifyContent: "space-between",
           paddingHorizontal: 20,
@@ -303,7 +381,10 @@ const AllListingsScreen = () => {
         >
           <View style={styles.modalContent}>
             <Text style={styles.modalTitle}>Filters</Text>
-            <ScrollView>
+            <ScrollView
+              keyboardDismissMode="on-drag"
+              keyboardShouldPersistTaps="handled"
+            >
               {/* Condition Filter */}
               <Text style={styles.modalSectionTitle}>Condition</Text>
               <View style={styles.modalOptionsGrid}>
@@ -402,12 +483,7 @@ const AllListingsScreen = () => {
               <TouchableOpacity
                 style={styles.modalClearButton}
                 onPress={() => {
-                  // Clear the main filters directly and close the modal
-                  setFilters({
-                    condition: "",
-                    body_type: "",
-                    fuel_type: "",
-                  });
+                  clearAllFilters();
                   setFilterModalVisible(false);
                 }}
               >
@@ -448,6 +524,11 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: COLORS.border,
   },
+  searchRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+  },
   searchBar: {
     flexDirection: "row",
     alignItems: "center",
@@ -456,6 +537,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 15,
     borderWidth: 1,
     borderColor: COLORS.border,
+    flex: 1,
   },
   searchIcon: {
     marginRight: 10,
@@ -466,31 +548,72 @@ const styles = StyleSheet.create({
     color: COLORS.foreground,
     fontSize: 16,
   },
-  quickFiltersContainer: {
-    marginTop: 15,
+  activeFiltersRow: {
+    marginTop: 12,
     flexDirection: "row",
     alignItems: "center",
+    justifyContent: "space-between",
+    gap: 10,
   },
-  filterButton: {
-    backgroundColor: COLORS.secondary,
-    paddingVertical: 8,
-    paddingHorizontal: 15,
-    borderRadius: 20,
-    marginRight: 10,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    flexDirection: "row",
-    alignItems: "center",
+  activeFiltersContent: {
+    paddingRight: 8,
     gap: 8,
   },
-  clearFiltersButton: {
-    padding: 8,
-    justifyContent: "center",
+  filterChip: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 999,
+    backgroundColor: COLORS.accent,
   },
-  filterButtonText: {
+  filterChipText: {
+    color: COLORS.foreground,
+    fontSize: 13,
+    fontWeight: "600",
+  },
+  clearFiltersInlineButton: {
+    paddingVertical: 6,
+    paddingHorizontal: 4,
+  },
+  clearFiltersInlineText: {
     color: COLORS.mutedForeground,
-    fontWeight: "500",
-    fontSize: 14,
+    fontSize: 13,
+    fontWeight: "600",
+  },
+  filterButtonInline: {
+    width: 50,
+    height: 50,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    backgroundColor: COLORS.secondary,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    position: "relative",
+  },
+  filterButtonInlineActive: {
+    backgroundColor: COLORS.accent,
+    borderColor: COLORS.accent,
+  },
+  filterCountBadge: {
+    position: "absolute",
+    top: -5,
+    right: -5,
+    minWidth: 20,
+    height: 20,
+    borderRadius: 10,
+    backgroundColor: "#FFFFFF",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 5,
+  },
+  filterCountBadgeText: {
+    color: COLORS.accent,
+    fontSize: 11,
+    fontWeight: "700",
   },
   gridContainer: {
     flexDirection: "row",

@@ -4,12 +4,16 @@ import {
   Text,
   StyleSheet,
   TouchableOpacity,
-  TextInput,
+  Pressable,
   Alert,
- ActivityIndicator } from "react-native";
+  ActivityIndicator,
+} from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useAuth } from "@/hooks/useAuth";
 import { useRouter, useLocalSearchParams } from "expo-router";
+import { Ionicons } from "@expo/vector-icons";
+import BrandPickerModal from "@/app/_components/BrandPickerModal";
+import { CAR_BRANDS } from "@/constants/carBrands";
 
 
 const COLORS = {
@@ -26,6 +30,7 @@ const RequestBrandScreen = () => {
   const params = useLocalSearchParams();
   const [brand, setBrand] = useState("");
   const [loading, setLoading] = useState(false);
+  const [isBrandPickerVisible, setBrandPickerVisible] = useState(false);
   const { token } = useAuth();
 
   const handleSubmit = async () => {
@@ -76,13 +81,33 @@ const RequestBrandScreen = () => {
       <Text style={styles.title}>Are you considering any specific brands?</Text>
       <Text style={styles.subtitle}>(Optional)</Text>
 
-      <TextInput
+      <Pressable
         style={styles.input}
-        placeholder="e.g., Toyota, Ford, BYD"
-        placeholderTextColor={COLORS.mutedForeground}
-        value={brand}
-        onChangeText={setBrand}
-      />
+        onPress={() => setBrandPickerVisible(true)}
+      >
+        <Text
+          style={[
+            styles.inputText,
+            !brand && styles.placeholderText,
+          ]}
+        >
+          {brand || "Choose a preferred brand"}
+        </Text>
+        <Ionicons
+          name="chevron-down"
+          size={20}
+          color={COLORS.mutedForeground}
+        />
+      </Pressable>
+
+      {brand.length > 0 && (
+        <TouchableOpacity
+          style={styles.clearChoiceButton}
+          onPress={() => setBrand("")}
+        >
+          <Text style={styles.clearChoiceText}>Clear brand preference</Text>
+        </TouchableOpacity>
+      )}
 
       <TouchableOpacity style={styles.submitButton} onPress={handleSubmit}>
         {loading ? (
@@ -91,6 +116,23 @@ const RequestBrandScreen = () => {
           <Text style={styles.submitButtonText}>Finish Request</Text>
         )}
       </TouchableOpacity>
+
+      <BrandPickerModal
+        brands={CAR_BRANDS}
+        selectedBrand={brand}
+        visible={isBrandPickerVisible}
+        onClose={() => setBrandPickerVisible(false)}
+        onSelect={(selectedBrand) => {
+          setBrand(selectedBrand);
+          setBrandPickerVisible(false);
+        }}
+        title="Select a preferred brand"
+        allowSkip
+        onSkip={() => {
+          setBrand("");
+          setBrandPickerVisible(false);
+        }}
+      />
     </SafeAreaView>
   );
 };
@@ -122,15 +164,35 @@ const styles = StyleSheet.create({
     marginBottom: 40,
   },
   input: {
+    minHeight: 56,
     backgroundColor: COLORS.card,
-    color: COLORS.foreground,
     paddingHorizontal: 15,
-    paddingVertical: 15,
     borderRadius: 12,
     borderWidth: 1,
     borderColor: COLORS.border,
-    fontSize: 18,
     marginBottom: 30,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  inputText: {
+    color: COLORS.foreground,
+    fontSize: 18,
+    flex: 1,
+    marginRight: 12,
+  },
+  placeholderText: {
+    color: COLORS.mutedForeground,
+  },
+  clearChoiceButton: {
+    alignSelf: "center",
+    marginTop: -14,
+    marginBottom: 24,
+  },
+  clearChoiceText: {
+    color: COLORS.mutedForeground,
+    fontSize: 14,
+    fontWeight: "600",
   },
   submitButton: {
     backgroundColor: COLORS.accent,

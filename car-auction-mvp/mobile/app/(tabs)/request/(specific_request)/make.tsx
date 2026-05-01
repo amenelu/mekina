@@ -2,11 +2,14 @@ import React, { useState } from "react";
 import {
   Text,
   StyleSheet,
-  TextInput,
   TouchableOpacity,
+  Pressable,
 } from "react-native";
 import { useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { Ionicons } from "@expo/vector-icons";
+import BrandPickerModal from "@/app/_components/BrandPickerModal";
+import { CAR_BRANDS } from "@/constants/carBrands";
 
 const COLORS = {
   background: "#14181F",
@@ -20,6 +23,7 @@ const COLORS = {
 const RequestMakeScreen = () => {
   const router = useRouter();
   const [make, setMake] = useState("");
+  const [isBrandPickerVisible, setBrandPickerVisible] = useState(false);
 
   const handleNext = () => {
     if (make.trim()) {
@@ -33,17 +37,44 @@ const RequestMakeScreen = () => {
       <Text style={styles.counter}>1 / 4</Text>
       <Text style={styles.title}>What make of car are you looking for?</Text>
 
-      <TextInput
+      <Pressable
         style={styles.input}
-        placeholder="e.g., Toyota, Ford, BYD"
-        placeholderTextColor={COLORS.mutedForeground}
-        value={make}
-        onChangeText={setMake}
-      />
+        onPress={() => setBrandPickerVisible(true)}
+      >
+        <Text
+          style={[
+            styles.inputText,
+            !make && styles.placeholderText,
+          ]}
+        >
+          {make || "Choose a car brand"}
+        </Text>
+        <Ionicons
+          name="chevron-down"
+          size={20}
+          color={COLORS.mutedForeground}
+        />
+      </Pressable>
 
-      <TouchableOpacity style={styles.submitButton} onPress={handleNext}>
+      <TouchableOpacity
+        style={[styles.submitButton, !make.trim() && styles.submitButtonDisabled]}
+        onPress={handleNext}
+        disabled={!make.trim()}
+      >
         <Text style={styles.submitButtonText}>Next</Text>
       </TouchableOpacity>
+
+      <BrandPickerModal
+        brands={CAR_BRANDS}
+        selectedBrand={make}
+        visible={isBrandPickerVisible}
+        onClose={() => setBrandPickerVisible(false)}
+        onSelect={(brand) => {
+          setMake(brand);
+          setBrandPickerVisible(false);
+        }}
+        title="Select a car brand"
+      />
     </SafeAreaView>
   );
 };
@@ -69,20 +100,34 @@ const styles = StyleSheet.create({
     textAlign: "center",
   },
   input: {
+    minHeight: 56,
     backgroundColor: COLORS.card,
-    color: COLORS.foreground,
-    padding: 15,
+    paddingHorizontal: 15,
     borderRadius: 12,
     borderWidth: 1,
     borderColor: COLORS.border,
-    fontSize: 18,
     marginBottom: 30,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  inputText: {
+    color: COLORS.foreground,
+    fontSize: 18,
+    flex: 1,
+    marginRight: 12,
+  },
+  placeholderText: {
+    color: COLORS.mutedForeground,
   },
   submitButton: {
     backgroundColor: COLORS.accent,
     padding: 18,
     borderRadius: 12,
     alignItems: "center",
+  },
+  submitButtonDisabled: {
+    opacity: 0.5,
   },
   submitButtonText: {
     color: COLORS.foreground,
