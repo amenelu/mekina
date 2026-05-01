@@ -481,6 +481,56 @@ def api_popular_searches(current_user):
     )
 
 
+@dealer_bp.route("/api/points/request", methods=["POST"])
+@token_required
+def api_request_more_points(current_user):
+    if not (current_user.is_dealer or current_user.is_admin):
+        return jsonify({"message": "Only dealers can request more points."}), 403
+
+    data = request.get_json() or {}
+    requested_points = data.get("requested_points")
+    reason = (data.get("reason") or "").strip()
+
+    try:
+        requested_points = int(requested_points)
+    except (TypeError, ValueError):
+        return jsonify({"message": "Requested points must be a whole number."}), 400
+
+    if requested_points <= 0:
+        return jsonify({"message": "Requested points must be greater than zero."}), 400
+
+    admins = User.query.filter_by(is_admin=True).all()
+    if not admins:
+        return jsonify({"message": "No admin accounts are available right now."}), 500
+
+    message = (
+        f"Dealer {current_user.username} requested {requested_points} more points."
+    )
+    if reason:
+        message += f" Reason: {reason}"
+
+    link = "/(admin)/dealers"
+
+    for admin in admins:
+        notification = Notification(user_id=admin.id, message=message, link=link)
+        db.session.add(notification)
+
+    db.session.commit()
+
+    current_app.logger.info(
+        "Dealer points request submitted by user_id=%s for %s points.",
+        current_user.id,
+        requested_points,
+    )
+
+    return jsonify(
+        {
+            "status": "success",
+            "message": "Your request has been sent to the admin.",
+        }
+    )
+
+
 @dealer_bp.route("/api/analytics/advanced")
 @token_required
 def api_advanced_analytics(current_user):

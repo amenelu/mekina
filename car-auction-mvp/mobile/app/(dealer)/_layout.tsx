@@ -94,6 +94,12 @@ export default function DealerTabsLayout() {
           href: null,
         }}
       />
+      <Tabs.Screen
+        name="points"
+        options={{
+          href: null,
+        }}
+      />
     </Tabs>
   );
 }

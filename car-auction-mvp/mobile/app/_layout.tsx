@@ -60,6 +60,10 @@ export default function RootLayout() {
             name="request/[id]"
             options={{ title: "Request", headerBackTitle: "" }}
           />
+          <Stack.Screen
+            name="dealer-points"
+            options={{ headerShown: false }}
+          />
           <Stack.Screen name="deal/[id]" options={{ title: "Deal Summary" }} />
           <Stack.Screen
             name="(details)/dealers/public/[id]"

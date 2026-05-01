@@ -353,7 +353,7 @@ const DealerDashboard = () => {
             <StatCard
               label="Your Points"
               value={stats.points ?? 0}
-              onPress={() => router.push("/(dealer)/points")}
+              onPress={() => router.push("/dealer-points")}
             />
             <StatCard
               label="Active Listings"
