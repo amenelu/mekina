@@ -1,6 +1,6 @@
 import React, { useCallback, useState } from "react";
 import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
-import { Stack, Link, useFocusEffect, useRouter } from "expo-router";
+import { Stack, Link, useFocusEffect, useNavigation, useRouter } from "expo-router";
 import { clearRequestDraft, loadRequestDraft, RequestDraft } from "@/lib/requestDraft";
 
 const COLORS = {
@@ -32,11 +32,20 @@ const choiceOptions = [
 
 const RequestChoiceScreen = () => {
   const router = useRouter();
+  const navigation = useNavigation();
   const [savedDraft, setSavedDraft] = useState<RequestDraft | null>(null);
 
   useFocusEffect(
     useCallback(() => {
       let isActive = true;
+
+      const state = navigation.getState();
+      if (state && (state.routes.length > 1 || state.index !== 0)) {
+        navigation.reset({
+          index: 0,
+          routes: [{ name: "index" as never }],
+        });
+      }
 
       loadRequestDraft().then((draft) => {
         if (!isActive) return;
@@ -50,7 +59,7 @@ const RequestChoiceScreen = () => {
       return () => {
         isActive = false;
       };
-    }, [])
+    }, [navigation])
   );
 
   return (
@@ -65,6 +74,7 @@ const RequestChoiceScreen = () => {
           </Text>
           <View style={styles.savedDraftActions}>
             <TouchableOpacity
+              testID="saved-request-continue"
               style={styles.resumeButton}
               onPress={() =>
                 router.push({
@@ -76,6 +86,7 @@ const RequestChoiceScreen = () => {
               <Text style={styles.resumeButtonText}>Continue</Text>
             </TouchableOpacity>
             <TouchableOpacity
+              testID="saved-request-discard"
               style={styles.discardButton}
               onPress={async () => {
                 await clearRequestDraft();
@@ -90,7 +101,16 @@ const RequestChoiceScreen = () => {
       <View style={styles.optionsContainer}>
         {choiceOptions.map((option) => (
           <Link key={option.href} href={option.href as any} asChild>
-            <TouchableOpacity style={styles.optionButton}>
+            <TouchableOpacity
+              testID={
+                option.href === "/request/make"
+                  ? "request-choice-specific"
+                  : option.href === "/request/budget"
+                  ? "request-choice-guided"
+                  : "request-choice-upload"
+              }
+              style={styles.optionButton}
+            >
               <Text style={styles.optionText}>{option.label}</Text>
               <Text style={styles.optionDescription}>{option.description}</Text>
             </TouchableOpacity>

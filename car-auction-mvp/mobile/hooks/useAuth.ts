@@ -23,9 +23,11 @@ export interface User {
 interface AuthState {
   user: User | null;
   token: string | null;
+  rememberMe: boolean;
   isLoading: boolean;
   login: (user: User, token: string) => void;
   logout: () => void;
+  setRememberMe: (rememberMe: boolean) => void;
   setIsLoading: (isLoading: boolean) => void;
 }
 
@@ -34,15 +36,26 @@ export const useAuth = create<AuthState>()(
     (set) => ({
       user: null,
       token: null,
+      rememberMe: false,
       isLoading: true,
       login: (user, token) => set({ user, token }),
-      logout: () => set({ user: null, token: null }),
+      logout: () => set({ user: null, token: null, rememberMe: false }),
+      setRememberMe: (rememberMe) => set({ rememberMe }),
       setIsLoading: (isLoading) => set({ isLoading }),
     }),
     {
       name: "auth-storage", // unique name
       storage: createJSONStorage(() => secureStorage),
-      partialize: (state) => ({ user: state.user, token: state.token }),
+      partialize: (state) =>
+        state.rememberMe
+          ? {
+              user: state.user,
+              token: state.token,
+              rememberMe: true,
+            }
+          : {
+              rememberMe: false,
+            },
       onRehydrateStorage: () => (state) => {
         state?.setIsLoading(false);
       },

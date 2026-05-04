@@ -1,0 +1,20 @@
+appId: ${MAESTRO_APP_ID}
+---
+- launchApp:
+    clearState: true
+    stopApp: true
+    permissions:
+      notifications: deny
+- openLink: mobile://login
+- assertVisible: "Login"
+- tapOn:
+    id: "login-input"
+- inputText: ${E2E_LOGIN}
+- tapOn:
+    id: "password-input"
+- inputText: ${E2E_PASSWORD}
+- tapOn:
+    id: "remember-me-checkbox"
+- tapOn:
+    id: "login-submit"
+- assertVisible: "Find Your Next Car"

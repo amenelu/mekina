@@ -53,7 +53,6 @@ const ConversationItem = ({ conv }: { conv: Conversation }) => {
   const isUnread = (conv.unread_count || 0) > 0;
 
   const handlePress = () => {
-    console.log(`[DEBUG] Navigating to /messages/${conv.id}`);
     router.push(`/messages/${conv.id}`);
   };
 

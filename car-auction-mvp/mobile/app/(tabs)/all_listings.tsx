@@ -31,6 +31,20 @@ const COLORS = {
   secondary: "#313843",
 };
 
+function matchesSearchTerms(searchQuery: string, item: { year?: number; make?: string; model?: string }) {
+  const terms = searchQuery
+    .toLowerCase()
+    .split(/\s+/)
+    .filter(Boolean);
+
+  if (terms.length === 0) {
+    return true;
+  }
+
+  const haystack = `${item.year ?? ""} ${item.make ?? ""} ${item.model ?? ""}`.toLowerCase();
+  return terms.every((term) => haystack.includes(term));
+}
+
 const AllListingsScreen = () => {
   const router = useRouter();
   const { q } = useLocalSearchParams<{ q?: string }>();
@@ -38,6 +52,7 @@ const AllListingsScreen = () => {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState(q || "");
   const [debouncedSearchQuery, setDebouncedSearchQuery] = useState(searchQuery);
+  const searchRequestIdRef = React.useRef(0);
   const [compareItems, setCompareItems] = useState<
     { id: string; image: string }[]
   >([]);
@@ -77,11 +92,12 @@ const AllListingsScreen = () => {
   }, [searchQuery]);
 
   const fetchVehicles = useCallback(async (isRefresh = false) => {
+    const currentRequestId = ++searchRequestIdRef.current;
     if (!isRefresh) setLoading(true);
     try {
       const params: Record<string, string> = {};
       if (debouncedSearchQuery) {
-        params.q = debouncedSearchQuery;
+        params.q = debouncedSearchQuery.trim();
       }
       if (filters.condition) {
         params.condition = filters.condition;
@@ -94,30 +110,39 @@ const AllListingsScreen = () => {
       }
 
       const response = await getListings(params);
+      if (currentRequestId !== searchRequestIdRef.current) {
+        return;
+      }
       const data = response.data;
 
-      const formattedData = data.map((item: any) => ({
-        id: item.id.toString(),
-        year: item.year,
-        make: item.make,
-        model: item.model,
-        price: item.price_display || "N/A",
-        image: item.image_url,
-        mileage: item.mileage || 0,
-        is_featured: item.is_featured,
-        listingType: item.listing_type,
-      }));
+      const formattedData = data
+        .filter((item: any) => matchesSearchTerms(debouncedSearchQuery, item))
+        .map((item: any) => ({
+          id: item.id.toString(),
+          year: item.year,
+          make: item.make,
+          model: item.model,
+          price: item.price_display || "N/A",
+          image: item.image_url,
+          mileage: item.mileage || 0,
+          is_featured: item.is_featured,
+          listingType: item.listing_type,
+        }));
 
       setAllVehicles(formattedData);
     } catch (error) {
-      console.error("Failed to fetch vehicles:", error);
-      Alert.alert(
-        "Connection Error",
-        "Could not connect to the server. Please make sure your backend is running and you are on the same network."
-      );
+      if (currentRequestId === searchRequestIdRef.current) {
+        console.error("Failed to fetch vehicles:", error);
+        Alert.alert(
+          "Connection Error",
+          "Could not connect to the server. Please make sure your backend is running and you are on the same network."
+        );
+      }
     } finally {
-      setLoading(false);
-      if (isRefresh) setRefreshing(false);
+      if (currentRequestId === searchRequestIdRef.current) {
+        setLoading(false);
+        if (isRefresh) setRefreshing(false);
+      }
     }
   }, [debouncedSearchQuery, filters]);
 
@@ -137,17 +162,18 @@ const AllListingsScreen = () => {
       if (isCurrentlyCompared) {
         return prev.filter((item) => item.id !== itemId);
       }
+
+      if (prev.length >= 4) {
+        Alert.alert("Compare Limit", "You can only compare up to 4 cars at a time.");
+        return prev;
+      }
+
       const vehicle = allVehicles.find((v) => v.id === itemId);
       if (vehicle) {
         return [...prev, { id: vehicle.id, image: vehicle.image }];
       }
       return prev;
     });
-    // Limit comparison to 4 items
-    if (compareItems.length >= 4 && !isCurrentlyCompared) {
-      alert("You can only compare up to 4 cars at a time.");
-      setCompareItems((prev) => prev.slice(0, 4));
-    }
   };
   const handleClearCompare = () => {
     setCompareItems([]);

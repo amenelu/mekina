@@ -48,11 +48,26 @@ const COLORS = {
   secondary: "#313843",
 };
 
+function matchesSearchTerms(searchQuery: string, item: { year?: number; make?: string; model?: string }) {
+  const terms = searchQuery
+    .toLowerCase()
+    .split(/\s+/)
+    .filter(Boolean);
+
+  if (terms.length === 0) {
+    return true;
+  }
+
+  const haystack = `${item.year ?? ""} ${item.make ?? ""} ${item.model ?? ""}`.toLowerCase();
+  return terms.every((term) => haystack.includes(term));
+}
+
 const HomeScreen = () => {
   const router = useRouter();
   const navigation = useNavigation();
   const { user, token } = useAuth();
   const ref = useRef<ScrollView>(null);
+  const searchRequestIdRef = useRef(0);
 
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<Vehicle[]>([]);
@@ -86,40 +101,57 @@ const HomeScreen = () => {
   useEffect(() => {
     const delayDebounceFn = setTimeout(async () => {
       if (searchQuery.trim()) {
+        const currentRequestId = ++searchRequestIdRef.current;
         setIsSearching(true);
         try {
-          let url = `${API_URL}/api/listings?q=${searchQuery}`;
+          const searchParams = new URLSearchParams({ q: searchQuery.trim() });
           if (activeFilter) {
             if (activeFilter === "New" || activeFilter === "Used") {
-              url += `&condition=${activeFilter}`;
+              searchParams.set("condition", activeFilter);
             } else if (activeFilter === "EV") {
-              url += `&fuel_type=Electric`;
+              searchParams.set("fuel_type", "Electric");
             } else if (activeFilter === "Hybrid") {
-              url += `&fuel_type=Hybrid`;
+              searchParams.set("fuel_type", "Hybrid");
             } else if (activeFilter === "SUV" || activeFilter === "Sedan") {
-              url += `&body_type=${activeFilter}`;
+              searchParams.set("body_type", activeFilter);
             }
           }
-          const response = await fetch(url);
+          const response = await fetch(
+            `${API_URL}/api/listings?${searchParams.toString()}`
+          );
+          if (!response.ok) {
+            throw new Error(`Search request failed with status ${response.status}`);
+          }
           const data = await response.json();
-          const formattedData = data.map((item: any) => ({
-            id: item.id.toString(),
-            year: item.year,
-            make: item.make,
-            model: item.model,
-            price: item.price_display || "N/A",
-            image: item.image_url,
-            mileage: item.mileage || 0,
-            listingType: item.listing_type,
-          }));
+          if (currentRequestId !== searchRequestIdRef.current) {
+            return;
+          }
+          const formattedData = data
+            .filter((item: any) => matchesSearchTerms(searchQuery, item))
+            .map((item: any) => ({
+              id: item.id.toString(),
+              year: item.year,
+              make: item.make,
+              model: item.model,
+              price: item.price_display || "N/A",
+              image: item.image_url,
+              mileage: item.mileage || 0,
+              listingType: item.listing_type,
+            }));
           setSearchResults(formattedData);
         } catch (error) {
-          console.error("Search error:", error);
+          if (currentRequestId === searchRequestIdRef.current) {
+            console.error("Search error:", error);
+          }
         } finally {
-          setIsSearching(false);
+          if (currentRequestId === searchRequestIdRef.current) {
+            setIsSearching(false);
+          }
         }
       } else {
+        searchRequestIdRef.current += 1;
         setSearchResults([]);
+        setIsSearching(false);
       }
     }, 300);
 
@@ -130,9 +162,13 @@ const HomeScreen = () => {
     try {
       const [featuredRes, recentRes, trendingRes] = await Promise.all([
         fetch(`${API_URL}/api/home`),
-        fetch(`${API_URL}/api/listings`),
+        fetch(`${API_URL}/api/listings?limit=4`),
         fetch(`${API_URL}/api/trending-searches`),
       ]);
+
+      if (!featuredRes.ok || !recentRes.ok || !trendingRes.ok) {
+        throw new Error("Failed to load home data.");
+      }
 
       const featuredData = await featuredRes.json();
       const recentData = await recentRes.json();
@@ -375,6 +411,7 @@ const HomeScreen = () => {
         <View style={styles.heroActions}>
           <View style={{ flex: 1, marginRight: 8 }}>
             <Pressable
+              testID="home-find-request-button"
               style={[styles.heroButton, styles.primaryButton]}
               onPress={() => {
                 if (!user) {
@@ -398,6 +435,7 @@ const HomeScreen = () => {
           </View>
           <View style={{ flex: 1, marginLeft: 8 }}>
             <Pressable
+              testID="home-trade-in-button"
               style={[styles.heroButton, styles.secondaryButton]}
               onPress={() => {
                 if (!user) {

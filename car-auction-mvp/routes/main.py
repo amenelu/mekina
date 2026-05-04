@@ -106,6 +106,24 @@ def _serialize_listing_card(car):
     return car_dict
 
 
+def _apply_multi_term_search(query, raw_query):
+    """Require every search term to match at least one supported field."""
+    search_terms = [term for term in raw_query.lower().split() if term]
+    if not search_terms:
+        return query
+
+    for term in search_terms:
+        term_conditions = [
+            Car.make.ilike(f"%{term}%"),
+            Car.model.ilike(f"%{term}%"),
+        ]
+        if term.isdigit():
+            term_conditions.append(Car.year == int(term))
+        query = query.filter(or_(*term_conditions))
+
+    return query
+
+
 def get_similar_cars(car, listing_type_filter):
     """
     Finds similar cars based on a hierarchy of criteria and returns them
@@ -435,16 +453,7 @@ def search_suggestions():
 
     q = request.args.get("q", "").strip()
     if q and len(q) >= 2:
-        search_terms = q.lower().split()
-        conditions = []
-        for term in search_terms:
-            conditions.append(Car.make.ilike(f"%{term}%"))
-            conditions.append(Car.model.ilike(f"%{term}%"))
-            if term.isdigit():
-                conditions.append(Car.year == int(term))
-
-        if conditions:
-            query = query.filter(or_(*conditions))
+        query = _apply_multi_term_search(query, q)
 
     # Apply quick filters to the suggestions
     if condition := request.args.get("condition"):
@@ -862,16 +871,8 @@ def api_listings():
         )
 
     # Generic search filter
-    if q := request.args.get("q"):  # Use the same forgiving logic for main search
-        search_terms = q.lower().split()
-        conditions = []
-        for term in search_terms:
-            conditions.append(Car.make.ilike(f"%{term}%"))
-            conditions.append(Car.model.ilike(f"%{term}%"))
-            if term.isdigit():  # Allow searching by year if it's a number
-                conditions.append(Car.year == int(term))
-        if conditions:
-            query = query.filter(or_(*conditions))
+    if q := request.args.get("q"):
+        query = _apply_multi_term_search(query, q)
 
     # Specific attribute filters
     if condition := request.args.get("condition"):

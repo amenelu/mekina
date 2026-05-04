@@ -79,9 +79,6 @@ const RequestCard = ({
 
   const handlePress = () => {
     if (isTradeIn) {
-      console.log(
-        `>>> Navigating to USER trade-in detail: /trade-in/${request.id}`
-      );
       router.push(`/trade-in/${request.id}`);
     } else {
       router.push(`/request/${request.id}`);
@@ -231,11 +228,10 @@ const MyRequestsScreen = () => {
     } catch (err) {
       if (isAxiosError(err) && err.response?.status === 401) {
         // Handle token expiration
-        console.log("Token expired or invalid. Logging out.");
         Alert.alert("Session Expired", "Please log in again.", [
           { text: "OK", onPress: () => logout() },
         ]);
-        router.replace("/login");
+        router.replace("/(auth)/login");
       } else {
         console.error("Failed to fetch car requests:", err);
         setError("Could not load your requests. Please try again.");
@@ -318,7 +314,7 @@ const MyRequestsScreen = () => {
           Please log in to view your requests.
         </Text>
         <Link href="/(auth)/login" asChild>
-          <Pressable style={styles.viewOffersButton}>
+          <Pressable testID="my-requests-login-button" style={styles.viewOffersButton}>
             <Text style={styles.viewOffersButtonText}>Login</Text>
           </Pressable>
         </Link>

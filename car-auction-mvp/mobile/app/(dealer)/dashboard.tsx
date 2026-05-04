@@ -14,8 +14,8 @@ import { router } from "expo-router";
 import axios from "axios";
 import { useAuth } from "@/hooks/useAuth";
 import API_BASE_URL from "@/constants/Api";
-import { io } from "socket.io-client";
 import { Ionicons } from "@expo/vector-icons";
+import { useSocket } from "@/contexts/SocketContext";
 
 const COLORS = {
   background: "#14181F",
@@ -211,6 +211,7 @@ const RequestItem = ({ item }: { item: CustomerRequest }) => {
 
 const DealerDashboard = () => {
   const { token, user, isLoading } = useAuth() as any;
+  const { socket } = useSocket();
 
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -225,20 +226,12 @@ const DealerDashboard = () => {
   useEffect(() => {
     if (!isLoading && !token) {
       router.replace("/(auth)/login");
-      return;
     }
-    if (!token) return;
+  }, [isLoading, token]);
 
-    const socket = io(API_BASE_URL, {
-      query: { token },
-      transports: ["websocket"],
-    });
+  useEffect(() => {
+    if (!socket) return;
 
-    socket.on("connect", () => {
-      console.log("Socket connected for real-time dashboard updates.");
-    });
-
-    // Listen for updates to existing requests (e.g., new bid)
     socket.on("request_updated", (data) => {
       setRequests((prevRequests) =>
         prevRequests.map((req) =>
@@ -258,15 +251,11 @@ const DealerDashboard = () => {
       setRequests((prevRequests) => [newRequest, ...prevRequests]);
     });
 
-    socket.on("disconnect", () => {
-      console.log("Socket disconnected.");
-    });
-
-    // Cleanup on component unmount
     return () => {
-      socket.disconnect();
+      socket.off("request_updated");
+      socket.off("new_customer_request");
     };
-  }, [isLoading, token]);
+  }, [socket]);
 
   const fetchData = useCallback(async () => {
     try {

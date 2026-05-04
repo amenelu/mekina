@@ -42,11 +42,6 @@ const RequestBudgetScreen = () => {
   }, [router]);
 
   const handleSelect = (value: string) => {
-    // By passing the object directly, TypeScript can infer the literal type of `pathname`.
-    console.log("Attempting to navigate with:", {
-      pathname: "./body-type",
-      params: { price: value },
-    });
     router.push({ pathname: "./body-type", params: { price: value } });
   };
 

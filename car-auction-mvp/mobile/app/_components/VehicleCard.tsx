@@ -27,7 +27,7 @@ export type Vehicle = {
   image: string; // The image URL to display
   mileage: number;
   is_featured?: boolean;
-  listingType: "Sale" | "Auction"; // The type of listing
+  listingType: "Sale" | "Auction" | "Rental" | "sale" | "auction" | "rental"; // The type of listing
 };
 
 type VehicleCardProps = {
@@ -48,9 +48,11 @@ const VehicleCard = ({
   style,
 }: VehicleCardProps) => {
   const router = useRouter();
+  const listingType = item.listingType.toLowerCase();
 
   return (
     <Pressable
+      testID={`vehicle-card-${item.id}`}
       style={[styles.vehicleCard, style]}
       onPress={() =>
         router.push({
@@ -78,11 +80,15 @@ const VehicleCard = ({
             styles.vehicleCardTag,
             {
               backgroundColor:
-                item.listingType === "Sale" ? "#28a745" : COLORS.accent,
+                listingType === "sale" ? "#28a745" : COLORS.accent,
             },
           ]}
         >
-          {item.listingType}
+          {listingType === "sale"
+            ? "Sale"
+            : listingType === "rental"
+            ? "Rental"
+            : "Auction"}
         </Text>
         <View style={styles.infoContainer}>
           <LinearGradient
@@ -98,8 +104,12 @@ const VehicleCard = ({
           </View>
           {onToggleCompare && (
             <Pressable
+              testID={`vehicle-card-compare-${item.id}`}
               style={styles.compareButton}
-              onPress={() => onToggleCompare(item.id)}
+              onPress={(event) => {
+                event.stopPropagation();
+                onToggleCompare(item.id);
+              }}
               hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
             >
               <Ionicons
@@ -111,8 +121,12 @@ const VehicleCard = ({
           )}
           {onToggleFavorite && (
             <Pressable
+              testID={`vehicle-card-favorite-${item.id}`}
               style={styles.favoriteButton}
-              onPress={() => onToggleFavorite(item.id)}
+              onPress={(event) => {
+                event.stopPropagation();
+                onToggleFavorite(item.id);
+              }}
               hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
             >
               <Ionicons

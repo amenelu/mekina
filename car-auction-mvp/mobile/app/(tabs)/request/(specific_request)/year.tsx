@@ -4,7 +4,7 @@ import {
   StyleSheet,
   TextInput,
   TouchableOpacity,
-  Alert,
+  View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter, useLocalSearchParams } from "expo-router";
@@ -23,17 +23,19 @@ const RequestYearScreen = () => {
   const router = useRouter();
   const params = useLocalSearchParams();
   const [year, setYear] = useState(String(params.min_year || ""));
+  const [showValidation, setShowValidation] = useState(false);
 
   useRequestDraftPersistence("/request/year", { ...params, min_year: year });
 
   const handleNext = () => {
     if (!year.trim() || !/^\d{4}$/.test(year)) {
-      Alert.alert("Invalid Year", "Please enter a valid 4-digit year.");
+      setShowValidation(true);
       return;
     }
 
+    setShowValidation(false);
     router.push({
-      pathname: "./details",
+      pathname: "/request/upload",
       params: { ...params, min_year: year },
     });
   };
@@ -45,15 +47,25 @@ const RequestYearScreen = () => {
         {"What's the minimum year you're looking for?"}
       </Text>
 
-      <TextInput
-        style={styles.input}
-        placeholder="e.g., 2022"
-        placeholderTextColor={COLORS.mutedForeground}
-        value={year}
-        onChangeText={setYear}
-        keyboardType="number-pad"
-        maxLength={4}
-      />
+      <View>
+        <TextInput
+          style={[styles.input, showValidation && !/^\d{4}$/.test(year) && styles.inputError]}
+          placeholder="e.g., 2022"
+          placeholderTextColor={COLORS.mutedForeground}
+          value={year}
+          onChangeText={(value) => {
+            setYear(value);
+            if (/^\d{4}$/.test(value)) {
+              setShowValidation(false);
+            }
+          }}
+          keyboardType="number-pad"
+          maxLength={4}
+        />
+        {showValidation && !/^\d{4}$/.test(year) && (
+          <Text style={styles.errorText}>Please enter a valid 4-digit year.</Text>
+        )}
+      </View>
 
       <TouchableOpacity style={styles.submitButton} onPress={handleNext}>
         <Text style={styles.submitButtonText}>Next</Text>
@@ -91,6 +103,16 @@ const styles = StyleSheet.create({
     borderColor: COLORS.border,
     fontSize: 18,
     marginBottom: 30,
+    textAlign: "center",
+  },
+  inputError: {
+    borderColor: "#E35D6A",
+  },
+  errorText: {
+    color: "#E35D6A",
+    fontSize: 14,
+    marginTop: -20,
+    marginBottom: 20,
     textAlign: "center",
   },
   submitButton: {

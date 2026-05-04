@@ -47,43 +47,47 @@ export const SocketProvider = ({ children }: { children: ReactNode }) => {
   };
 
   useEffect(() => {
-    if (token) {
-      fetchCounts();
-
-      const newSocket = io(API_URL, {
-        query: { token },
-        transports: ["websocket"],
-      });
-
-      setSocket(newSocket);
-
-      newSocket.on("connect", () => {
-        console.log("Socket.IO connected:", newSocket.id);
-        setIsConnected(true);
-        fetchCounts();
-      });
-
-      newSocket.on("disconnect", () => {
-        console.log("Socket.IO disconnected");
-        setIsConnected(false);
-      });
-
-      newSocket.on("message_count_update", (data: { count: number }) => {
-        setUnreadMessageCount(data.count);
-      });
-
-      newSocket.on("new_notification", (data: { count: number }) => {
-        setUnreadNotificationCount(data.count);
-      });
-
-      newSocket.on("notification_count_update", (data: { count: number }) => {
-        setUnreadNotificationCount(data.count);
-      });
-
-      return () => {
-        newSocket.disconnect();
-      };
+    if (!token) {
+      setSocket(null);
+      setIsConnected(false);
+      setUnreadMessageCount(0);
+      setUnreadNotificationCount(0);
+      return;
     }
+
+    fetchCounts();
+
+    const newSocket = io(API_URL, {
+      query: { token },
+      transports: ["websocket"],
+    });
+
+    setSocket(newSocket);
+
+    newSocket.on("connect", () => {
+      setIsConnected(true);
+      fetchCounts();
+    });
+
+    newSocket.on("disconnect", () => {
+      setIsConnected(false);
+    });
+
+    newSocket.on("message_count_update", (data: { count: number }) => {
+      setUnreadMessageCount(data.count);
+    });
+
+    newSocket.on("new_notification", (data: { count: number }) => {
+      setUnreadNotificationCount(data.count);
+    });
+
+    newSocket.on("notification_count_update", (data: { count: number }) => {
+      setUnreadNotificationCount(data.count);
+    });
+
+    return () => {
+      newSocket.disconnect();
+    };
   }, [token]);
 
   return (

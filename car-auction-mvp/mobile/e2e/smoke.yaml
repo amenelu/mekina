@@ -1,0 +1,7 @@
+appId: ${MAESTRO_APP_ID}
+---
+- runFlow: flows/auth/login-buyer.yaml
+- runFlow: flows/request/request-entry-options.yaml
+- runFlow: flows/request/request-draft-resume.yaml
+- runFlow: flows/request/request-upload-auth-guard.yaml
+- runFlow: flows/trade-in/trade-in-auth-guard.yaml

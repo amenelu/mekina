@@ -30,8 +30,7 @@ const RequestMakeScreen = () => {
 
   const handleNext = () => {
     if (make.trim()) {
-      // Navigate to the next step, passing the make
-      router.push({ pathname: "./model", params: { make } });
+      router.push({ pathname: "/request/model", params: { make } });
     }
   };
 

@@ -98,8 +98,13 @@ const RentalsScreen = () => {
       }
 
       const data = await response.json();
+      const rentals = Array.isArray(data)
+        ? data
+        : Array.isArray(data.rentals)
+        ? data.rentals
+        : [];
       // The API sends a list of car objects. We need to map them to the RentalVehicle type.
-      const formattedData = (data.rentals || []).map((item: any) => ({
+      const formattedData = rentals.map((item: any) => ({
         id: item.id,
         year: item.year,
         make: item.make,

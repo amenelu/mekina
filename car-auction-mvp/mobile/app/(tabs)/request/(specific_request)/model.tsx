@@ -4,6 +4,7 @@ import {
   StyleSheet,
   TextInput,
   TouchableOpacity,
+  View,
 } from "react-native";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -22,16 +23,21 @@ const RequestModelScreen = () => {
   const router = useRouter();
   const params = useLocalSearchParams();
   const [model, setModel] = useState(String(params.model || ""));
+  const [showValidation, setShowValidation] = useState(false);
 
   useRequestDraftPersistence("/request/model", { ...params, model });
 
   const handleNext = () => {
-    if (model.trim()) {
-      router.push({
-        pathname: "./year",
-        params: { ...params, model },
-      });
+    if (!model.trim()) {
+      setShowValidation(true);
+      return;
     }
+
+    setShowValidation(false);
+    router.push({
+      pathname: "/request/year",
+      params: { ...params, model },
+    });
   };
 
   return (
@@ -41,15 +47,28 @@ const RequestModelScreen = () => {
         Great! What model of {params.make} are you looking for?
       </Text>
 
-      <TextInput
-        style={styles.input}
-        placeholder="e.g., Corolla, F-150, Seal"
-        placeholderTextColor={COLORS.mutedForeground}
-        value={model}
-        onChangeText={setModel}
-      />
+      <View>
+        <TextInput
+          style={[styles.input, showValidation && !model.trim() && styles.inputError]}
+          placeholder="e.g., Corolla, F-150, Seal"
+          placeholderTextColor={COLORS.mutedForeground}
+          value={model}
+          onChangeText={(value) => {
+            setModel(value);
+            if (value.trim()) {
+              setShowValidation(false);
+            }
+          }}
+        />
+        {showValidation && !model.trim() && (
+          <Text style={styles.errorText}>Please enter a model to continue.</Text>
+        )}
+      </View>
 
-      <TouchableOpacity style={styles.submitButton} onPress={handleNext}>
+      <TouchableOpacity
+        style={[styles.submitButton, !model.trim() && styles.submitButtonDisabled]}
+        onPress={handleNext}
+      >
         <Text style={styles.submitButtonText}>Next</Text>
       </TouchableOpacity>
     </SafeAreaView>
@@ -86,6 +105,15 @@ const styles = StyleSheet.create({
     fontSize: 18,
     marginBottom: 30,
   },
+  inputError: {
+    borderColor: "#E35D6A",
+  },
+  errorText: {
+    color: "#E35D6A",
+    fontSize: 14,
+    marginTop: -20,
+    marginBottom: 20,
+  },
   submitButton: {
     backgroundColor: COLORS.accent,
     padding: 18,
@@ -96,6 +124,9 @@ const styles = StyleSheet.create({
     color: COLORS.foreground,
     fontSize: 18,
     fontWeight: "bold",
+  },
+  submitButtonDisabled: {
+    opacity: 0.8,
   },
 });
 

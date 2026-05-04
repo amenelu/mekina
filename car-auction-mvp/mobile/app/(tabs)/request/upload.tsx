@@ -27,19 +27,49 @@ const COLORS = {
   accent: "#A370F7",
   border: "#313843",
   mutedForeground: "#8A94A3",
+  danger: "#E35D6A",
 };
+
+function getDraftImageUris(images: ImagePicker.ImagePickerAsset[]) {
+  return images.map((image) => image.uri).filter(Boolean);
+}
+
+function parseDraftImages(
+  value: string | string[] | undefined
+): ImagePicker.ImagePickerAsset[] {
+  const uris = Array.isArray(value) ? value : value ? [value] : [];
+  return uris.map((uri) => ({
+    uri,
+    width: 0,
+    height: 0,
+    type: "image",
+    fileName: uri.split("/").pop(),
+    fileSize: 0,
+    mimeType: "image/jpeg",
+    assetId: null,
+    base64: null,
+    duration: null,
+    exif: null,
+    file: undefined,
+    pairedVideoAsset: null,
+  }));
+}
 
 const RequestUploadScreen = () => {
   const router = useRouter();
   const params = useLocalSearchParams();
   const { token } = useAuth();
-  const [images, setImages] = useState<ImagePicker.ImagePickerAsset[]>([]);
+  const [images, setImages] = useState<ImagePicker.ImagePickerAsset[]>(
+    parseDraftImages(params.images)
+  );
   const [loading, setLoading] = useState(false);
   const [notes, setNotes] = useState(String(params.notes || ""));
+  const [showValidation, setShowValidation] = useState(false);
 
   useRequestDraftPersistence("/request/upload", {
     ...params,
     notes,
+    images: getDraftImageUris(images),
   });
 
   const handleImagePick = async () => {
@@ -54,28 +84,34 @@ const RequestUploadScreen = () => {
     let result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
       allowsMultipleSelection: true,
-      quality: 1,
+      quality: 0.7,
+      selectionLimit: 6,
     });
     if (!result.canceled) {
       setImages(result.assets);
+      setShowValidation(false);
     }
   };
 
   const handleSubmit = async () => {
-    if (images.length === 0 && !notes.trim() && !params.make) {
-      Alert.alert(
-        "Missing Information",
-        "Please provide either notes or an image to submit your request."
-      );
+    if (!token) {
+      Alert.alert("Login Required", "Please log in before submitting a request.");
+      router.replace("/(auth)/login");
       return;
     }
 
+    if (images.length === 0 && !notes.trim() && !params.make) {
+      setShowValidation(true);
+      return;
+    }
+
+    setShowValidation(false);
     setLoading(true);
 
     const formData = new FormData();
     if (params.make) formData.append("make", params.make as string);
     if (params.model) formData.append("model", params.model as string);
-    if (params.year) formData.append("min_year", params.year as string);
+    if (params.min_year) formData.append("min_year", params.min_year as string);
     formData.append("notes", notes);
 
     images.forEach((image) => {
@@ -134,16 +170,35 @@ const RequestUploadScreen = () => {
         <View style={styles.formCard}>
           <Text style={styles.label}>Notes (Optional)</Text>
           <TextInput
-            style={[styles.input, { height: 100, textAlignVertical: "top" }]}
+            testID="request-upload-notes-input"
+            style={[
+              styles.input,
+              { height: 100, textAlignVertical: "top" },
+              showValidation && images.length === 0 && !notes.trim() && !params.make
+                ? styles.inputError
+                : null,
+            ]}
             value={notes}
-            onChangeText={setNotes}
+            onChangeText={(value) => {
+              setNotes(value);
+              if (value.trim()) {
+                setShowValidation(false);
+              }
+            }}
             multiline
             placeholder="e.g., specific color, trim, or features"
             placeholderTextColor={COLORS.mutedForeground}
           />
         </View>
 
-        <View style={styles.formCard}>
+        <View
+          style={[
+            styles.formCard,
+            showValidation && images.length === 0 && !notes.trim() && !params.make
+              ? styles.formCardError
+              : null,
+          ]}
+        >
           <Text style={styles.label}>Photos</Text>
           {images.length > 0 && (
             <ScrollView horizontal style={styles.imageScrollView}>
@@ -165,9 +220,15 @@ const RequestUploadScreen = () => {
               {images.length > 0 ? "Reselect Images" : "Select Images"}
             </Text>
           </TouchableOpacity>
+          {showValidation && images.length === 0 && !notes.trim() && !params.make && (
+            <Text style={styles.errorText}>
+              Add notes or at least one photo before submitting.
+            </Text>
+          )}
         </View>
 
         <TouchableOpacity
+          testID="request-upload-submit"
           style={styles.submitButton}
           onPress={handleSubmit}
           disabled={loading}
@@ -218,6 +279,10 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     marginBottom: 20,
   },
+  formCardError: {
+    borderWidth: 1,
+    borderColor: COLORS.danger,
+  },
   label: {
     fontSize: 14,
     color: COLORS.mutedForeground,
@@ -231,6 +296,14 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: COLORS.border,
     fontSize: 16,
+  },
+  inputError: {
+    borderColor: COLORS.danger,
+  },
+  errorText: {
+    color: COLORS.danger,
+    fontSize: 14,
+    marginTop: 12,
   },
   imageScrollView: {
     marginBottom: 15,

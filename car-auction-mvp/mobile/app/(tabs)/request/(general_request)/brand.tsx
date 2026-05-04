@@ -38,6 +38,12 @@ const RequestBrandScreen = () => {
   useRequestDraftPersistence("/request/brand", { ...params, brand });
 
   const handleSubmit = async () => {
+    if (!token) {
+      Alert.alert("Login Required", "Please log in before submitting a request.");
+      router.replace("/(auth)/login");
+      return;
+    }
+
     setLoading(true);
 
     const finalRequest = {

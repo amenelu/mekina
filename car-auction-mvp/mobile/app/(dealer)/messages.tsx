@@ -70,7 +70,6 @@ const MessagesScreen = () => {
   useEffect(() => {
     if (socket) {
       const handleConversationUpdate = () => {
-        console.log("Received conversation_list_update, refetching...");
         fetchMessages();
       };
 

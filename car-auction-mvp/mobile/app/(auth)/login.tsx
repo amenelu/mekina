@@ -12,7 +12,6 @@ import {
   ScrollView,
 } from "react-native";
 import BouncyCheckbox from "react-native-bouncy-checkbox";
-import * as SecureStore from "expo-secure-store";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Link, useRouter } from "expo-router";
 import { useAuth } from "@/hooks/useAuth";
@@ -21,14 +20,14 @@ import { login as loginRequest } from "@/lib/api/auth";
 export default function LoginScreen() {
   const [login, setLogin] = useState("");
   const [password, setPassword] = useState("");
-  const [rememberMe, setRememberMe] = useState(false);
+  const [rememberMe, setRememberMeChecked] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [focusedInput, setFocusedInput] = useState<"login" | "password" | null>(
     null
   );
 
   const router = useRouter();
-  const { login: setAuth } = useAuth();
+  const { login: setAuth, setRememberMe } = useAuth();
 
   const handleLogin = async () => {
     if (!login || !password) {
@@ -40,14 +39,7 @@ export default function LoginScreen() {
       const response = await loginRequest(login, password);
       const { user, token } = response.data;
 
-      if (rememberMe) {
-        await SecureStore.setItemAsync("token", token);
-        await SecureStore.setItemAsync("user", JSON.stringify(user));
-      } else {
-        await SecureStore.deleteItemAsync("token");
-        await SecureStore.deleteItemAsync("user");
-      }
-
+      setRememberMe(rememberMe);
       setAuth(user, token);
 
       // Role-based redirection
@@ -84,6 +76,7 @@ export default function LoginScreen() {
             <View style={styles.formGroup}>
               <Text style={styles.label}>Username or Email</Text>
               <TextInput
+                testID="login-input"
                 style={[
                   styles.input,
                   focusedInput === "login" && styles.inputFocused,
@@ -100,6 +93,7 @@ export default function LoginScreen() {
             <View style={styles.formGroup}>
               <Text style={styles.label}>Password</Text>
               <TextInput
+                testID="password-input"
                 style={[
                   styles.input,
                   focusedInput === "password" && styles.inputFocused,
@@ -114,6 +108,7 @@ export default function LoginScreen() {
 
             <View style={styles.checkboxContainer}>
               <BouncyCheckbox
+                testID="remember-me-checkbox"
                 size={22}
                 fillColor="#6118d7ff"
                 unFillColor="#FFFFFF"
@@ -121,11 +116,12 @@ export default function LoginScreen() {
                 iconStyle={{ borderColor: "#ced4da" }}
                 innerIconStyle={{ borderWidth: 2 }}
                 textStyle={{ textDecorationLine: "none", fontSize: 16 }}
-                onPress={(isChecked: boolean) => setRememberMe(isChecked)}
+                onPress={(isChecked: boolean) => setRememberMeChecked(isChecked)}
               />
             </View>
 
             <TouchableOpacity
+              testID="login-submit"
               style={styles.loginButton}
               onPress={handleLogin}
               disabled={isLoading}

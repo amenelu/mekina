@@ -89,10 +89,12 @@ const CompareScreen = () => {
         return;
       }
       try {
-        // IMPORTANT: Replace with your computer's local IP address
         const response = await fetch(
           `${API_BASE_URL}/api/compare?ids=${car_ids}`
         );
+        if (!response.ok) {
+          throw new Error(`Failed to load comparison data (${response.status})`);
+        }
         const data = await response.json();
         if (data.cars && data.best_values) {
           // Map the API response to the Vehicle type structure

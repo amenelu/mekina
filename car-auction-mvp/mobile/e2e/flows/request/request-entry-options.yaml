@@ -1,0 +1,12 @@
+appId: ${MAESTRO_APP_ID}
+---
+- launchApp:
+    clearState: false
+- openLink: mobile://request
+- assertVisible: "Do you know which car you want?"
+- assertVisible:
+    id: "request-choice-specific"
+- assertVisible:
+    id: "request-choice-guided"
+- assertVisible:
+    id: "request-choice-upload"

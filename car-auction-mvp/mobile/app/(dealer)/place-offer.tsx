@@ -281,7 +281,12 @@ const PlaceOfferScreen = () => {
     );
   }
 
-  const cheapestBidId = existingBids.length > 0 ? existingBids[0].id : null;
+  const cheapestBidId =
+    existingBids.length > 0
+      ? existingBids.reduce((lowest, bid) =>
+          bid.price < lowest.price ? bid : lowest
+        ).id
+      : null;
 
   return (
     <SafeAreaView style={styles.container}>

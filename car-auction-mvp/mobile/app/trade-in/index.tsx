@@ -42,16 +42,23 @@ const TradeInScreen = () => {
   const [base64Images, setBase64Images] = useState<string[]>([]);
 
   const handleImagePick = async () => {
+    if (images.length >= 6) {
+      Alert.alert("Image Limit", "You can upload up to 6 photos for a trade-in.");
+      return;
+    }
+
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
       allowsMultipleSelection: true,
-      quality: 0.8,
+      quality: 0.7,
       base64: true,
+      selectionLimit: 6 - images.length,
     });
 
     if (!result.canceled) {
-      const newUris = result.assets.map((asset) => asset.uri);
-      const newBase64s = result.assets.map(
+      const selectedAssets = result.assets.filter((asset) => Boolean(asset.base64));
+      const newUris = selectedAssets.map((asset) => asset.uri);
+      const newBase64s = selectedAssets.map(
         (asset) => `data:image/jpeg;base64,${asset.base64}`
       );
       setImages((prev) => [...prev, ...newUris]);
@@ -60,6 +67,12 @@ const TradeInScreen = () => {
   };
 
   const handleSubmit = async () => {
+    if (!token) {
+      Alert.alert("Login Required", "Please log in before submitting a trade-in request.");
+      router.replace("/(auth)/login");
+      return;
+    }
+
     if (!make || !model || !year || !mileage || base64Images.length === 0) {
       Alert.alert(
         "Missing Information",
@@ -186,6 +199,7 @@ const TradeInScreen = () => {
         </ScrollView>
 
         <Pressable
+          testID="trade-in-submit"
           style={styles.submitButton}
           onPress={handleSubmit}
           disabled={loading}

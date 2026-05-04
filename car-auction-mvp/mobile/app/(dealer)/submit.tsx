@@ -10,7 +10,7 @@ import {
   Image,
   ActivityIndicator,
 } from "react-native";
-import { useNavigation } from "expo-router";
+import { useNavigation, useRouter } from "expo-router";
 import axios from "axios";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useAuth } from "@/hooks/useAuth";
@@ -30,6 +30,7 @@ const COLORS = {
 
 const CarSubmissionForm = () => {
   const navigation = useNavigation();
+  const router = useRouter();
   const { token } = useAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -41,6 +42,12 @@ const CarSubmissionForm = () => {
   const [images, setImages] = useState<ImagePicker.ImagePickerAsset[]>([]);
 
   const handleSubmit = async () => {
+    if (!token) {
+      Alert.alert("Login Required", "Please log in before submitting a listing.");
+      router.replace("/(auth)/login");
+      return;
+    }
+
     if (!make || !model || !year || !price) {
       Alert.alert("Error", "Please fill in all required fields.");
       return;
@@ -107,7 +114,8 @@ const CarSubmissionForm = () => {
     let result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
       allowsMultipleSelection: true,
-      quality: 1,
+      quality: 0.7,
+      selectionLimit: 8,
     });
     if (!result.canceled) {
       setImages(result.assets);
