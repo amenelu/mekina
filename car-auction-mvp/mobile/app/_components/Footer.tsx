@@ -1,5 +1,5 @@
 import React from "react";
-import { View, Pressable, Text, StyleSheet } from "react-native";
+import { View, Pressable, Text, StyleSheet, Platform } from "react-native";
 import { Link } from "expo-router";
 
 const COLORS = {
@@ -82,7 +82,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 25,
     borderTopWidth: 1,
     borderTopColor: COLORS.border,
-    paddingBottom: 18, // give space so the button doesn't overlap content
+    paddingBottom: Platform.OS === "web" ? 0 : 12,
   },
   footerContentGrid: { marginBottom: 20 },
   footerSection: { marginBottom: 30 },
@@ -110,7 +110,7 @@ const styles = StyleSheet.create({
   },
   footerBottom: {
     paddingTop: 20,
-    paddingBottom: 20,
+    paddingBottom: Platform.OS === "web" ? 10 : 16,
     borderTopWidth: 1,
     borderTopColor: COLORS.border,
     alignItems: "center",

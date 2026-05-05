@@ -1,14 +1,26 @@
 import { Redirect } from "expo-router";
 import { useAuth } from "@/hooks/useAuth";
-import { View, ActivityIndicator, StyleSheet, Image } from "react-native";
+import { View, ActivityIndicator, StyleSheet, Image, Platform } from "react-native";
+import { useEffect } from "react";
 
 export default function Index() {
-  // Use 'as any' to bypass the missing type definition for isLoading if necessary
-  const { user, isLoading } = useAuth() as any;
+  const { user, isLoading, hasHydrated, setIsLoading, setHasHydrated } =
+    useAuth() as any;
+
+  useEffect(() => {
+    if (!hasHydrated && isLoading) {
+      const timer = setTimeout(() => {
+        setIsLoading(false);
+        setHasHydrated(true);
+      }, 2000);
+
+      return () => clearTimeout(timer);
+    }
+  }, [hasHydrated, isLoading, setHasHydrated, setIsLoading]);
 
   // Show splash while auth state is loading
   const showSplash =
-    isLoading || (isLoading === undefined && user === undefined);
+    Platform.OS !== "web" && !hasHydrated && (isLoading || user === undefined);
 
   if (showSplash) {
     return (

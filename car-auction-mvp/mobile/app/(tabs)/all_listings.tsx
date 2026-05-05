@@ -13,6 +13,7 @@ import {
   Modal,
   TouchableOpacity,
   RefreshControl,
+  Platform,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter, useLocalSearchParams } from "expo-router";
@@ -322,7 +323,10 @@ const AllListingsScreen = () => {
           justifyContent: "space-between",
           paddingHorizontal: 20,
         }}
-        contentContainerStyle={{ paddingBottom: 20, paddingTop: 20 }}
+        contentContainerStyle={{
+          paddingBottom: Platform.OS === "web" ? 8 : 20,
+          paddingTop: 20,
+        }}
         refreshControl={
           <RefreshControl
             refreshing={refreshing}

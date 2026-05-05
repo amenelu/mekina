@@ -1,4 +1,8 @@
-import * as SecureStore from "expo-secure-store";
+import {
+  deleteItemAsync,
+  getItemAsync,
+  setItemAsync,
+} from "@/lib/appStorage";
 
 const REQUEST_DRAFT_KEY = "request_flow_draft";
 
@@ -49,11 +53,11 @@ export async function saveRequestDraft(
     updatedAt: new Date().toISOString(),
   };
 
-  await SecureStore.setItemAsync(REQUEST_DRAFT_KEY, JSON.stringify(draft));
+  await setItemAsync(REQUEST_DRAFT_KEY, JSON.stringify(draft));
 }
 
 export async function loadRequestDraft(): Promise<RequestDraft | null> {
-  const rawValue = await SecureStore.getItemAsync(REQUEST_DRAFT_KEY);
+  const rawValue = await getItemAsync(REQUEST_DRAFT_KEY);
   if (!rawValue) return null;
 
   try {
@@ -70,5 +74,5 @@ export async function loadRequestDraft(): Promise<RequestDraft | null> {
 }
 
 export async function clearRequestDraft() {
-  await SecureStore.deleteItemAsync(REQUEST_DRAFT_KEY);
+  await deleteItemAsync(REQUEST_DRAFT_KEY);
 }

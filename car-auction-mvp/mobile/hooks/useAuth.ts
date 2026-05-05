@@ -1,12 +1,6 @@
 import { create } from "zustand";
-import { createJSONStorage, persist } from "zustand/middleware";
-import * as SecureStore from "expo-secure-store";
-
-const secureStorage = {
-  getItem: (name: string) => SecureStore.getItemAsync(name),
-  setItem: (name: string, value: string) => SecureStore.setItemAsync(name, value),
-  removeItem: (name: string) => SecureStore.deleteItemAsync(name),
-};
+import { createJSONStorage, persist } from "zustand/middleware.js";
+import { appStorage } from "@/lib/appStorage";
 
 export interface User {
   id: number;
@@ -25,10 +19,12 @@ interface AuthState {
   token: string | null;
   rememberMe: boolean;
   isLoading: boolean;
+  hasHydrated: boolean;
   login: (user: User, token: string) => void;
   logout: () => void;
   setRememberMe: (rememberMe: boolean) => void;
   setIsLoading: (isLoading: boolean) => void;
+  setHasHydrated: (hasHydrated: boolean) => void;
 }
 
 export const useAuth = create<AuthState>()(
@@ -38,14 +34,16 @@ export const useAuth = create<AuthState>()(
       token: null,
       rememberMe: false,
       isLoading: true,
+      hasHydrated: false,
       login: (user, token) => set({ user, token }),
       logout: () => set({ user: null, token: null, rememberMe: false }),
       setRememberMe: (rememberMe) => set({ rememberMe }),
       setIsLoading: (isLoading) => set({ isLoading }),
+      setHasHydrated: (hasHydrated) => set({ hasHydrated }),
     }),
     {
       name: "auth-storage", // unique name
-      storage: createJSONStorage(() => secureStorage),
+      storage: createJSONStorage(() => appStorage),
       partialize: (state) =>
         state.rememberMe
           ? {
@@ -58,6 +56,7 @@ export const useAuth = create<AuthState>()(
             },
       onRehydrateStorage: () => (state) => {
         state?.setIsLoading(false);
+        state?.setHasHydrated(true);
       },
     }
   )

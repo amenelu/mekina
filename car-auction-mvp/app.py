@@ -1,4 +1,4 @@
-from flask import Flask
+from flask import Flask, request as flask_request
 from flask_login import current_user
 from config import Config, config_by_name
 import os
@@ -20,6 +20,61 @@ def create_app(config_class=None):
         env_name = os.environ.get("FLASK_ENV") or os.environ.get("APP_ENV") or "default"
         config_class = config_by_name.get(env_name, Config)
     app.config.from_object(config_class)
+
+    def _is_allowed_origin(origin: str | None) -> bool:
+        if not origin:
+            return False
+
+        configured_origins = [
+            item.strip()
+            for item in os.environ.get("CORS_ALLOWED_ORIGINS", "").split(",")
+            if item.strip()
+        ]
+        if configured_origins:
+            return origin in configured_origins
+
+        # In local development, allow browser clients from common Expo/Web hosts.
+        if app.config.get("FLASK_DEBUG", False):
+            prefixes = (
+                "http://localhost:",
+                "http://127.0.0.1:",
+                "http://192.168.",
+                "http://10.",
+                "http://172.",
+            )
+            return origin.startswith(prefixes)
+
+        return False
+
+    @app.before_request
+    def handle_cors_preflight():
+        origin = flask_request.headers.get("Origin")
+        if flask_request.method == "OPTIONS" and _is_allowed_origin(origin):
+            response = app.make_default_options_response()
+            response.headers["Access-Control-Allow-Origin"] = origin
+            response.headers["Access-Control-Allow-Headers"] = (
+                "Authorization, Content-Type"
+            )
+            response.headers["Access-Control-Allow-Methods"] = (
+                "GET, POST, PUT, PATCH, DELETE, OPTIONS"
+            )
+            response.headers["Access-Control-Max-Age"] = "3600"
+            response.headers["Vary"] = "Origin"
+            return response
+
+    @app.after_request
+    def add_cors_headers(response):
+        origin = flask_request.headers.get("Origin")
+        if _is_allowed_origin(origin):
+            response.headers["Access-Control-Allow-Origin"] = origin
+            response.headers["Access-Control-Allow-Headers"] = (
+                "Authorization, Content-Type"
+            )
+            response.headers["Access-Control-Allow-Methods"] = (
+                "GET, POST, PUT, PATCH, DELETE, OPTIONS"
+            )
+            response.headers["Vary"] = "Origin"
+        return response
 
     # Initialize Flask extensions here
     db.init_app(app)

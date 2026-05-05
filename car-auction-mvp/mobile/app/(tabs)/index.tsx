@@ -11,13 +11,14 @@ import {
   ActivityIndicator,
   RefreshControl,
   Alert,
+  Platform,
 } from "react-native";
 import { useRouter, useNavigation } from "expo-router";
 import { useScrollToTop } from "@react-navigation/native";
 import { Ionicons } from "@expo/vector-icons";
 import API_URL from "@/constants/Api";
 import { useAuth } from "@/hooks/useAuth";
-import * as SecureStore from "expo-secure-store";
+import { getItemAsync, setItemAsync } from "@/lib/appStorage";
 
 import Footer from "../_components/Footer";
 import VehicleCard, { Vehicle } from "../_components/VehicleCard";
@@ -82,7 +83,7 @@ const HomeScreen = () => {
   useEffect(() => {
     const checkInfoStatus = async () => {
       if (user) {
-        const hasSeen = await SecureStore.getItemAsync("has_seen_request_info");
+        const hasSeen = await getItemAsync("has_seen_request_info");
         if (!hasSeen) {
           setShowInfo(true);
         }
@@ -95,7 +96,7 @@ const HomeScreen = () => {
 
   const handleDismissInfo = async () => {
     setShowInfo(false);
-    await SecureStore.setItemAsync("has_seen_request_info", "true");
+    await setItemAsync("has_seen_request_info", "true");
   };
 
   useEffect(() => {
@@ -549,7 +550,7 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.background,
   },
   contentContainer: {
-    paddingBottom: 40,
+    paddingBottom: Platform.OS === "web" ? 12 : 40,
   },
   headerTitleText: {
     fontSize: 20,

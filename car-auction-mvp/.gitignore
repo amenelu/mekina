@@ -45,3 +45,7 @@ static/uploads/
 
 # modules
 node_modules/
+
+# runtime logs
+*.log
+docs/*.log
