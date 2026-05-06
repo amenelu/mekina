@@ -7,7 +7,6 @@ import {
   StyleSheet,
   TouchableOpacity,
   View,
-  Alert,
 } from "react-native";
 import { useSocket } from "../../contexts/SocketContext";
 import { useAuth } from "@/hooks/useAuth";
@@ -19,16 +18,25 @@ const COLORS = {
   accent: "#A370F7",
 };
 
-const PulsatingTabBarButton = ({ children, onPress }: any) => {
+const AnimatedTouchableOpacity = Animated.createAnimatedComponent(TouchableOpacity);
+
+const WebTabBarButton = ({ children, onPress }: any) => {
   const pulseAnimation = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     const animation = Animated.loop(
-      Animated.timing(pulseAnimation, {
-        toValue: 1,
-        duration: 2000,
-        useNativeDriver: true,
-      })
+      Animated.sequence([
+        Animated.timing(pulseAnimation, {
+          toValue: 1,
+          duration: 1400,
+          useNativeDriver: true,
+        }),
+        Animated.timing(pulseAnimation, {
+          toValue: 0,
+          duration: 1400,
+          useNativeDriver: true,
+        }),
+      ])
     );
     animation.start();
     return () => animation.stop();
@@ -39,25 +47,34 @@ const PulsatingTabBarButton = ({ children, onPress }: any) => {
       {
         scale: pulseAnimation.interpolate({
           inputRange: [0, 1],
-          outputRange: [1, 1.4],
+          outputRange: [1, 1.06],
         }),
       },
     ],
     opacity: pulseAnimation.interpolate({
-      inputRange: [0, 0.5, 1],
-      outputRange: [0.8, 1, 0],
+      inputRange: [0, 1],
+      outputRange: [0.94, 1],
+    }),
+    shadowOpacity: pulseAnimation.interpolate({
+      inputRange: [0, 1],
+      outputRange: [0.24, 0.42],
     }),
   };
 
   return (
-    <TouchableOpacity onPress={onPress} style={styles.pulsatingButtonContainer}>
-      <Animated.View style={[styles.pulsatingRing, animatedStyle]} />
-      <View style={styles.innerButton}>{children}</View>
-    </TouchableOpacity>
+    <View style={styles.webTabButtonContainer}>
+      <AnimatedTouchableOpacity
+        onPress={onPress}
+        activeOpacity={0.9}
+        style={[styles.webInnerButton, animatedStyle]}
+      >
+        {children}
+      </AnimatedTouchableOpacity>
+    </View>
   );
 };
 
-export default function TabsLayout() {
+export default function TabsLayoutWeb() {
   const pathname = usePathname();
   const router = useRouter();
   const { unreadNotificationCount } = useSocket();
@@ -74,12 +91,20 @@ export default function TabsLayout() {
           display: isTabBarVisible ? "flex" : "none",
           backgroundColor: COLORS.card,
           borderTopColor: "#313843",
+          height: 64,
+          paddingTop: 6,
+          paddingBottom: 6,
+          overflow: "visible",
         },
         headerStyle: {
           backgroundColor: COLORS.card,
           shadowColor: "transparent",
+          height: 52,
         },
-        headerTitleStyle: { color: COLORS.foreground },
+        headerTitleStyle: {
+          color: COLORS.foreground,
+          fontSize: 18,
+        },
         headerRight: () => <HeaderRight />,
       }}
     >
@@ -115,26 +140,13 @@ export default function TabsLayout() {
         options={{
           title: "Find Car",
           headerTitle: "Find Car",
-          tabBarIcon: ({ focused }) => (
-            <Ionicons
-              name="search"
-              size={28}
-              color={focused ? COLORS.accent : "#fff"}
-            />
-          ),
+          tabBarIcon: () => <Ionicons name="search" size={30} color="#fff" />,
           tabBarButton: (props) => (
-            <PulsatingTabBarButton
+            <WebTabBarButton
               {...props}
               onPress={(e: any) => {
                 if (!user) {
-                  Alert.alert(
-                    "Login Required",
-                    "Please log in to find a car.",
-                    [
-                      { text: "Cancel", style: "cancel" },
-                      { text: "Login", onPress: () => router.push("/login") },
-                    ]
-                  );
+                  router.push("/login");
                 } else {
                   props.onPress?.(e);
                 }
@@ -182,29 +194,24 @@ export default function TabsLayout() {
 }
 
 const styles = StyleSheet.create({
-  pulsatingButtonContainer: {
-    position: "relative",
-    width: 70,
-    height: 70,
+  webTabButtonContainer: {
+    flex: 1,
     alignItems: "center",
     justifyContent: "center",
+    paddingVertical: 4,
+    marginTop: -26,
   },
-  pulsatingRing: {
-    position: "absolute",
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    borderWidth: 2,
-    borderColor: COLORS.accent,
-  },
-  innerButton: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: COLORS.card,
-    borderWidth: 2,
-    borderColor: COLORS.accent,
+  webInnerButton: {
+    width: 68,
+    height: 68,
+    borderRadius: 34,
+    backgroundColor: "#101317",
     alignItems: "center",
     justifyContent: "center",
+    borderWidth: 4,
+    borderColor: "#F4F4F4",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 8 },
+    shadowRadius: 14,
   },
 });

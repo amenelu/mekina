@@ -7,7 +7,6 @@ import {
   SafeAreaView,
   ScrollView,
   ActivityIndicator,
-  FlatList,
   RefreshControl,
 } from "react-native";
 import axios from "axios";
@@ -83,6 +82,22 @@ const ReviewItem = ({ item }: { item: Review }) => (
     <Text style={styles.reviewText}>{item.review_text}</Text>
   </View>
 );
+
+const SectionList = <T,>({
+  data,
+  emptyText,
+  renderItem,
+}: {
+  data: T[];
+  emptyText: string;
+  renderItem: (item: T) => React.ReactNode;
+}) => {
+  if (data.length === 0) {
+    return <Text style={styles.emptyText}>{emptyText}</Text>;
+  }
+
+  return <View style={styles.sectionList}>{data.map(renderItem)}</View>;
+};
 
 const ProfileScreen = () => {
   const { logout, user, token } = useAuth();
@@ -191,58 +206,44 @@ const ProfileScreen = () => {
 
             <View style={styles.section}>
               <Text style={styles.sectionTitle}>Your Active Listings</Text>
-              {profileData.listings.length > 0 ? (
-                <FlatList
-                  data={profileData.listings}
-                  renderItem={({ item }) => (
-                    <Pressable
-                      onPress={() => {
-                        router.push({
-                          pathname: "/(dealer)/edit-listing" as any,
-                          params: { id: item.id.toString() },
-                        });
-                      }}
-                      style={{ width: "100%" }}
-                    >
-                      <VehicleCard
-                        item={{
-                          id: item.id.toString(),
-                          year: item.year,
-                          make: item.make,
-                          model: item.model,
-                          mileage: item.mileage,
-                          // Map API fields to VehicleCard's expected fields
-                          price: item.price_display || "N/A",
-                          image: item.primary_image_url || "",
-                          listingType: (item.listing_type
-                            ? item.listing_type.charAt(0).toUpperCase() +
-                              item.listing_type.slice(1)
-                            : "Sale") as any,
-                        }}
-                        style={{ width: "100%" }}
-                      />
-                    </Pressable>
-                  )}
-                  keyExtractor={(item) => item.id.toString()}
-                  scrollEnabled={false}
-                />
-              ) : (
-                <Text style={styles.emptyText}>No active listings.</Text>
-              )}
+              <SectionList
+                data={profileData.listings}
+                emptyText="No active listings."
+                renderItem={(item) => (
+                  <VehicleCard
+                    key={item.id}
+                    onPress={() => {
+                      router.push({
+                        pathname: "/(dealer)/edit-listing" as any,
+                        params: { id: item.id.toString() },
+                      });
+                    }}
+                    item={{
+                      id: item.id.toString(),
+                      year: item.year,
+                      make: item.make,
+                      model: item.model,
+                      mileage: item.mileage,
+                      price: item.price_display || "N/A",
+                      image: item.primary_image_url || "",
+                      listingType: (item.listing_type
+                        ? item.listing_type.charAt(0).toUpperCase() +
+                          item.listing_type.slice(1)
+                        : "Sale") as any,
+                    }}
+                    style={{ width: "100%" }}
+                  />
+                )}
+              />
             </View>
 
             <View style={styles.section}>
               <Text style={styles.sectionTitle}>Your Reviews</Text>
-              {profileData.ratings.length > 0 ? (
-                <FlatList
-                  data={profileData.ratings}
-                  renderItem={({ item }) => <ReviewItem item={item} />}
-                  keyExtractor={(item) => item.id.toString()}
-                  scrollEnabled={false}
-                />
-              ) : (
-                <Text style={styles.emptyText}>You have no reviews yet.</Text>
-              )}
+              <SectionList
+                data={profileData.ratings}
+                emptyText="You have no reviews yet."
+                renderItem={(item) => <ReviewItem key={item.id} item={item} />}
+              />
             </View>
           </>
         )}
@@ -318,6 +319,9 @@ const styles = StyleSheet.create({
     color: COLORS.textSecondary,
     textAlign: "center",
     marginTop: 20,
+  },
+  sectionList: {
+    width: "100%",
   },
   reviewCard: {
     backgroundColor: COLORS.card,

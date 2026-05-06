@@ -4,7 +4,7 @@ import {
   Text,
   StyleSheet,
   TouchableOpacity,
-  FlatList,
+  ScrollView,
   ActivityIndicator,
   Pressable,
   Alert,
@@ -142,11 +142,16 @@ const ProfileScreen = () => {
   const renderContent = () => {
     if (activeTab === "settings") {
       return (
-        <View style={styles.settingsContainer}>
-          <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
-            <Text style={styles.logoutButtonText}>Logout</Text>
-          </TouchableOpacity>
-        </View>
+        <ScrollView
+          contentContainerStyle={styles.settingsContent}
+          showsVerticalScrollIndicator={false}
+        >
+          <View style={styles.settingsContainer}>
+            <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
+              <Text style={styles.logoutButtonText}>Logout</Text>
+            </TouchableOpacity>
+          </View>
+        </ScrollView>
       );
     }
 
@@ -158,35 +163,19 @@ const ProfileScreen = () => {
       );
     }
 
-    return (
-      <FlatList
-        data={favorites}
-        renderItem={({ item }) => (
-          <View style={styles.favoriteCardWrapper}>
-            <VehicleCard item={item} style={styles.card} />
-            <TouchableOpacity
-              style={styles.removeButton}
-              onPress={() => handleRemoveFavorite(item.id)}
-            >
-              <Ionicons
-                name="heart-dislike"
-                size={24}
-                color={COLORS.destructive}
-              />
-            </TouchableOpacity>
-          </View>
-        )}
-        keyExtractor={(item) => item.id}
-        contentContainerStyle={styles.listContent}
-        showsVerticalScrollIndicator={false}
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={onRefresh}
-            tintColor={COLORS.accent}
-          />
-        }
-        ListEmptyComponent={
+    if (favorites.length === 0) {
+      return (
+        <ScrollView
+          contentContainerStyle={styles.listContent}
+          showsVerticalScrollIndicator={false}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              tintColor={COLORS.accent}
+            />
+          }
+        >
           <View style={styles.emptyContainer}>
             <Ionicons
               name="heart-dislike-outline"
@@ -203,8 +192,38 @@ const ProfileScreen = () => {
               <Text style={styles.browseButtonText}>Browse Cars</Text>
             </TouchableOpacity>
           </View>
+        </ScrollView>
+      );
+    }
+
+    return (
+      <ScrollView
+        contentContainerStyle={styles.listContent}
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor={COLORS.accent}
+          />
         }
-      />
+      >
+        {favorites.map((item) => (
+          <View key={item.id} style={styles.favoriteCardWrapper}>
+            <VehicleCard item={item} style={styles.card} />
+            <TouchableOpacity
+              style={styles.removeButton}
+              onPress={() => handleRemoveFavorite(item.id)}
+            >
+              <Ionicons
+                name="heart-dislike"
+                size={24}
+                color={COLORS.destructive}
+              />
+            </TouchableOpacity>
+          </View>
+        ))}
+      </ScrollView>
     );
   };
 
@@ -288,9 +307,12 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   settingsContainer: {
-    flex: 1,
     padding: 20,
     alignItems: "center",
+  },
+  settingsContent: {
+    flexGrow: 1,
+    paddingBottom: 100,
   },
   logoutButton: {
     backgroundColor: COLORS.destructive,

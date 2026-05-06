@@ -106,4 +106,5 @@ describe("LoginScreen", () => {
       expect(mockReplace).toHaveBeenCalledWith("/(dealer)/dashboard");
     });
   });
+
 });

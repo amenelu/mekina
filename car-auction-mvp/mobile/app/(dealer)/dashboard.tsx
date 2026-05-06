@@ -6,7 +6,6 @@ import {
   ActivityIndicator,
   ScrollView,
   Pressable,
-  FlatList,
   RefreshControl,
   SafeAreaView,
 } from "react-native";
@@ -209,6 +208,22 @@ const RequestItem = ({ item }: { item: CustomerRequest }) => {
   );
 };
 
+const DashboardSection = <T,>({
+  data,
+  emptyText,
+  renderItem,
+}: {
+  data: T[];
+  emptyText: string;
+  renderItem: (item: T) => React.ReactNode;
+}) => {
+  if (data.length === 0) {
+    return <Text style={styles.emptyText}>{emptyText}</Text>;
+  }
+
+  return <View style={styles.sectionList}>{data.map(renderItem)}</View>;
+};
+
 const DealerDashboard = () => {
   const { token, user, isLoading } = useAuth() as any;
   const { socket } = useSocket();
@@ -391,42 +406,26 @@ const DealerDashboard = () => {
         </ScrollView>
 
         {activeTab === "listings" && (
-          <FlatList
+          <DashboardSection
             data={listings}
-            renderItem={({ item }) => <ListingItem item={item} />}
-            keyExtractor={(item) => item.id.toString()}
-            ListEmptyComponent={
-              <Text style={styles.emptyText}>
-                You have no approved listings yet.
-              </Text>
-            }
-            scrollEnabled={false}
+            emptyText="You have no approved listings yet."
+            renderItem={(item) => <ListingItem key={item.id} item={item} />}
           />
         )}
 
         {activeTab === "requests" && (
-          <FlatList
+          <DashboardSection
             data={requests}
-            renderItem={({ item }) => <RequestItem item={item} />}
-            keyExtractor={(item) => item.id.toString()}
-            ListEmptyComponent={
-              <Text style={styles.emptyText}>No customer requests found.</Text>
-            }
-            scrollEnabled={false}
+            emptyText="No customer requests found."
+            renderItem={(item) => <RequestItem key={item.id} item={item} />}
           />
         )}
 
         {activeTab === "pending" && (
-          <FlatList
+          <DashboardSection
             data={pendingListings}
-            renderItem={({ item }) => <ListingItem item={item} />}
-            keyExtractor={(item) => item.id.toString()}
-            ListEmptyComponent={
-              <Text style={styles.emptyText}>
-                No listings are pending approval.
-              </Text>
-            }
-            scrollEnabled={false}
+            emptyText="No listings are pending approval."
+            renderItem={(item) => <ListingItem key={item.id} item={item} />}
           />
         )}
       </ScrollView>
@@ -520,6 +519,9 @@ const styles = StyleSheet.create({
     color: COLORS.textSecondary,
     textAlign: "center",
     marginTop: 30,
+  },
+  sectionList: {
+    paddingBottom: 12,
   },
   requestCardHeader: {
     flexDirection: "row",

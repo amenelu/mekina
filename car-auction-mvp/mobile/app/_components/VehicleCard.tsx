@@ -7,6 +7,7 @@ import {
   ImageBackground,
   StyleProp,
   ViewStyle,
+  Platform,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
@@ -36,6 +37,7 @@ type VehicleCardProps = {
   isFavorite?: boolean;
   onToggleCompare?: (id: string) => void;
   onToggleFavorite?: (id: string) => void;
+  onPress?: (id: string) => void;
   style?: StyleProp<ViewStyle>;
 };
 
@@ -45,6 +47,7 @@ const VehicleCard = ({
   isFavorite,
   onToggleCompare,
   onToggleFavorite,
+  onPress,
   style,
 }: VehicleCardProps) => {
   const router = useRouter();
@@ -53,13 +56,18 @@ const VehicleCard = ({
   return (
     <Pressable
       testID={`vehicle-card-${item.id}`}
-      style={[styles.vehicleCard, style]}
-      onPress={() =>
+      style={[styles.vehicleCard, Platform.OS === "web" && styles.webVehicleCard, style]}
+      onPress={() => {
+        if (onPress) {
+          onPress(item.id);
+          return;
+        }
+
         router.push({
           pathname: "/[id]",
           params: { id: item.id },
-        })
-      }
+        });
+      }}
     >
       <ImageBackground
         source={{ uri: item.image }}
@@ -149,6 +157,9 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     marginBottom: 15,
     height: 250,
+  },
+  webVehicleCard: {
+    touchAction: "pan-y",
   },
   vehicleCardImage: {
     width: "100%",

@@ -2,7 +2,6 @@ import { Redirect } from "expo-router";
 import { useAuth } from "@/hooks/useAuth";
 import { View, ActivityIndicator, StyleSheet, Image, Platform } from "react-native";
 import { useEffect } from "react";
-
 export default function Index() {
   const { user, isLoading, hasHydrated, setIsLoading, setHasHydrated } =
     useAuth() as any;
