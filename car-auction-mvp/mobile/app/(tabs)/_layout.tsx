@@ -4,6 +4,7 @@ import { Ionicons } from "@expo/vector-icons";
 import HeaderRight from "../_components/HeaderRight";
 import {
   Animated,
+  Platform,
   StyleSheet,
   TouchableOpacity,
   View,
@@ -18,6 +19,8 @@ const COLORS = {
   card: "#1C212B",
   accent: "#A370F7",
 };
+
+const AnimatedTouchableOpacity = Animated.createAnimatedComponent(TouchableOpacity);
 
 // Custom component for the pulsating button
 const PulsatingTabBarButton = ({ children, onPress }: any) => {
@@ -62,11 +65,66 @@ const PulsatingTabBarButton = ({ children, onPress }: any) => {
   );
 };
 
+const WebTabBarButton = ({ children, onPress }: any) => {
+  const pulseAnimation = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    const animation = Animated.loop(
+      Animated.sequence([
+        Animated.timing(pulseAnimation, {
+          toValue: 1,
+          duration: 1400,
+          useNativeDriver: true,
+        }),
+        Animated.timing(pulseAnimation, {
+          toValue: 0,
+          duration: 1400,
+          useNativeDriver: true,
+        }),
+      ])
+    );
+    animation.start();
+    return () => animation.stop();
+  }, [pulseAnimation]);
+
+  const animatedStyle = {
+    transform: [
+      {
+        scale: pulseAnimation.interpolate({
+          inputRange: [0, 1],
+          outputRange: [1, 1.06],
+        }),
+      },
+    ],
+    opacity: pulseAnimation.interpolate({
+      inputRange: [0, 1],
+      outputRange: [0.94, 1],
+    }),
+    shadowOpacity: pulseAnimation.interpolate({
+      inputRange: [0, 1],
+      outputRange: [0.24, 0.42],
+    }),
+  };
+
+  return (
+    <View style={styles.webTabButtonContainer}>
+      <AnimatedTouchableOpacity
+        onPress={onPress}
+        activeOpacity={0.9}
+        style={[styles.webInnerButton, animatedStyle]}
+      >
+        {children}
+      </AnimatedTouchableOpacity>
+    </View>
+  );
+};
+
 export default function TabsLayout() {
   const pathname = usePathname();
   const router = useRouter();
   const { unreadNotificationCount } = useSocket();
   const { user } = useAuth();
+  const RequestTabButton = Platform.OS === "web" ? WebTabBarButton : PulsatingTabBarButton;
 
   // Determine if the tab bar should be visible.
   // We hide it on the request detail page.
@@ -81,12 +139,20 @@ export default function TabsLayout() {
           display: isTabBarVisible ? "flex" : "none", // Dynamically hide/show tab bar
           backgroundColor: COLORS.card,
           borderTopColor: "#313843",
+          height: Platform.OS === "web" ? 64 : undefined,
+          paddingTop: Platform.OS === "web" ? 6 : undefined,
+          paddingBottom: Platform.OS === "web" ? 6 : undefined,
+          overflow: Platform.OS === "web" ? "visible" : undefined,
         },
         headerStyle: {
           backgroundColor: COLORS.card,
           shadowColor: "transparent",
+          height: Platform.OS === "web" ? 52 : undefined,
         },
-        headerTitleStyle: { color: COLORS.foreground },
+        headerTitleStyle: {
+          color: COLORS.foreground,
+          fontSize: Platform.OS === "web" ? 18 : undefined,
+        },
         headerRight: () => <HeaderRight />,
       }}
     >
@@ -125,15 +191,20 @@ export default function TabsLayout() {
           tabBarIcon: ({ focused }) => (
             <Ionicons
               name="search"
-              size={28}
-              color={focused ? COLORS.accent : "#fff"}
+              size={Platform.OS === "web" ? 30 : 28}
+              color={Platform.OS === "web" ? "#fff" : focused ? COLORS.accent : "#fff"}
             />
           ),
           tabBarButton: (props) => (
-            <PulsatingTabBarButton
+            <RequestTabButton
               {...props}
               onPress={(e: any) => {
                 if (!user) {
+                  if (Platform.OS === "web") {
+                    router.push("/login");
+                    return;
+                  }
+
                   Alert.alert(
                     "Login Required",
                     "Please log in to find a car.",
@@ -215,5 +286,25 @@ const styles = StyleSheet.create({
     borderColor: COLORS.accent,
     alignItems: "center",
     justifyContent: "center",
+  },
+  webTabButtonContainer: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 4,
+    marginTop: -26,
+  },
+  webInnerButton: {
+    width: 68,
+    height: 68,
+    borderRadius: 34,
+    backgroundColor: "#101317",
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 4,
+    borderColor: "#F4F4F4",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 8 },
+    shadowRadius: 14,
   },
 });

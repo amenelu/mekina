@@ -259,6 +259,18 @@ const HomeScreen = () => {
     }
   };
 
+  const requireLogin = (message: string) => {
+    if (Platform.OS === "web") {
+      router.push("/login");
+      return;
+    }
+
+    Alert.alert("Login Required", message, [
+      { text: "Cancel", style: "cancel" },
+      { text: "Login", onPress: () => router.push("/login") },
+    ]);
+  };
+
   // This hook handles scrolling to top when the active tab is pressed
   useScrollToTop(ref);
 
@@ -287,7 +299,6 @@ const HomeScreen = () => {
         />
       }
     >
-      {/* --- Search Hero Section --- */}
       <View style={styles.searchHero}>
         <Text style={styles.heroTitle}>Find Your Next Car</Text>
         <Text style={styles.heroSubtitle}>
@@ -359,7 +370,10 @@ const HomeScreen = () => {
           {trendingSearches.length > 0 && !searchQuery && (
             <View style={styles.trendingContainer}>
               <Text style={styles.trendingLabel}>Trending:</Text>
-              <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+              >
                 {trendingSearches.map((term, index) => (
                   <Pressable
                     key={index}
@@ -416,14 +430,7 @@ const HomeScreen = () => {
               style={[styles.heroButton, styles.primaryButton]}
               onPress={() => {
                 if (!user) {
-                  Alert.alert(
-                    "Login Required",
-                    "Please log in to let us find a car for you.",
-                    [
-                      { text: "Cancel", style: "cancel" },
-                      { text: "Login", onPress: () => router.push("/login") },
-                    ]
-                  );
+                  requireLogin("Please log in to let us find a car for you.");
                 } else {
                   router.push("/request");
                 }
@@ -440,14 +447,7 @@ const HomeScreen = () => {
               style={[styles.heroButton, styles.secondaryButton]}
               onPress={() => {
                 if (!user) {
-                  Alert.alert(
-                    "Login Required",
-                    "Please log in to get a trade-in offer.",
-                    [
-                      { text: "Cancel", style: "cancel" },
-                      { text: "Login", onPress: () => router.push("/login") },
-                    ]
-                  );
+                  requireLogin("Please log in to get a trade-in offer.");
                 } else {
                   router.push("/trade-in");
                 }
@@ -560,21 +560,22 @@ const styles = StyleSheet.create({
   // Hero Section
   searchHero: {
     backgroundColor: COLORS.card,
-    padding: 20,
-    paddingBottom: 30,
+    paddingHorizontal: 20,
+    paddingTop: Platform.OS === "web" ? 14 : 20,
+    paddingBottom: Platform.OS === "web" ? 24 : 30,
   },
   heroTitle: {
-    fontSize: 28,
+    fontSize: Platform.OS === "web" ? 24 : 28,
     fontWeight: "700",
     color: COLORS.foreground,
     textAlign: "center",
     marginBottom: 8,
   },
   heroSubtitle: {
-    fontSize: 16,
+    fontSize: Platform.OS === "web" ? 15 : 16,
     color: COLORS.mutedForeground,
     textAlign: "center",
-    marginBottom: 20,
+    marginBottom: Platform.OS === "web" ? 16 : 20,
   },
   searchBar: {
     flexDirection: "row",

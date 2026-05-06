@@ -313,7 +313,7 @@ const AllListingsScreen = () => {
         </View>
       )}
       <FlatList
-        style={{ flex: 1 }}
+        style={styles.list}
         data={!loading ? allVehicles : []}
         keyExtractor={(item, index) => `${item.id}-${index}`}
         numColumns={2}
@@ -541,6 +541,9 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: COLORS.background,
   },
+  list: {
+    flex: 1,
+  },
   loadingContainer: {
     ...StyleSheet.absoluteFillObject,
     backgroundColor: "rgba(20, 24, 31, 0.9)",
@@ -549,7 +552,9 @@ const styles = StyleSheet.create({
     zIndex: 10,
   },
   filterContainer: {
-    padding: 20,
+    paddingHorizontal: 20,
+    paddingTop: Platform.OS === "web" ? 14 : 20,
+    paddingBottom: Platform.OS === "web" ? 16 : 20,
     backgroundColor: COLORS.card,
     borderBottomWidth: 1,
     borderBottomColor: COLORS.border,
