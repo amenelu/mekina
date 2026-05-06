@@ -265,3 +265,87 @@ def test_api_listings_multi_word_search_requires_all_terms(client):
     assert response.status_code == 200
     payload = response.get_json()
     assert [listing["id"] for listing in payload] == [matching_car.id]
+
+
+def test_rental_dashboard_api_returns_mobile_fleet_shape(client):
+    rental_owner = create_user(
+        "fleetco",
+        "fleetco@example.com",
+        is_rental_company=True,
+        is_verified=True,
+    )
+    active_rental = create_car(
+        rental_owner,
+        listing_type="rental",
+        model="Prado",
+        fixed_price=None,
+        is_approved=True,
+        is_active=True,
+    )
+    pending_rental = create_car(
+        rental_owner,
+        listing_type="rental",
+        model="Hiace",
+        fixed_price=None,
+        is_approved=False,
+        is_active=True,
+    )
+    db.session.add(
+        RentalListing(
+            car_id=active_rental.id,
+            price_per_day=12000,
+            is_available=True,
+        )
+    )
+    db.session.add(
+        RentalListing(
+            car_id=pending_rental.id,
+            price_per_day=15000,
+            is_available=False,
+        )
+    )
+    db.session.commit()
+    headers = login_headers(client, rental_owner.username)
+
+    response = client.get("/seller/api/rental-dashboard", headers=headers)
+
+    assert response.status_code == 200
+    payload = response.get_json()
+    assert payload["profile"]["username"] == "fleetco"
+    assert payload["stats"]["total_fleet_count"] == 2
+    assert payload["stats"]["active_fleet_count"] == 1
+    assert payload["stats"]["pending_approval_count"] == 1
+    assert payload["active_cars"][0]["id"] == active_rental.id
+    assert payload["active_cars"][0]["price_display"] == "12,000 ETB/day"
+    assert payload["pending_cars"][0]["id"] == pending_rental.id
+    assert payload["pending_cars"][0]["rental_listing"]["is_available"] is False
+
+
+def test_rental_toggle_active_api_flips_listing_state(client):
+    rental_owner = create_user(
+        "togglefleet",
+        "togglefleet@example.com",
+        is_rental_company=True,
+    )
+    rental_car = create_car(
+        rental_owner,
+        listing_type="rental",
+        model="Ranger",
+        fixed_price=None,
+        is_active=True,
+    )
+    db.session.add(
+        RentalListing(car_id=rental_car.id, price_per_day=9800, is_available=True)
+    )
+    db.session.commit()
+    headers = login_headers(client, rental_owner.username)
+
+    response = client.post(
+        f"/seller/api/rental-cars/{rental_car.id}/toggle-active",
+        headers=headers,
+    )
+
+    assert response.status_code == 200
+    payload = response.get_json()
+    assert payload["status"] == "success"
+    assert payload["is_active"] is False

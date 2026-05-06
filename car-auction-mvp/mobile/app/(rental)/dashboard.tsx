@@ -1,0 +1,477 @@
+import React, { useCallback, useEffect, useState } from "react";
+import {
+  ActivityIndicator,
+  Alert,
+  Pressable,
+  RefreshControl,
+  SafeAreaView,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
+import { router } from "expo-router";
+import axios from "axios";
+import { Ionicons } from "@expo/vector-icons";
+
+import API_BASE_URL from "@/constants/Api";
+import { useAuth } from "@/hooks/useAuth";
+import VehicleCard from "../_components/VehicleCard";
+
+const COLORS = {
+  background: "#14181F",
+  card: "#1C212B",
+  text: "#F8F8F8",
+  textSecondary: "#8A94A3",
+  accent: "#A370F7",
+  success: "#28a745",
+  warning: "#ffc107",
+  border: "#313843",
+  destructive: "#dc3545",
+};
+
+type FleetCar = {
+  id: number;
+  make: string;
+  model: string;
+  year: number;
+  mileage?: number;
+  listing_type: string;
+  is_approved: boolean;
+  is_active: boolean;
+  price_display?: string;
+  primary_image_url?: string;
+  rental_listing?: {
+    id: number;
+    price_per_day: number;
+    is_available: boolean;
+  } | null;
+};
+
+type DashboardPayload = {
+  profile: {
+    username: string;
+    email: string;
+    phone_number?: string | null;
+    is_verified: boolean;
+  };
+  stats: {
+    total_fleet_count: number;
+    active_fleet_count: number;
+    pending_approval_count: number;
+    inactive_fleet_count: number;
+  };
+  my_cars: FleetCar[];
+  active_cars: FleetCar[];
+  pending_cars: FleetCar[];
+};
+
+const StatCard = ({ label, value }: { label: string; value: number }) => (
+  <View style={styles.statCard}>
+    <Text style={styles.statValue}>{value}</Text>
+    <Text style={styles.statLabel}>{label}</Text>
+  </View>
+);
+
+const FleetActions = ({
+  car,
+  token,
+  onRefresh,
+}: {
+  car: FleetCar;
+  token: string;
+  onRefresh: () => void;
+}) => {
+  const [busy, setBusy] = useState(false);
+
+  const toggleActive = async () => {
+    setBusy(true);
+    try {
+      await axios.post(
+        `${API_BASE_URL}/seller/api/rental-cars/${car.id}/toggle-active`,
+        {},
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      onRefresh();
+    } catch (error: any) {
+      Alert.alert(
+        "Update Failed",
+        error.response?.data?.message || "Could not update listing status."
+      );
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <View style={styles.actionRow}>
+      <Pressable
+        style={[styles.actionButton, styles.primaryAction]}
+        onPress={() =>
+          router.push({
+            pathname: "/(rental)/edit-listing" as any,
+            params: { id: car.id.toString() },
+          })
+        }
+      >
+        <Text style={styles.primaryActionText}>Manage</Text>
+      </Pressable>
+      <Pressable
+        style={[styles.actionButton, styles.secondaryAction]}
+        onPress={toggleActive}
+        disabled={busy}
+      >
+        <Text style={styles.secondaryActionText}>
+          {busy ? "Updating..." : car.is_active ? "Deactivate" : "Activate"}
+        </Text>
+      </Pressable>
+    </View>
+  );
+};
+
+const FleetItem = ({
+  car,
+  token,
+  onRefresh,
+}: {
+  car: FleetCar;
+  token: string;
+  onRefresh: () => void;
+}) => (
+  <View style={styles.fleetItem}>
+    <VehicleCard
+      item={{
+        id: car.id.toString(),
+        year: car.year,
+        make: car.make,
+        model: car.model,
+        mileage: car.mileage ?? 0,
+        price: car.price_display || "N/A",
+        image: car.primary_image_url || "",
+        listingType: "Rental",
+      }}
+      onPress={() =>
+        router.push({
+          pathname: "/(rental)/edit-listing" as any,
+          params: { id: car.id.toString() },
+        })
+      }
+      style={{ width: "100%" }}
+    />
+    <View style={styles.metaRow}>
+      <View
+        style={[
+          styles.badge,
+          car.is_approved ? styles.approvedBadge : styles.pendingBadge,
+        ]}
+      >
+        <Text
+          style={[
+            styles.badgeText,
+            car.is_approved ? styles.approvedText : styles.pendingText,
+          ]}
+        >
+          {car.is_approved ? "Approved" : "Pending Approval"}
+        </Text>
+      </View>
+      <View
+        style={[
+          styles.badge,
+          car.is_active ? styles.activeBadge : styles.inactiveBadge,
+        ]}
+      >
+        <Text
+          style={[
+            styles.badgeText,
+            car.is_active ? styles.activeText : styles.inactiveText,
+          ]}
+        >
+          {car.is_active ? "Active" : "Inactive"}
+        </Text>
+      </View>
+      {car.rental_listing && (
+        <View
+          style={[
+            styles.badge,
+            car.rental_listing.is_available
+              ? styles.availableBadge
+              : styles.inactiveBadge,
+          ]}
+        >
+          <Text
+            style={[
+              styles.badgeText,
+              car.rental_listing.is_available
+                ? styles.activeText
+                : styles.inactiveText,
+            ]}
+          >
+            {car.rental_listing.is_available ? "Available" : "Unavailable"}
+          </Text>
+        </View>
+      )}
+    </View>
+    <FleetActions car={car} token={token} onRefresh={onRefresh} />
+  </View>
+);
+
+export default function RentalDashboardScreen() {
+  const { token, user, isLoading } = useAuth() as any;
+  const [payload, setPayload] = useState<DashboardPayload | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [activeTab, setActiveTab] = useState<"active" | "pending" | "all">(
+    "active"
+  );
+
+  useEffect(() => {
+    if (!isLoading && !token) {
+      router.replace("/(auth)/login");
+    }
+  }, [isLoading, token]);
+
+  const fetchDashboard = useCallback(async (isRefresh = false) => {
+    if (!token) return;
+    if (!isRefresh) setLoading(true);
+    try {
+      const response = await axios.get(
+        `${API_BASE_URL}/seller/api/rental-dashboard`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      setPayload(response.data);
+    } catch (error: any) {
+      Alert.alert(
+        "Load Failed",
+        error.response?.data?.message || "Could not load rental fleet data."
+      );
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  }, [token]);
+
+  useEffect(() => {
+    fetchDashboard();
+  }, [fetchDashboard]);
+
+  const fleet =
+    activeTab === "active"
+      ? payload?.active_cars ?? []
+      : activeTab === "pending"
+      ? payload?.pending_cars ?? []
+      : payload?.my_cars ?? [];
+
+  if (loading) {
+    return (
+      <ActivityIndicator
+        size="large"
+        color={COLORS.accent}
+        style={styles.centered}
+      />
+    );
+  }
+
+  return (
+    <SafeAreaView style={styles.container}>
+      <ScrollView
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={() => {
+              setRefreshing(true);
+              fetchDashboard(true);
+            }}
+          />
+        }
+      >
+        <View style={styles.header}>
+          <View>
+            <Text style={styles.headerTitle}>Rental Fleet</Text>
+            <Text style={styles.headerSubtitle}>
+              Welcome back, {payload?.profile.username || user?.username}!
+            </Text>
+          </View>
+          <Pressable
+            style={styles.headerButton}
+            onPress={() => router.push("/(rental)/submit" as any)}
+          >
+            <Ionicons name="add-circle-outline" size={24} color={COLORS.accent} />
+            <Text style={styles.headerButtonText}>Add Rental</Text>
+          </Pressable>
+        </View>
+
+        {payload && (
+          <View style={styles.statsGrid}>
+            <StatCard
+              label="Total Fleet"
+              value={payload.stats.total_fleet_count}
+            />
+            <StatCard
+              label="Active Rentals"
+              value={payload.stats.active_fleet_count}
+            />
+            <StatCard
+              label="Pending Approval"
+              value={payload.stats.pending_approval_count}
+            />
+            <StatCard
+              label="Inactive"
+              value={payload.stats.inactive_fleet_count}
+            />
+          </View>
+        )}
+
+        <View style={styles.tabRow}>
+          {[
+            { key: "active", label: "Live Fleet" },
+            { key: "pending", label: "Pending" },
+            { key: "all", label: "All Rentals" },
+          ].map((tab) => (
+            <Pressable
+              key={tab.key}
+              style={[
+                styles.tab,
+                activeTab === tab.key && styles.activeTab,
+              ]}
+              onPress={() => setActiveTab(tab.key as typeof activeTab)}
+            >
+              <Text
+                style={[
+                  styles.tabText,
+                  activeTab === tab.key && styles.activeTabText,
+                ]}
+              >
+                {tab.label}
+              </Text>
+            </Pressable>
+          ))}
+        </View>
+
+        <View style={styles.section}>
+          {fleet.length === 0 ? (
+            <Text style={styles.emptyText}>
+              {activeTab === "pending"
+                ? "No rental listings are waiting for approval."
+                : "No rental listings found yet."}
+            </Text>
+          ) : (
+            fleet.map((car) => (
+              <FleetItem
+                key={car.id}
+                car={car}
+                token={token}
+                onRefresh={() => fetchDashboard(true)}
+              />
+            ))
+          )}
+        </View>
+      </ScrollView>
+    </SafeAreaView>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: { flex: 1, backgroundColor: COLORS.background },
+  centered: { flex: 1, justifyContent: "center", alignItems: "center" },
+  header: {
+    padding: 20,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  headerTitle: { fontSize: 24, fontWeight: "bold", color: COLORS.text },
+  headerSubtitle: { fontSize: 16, color: COLORS.textSecondary, marginTop: 4 },
+  headerButton: { flexDirection: "row", alignItems: "center", gap: 6 },
+  headerButtonText: { color: COLORS.accent, fontSize: 16, fontWeight: "600" },
+  statsGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "space-between",
+    paddingHorizontal: 12,
+    marginBottom: 20,
+  },
+  statCard: {
+    width: "48%",
+    backgroundColor: COLORS.card,
+    borderRadius: 12,
+    paddingVertical: 16,
+    paddingHorizontal: 12,
+    marginBottom: 12,
+    alignItems: "center",
+  },
+  statValue: { color: COLORS.accent, fontSize: 22, fontWeight: "bold" },
+  statLabel: {
+    color: COLORS.textSecondary,
+    fontSize: 13,
+    textAlign: "center",
+    marginTop: 6,
+  },
+  tabRow: {
+    flexDirection: "row",
+    paddingHorizontal: 16,
+    gap: 8,
+    marginBottom: 16,
+  },
+  tab: {
+    flex: 1,
+    backgroundColor: COLORS.card,
+    borderRadius: 10,
+    paddingVertical: 12,
+    alignItems: "center",
+  },
+  activeTab: {
+    backgroundColor: COLORS.accent,
+  },
+  tabText: { color: COLORS.textSecondary, fontWeight: "600", fontSize: 13 },
+  activeTabText: { color: "#FFFFFF" },
+  section: { paddingHorizontal: 16, paddingBottom: 24 },
+  emptyText: {
+    color: COLORS.textSecondary,
+    textAlign: "center",
+    marginTop: 40,
+  },
+  fleetItem: { marginBottom: 18 },
+  metaRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+    marginTop: 10,
+    marginBottom: 10,
+  },
+  badge: {
+    borderRadius: 999,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+  },
+  badgeText: {
+    fontSize: 12,
+    fontWeight: "700",
+  },
+  approvedBadge: { backgroundColor: "rgba(40, 167, 69, 0.18)" },
+  pendingBadge: { backgroundColor: "rgba(255, 193, 7, 0.18)" },
+  activeBadge: { backgroundColor: "rgba(163, 112, 247, 0.18)" },
+  inactiveBadge: { backgroundColor: "rgba(138, 148, 163, 0.18)" },
+  availableBadge: { backgroundColor: "rgba(40, 167, 69, 0.18)" },
+  approvedText: { color: COLORS.success },
+  pendingText: { color: COLORS.warning },
+  activeText: { color: COLORS.accent },
+  inactiveText: { color: COLORS.textSecondary },
+  actionRow: {
+    flexDirection: "row",
+    gap: 10,
+  },
+  actionButton: {
+    flex: 1,
+    paddingVertical: 12,
+    borderRadius: 10,
+    alignItems: "center",
+  },
+  primaryAction: { backgroundColor: COLORS.accent },
+  secondaryAction: {
+    backgroundColor: COLORS.card,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+  },
+  primaryActionText: { color: "#FFFFFF", fontWeight: "700" },
+  secondaryActionText: { color: COLORS.text, fontWeight: "700" },
+});

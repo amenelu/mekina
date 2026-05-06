@@ -13,7 +13,7 @@ import {
 } from "react-native";
 import BouncyCheckbox from "react-native-bouncy-checkbox";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { Link, useRouter } from "expo-router";
+import { Link, useNavigation } from "expo-router";
 import { useAuth } from "@/hooks/useAuth";
 import { login as loginRequest } from "@/lib/api/auth";
 
@@ -22,18 +22,28 @@ export default function LoginScreen() {
   const [password, setPassword] = useState("");
   const [rememberMe, setRememberMeChecked] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
   const [focusedInput, setFocusedInput] = useState<"login" | "password" | null>(
     null
   );
 
-  const router = useRouter();
+  const navigation = useNavigation();
   const { login: setAuth, setRememberMe } = useAuth();
+
+  const showError = (title: string, message: string) => {
+    setErrorMessage(message);
+    if (Platform.OS !== "web") {
+      Alert.alert(title, message);
+    }
+  };
 
   const handleLogin = async () => {
     if (!login || !password) {
-      Alert.alert("Error", "Please enter both username/email and password.");
+      showError("Error", "Please enter both username/email and password.");
       return;
     }
+
+    setErrorMessage("");
     setIsLoading(true);
     try {
       const response = await loginRequest(login, password);
@@ -42,14 +52,22 @@ export default function LoginScreen() {
       setRememberMe(rememberMe);
       setAuth(user, token);
 
+      const resetToRoot = (routeName: "(admin)" | "(dealer)" | "(rental)" | "(tabs)") => {
+        navigation.reset({
+          index: 0,
+          routes: [{ name: routeName as never }],
+        });
+      };
+
       // Role-based redirection
       if (user.is_admin) {
-        router.replace("/(admin)/dashboard");
+        resetToRoot("(admin)");
       } else if (user.is_dealer) {
-        router.replace("/(dealer)/dashboard");
+        resetToRoot("(dealer)");
+      } else if (user.is_rental_company) {
+        resetToRoot("(rental)");
       } else {
-        // For all other users, go to the default user-facing tab layout
-        router.replace("/(tabs)/");
+        resetToRoot("(tabs)");
       }
     } catch (error: any) {
       // Prioritize the specific message from the API response
@@ -57,7 +75,7 @@ export default function LoginScreen() {
         error.response?.data?.message ||
         error.message ||
         "An unexpected error occurred.";
-      Alert.alert("Login Failed", message);
+      showError("Login Failed", message);
     } finally {
       setIsLoading(false);
     }
@@ -82,7 +100,10 @@ export default function LoginScreen() {
                   focusedInput === "login" && styles.inputFocused,
                 ]}
                 value={login}
-                onChangeText={setLogin}
+                onChangeText={(value) => {
+                  setLogin(value);
+                  if (errorMessage) setErrorMessage("");
+                }}
                 keyboardType="email-address"
                 autoCapitalize="none"
                 onFocus={() => setFocusedInput("login")}
@@ -99,12 +120,25 @@ export default function LoginScreen() {
                   focusedInput === "password" && styles.inputFocused,
                 ]}
                 value={password}
-                onChangeText={setPassword}
+                onChangeText={(value) => {
+                  setPassword(value);
+                  if (errorMessage) setErrorMessage("");
+                }}
                 secureTextEntry
                 onFocus={() => setFocusedInput("password")}
                 onBlur={() => setFocusedInput(null)}
               />
             </View>
+
+            {errorMessage ? (
+              <View
+                testID="login-error-banner"
+                accessibilityLiveRegion="polite"
+                style={styles.errorBanner}
+              >
+                <Text style={styles.errorBannerText}>{errorMessage}</Text>
+              </View>
+            ) : null}
 
             <View style={styles.checkboxContainer}>
               <BouncyCheckbox
@@ -192,6 +226,20 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 10,
     marginBottom: 24, // More space before button
+  },
+  errorBanner: {
+    backgroundColor: "#f8d7da",
+    borderWidth: 1,
+    borderColor: "#f1aeb5",
+    borderRadius: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    marginBottom: 16,
+  },
+  errorBannerText: {
+    color: "#842029",
+    fontSize: 14,
+    fontWeight: "500",
   },
   loginButton: {
     backgroundColor: "#6118d7ff", // approve / secondary color

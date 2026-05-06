@@ -82,6 +82,10 @@ export default function RootLayout() {
             name="(dealer)"
             options={{ headerShown: false, title: "", headerBackTitle: "" }}
           />
+          <Stack.Screen
+            name="(rental)"
+            options={{ headerShown: false, title: "", headerBackTitle: "" }}
+          />
           <Stack.Screen name="(auth)" options={{ headerShown: false }} />
           <Stack.Screen
             name="compare"

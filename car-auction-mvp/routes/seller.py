@@ -108,6 +108,36 @@ def save_base64_image(base64_string, filename_prefix="img"):
         return None
 
 
+def serialize_rental_car(car):
+    car_dict = car.to_dict()
+    car_dict["price_display"] = (
+        f"{car.rental_listing.price_per_day:,.0f} ETB/day"
+        if car.rental_listing
+        else "N/A"
+    )
+    car_dict["images"] = [
+        {
+            "id": image.id,
+            "image_url": url_for(
+                "static",
+                filename=image.image_url.split("/static/")[1],
+                _external=True,
+            )
+            if image.image_url and "/static/" in image.image_url
+            else image.image_url,
+            "order": image.order,
+            "is_primary": image.order == 0,
+        }
+        for image in car.images
+    ]
+    car_dict["rental_listing"] = {
+        "id": car.rental_listing.id,
+        "price_per_day": car.rental_listing.price_per_day,
+        "is_available": car.rental_listing.is_available,
+    } if car.rental_listing else None
+    return car_dict
+
+
 @seller_bp.route('/dashboard')
 @login_required
 def dashboard():
@@ -148,6 +178,45 @@ def api_seller_dashboard():
         unanswered_questions=[q.to_dict() for q in unanswered_questions],
         # You might want to add more stats here, like total listings, pending approvals, etc.
         # For now, just the core data.
+    )
+
+
+@seller_bp.route('/api/rental-dashboard')
+@token_required
+def api_rental_dashboard(current_user):
+    """Token-auth dashboard payload for rental-company mobile clients."""
+    if not (current_user.is_rental_company or current_user.is_admin):
+        return jsonify({"status": "error", "message": "Rental company access required."}), 403
+
+    my_rental_cars = (
+        Car.query.filter_by(owner_id=current_user.id, listing_type="rental")
+        .order_by(Car.id.desc())
+        .all()
+    )
+
+    active_cars = [
+        car for car in my_rental_cars if car.is_active and car.is_approved
+    ]
+    pending_cars = [car for car in my_rental_cars if not car.is_approved]
+
+    return jsonify(
+        profile={
+            "username": current_user.username,
+            "email": current_user.email,
+            "phone_number": current_user.phone_number,
+            "is_verified": current_user.is_verified,
+        },
+        stats={
+            "total_fleet_count": len(my_rental_cars),
+            "active_fleet_count": len(active_cars),
+            "pending_approval_count": len(pending_cars),
+            "inactive_fleet_count": len(
+                [car for car in my_rental_cars if not car.is_active]
+            ),
+        },
+        my_cars=[serialize_rental_car(car) for car in my_rental_cars],
+        active_cars=[serialize_rental_car(car) for car in active_cars],
+        pending_cars=[serialize_rental_car(car) for car in pending_cars],
     )
 
 
@@ -309,6 +378,91 @@ def api_submit_car(current_user):
 
     db.session.commit()
     return jsonify({'status': 'success', 'message': 'Car submitted for approval.', 'car': new_car.to_dict()}), 201
+
+
+@seller_bp.route('/api/rental-cars/<int:car_id>', methods=['GET', 'PUT', 'DELETE'])
+@token_required
+def api_manage_rental_car(current_user, car_id):
+    """Token-auth CRUD endpoint for rental-company fleet management."""
+    car = Car.query.get_or_404(car_id)
+
+    if car.owner_id != current_user.id and not current_user.is_admin:
+        return jsonify({'status': 'error', 'message': 'Permission denied.'}), 403
+
+    if car.listing_type != 'rental':
+        return jsonify({'status': 'error', 'message': 'Rental listing not found.'}), 404
+
+    if request.method == 'GET':
+        return jsonify(car=serialize_rental_car(car))
+
+    if request.method == 'DELETE':
+        db.session.delete(car)
+        db.session.commit()
+        return jsonify({'status': 'success', 'message': 'Rental listing deleted successfully.'})
+
+    data = request.get_json()
+    if not data:
+        return jsonify({'status': 'error', 'message': 'Invalid JSON payload.'}), 400
+
+    try:
+        if 'year' in data:
+            car.year = int(data.get('year'))
+        if 'price_per_day' in data and car.rental_listing:
+            car.rental_listing.price_per_day = float(data.get('price_per_day'))
+    except (TypeError, ValueError):
+        return jsonify({'status': 'error', 'message': 'Invalid numeric value supplied.'}), 400
+
+    car.make = data.get('make', car.make)
+    car.model = data.get('model', car.model)
+    car.description = data.get('description', car.description)
+    car.condition = data.get('condition', car.condition)
+    car.body_type = data.get('body_type', car.body_type)
+    car.transmission = data.get('transmission', car.transmission)
+    car.drivetrain = data.get('drivetrain', car.drivetrain)
+    car.fuel_type = data.get('fuel_type', car.fuel_type)
+    car.mileage = data.get('mileage', car.mileage)
+    car.is_bank_loan_available = data.get(
+        'is_bank_loan_available',
+        car.is_bank_loan_available,
+    )
+
+    if 'is_active' in data:
+        car.is_active = bool(data.get('is_active'))
+    if 'is_available' in data and car.rental_listing:
+        car.rental_listing.is_available = bool(data.get('is_available'))
+
+    db.session.commit()
+    return jsonify(
+        {
+            'status': 'success',
+            'message': 'Rental listing updated successfully.',
+            'car': serialize_rental_car(car),
+        }
+    )
+
+
+@seller_bp.route('/api/rental-cars/<int:car_id>/toggle-active', methods=['POST'])
+@token_required
+def api_toggle_rental_car_active(current_user, car_id):
+    """Token-auth active toggle for rental-company mobile clients."""
+    car = Car.query.get_or_404(car_id)
+
+    if car.owner_id != current_user.id and not current_user.is_admin:
+        return jsonify({'status': 'error', 'message': 'Permission denied.'}), 403
+
+    if car.listing_type != 'rental':
+        return jsonify({'status': 'error', 'message': 'Rental listing not found.'}), 404
+
+    car.is_active = not car.is_active
+    db.session.commit()
+
+    return jsonify(
+        {
+            'status': 'success',
+            'is_active': car.is_active,
+            'status_text': 'Active' if car.is_active else 'Inactive',
+        }
+    )
 
 @seller_bp.route('/edit_car/<int:car_id>', methods=['GET', 'POST'])
 @login_required

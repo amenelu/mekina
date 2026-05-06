@@ -42,6 +42,10 @@ export default function Index() {
     return <Redirect href="/(dealer)/dashboard" />;
   }
 
+  if (user?.is_rental_company) {
+    return <Redirect href="/(rental)/dashboard" />;
+  }
+
   return <Redirect href="/(tabs)" />;
 }
 
