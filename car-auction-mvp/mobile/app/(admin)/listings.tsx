@@ -9,12 +9,18 @@ import {
   Pressable,
   Alert,
   Image,
+  Platform,
+  RefreshControl,
 } from "react-native";
 import axios from "axios";
 import API_URL from "@/constants/Api";
 import { useAuth } from "@/hooks/useAuth"; // Keep this import
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter, useFocusEffect } from "expo-router";
+import {
+  useWebPullToRefresh,
+  WebPullToRefreshIndicator,
+} from "../_components/WebPullToRefresh";
 
 const COLORS = {
   background: "#14181F",
@@ -42,13 +48,23 @@ interface Listing {
 const AdminListingsScreen = () => {
   const [listings, setListings] = useState<Listing[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [search, setSearch] = useState("");
+  const [statusMessage, setStatusMessage] = useState<string | null>(null);
   const { token } = useAuth();
+  const pullToRefresh = useWebPullToRefresh({
+    refreshing,
+    onRefresh: () => fetchListings(true),
+  });
 
   // Function to fetch listings
-  const fetchListings = useCallback(async () => {
+  const fetchListings = useCallback(async (isRefresh = false) => {
     if (!token) return;
-    setLoading(true);
+    if (isRefresh) {
+      setRefreshing(true);
+    } else {
+      setLoading(true);
+    }
     try {
       const response = await axios.get(
         `${API_URL}/auctions/api/admin/listings?q=${search}`,
@@ -64,6 +80,7 @@ const AdminListingsScreen = () => {
       );
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
   }, [search, token]);
 
@@ -83,29 +100,46 @@ const AdminListingsScreen = () => {
   );
 
   const handleDelete = (listing: Listing) => {
-    Alert.alert(
-      "Delete Listing",
-      `Are you sure you want to delete the ${listing.year} ${listing.make} ${listing.model}?`,
-      [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "Delete",
-          style: "destructive",
-          onPress: async () => {
-            try {
-              await axios.delete(
-                `${API_URL}/admin/api/listings/${listing.id}`,
-                { headers: { Authorization: `Bearer ${token}` } }
-              );
-              setListings((prev) => prev.filter((l) => l.id !== listing.id));
-              Alert.alert("Success", "Listing has been deleted.");
-            } catch {
-              Alert.alert("Error", "Failed to delete listing.");
-            }
-          },
+    const message = `Are you sure you want to delete the ${listing.year} ${listing.make} ${listing.model}?`;
+
+    const performDelete = async () => {
+      try {
+        await axios.delete(`${API_URL}/admin/api/listings/${listing.id}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        setListings((prev) => prev.filter((l) => l.id !== listing.id));
+        if (Platform.OS === "web") {
+          setStatusMessage("Listing has been deleted.");
+        } else {
+          Alert.alert("Success", "Listing has been deleted.");
+        }
+      } catch {
+        if (Platform.OS === "web") {
+          setStatusMessage("Failed to delete listing.");
+        } else {
+          Alert.alert("Error", "Failed to delete listing.");
+        }
+      }
+    };
+
+    if (Platform.OS === "web") {
+      setStatusMessage(null);
+      if (typeof window !== "undefined" && window.confirm(message)) {
+        void performDelete();
+      }
+      return;
+    }
+
+    Alert.alert("Delete Listing", message, [
+      { text: "Cancel", style: "cancel" },
+      {
+        text: "Delete",
+        style: "destructive",
+        onPress: () => {
+          void performDelete();
         },
-      ]
-    );
+      },
+    ]);
   };
 
   const ListingCard = ({ item }: { item: Listing }) => {
@@ -190,8 +224,13 @@ const AdminListingsScreen = () => {
     <ListingCard item={item} />
   );
 
-  return (
-    <View style={styles.container}>
+  const listHeader = (
+    <>
+      <WebPullToRefreshIndicator
+        pullDistance={pullToRefresh.pullDistance}
+        readyToRefresh={pullToRefresh.readyToRefresh}
+        refreshing={refreshing}
+      />
       <View style={styles.searchBar}>
         <Ionicons
           name="search"
@@ -207,6 +246,23 @@ const AdminListingsScreen = () => {
           onChangeText={setSearch}
         />
       </View>
+      {statusMessage ? (
+        <Text
+          style={[
+            styles.statusMessage,
+            statusMessage.startsWith("Failed")
+              ? styles.statusMessageError
+              : styles.statusMessageSuccess,
+          ]}
+        >
+          {statusMessage}
+        </Text>
+      ) : null}
+    </>
+  );
+
+  return (
+    <View style={styles.container}>
       {loading ? (
         <ActivityIndicator
           size="large"
@@ -215,10 +271,23 @@ const AdminListingsScreen = () => {
         />
       ) : (
         <FlatList
+          {...pullToRefresh.panHandlers}
           data={listings}
           renderItem={renderItem}
           keyExtractor={(item) => item.id.toString()}
           contentContainerStyle={{ padding: 20 }}
+          onScroll={pullToRefresh.handleScroll}
+          scrollEventThrottle={16}
+          ListHeaderComponent={listHeader}
+          refreshControl={
+            pullToRefresh.isWebEnabled ? undefined : (
+              <RefreshControl
+                refreshing={refreshing}
+                onRefresh={() => fetchListings(true)}
+                tintColor={COLORS.accent}
+              />
+            )
+          }
           ListEmptyComponent={
             <Text style={styles.emptyText}>No listings found.</Text>
           }
@@ -236,8 +305,7 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.card,
     borderRadius: 12,
     paddingHorizontal: 15,
-    margin: 20,
-    marginBottom: 0,
+    marginBottom: 20,
   },
   searchIcon: { marginRight: 10 },
   searchInput: { flex: 1, height: 50, color: COLORS.foreground, fontSize: 16 },
@@ -293,6 +361,17 @@ const styles = StyleSheet.create({
     color: COLORS.mutedForeground,
     textAlign: "center",
     marginTop: 50,
+  },
+  statusMessage: {
+    marginBottom: 20,
+    fontSize: 13,
+    fontWeight: "600",
+  },
+  statusMessageSuccess: {
+    color: "#7AE582",
+  },
+  statusMessageError: {
+    color: "#FF7D7D",
   },
 });
 

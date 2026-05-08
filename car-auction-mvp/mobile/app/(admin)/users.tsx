@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import {
   View,
   Text,
@@ -7,12 +7,17 @@ import {
   ActivityIndicator,
   TextInput,
   Pressable,
+  RefreshControl,
 } from "react-native";
 import axios from "axios";
 import API_BASE_URL from "@/constants/Api";
 import { useAuth } from "@/hooks/useAuth"; // Keep this import
 import { Ionicons } from "@expo/vector-icons";
-import { useRouter } from "expo-router";
+import { useFocusEffect, useRouter } from "expo-router";
+import {
+  useWebPullToRefresh,
+  WebPullToRefreshIndicator,
+} from "../_components/WebPullToRefresh";
 
 const COLORS = {
   background: "#14181F",
@@ -37,35 +42,51 @@ interface User {
 const AdminUsersScreen = () => {
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [search, setSearch] = useState("");
   const { token } = useAuth();
   const router = useRouter();
 
-  useEffect(() => {
-    const fetchUsers = async () => {
-      if (!token) return;
+  const fetchUsers = useCallback(async (isRefresh = false) => {
+    if (!token) return;
+    if (isRefresh) {
+      setRefreshing(true);
+    } else {
       setLoading(true);
-      try {
-        const response = await axios.get(
-          `${API_BASE_URL}/admin/api/users?q=${search}`,
-          {
-            headers: { Authorization: `Bearer ${token}` },
-          }
-        );
-        setUsers(response.data.users);
-      } catch (error) {
-        console.error("Failed to fetch users:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
+    }
+    try {
+      const response = await axios.get(
+        `${API_BASE_URL}/admin/api/users?q=${search}`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+      setUsers(response.data.users);
+    } catch (error) {
+      console.error("Failed to fetch users:", error);
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  }, [search, token]);
 
+  useEffect(() => {
     const debounceFetch = setTimeout(() => {
       fetchUsers();
     }, 300);
 
     return () => clearTimeout(debounceFetch);
-  }, [search, token]);
+  }, [fetchUsers]);
+
+  useFocusEffect(
+    useCallback(() => {
+      fetchUsers();
+    }, [fetchUsers])
+  );
+  const pullToRefresh = useWebPullToRefresh({
+    refreshing,
+    onRefresh: () => fetchUsers(true),
+  });
 
   const renderItem = ({ item }: { item: User }) => (
     <View style={styles.userCard}>
@@ -101,8 +122,13 @@ const AdminUsersScreen = () => {
     </View>
   );
 
-  return (
-    <View style={styles.container}>
+  const listHeader = (
+    <>
+      <WebPullToRefreshIndicator
+        pullDistance={pullToRefresh.pullDistance}
+        readyToRefresh={pullToRefresh.readyToRefresh}
+        refreshing={refreshing}
+      />
       <View style={styles.searchBar}>
         <Ionicons
           name="search"
@@ -118,6 +144,11 @@ const AdminUsersScreen = () => {
           onChangeText={setSearch}
         />
       </View>
+    </>
+  );
+
+  return (
+    <View style={styles.container}>
       {loading ? (
         <ActivityIndicator
           size="large"
@@ -126,10 +157,23 @@ const AdminUsersScreen = () => {
         />
       ) : (
         <FlatList
+          {...pullToRefresh.panHandlers}
           data={users}
           renderItem={renderItem}
           keyExtractor={(item) => item.id.toString()}
           contentContainerStyle={{ padding: 20 }}
+          onScroll={pullToRefresh.handleScroll}
+          scrollEventThrottle={16}
+          ListHeaderComponent={listHeader}
+          refreshControl={
+            pullToRefresh.isWebEnabled ? undefined : (
+              <RefreshControl
+                refreshing={refreshing}
+                onRefresh={() => fetchUsers(true)}
+                tintColor={COLORS.accent}
+              />
+            )
+          }
           ListEmptyComponent={
             <Text style={styles.emptyText}>No users found.</Text>
           }
@@ -147,8 +191,7 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.card,
     borderRadius: 12,
     paddingHorizontal: 15,
-    margin: 20,
-    marginBottom: 0,
+    marginBottom: 20,
   },
   searchIcon: { marginRight: 10 },
   searchInput: { flex: 1, height: 50, color: COLORS.foreground, fontSize: 16 },

@@ -18,6 +18,10 @@ import { Ionicons } from "@expo/vector-icons";
 import API_BASE_URL from "@/constants/Api";
 import { useAuth } from "@/hooks/useAuth";
 import VehicleCard from "../_components/VehicleCard";
+import {
+  useWebPullToRefresh,
+  WebPullToRefreshIndicator,
+} from "../_components/WebPullToRefresh";
 
 const COLORS = {
   background: "#14181F",
@@ -254,6 +258,13 @@ export default function RentalDashboardScreen() {
   useEffect(() => {
     fetchDashboard();
   }, [fetchDashboard]);
+  const pullToRefresh = useWebPullToRefresh({
+    refreshing,
+    onRefresh: () => {
+      setRefreshing(true);
+      fetchDashboard(true);
+    },
+  });
 
   const fleet =
     activeTab === "active"
@@ -274,18 +285,29 @@ export default function RentalDashboardScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <ScrollView
-        contentContainerStyle={styles.scrollContent}
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={() => {
-              setRefreshing(true);
-              fetchDashboard(true);
-            }}
-          />
-        }
-      >
+      <View style={styles.container}>
+        <ScrollView
+          {...pullToRefresh.panHandlers}
+          contentContainerStyle={styles.scrollContent}
+          onScroll={pullToRefresh.handleScroll}
+          scrollEventThrottle={16}
+          refreshControl={
+            pullToRefresh.isWebEnabled ? undefined : (
+              <RefreshControl
+                refreshing={refreshing}
+                onRefresh={() => {
+                  setRefreshing(true);
+                  fetchDashboard(true);
+                }}
+              />
+            )
+          }
+        >
+        <WebPullToRefreshIndicator
+          pullDistance={pullToRefresh.pullDistance}
+          readyToRefresh={pullToRefresh.readyToRefresh}
+          refreshing={refreshing}
+        />
         <View style={styles.pageShell}>
           <View style={styles.header}>
             <View>
@@ -374,7 +396,8 @@ export default function RentalDashboardScreen() {
             )}
           </View>
         </View>
-      </ScrollView>
+        </ScrollView>
+      </View>
     </SafeAreaView>
   );
 }

@@ -7,11 +7,16 @@ import {
   Pressable,
   ActivityIndicator,
   Alert,
+  RefreshControl,
 } from "react-native";
 import { useAuth } from "@/hooks/useAuth";
 import axios from "axios";
 import API_URL from "@/constants/Api";
 import { useFocusEffect, useRouter } from "expo-router";
+import {
+  useWebPullToRefresh,
+  WebPullToRefreshIndicator,
+} from "../_components/WebPullToRefresh";
 
 const COLORS = {
   background: "#14181F",
@@ -127,12 +132,17 @@ const AdminDashboardScreen = () => {
   const [pendingCars, setPendingCars] = useState<PendingCar[]>([]);
   const [pendingTradeIns, setPendingTradeIns] = useState<TradeInRequest[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { token } = useAuth();
 
-  const fetchData = useCallback(async () => {
+  const fetchData = useCallback(async (isRefresh = false) => {
     if (!token) return;
-    setLoading(true);
+    if (isRefresh) {
+      setRefreshing(true);
+    } else {
+      setLoading(true);
+    }
     setError(null);
     try {
       const response = await axios.get(`${API_URL}/admin/api/dashboard`, {
@@ -146,6 +156,7 @@ const AdminDashboardScreen = () => {
       console.error(err);
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
   }, [token]);
 
@@ -154,6 +165,10 @@ const AdminDashboardScreen = () => {
       fetchData();
     }, [fetchData])
   );
+  const pullToRefresh = useWebPullToRefresh({
+    refreshing,
+    onRefresh: () => fetchData(true),
+  });
 
   const handleApprove = async (carId: number) => {
     try {
@@ -188,7 +203,27 @@ const AdminDashboardScreen = () => {
   }
 
   return (
-    <ScrollView style={styles.container}>
+    <View style={styles.container}>
+      <ScrollView
+        {...pullToRefresh.panHandlers}
+        style={styles.container}
+        onScroll={pullToRefresh.handleScroll}
+        scrollEventThrottle={16}
+        refreshControl={
+          pullToRefresh.isWebEnabled ? undefined : (
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={() => fetchData(true)}
+              tintColor={COLORS.accent}
+            />
+          )
+        }
+      >
+      <WebPullToRefreshIndicator
+        pullDistance={pullToRefresh.pullDistance}
+        readyToRefresh={pullToRefresh.readyToRefresh}
+        refreshing={refreshing}
+      />
       {/* Header */}
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Admin Dashboard</Text>
@@ -243,7 +278,8 @@ const AdminDashboardScreen = () => {
           <Text style={styles.noItemsText}>No pending trade-in requests.</Text>
         )}
       </View>
-    </ScrollView>
+      </ScrollView>
+    </View>
   );
 };
 

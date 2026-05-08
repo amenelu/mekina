@@ -18,6 +18,10 @@ import API_BASE_URL from "@/constants/Api";
 import { useAuth } from "@/hooks/useAuth";
 import VehicleCard from "../_components/VehicleCard";
 import { PUBLIC_HOME_ROUTE, RENTAL_ROUTES } from "@/lib/roleRoutes";
+import {
+  useWebPullToRefresh,
+  WebPullToRefreshIndicator,
+} from "../_components/WebPullToRefresh";
 
 const COLORS = {
   background: "#14181F",
@@ -80,6 +84,13 @@ export default function RentalProfileScreen() {
   useEffect(() => {
     fetchProfile();
   }, [fetchProfile]);
+  const pullToRefresh = useWebPullToRefresh({
+    refreshing,
+    onRefresh: () => {
+      setRefreshing(true);
+      fetchProfile(true);
+    },
+  });
 
   if (loading) {
     return (
@@ -95,18 +106,29 @@ export default function RentalProfileScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <ScrollView
-        contentContainerStyle={styles.scrollContent}
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={() => {
-              setRefreshing(true);
-              fetchProfile(true);
-            }}
-          />
-        }
-      >
+      <View style={styles.container}>
+        <ScrollView
+          {...pullToRefresh.panHandlers}
+          contentContainerStyle={styles.scrollContent}
+          onScroll={pullToRefresh.handleScroll}
+          scrollEventThrottle={16}
+          refreshControl={
+            pullToRefresh.isWebEnabled ? undefined : (
+              <RefreshControl
+                refreshing={refreshing}
+                onRefresh={() => {
+                  setRefreshing(true);
+                  fetchProfile(true);
+                }}
+              />
+            )
+          }
+        >
+        <WebPullToRefreshIndicator
+          pullDistance={pullToRefresh.pullDistance}
+          readyToRefresh={pullToRefresh.readyToRefresh}
+          refreshing={refreshing}
+        />
         <View style={styles.pageShell}>
           <View style={styles.header}>
             <Text style={styles.headerTitle}>Rental Company</Text>
@@ -215,7 +237,8 @@ export default function RentalProfileScreen() {
             ) : null}
           </View>
         </View>
-      </ScrollView>
+        </ScrollView>
+      </View>
     </SafeAreaView>
   );
 }

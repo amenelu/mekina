@@ -8,12 +8,18 @@ import {
   TextInput,
   Pressable,
   Alert,
+  Platform,
+  RefreshControl,
 } from "react-native";
 import axios from "axios";
 import API_URL from "@/constants/Api";
 import { useAuth } from "@/hooks/useAuth"; // Keep this import
 import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect, useRouter } from "expo-router";
+import {
+  useWebPullToRefresh,
+  WebPullToRefreshIndicator,
+} from "../_components/WebPullToRefresh";
 
 const COLORS = {
   background: "#14181F",
@@ -42,13 +48,19 @@ interface Rental {
 const AdminRentalsScreen = () => {
   const [rentals, setRentals] = useState<Rental[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [search, setSearch] = useState("");
+  const [statusMessage, setStatusMessage] = useState<string | null>(null);
   const { token } = useAuth();
   const router = useRouter();
 
-  const fetchRentals = useCallback(async () => {
+  const fetchRentals = useCallback(async (isRefresh = false) => {
     if (!token) return;
-    setLoading(true);
+    if (isRefresh) {
+      setRefreshing(true);
+    } else {
+      setLoading(true);
+    }
     try {
       const response = await axios.get(`${API_URL}/admin/api/rentals?q=${search}`, {
         headers: { Authorization: `Bearer ${token}` },
@@ -63,6 +75,7 @@ const AdminRentalsScreen = () => {
       );
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
   }, [search, token]);
 
@@ -79,30 +92,52 @@ const AdminRentalsScreen = () => {
       fetchRentals();
     }, [fetchRentals])
   );
+  const pullToRefresh = useWebPullToRefresh({
+    refreshing,
+    onRefresh: () => fetchRentals(true),
+  });
 
   const handleDelete = (rental: Rental) => {
-    Alert.alert(
-      "Delete Rental Listing",
-      `Are you sure you want to delete the ${rental.year} ${rental.make} ${rental.model}?`,
-      [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "Delete",
-          style: "destructive",
-          onPress: async () => {
-            try {
-              await axios.delete(`${API_URL}/admin/api/listings/${rental.id}`, {
-                headers: { Authorization: `Bearer ${token}` },
-              });
-              setRentals((prev) => prev.filter((r) => r.id !== rental.id));
-              Alert.alert("Success", "Rental listing has been deleted.");
-            } catch {
-              Alert.alert("Error", "Failed to delete rental listing.");
-            }
-          },
+    const message = `Are you sure you want to delete the ${rental.year} ${rental.make} ${rental.model}?`;
+
+    const performDelete = async () => {
+      try {
+        await axios.delete(`${API_URL}/admin/api/listings/${rental.id}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        setRentals((prev) => prev.filter((r) => r.id !== rental.id));
+        if (Platform.OS === "web") {
+          setStatusMessage("Rental listing has been deleted.");
+        } else {
+          Alert.alert("Success", "Rental listing has been deleted.");
+        }
+      } catch {
+        if (Platform.OS === "web") {
+          setStatusMessage("Failed to delete rental listing.");
+        } else {
+          Alert.alert("Error", "Failed to delete rental listing.");
+        }
+      }
+    };
+
+    if (Platform.OS === "web") {
+      setStatusMessage(null);
+      if (typeof window !== "undefined" && window.confirm(message)) {
+        void performDelete();
+      }
+      return;
+    }
+
+    Alert.alert("Delete Rental Listing", message, [
+      { text: "Cancel", style: "cancel" },
+      {
+        text: "Delete",
+        style: "destructive",
+        onPress: () => {
+          void performDelete();
         },
-      ]
-    );
+      },
+    ]);
   };
 
   const renderItem = ({ item }: { item: Rental }) => (
@@ -146,8 +181,13 @@ const AdminRentalsScreen = () => {
     </View>
   );
 
-  return (
-    <View style={styles.container}>
+  const listHeader = (
+    <>
+      <WebPullToRefreshIndicator
+        pullDistance={pullToRefresh.pullDistance}
+        readyToRefresh={pullToRefresh.readyToRefresh}
+        refreshing={refreshing}
+      />
       <View style={styles.searchBar}>
         <Ionicons
           name="search"
@@ -163,6 +203,23 @@ const AdminRentalsScreen = () => {
           onChangeText={setSearch}
         />
       </View>
+      {statusMessage ? (
+        <Text
+          style={[
+            styles.statusMessage,
+            statusMessage.startsWith("Failed")
+              ? styles.statusMessageError
+              : styles.statusMessageSuccess,
+          ]}
+        >
+          {statusMessage}
+        </Text>
+      ) : null}
+    </>
+  );
+
+  return (
+    <View style={styles.container}>
       {loading ? (
         <ActivityIndicator
           size="large"
@@ -171,10 +228,23 @@ const AdminRentalsScreen = () => {
         />
       ) : (
         <FlatList
+          {...pullToRefresh.panHandlers}
           data={rentals}
           renderItem={renderItem}
           keyExtractor={(item) => item.id.toString()}
           contentContainerStyle={{ padding: 20 }}
+          onScroll={pullToRefresh.handleScroll}
+          scrollEventThrottle={16}
+          ListHeaderComponent={listHeader}
+          refreshControl={
+            pullToRefresh.isWebEnabled ? undefined : (
+              <RefreshControl
+                refreshing={refreshing}
+                onRefresh={() => fetchRentals(true)}
+                tintColor={COLORS.accent}
+              />
+            )
+          }
           ListEmptyComponent={
             <Text style={styles.emptyText}>No rental listings found.</Text>
           }
@@ -192,8 +262,7 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.card,
     borderRadius: 12,
     paddingHorizontal: 15,
-    margin: 20,
-    marginBottom: 0,
+    marginBottom: 20,
   },
   searchIcon: { marginRight: 10 },
   searchInput: { flex: 1, height: 50, color: COLORS.foreground, fontSize: 16 },
@@ -241,6 +310,17 @@ const styles = StyleSheet.create({
     color: COLORS.mutedForeground,
     textAlign: "center",
     marginTop: 50,
+  },
+  statusMessage: {
+    marginBottom: 20,
+    fontSize: 13,
+    fontWeight: "600",
+  },
+  statusMessageSuccess: {
+    color: "#7AE582",
+  },
+  statusMessageError: {
+    color: "#FF7D7D",
   },
 });
 
