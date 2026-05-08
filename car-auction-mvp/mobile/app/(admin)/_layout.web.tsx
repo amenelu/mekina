@@ -9,7 +9,7 @@ const COLORS = {
   foreground: "#F8F8F8",
 };
 
-export default function AdminLayout() {
+export default function AdminLayoutWeb() {
   return (
     <Tabs
       screenOptions={{
@@ -28,7 +28,7 @@ export default function AdminLayout() {
       }}
     >
       <Tabs.Screen
-        name="dashboard"
+        name="admin-dashboard"
         options={{
           title: "Dashboard",
           tabBarIcon: ({ color }) => (
@@ -37,7 +37,7 @@ export default function AdminLayout() {
         }}
       />
       <Tabs.Screen
-        name="users"
+        name="admin-users"
         options={{
           title: "Users",
           tabBarIcon: ({ color }) => (
@@ -46,7 +46,7 @@ export default function AdminLayout() {
         }}
       />
       <Tabs.Screen
-        name="listings"
+        name="admin-listings"
         options={{
           title: "Listings",
           tabBarIcon: ({ color }) => (
@@ -55,7 +55,7 @@ export default function AdminLayout() {
         }}
       />
       <Tabs.Screen
-        name="dealers"
+        name="admin-dealers"
         options={{
           title: "Dealers",
           tabBarIcon: ({ color }) => (
@@ -64,7 +64,7 @@ export default function AdminLayout() {
         }}
       />
       <Tabs.Screen
-        name="rentals"
+        name="admin-rentals"
         options={{
           title: "Rentals",
           tabBarIcon: ({ color }) => (
@@ -72,11 +72,11 @@ export default function AdminLayout() {
           ),
         }}
       />
-      <Tabs.Screen name="admin-dashboard" options={{ href: null }} />
-      <Tabs.Screen name="admin-users" options={{ href: null }} />
-      <Tabs.Screen name="admin-listings" options={{ href: null }} />
-      <Tabs.Screen name="admin-dealers" options={{ href: null }} />
-      <Tabs.Screen name="admin-rentals" options={{ href: null }} />
+      <Tabs.Screen name="dashboard" options={{ href: null }} />
+      <Tabs.Screen name="users" options={{ href: null }} />
+      <Tabs.Screen name="listings" options={{ href: null }} />
+      <Tabs.Screen name="dealers" options={{ href: null }} />
+      <Tabs.Screen name="rentals" options={{ href: null }} />
     </Tabs>
   );
 }

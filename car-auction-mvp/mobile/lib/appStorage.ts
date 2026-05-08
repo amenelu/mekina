@@ -1,37 +1,88 @@
 import { Platform } from "react-native";
 import * as SecureStore from "expo-secure-store";
 
-async function getWebStorageItem(key: string) {
-  if (typeof window === "undefined" || !window.localStorage) {
+function getBrowserStorage(kind: "local" | "session") {
+  if (typeof window === "undefined") {
     return null;
   }
 
   try {
-    return window.localStorage.getItem(key);
+    return kind === "local" ? window.localStorage : window.sessionStorage;
   } catch {
     return null;
   }
 }
 
+async function getWebStorageItem(key: string) {
+  return getBrowserStorage("local")?.getItem(key) ?? null;
+}
+
 async function setWebStorageItem(key: string, value: string) {
-  if (typeof window === "undefined" || !window.localStorage) {
+  const storage = getBrowserStorage("local");
+  if (!storage) {
     return;
   }
 
   try {
-    window.localStorage.setItem(key, value);
+    storage.setItem(key, value);
   } catch {
     // Ignore storage quota/private mode failures on web.
   }
 }
 
 async function removeWebStorageItem(key: string) {
-  if (typeof window === "undefined" || !window.localStorage) {
+  const storage = getBrowserStorage("local");
+  if (!storage) {
     return;
   }
 
   try {
-    window.localStorage.removeItem(key);
+    storage.removeItem(key);
+  } catch {
+    // Ignore storage failures on web.
+  }
+}
+
+async function getAuthWebStorageItem(key: string) {
+  return (
+    getBrowserStorage("local")?.getItem(key) ??
+    getBrowserStorage("session")?.getItem(key) ??
+    null
+  );
+}
+
+async function setAuthWebStorageItem(key: string, value: string) {
+  const localStorage = getBrowserStorage("local");
+  const sessionStorage = getBrowserStorage("session");
+
+  if (!localStorage && !sessionStorage) {
+    return;
+  }
+
+  let rememberMe = false;
+
+  try {
+    const parsed = JSON.parse(value);
+    rememberMe = parsed?.state?.rememberMe === true;
+  } catch {
+    rememberMe = false;
+  }
+
+  const target = rememberMe ? localStorage : sessionStorage;
+  const other = rememberMe ? sessionStorage : localStorage;
+
+  try {
+    target?.setItem(key, value);
+    other?.removeItem(key);
+  } catch {
+    // Ignore storage quota/private mode failures on web.
+  }
+}
+
+async function removeAuthWebStorageItem(key: string) {
+  try {
+    getBrowserStorage("local")?.removeItem(key);
+    getBrowserStorage("session")?.removeItem(key);
   } catch {
     // Ignore storage failures on web.
   }
@@ -65,4 +116,28 @@ export const appStorage = {
   getItem: getItemAsync,
   setItem: setItemAsync,
   removeItem: deleteItemAsync,
+};
+
+export const authStorage = {
+  getItem(key: string) {
+    if (Platform.OS === "web") {
+      return getAuthWebStorageItem(key);
+    }
+
+    return SecureStore.getItemAsync(key);
+  },
+  setItem(key: string, value: string) {
+    if (Platform.OS === "web") {
+      return setAuthWebStorageItem(key, value);
+    }
+
+    return SecureStore.setItemAsync(key, value);
+  },
+  removeItem(key: string) {
+    if (Platform.OS === "web") {
+      return removeAuthWebStorageItem(key);
+    }
+
+    return SecureStore.deleteItemAsync(key);
+  },
 };

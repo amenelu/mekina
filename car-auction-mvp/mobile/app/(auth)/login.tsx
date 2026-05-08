@@ -13,9 +13,10 @@ import {
 } from "react-native";
 import BouncyCheckbox from "react-native-bouncy-checkbox";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { Link, useNavigation } from "expo-router";
+import { Link, useNavigation, useRouter } from "expo-router";
 import { useAuth } from "@/hooks/useAuth";
 import { login as loginRequest } from "@/lib/api/auth";
+import { getPostLoginRoute } from "@/lib/roleRoutes";
 
 export default function LoginScreen() {
   const [login, setLogin] = useState("");
@@ -28,6 +29,7 @@ export default function LoginScreen() {
   );
 
   const navigation = useNavigation();
+  const router = useRouter();
   const { login: setAuth, setRememberMe } = useAuth();
 
   const showError = (title: string, message: string) => {
@@ -52,22 +54,27 @@ export default function LoginScreen() {
       setRememberMe(rememberMe);
       setAuth(user, token);
 
-      const resetToRoot = (routeName: "(admin)" | "(dealer)" | "(rental)" | "(tabs)") => {
+      const resetToRoot = (
+        routeName: "(admin)" | "(dealer)" | "(rental)" | "(tabs)"
+      ) => {
         navigation.reset({
           index: 0,
           routes: [{ name: routeName as never }],
         });
       };
 
-      // Role-based redirection
-      if (user.is_admin) {
-        resetToRoot("(admin)");
-      } else if (user.is_dealer) {
-        resetToRoot("(dealer)");
-      } else if (user.is_rental_company) {
-        resetToRoot("(rental)");
+      if (Platform.OS === "web") {
+        router.replace(getPostLoginRoute(user) as any);
       } else {
-        resetToRoot("(tabs)");
+        if (user.is_admin) {
+          resetToRoot("(admin)");
+        } else if (user.is_dealer) {
+          resetToRoot("(dealer)");
+        } else if (user.is_rental_company) {
+          resetToRoot("(rental)");
+        } else {
+          resetToRoot("(tabs)");
+        }
       }
     } catch (error: any) {
       // Prioritize the specific message from the API response

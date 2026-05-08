@@ -14,6 +14,7 @@ import { useAuth } from "@/hooks/useAuth";
 import axios from "axios";
 import { useSocket } from "../../contexts/SocketContext";
 import API_URL from "@/constants/Api";
+import { DEALER_ROUTES } from "@/lib/roleRoutes";
 
 const COLORS = {
   background: "#14181F",
@@ -38,7 +39,7 @@ const getMobileRoute = (webLink: string | null) => {
   // Handle Requests: /requests/123 -> /request/123
   if (webLink.includes("/requests/") && !webLink.includes("/deal/")) {
     const match = webLink.match(/\/requests\/(\d+)/);
-    if (match) return `/(dealer)/place-offer?request_id=${match[1]}`;
+    if (match) return `${DEALER_ROUTES.placeOffer}?request_id=${match[1]}`;
   }
 
   // Handle Dealer Messages

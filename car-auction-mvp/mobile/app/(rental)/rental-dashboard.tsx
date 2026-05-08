@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
+  Platform,
   Pressable,
   RefreshControl,
   SafeAreaView,
@@ -10,7 +11,7 @@ import {
   Text,
   View,
 } from "react-native";
-import { router } from "expo-router";
+import { Link, router } from "expo-router";
 import axios from "axios";
 import { Ionicons } from "@expo/vector-icons";
 
@@ -109,7 +110,7 @@ const FleetActions = ({
         style={[styles.actionButton, styles.primaryAction]}
         onPress={() =>
           router.push({
-            pathname: "/(rental)/edit-listing" as any,
+            pathname: "/(rental)/manage-rental" as any,
             params: { id: car.id.toString() },
           })
         }
@@ -152,7 +153,7 @@ const FleetItem = ({
       }}
       onPress={() =>
         router.push({
-          pathname: "/(rental)/edit-listing" as any,
+          pathname: "/(rental)/manage-rental" as any,
           params: { id: car.id.toString() },
         })
       }
@@ -274,6 +275,7 @@ export default function RentalDashboardScreen() {
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView
+        contentContainerStyle={styles.scrollContent}
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
@@ -284,86 +286,93 @@ export default function RentalDashboardScreen() {
           />
         }
       >
-        <View style={styles.header}>
-          <View>
-            <Text style={styles.headerTitle}>Rental Fleet</Text>
-            <Text style={styles.headerSubtitle}>
-              Welcome back, {payload?.profile.username || user?.username}!
-            </Text>
-          </View>
-          <Pressable
-            style={styles.headerButton}
-            onPress={() => router.push("/(rental)/submit" as any)}
-          >
-            <Ionicons name="add-circle-outline" size={24} color={COLORS.accent} />
-            <Text style={styles.headerButtonText}>Add Rental</Text>
-          </Pressable>
-        </View>
-
-        {payload && (
-          <View style={styles.statsGrid}>
-            <StatCard
-              label="Total Fleet"
-              value={payload.stats.total_fleet_count}
-            />
-            <StatCard
-              label="Active Rentals"
-              value={payload.stats.active_fleet_count}
-            />
-            <StatCard
-              label="Pending Approval"
-              value={payload.stats.pending_approval_count}
-            />
-            <StatCard
-              label="Inactive"
-              value={payload.stats.inactive_fleet_count}
-            />
-          </View>
-        )}
-
-        <View style={styles.tabRow}>
-          {[
-            { key: "active", label: "Live Fleet" },
-            { key: "pending", label: "Pending" },
-            { key: "all", label: "All Rentals" },
-          ].map((tab) => (
-            <Pressable
-              key={tab.key}
-              style={[
-                styles.tab,
-                activeTab === tab.key && styles.activeTab,
-              ]}
-              onPress={() => setActiveTab(tab.key as typeof activeTab)}
-            >
-              <Text
-                style={[
-                  styles.tabText,
-                  activeTab === tab.key && styles.activeTabText,
-                ]}
-              >
-                {tab.label}
+        <View style={styles.pageShell}>
+          <View style={styles.header}>
+            <View>
+              <Text style={styles.headerTitle}>Rental Fleet</Text>
+              <Text style={styles.headerSubtitle}>
+                Welcome back, {payload?.profile.username || user?.username}!
               </Text>
-            </Pressable>
-          ))}
-        </View>
+            </View>
+            <Link href="/(rental)/add-rental" asChild>
+              <Pressable style={styles.headerButton}>
+                <Ionicons
+                  name="add-circle-outline"
+                  size={24}
+                  color={COLORS.accent}
+                />
+                <Text style={styles.headerButtonText}>Add Rental</Text>
+              </Pressable>
+            </Link>
+          </View>
 
-        <View style={styles.section}>
-          {fleet.length === 0 ? (
-            <Text style={styles.emptyText}>
-              {activeTab === "pending"
-                ? "No rental listings are waiting for approval."
-                : "No rental listings found yet."}
-            </Text>
-          ) : (
-            fleet.map((car) => (
-              <FleetItem
-                key={car.id}
-                car={car}
-                token={token}
-                onRefresh={() => fetchDashboard(true)}
+          {payload && (
+            <View style={styles.statsGrid}>
+              <StatCard
+                label="Total Fleet"
+                value={payload.stats.total_fleet_count}
               />
-            ))
+              <StatCard
+                label="Active Rentals"
+                value={payload.stats.active_fleet_count}
+              />
+              <StatCard
+                label="Pending Approval"
+                value={payload.stats.pending_approval_count}
+              />
+              <StatCard
+                label="Inactive"
+                value={payload.stats.inactive_fleet_count}
+              />
+            </View>
           )}
+
+          <View style={styles.tabRow}>
+            {[
+              { key: "active", label: "Live Fleet" },
+              { key: "pending", label: "Pending" },
+              { key: "all", label: "All Rentals" },
+            ].map((tab) => (
+              <Pressable
+                key={tab.key}
+                style={[
+                  styles.tab,
+                  activeTab === tab.key && styles.activeTab,
+                ]}
+                onPress={() => setActiveTab(tab.key as typeof activeTab)}
+              >
+                <Text
+                  style={[
+                    styles.tabText,
+                    activeTab === tab.key && styles.activeTabText,
+                  ]}
+                >
+                  {tab.label}
+                </Text>
+              </Pressable>
+            ))}
+          </View>
+
+          <View style={styles.section}>
+            {fleet.length === 0 ? (
+              <View style={styles.emptyCard}>
+                <Text style={styles.emptyText}>
+                  {activeTab === "pending"
+                    ? "No rental listings are waiting for approval."
+                    : "No rental listings found yet."}
+                </Text>
+              </View>
+            ) : (
+              fleet.map((car) => (
+                <FleetItem
+                  key={car.id}
+                  car={car}
+                  token={token}
+                  onRefresh={() => fetchDashboard(true)}
+                />
+              ))
+            )}
+          </View>
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -373,15 +382,34 @@ export default function RentalDashboardScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.background },
   centered: { flex: 1, justifyContent: "center", alignItems: "center" },
+  scrollContent: {
+    paddingBottom: 24,
+  },
+  pageShell: {
+    width: "100%",
+    maxWidth: Platform.OS === "web" ? 1180 : undefined,
+    alignSelf: "center",
+  },
   header: {
     padding: 20,
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
+    gap: 16,
   },
   headerTitle: { fontSize: 24, fontWeight: "bold", color: COLORS.text },
   headerSubtitle: { fontSize: 16, color: COLORS.textSecondary, marginTop: 4 },
-  headerButton: { flexDirection: "row", alignItems: "center", gap: 6 },
+  headerButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    backgroundColor: "rgba(163, 112, 247, 0.12)",
+    borderWidth: 1,
+    borderColor: "rgba(163, 112, 247, 0.28)",
+    borderRadius: 999,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+  },
   headerButtonText: { color: COLORS.accent, fontSize: 16, fontWeight: "600" },
   statsGrid: {
     flexDirection: "row",
@@ -391,7 +419,7 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   statCard: {
-    width: "48%",
+    width: Platform.OS === "web" ? "23.5%" : "48%",
     backgroundColor: COLORS.card,
     borderRadius: 12,
     paddingVertical: 16,
@@ -411,12 +439,15 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     gap: 8,
     marginBottom: 16,
+    flexWrap: Platform.OS === "web" ? "wrap" : "nowrap",
   },
   tab: {
-    flex: 1,
+    flex: Platform.OS === "web" ? undefined : 1,
+    minWidth: Platform.OS === "web" ? 170 : undefined,
     backgroundColor: COLORS.card,
     borderRadius: 10,
     paddingVertical: 12,
+    paddingHorizontal: 18,
     alignItems: "center",
   },
   activeTab: {
@@ -425,10 +456,18 @@ const styles = StyleSheet.create({
   tabText: { color: COLORS.textSecondary, fontWeight: "600", fontSize: 13 },
   activeTabText: { color: "#FFFFFF" },
   section: { paddingHorizontal: 16, paddingBottom: 24 },
+  emptyCard: {
+    backgroundColor: COLORS.card,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    paddingVertical: 28,
+    paddingHorizontal: 18,
+    marginTop: 8,
+  },
   emptyText: {
     color: COLORS.textSecondary,
     textAlign: "center",
-    marginTop: 40,
   },
   fleetItem: { marginBottom: 18 },
   metaRow: {

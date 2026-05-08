@@ -2,6 +2,7 @@ import { Redirect } from "expo-router";
 import { useAuth } from "@/hooks/useAuth";
 import { View, ActivityIndicator, StyleSheet, Image, Platform } from "react-native";
 import { useEffect } from "react";
+import { getPostLoginRoute } from "@/lib/roleRoutes";
 export default function Index() {
   const { user, isLoading, hasHydrated, setIsLoading, setHasHydrated } =
     useAuth() as any;
@@ -34,19 +35,7 @@ export default function Index() {
     );
   }
 
-  if (user?.is_admin) {
-    return <Redirect href="/(admin)/dashboard" />;
-  }
-
-  if (user?.is_dealer) {
-    return <Redirect href="/(dealer)/dashboard" />;
-  }
-
-  if (user?.is_rental_company) {
-    return <Redirect href="/(rental)/dashboard" />;
-  }
-
-  return <Redirect href="/(tabs)" />;
+  return <Redirect href={getPostLoginRoute(user)} />;
 }
 
 const styles = StyleSheet.create({

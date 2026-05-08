@@ -3,7 +3,6 @@ import { View, Text, StyleSheet, Pressable, Image } from "react-native";
 import { useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { bodyTypeOptions } from "./body-type";
-import resolveAssetSource from "react-native/Libraries/Image/resolveAssetSource";
 import { useRequestDraftPersistence } from "@/hooks/useRequestDraftPersistence";
 
 const COLORS = {
@@ -34,7 +33,7 @@ const RequestBudgetScreen = () => {
 
     // Also prefetch the images for the next screen.
     bodyTypeOptions.forEach((option) => {
-      const source = resolveAssetSource(option.image);
+      const source = Image.resolveAssetSource(option.image);
       if (source?.uri) {
         Image.prefetch(source.uri);
       }

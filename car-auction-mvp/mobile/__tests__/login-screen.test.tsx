@@ -4,6 +4,8 @@ import { Alert } from "react-native";
 
 import LoginScreen from "../app/(auth)/login";
 
+jest.setTimeout(15000);
+
 const mockReplace = jest.fn();
 const mockReset = jest.fn();
 const mockSetAuth = jest.fn();

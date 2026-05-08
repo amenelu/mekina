@@ -1,4 +1,4 @@
-import { useLocalSearchParams, useNavigation } from "expo-router";
+import { router, useLocalSearchParams, useNavigation } from "expo-router";
 import React, { useEffect, useLayoutEffect, useState } from "react";
 import {
   View,
@@ -12,6 +12,7 @@ import {
   TextInput,
   Switch,
   Image,
+  Platform,
 } from "react-native";
 import axios from "axios";
 import DraggableFlatList, {
@@ -21,6 +22,7 @@ import API_BASE_URL from "@/constants/Api";
 import { useAuth } from "@/hooks/useAuth";
 import * as ImagePicker from "expo-image-picker";
 import { Ionicons } from "@expo/vector-icons";
+import { ADMIN_ROUTES, toWebRoute } from "@/lib/roleRoutes";
 
 /**
  * @interface Rental
@@ -79,18 +81,47 @@ const updateListing = async (
       formData.append(key, String(value));
     }
   });
-  images.forEach((image) => {
+  for (const image of images) {
+    if (Platform.OS === "web") {
+      const webFile = (image as any).file;
+
+      if (webFile instanceof File) {
+        formData.append("images", webFile, webFile.name);
+        continue;
+      }
+
+      const blob = await fetch(image.uri).then((response) => response.blob());
+      formData.append(
+        "images",
+        blob,
+        image.fileName || `rental-${Date.now()}.jpg`
+      );
+      continue;
+    }
+
     formData.append("images", {
       uri: image.uri,
       name: image.fileName,
       type: image.mimeType,
     } as any);
-  });
+  }
   const response = await axios.put(
     `${API_BASE_URL}/admin/api/listings/${id}`,
     formData,
     { headers: { Authorization: `Bearer ${token}` } }
   );
+  return response.data;
+};
+
+const approveListing = async (id: string, token: string | null) => {
+  if (!token) throw new Error("Authentication token not found.");
+
+  const response = await axios.post(
+    `${API_BASE_URL}/admin/api/listings/${id}`,
+    { action: "approve" },
+    { headers: { Authorization: `Bearer ${token}` } }
+  );
+
   return response.data;
 };
 
@@ -166,9 +197,23 @@ const RentalDetailsPage: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [editedRental, setEditedRental] = useState<Rental | null>(null);
   const [isSaving, setIsSaving] = useState(false);
+  const [isApproving, setIsApproving] = useState(false);
   const [newImages, setNewImages] = useState<ImagePicker.ImagePickerAsset[]>(
     []
   );
+  const [statusMessage, setStatusMessage] = useState("");
+  const [statusType, setStatusType] = useState<"success" | "error" | "info">(
+    "info"
+  );
+
+  const goToAdminRentals = () => {
+    if (Platform.OS === "web") {
+      router.replace(toWebRoute(ADMIN_ROUTES.rentals) as any);
+      return;
+    }
+
+    navigation.goBack();
+  };
 
   useEffect(() => {
     if (id && token) {
@@ -202,6 +247,10 @@ const RentalDetailsPage: React.FC = () => {
     field: keyof Rental,
     value: string | boolean | number
   ) => {
+    if (statusMessage) {
+      setStatusMessage("");
+    }
+
     if (editedRental) {
       // Special handling for nested price_per_day
       if (field === "price_per_day") {
@@ -249,21 +298,66 @@ const RentalDetailsPage: React.FC = () => {
   const handleSaveChanges = async () => {
     if (!editedRental || !id) return;
     setIsSaving(true);
+    setStatusMessage("");
     try {
       const response = await updateListing(id, editedRental, token, newImages);
       const updatedRental = response.car;
       setRental(updatedRental);
       setEditedRental(updatedRental);
       setNewImages([]); // Clear new images after successful save
-      Alert.alert("Success", "Rental listing updated successfully.", [
-        { text: "OK", onPress: () => navigation.goBack() },
-      ]);
+      setStatusType("success");
+      setStatusMessage("Rental listing updated successfully.");
+
+      if (Platform.OS !== "web") {
+        Alert.alert("Success", "Rental listing updated successfully.", [
+          { text: "OK", onPress: () => navigation.goBack() },
+        ]);
+      } else {
+        goToAdminRentals();
+      }
     } catch (err: any) {
       const message =
         err.response?.data?.message || "Failed to update rental listing.";
-      Alert.alert("Error", message);
+      setStatusType("error");
+      setStatusMessage(message);
+
+      if (Platform.OS !== "web") {
+        Alert.alert("Error", message);
+      }
     } finally {
       setIsSaving(false);
+    }
+  };
+
+  const handleApprove = async () => {
+    if (!editedRental || !id) return;
+
+    setIsApproving(true);
+    setStatusMessage("");
+    try {
+      await approveListing(id, token);
+      const updatedRental = { ...editedRental, is_approved: true };
+      setRental(updatedRental);
+      setEditedRental(updatedRental);
+      setStatusType("success");
+      setStatusMessage("Rental listing approved successfully.");
+
+      if (Platform.OS !== "web") {
+        Alert.alert("Success", "Rental listing approved successfully.");
+      } else {
+        goToAdminRentals();
+      }
+    } catch (err: any) {
+      const message =
+        err.response?.data?.message || "Failed to approve rental listing.";
+      setStatusType("error");
+      setStatusMessage(message);
+
+      if (Platform.OS !== "web") {
+        Alert.alert("Error", message);
+      }
+    } finally {
+      setIsApproving(false);
     }
   };
 
@@ -281,7 +375,7 @@ const RentalDetailsPage: React.FC = () => {
             try {
               await deleteListing(id, token);
               Alert.alert("Success", "Listing has been deleted.");
-              navigation.goBack();
+              goToAdminRentals();
             } catch {
               Alert.alert("Error", "Failed to delete listing.");
             }
@@ -326,6 +420,20 @@ const RentalDetailsPage: React.FC = () => {
     <ScrollView style={styles.container}>
       <View style={styles.card}>
         <Text style={styles.cardTitle}>Edit Rental Details</Text>
+        {statusMessage ? (
+          <View
+            style={[
+              styles.statusBanner,
+              statusType === "success"
+                ? styles.statusSuccess
+                : statusType === "error"
+                ? styles.statusError
+                : styles.statusInfo,
+            ]}
+          >
+            <Text style={styles.statusBannerText}>{statusMessage}</Text>
+          </View>
+        ) : null}
         <View style={styles.inputGroup}>
           <Text style={styles.label}>Model</Text>
           <TextInput
@@ -460,6 +568,18 @@ const RentalDetailsPage: React.FC = () => {
         </Text>
       </Pressable>
 
+      {!editedRental.is_approved && (
+        <Pressable
+          style={[styles.button, styles.approveButton]}
+          onPress={handleApprove}
+          disabled={isApproving}
+        >
+          <Text style={styles.buttonText}>
+            {isApproving ? "Approving..." : "Approve Now"}
+          </Text>
+        </Pressable>
+      )}
+
       <Pressable
         style={[styles.button, styles.deleteButton]}
         onPress={handleDelete}
@@ -583,6 +703,32 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingVertical: 8,
   },
+  statusBanner: {
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    marginBottom: 14,
+  },
+  statusSuccess: {
+    backgroundColor: "rgba(40, 167, 69, 0.18)",
+    borderWidth: 1,
+    borderColor: "rgba(40, 167, 69, 0.45)",
+  },
+  statusError: {
+    backgroundColor: "rgba(220, 53, 69, 0.18)",
+    borderWidth: 1,
+    borderColor: "rgba(220, 53, 69, 0.45)",
+  },
+  statusInfo: {
+    backgroundColor: "rgba(163, 112, 247, 0.18)",
+    borderWidth: 1,
+    borderColor: "rgba(163, 112, 247, 0.45)",
+  },
+  statusBannerText: {
+    color: "#F8F8F8",
+    fontSize: 14,
+    fontWeight: "600",
+  },
   button: {
     borderRadius: 8,
     padding: 15,
@@ -591,6 +737,7 @@ const styles = StyleSheet.create({
     marginTop: 16,
   },
   saveButton: { backgroundColor: "#A370F7" },
+  approveButton: { backgroundColor: "#28a745" },
   deleteButton: { backgroundColor: "#dc3545", marginBottom: 32 },
   buttonText: { color: "#fff", fontWeight: "bold", fontSize: 16 },
 });

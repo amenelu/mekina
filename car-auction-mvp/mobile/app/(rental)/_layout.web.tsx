@@ -4,11 +4,12 @@ import { Ionicons } from "@expo/vector-icons";
 
 const COLORS = {
   card: "#1C212B",
+  border: "#313843",
   textSecondary: "#8A94A3",
   accent: "#A370F7",
 };
 
-export default function RentalTabsLayout() {
+export default function RentalTabsLayoutWeb() {
   return (
     <Tabs
       screenOptions={{
@@ -17,7 +18,10 @@ export default function RentalTabsLayout() {
         tabBarInactiveTintColor: COLORS.textSecondary,
         tabBarStyle: {
           backgroundColor: COLORS.card,
-          borderTopColor: COLORS.card,
+          borderTopColor: COLORS.border,
+          height: 62,
+          paddingTop: 6,
+          paddingBottom: 6,
         },
       }}
     >

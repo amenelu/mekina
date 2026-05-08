@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
+  Platform,
   Pressable,
   SafeAreaView,
   ScrollView,
@@ -111,7 +112,7 @@ export default function RentalEditListingScreen() {
 
       setListing(response.data.car);
       Alert.alert("Success", response.data.message, [
-        { text: "OK", onPress: () => router.replace("/(rental)/dashboard") },
+        { text: "OK", onPress: () => router.replace("/(rental)/rental-dashboard") },
       ]);
     } catch (error: any) {
       Alert.alert(
@@ -138,7 +139,7 @@ export default function RentalEditListingScreen() {
               await axios.delete(`${API_BASE_URL}/seller/api/rental-cars/${id}`, {
                 headers: { Authorization: `Bearer ${token}` },
               });
-              router.replace("/(rental)/dashboard");
+              router.replace("/(rental)/rental-dashboard");
             } catch (error: any) {
               Alert.alert(
                 "Delete Failed",
@@ -172,70 +173,72 @@ export default function RentalEditListingScreen() {
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView contentContainerStyle={styles.content}>
-        <View style={styles.card}>
-          <Text style={styles.sectionTitle}>Rental Details</Text>
-          <View style={styles.inputGroup}>
-            <Text style={styles.label}>Make</Text>
-            <TextInput style={styles.input} value={make} onChangeText={setMake} />
+        <View style={styles.pageShell}>
+          <View style={styles.card}>
+            <Text style={styles.sectionTitle}>Rental Details</Text>
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>Make</Text>
+              <TextInput style={styles.input} value={make} onChangeText={setMake} />
+            </View>
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>Model</Text>
+              <TextInput style={styles.input} value={model} onChangeText={setModel} />
+            </View>
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>Year</Text>
+              <TextInput
+                style={styles.input}
+                value={year}
+                onChangeText={setYear}
+                keyboardType="number-pad"
+              />
+            </View>
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>Price Per Day (ETB)</Text>
+              <TextInput
+                style={styles.input}
+                value={pricePerDay}
+                onChangeText={setPricePerDay}
+                keyboardType="number-pad"
+              />
+            </View>
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>Description</Text>
+              <TextInput
+                style={[styles.input, styles.textArea]}
+                value={description}
+                onChangeText={setDescription}
+                multiline
+              />
+            </View>
           </View>
-          <View style={styles.inputGroup}>
-            <Text style={styles.label}>Model</Text>
-            <TextInput style={styles.input} value={model} onChangeText={setModel} />
+
+          <View style={styles.card}>
+            <Text style={styles.sectionTitle}>Availability</Text>
+            <View style={styles.switchRow}>
+              <Text style={styles.switchLabel}>Listing Active</Text>
+              <Switch value={isActive} onValueChange={setIsActive} />
+            </View>
+            <View style={styles.switchRow}>
+              <Text style={styles.switchLabel}>Vehicle Available</Text>
+              <Switch value={isAvailable} onValueChange={setIsAvailable} />
+            </View>
           </View>
-          <View style={styles.inputGroup}>
-            <Text style={styles.label}>Year</Text>
-            <TextInput
-              style={styles.input}
-              value={year}
-              onChangeText={setYear}
-              keyboardType="number-pad"
-            />
-          </View>
-          <View style={styles.inputGroup}>
-            <Text style={styles.label}>Price Per Day (ETB)</Text>
-            <TextInput
-              style={styles.input}
-              value={pricePerDay}
-              onChangeText={setPricePerDay}
-              keyboardType="number-pad"
-            />
-          </View>
-          <View style={styles.inputGroup}>
-            <Text style={styles.label}>Description</Text>
-            <TextInput
-              style={[styles.input, styles.textArea]}
-              value={description}
-              onChangeText={setDescription}
-              multiline
-            />
-          </View>
+
+          <Pressable
+            style={styles.saveButton}
+            onPress={handleSave}
+            disabled={saving}
+          >
+            <Text style={styles.saveButtonText}>
+              {saving ? "Saving..." : "Save Changes"}
+            </Text>
+          </Pressable>
+
+          <Pressable style={styles.deleteButton} onPress={handleDelete}>
+            <Text style={styles.deleteButtonText}>Delete Listing</Text>
+          </Pressable>
         </View>
-
-        <View style={styles.card}>
-          <Text style={styles.sectionTitle}>Availability</Text>
-          <View style={styles.switchRow}>
-            <Text style={styles.switchLabel}>Listing Active</Text>
-            <Switch value={isActive} onValueChange={setIsActive} />
-          </View>
-          <View style={styles.switchRow}>
-            <Text style={styles.switchLabel}>Vehicle Available</Text>
-            <Switch value={isAvailable} onValueChange={setIsAvailable} />
-          </View>
-        </View>
-
-        <Pressable
-          style={styles.saveButton}
-          onPress={handleSave}
-          disabled={saving}
-        >
-          <Text style={styles.saveButtonText}>
-            {saving ? "Saving..." : "Save Changes"}
-          </Text>
-        </Pressable>
-
-        <Pressable style={styles.deleteButton} onPress={handleDelete}>
-          <Text style={styles.deleteButtonText}>Delete Listing</Text>
-        </Pressable>
       </ScrollView>
     </SafeAreaView>
   );
@@ -245,6 +248,11 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.background },
   centered: { flex: 1, justifyContent: "center", alignItems: "center" },
   content: { padding: 20, paddingBottom: 32 },
+  pageShell: {
+    width: "100%",
+    maxWidth: Platform.OS === "web" ? 980 : undefined,
+    alignSelf: "center",
+  },
   card: {
     backgroundColor: COLORS.card,
     borderRadius: 12,

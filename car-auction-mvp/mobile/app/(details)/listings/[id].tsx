@@ -1,4 +1,4 @@
-import { useLocalSearchParams, useNavigation } from "expo-router";
+import { router, useLocalSearchParams, useNavigation } from "expo-router";
 import React, { useEffect, useLayoutEffect, useState } from "react";
 import {
   View,
@@ -12,6 +12,7 @@ import {
   TouchableOpacity,
   Switch,
   Image,
+  Platform,
 } from "react-native";
 import axios from "axios";
 import DraggableFlatList, {
@@ -22,6 +23,7 @@ import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { useAuth } from "@/hooks/useAuth";
 import * as ImagePicker from "expo-image-picker";
 import { Ionicons } from "@expo/vector-icons";
+import { ADMIN_ROUTES, toWebRoute } from "@/lib/roleRoutes";
 
 const COLORS = {
   background: "#14181F",
@@ -203,6 +205,18 @@ const ListingDetailsPage: React.FC = () => {
     []
   );
 
+  const goToAdminDestination = (listingType?: Listing["listing_type"]) => {
+    const destination =
+      listingType === "rental" ? ADMIN_ROUTES.rentals : ADMIN_ROUTES.listings;
+
+    if (Platform.OS === "web") {
+      router.replace(toWebRoute(destination) as any);
+      return;
+    }
+
+    navigation.goBack();
+  };
+
   useEffect(() => {
     if (id && token) {
       setLoading(true);
@@ -317,9 +331,16 @@ const ListingDetailsPage: React.FC = () => {
       // Update both states with the fresh data from the backend
       setListing(response.car);
       setEditedListing(response.car);
-      Alert.alert("Success", "Listing updated successfully.", [
-        { text: "OK", onPress: () => navigation.goBack() },
-      ]);
+      if (Platform.OS === "web") {
+        goToAdminDestination(response.car.listing_type);
+      } else {
+        Alert.alert("Success", "Listing updated successfully.", [
+          {
+            text: "OK",
+            onPress: () => goToAdminDestination(response.car.listing_type),
+          },
+        ]);
+      }
     } catch (err: any) {
       const message =
         err.response?.data?.message || "Failed to update listing.";
@@ -338,6 +359,9 @@ const ListingDetailsPage: React.FC = () => {
       const updatedState = { ...editedListing, is_approved: true } as Listing;
       setListing(updatedState);
       setEditedListing(updatedState);
+      if (Platform.OS === "web") {
+        goToAdminDestination(updatedState.listing_type);
+      }
     } catch {
       Alert.alert("Error", "Failed to approve listing.");
     }
@@ -356,8 +380,12 @@ const ListingDetailsPage: React.FC = () => {
           onPress: async () => {
             try {
               await manageListingAction(id, "delete", token);
-              Alert.alert("Success", "Listing has been deleted.");
-              navigation.goBack();
+              if (Platform.OS === "web") {
+                goToAdminDestination(editedListing?.listing_type);
+              } else {
+                Alert.alert("Success", "Listing has been deleted.");
+                goToAdminDestination(editedListing?.listing_type);
+              }
             } catch {
               Alert.alert("Error", "Failed to delete listing.");
             }

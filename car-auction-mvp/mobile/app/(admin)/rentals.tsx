@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import {
   View,
   Text,
@@ -13,7 +13,7 @@ import axios from "axios";
 import API_URL from "@/constants/Api";
 import { useAuth } from "@/hooks/useAuth"; // Keep this import
 import { Ionicons } from "@expo/vector-icons";
-import { useRouter } from "expo-router";
+import { useFocusEffect, useRouter } from "expo-router";
 
 const COLORS = {
   background: "#14181F",
@@ -46,36 +46,39 @@ const AdminRentalsScreen = () => {
   const { token } = useAuth();
   const router = useRouter();
 
-  useEffect(() => {
-    const fetchRentals = async () => {
-      if (!token) return;
-      setLoading(true);
-      try {
-        const response = await axios.get(
-          `${API_URL}/admin/api/rentals?q=${search}`,
-          {
-            headers: { Authorization: `Bearer ${token}` },
-          }
-        );
-        setRentals(response.data.cars);
-      } catch (error: any) {
-        console.error(
-          "Error fetching rentals:",
-          error.response
-            ? JSON.stringify(error.response.data, null, 2)
-            : error.message
-        );
-      } finally {
-        setLoading(false);
-      }
-    };
+  const fetchRentals = useCallback(async () => {
+    if (!token) return;
+    setLoading(true);
+    try {
+      const response = await axios.get(`${API_URL}/admin/api/rentals?q=${search}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setRentals(response.data.cars);
+    } catch (error: any) {
+      console.error(
+        "Error fetching rentals:",
+        error.response
+          ? JSON.stringify(error.response.data, null, 2)
+          : error.message
+      );
+    } finally {
+      setLoading(false);
+    }
+  }, [search, token]);
 
+  useEffect(() => {
     const debounceFetch = setTimeout(() => {
       fetchRentals();
     }, 300);
 
     return () => clearTimeout(debounceFetch);
-  }, [search, token]);
+  }, [fetchRentals]);
+
+  useFocusEffect(
+    useCallback(() => {
+      fetchRentals();
+    }, [fetchRentals])
+  );
 
   const handleDelete = (rental: Rental) => {
     Alert.alert(

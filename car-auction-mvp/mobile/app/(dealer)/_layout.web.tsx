@@ -11,7 +11,7 @@ const COLORS = {
   accent: "#A370F7",
 };
 
-export default function DealerTabsLayout() {
+export default function DealerTabsLayoutWeb() {
   const { unreadMessageCount, unreadNotificationCount } = useSocket();
 
   return (
@@ -27,7 +27,7 @@ export default function DealerTabsLayout() {
       }}
     >
       <Tabs.Screen
-        name="dashboard"
+        name="dealer-dashboard"
         options={{
           title: "Dashboard",
           tabBarIcon: ({ color }) => (
@@ -36,7 +36,7 @@ export default function DealerTabsLayout() {
         }}
       />
       <Tabs.Screen
-        name="analytics"
+        name="dealer-analytics"
         options={{
           title: "Analytics",
           tabBarIcon: ({ color }) => (
@@ -45,7 +45,7 @@ export default function DealerTabsLayout() {
         }}
       />
       <Tabs.Screen
-        name="messages"
+        name="dealer-messages"
         options={{
           title: "Messages",
           tabBarIcon: ({ color }) => (
@@ -56,7 +56,7 @@ export default function DealerTabsLayout() {
         }}
       />
       <Tabs.Screen
-        name="notifications"
+        name="dealer-notifications"
         options={{
           title: "Notifications",
           tabBarIcon: ({ color }) => (
@@ -68,7 +68,7 @@ export default function DealerTabsLayout() {
         }}
       />
       <Tabs.Screen
-        name="profile"
+        name="dealer-profile"
         options={{
           title: "Profile",
           tabBarIcon: ({ color }) => (
@@ -76,39 +76,19 @@ export default function DealerTabsLayout() {
           ),
         }}
       />
-      <Tabs.Screen
-        name="place-offer"
-        options={{
-          href: null,
-        }}
-      />
-      <Tabs.Screen
-        name="edit-listing"
-        options={{
-          href: null,
-        }}
-      />
-      <Tabs.Screen
-        name="submit"
-        options={{
-          href: null,
-        }}
-      />
-      <Tabs.Screen
-        name="points"
-        options={{
-          href: null,
-        }}
-      />
-      <Tabs.Screen name="dealer-dashboard" options={{ href: null }} />
-      <Tabs.Screen name="dealer-analytics" options={{ href: null }} />
-      <Tabs.Screen name="dealer-messages" options={{ href: null }} />
-      <Tabs.Screen name="dealer-notifications" options={{ href: null }} />
-      <Tabs.Screen name="dealer-profile" options={{ href: null }} />
       <Tabs.Screen name="dealer-place-offer" options={{ href: null }} />
       <Tabs.Screen name="dealer-edit-listing" options={{ href: null }} />
       <Tabs.Screen name="dealer-submit" options={{ href: null }} />
       <Tabs.Screen name="dealer-points" options={{ href: null }} />
+      <Tabs.Screen name="dashboard" options={{ href: null }} />
+      <Tabs.Screen name="analytics" options={{ href: null }} />
+      <Tabs.Screen name="messages" options={{ href: null }} />
+      <Tabs.Screen name="notifications" options={{ href: null }} />
+      <Tabs.Screen name="profile" options={{ href: null }} />
+      <Tabs.Screen name="place-offer" options={{ href: null }} />
+      <Tabs.Screen name="edit-listing" options={{ href: null }} />
+      <Tabs.Screen name="submit" options={{ href: null }} />
+      <Tabs.Screen name="points" options={{ href: null }} />
     </Tabs>
   );
 }

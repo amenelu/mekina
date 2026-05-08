@@ -15,6 +15,7 @@ import { router } from "expo-router";
 import API_BASE_URL from "@/constants/Api";
 import { Ionicons } from "@expo/vector-icons";
 import VehicleCard from "../_components/VehicleCard";
+import { DEALER_ROUTES, PUBLIC_HOME_ROUTE } from "@/lib/roleRoutes";
 
 const COLORS = {
   background: "#14181F",
@@ -139,7 +140,7 @@ const ProfileScreen = () => {
 
   const handleLogout = () => {
     logout();
-    router.replace("/(tabs)/");
+    router.replace(PUBLIC_HOME_ROUTE as any);
   };
 
   if (loading && !refreshing) {
@@ -214,7 +215,7 @@ const ProfileScreen = () => {
                     key={item.id}
                     onPress={() => {
                       router.push({
-                        pathname: "/(dealer)/edit-listing" as any,
+                        pathname: DEALER_ROUTES.editListing as any,
                         params: { id: item.id.toString() },
                       });
                     }}

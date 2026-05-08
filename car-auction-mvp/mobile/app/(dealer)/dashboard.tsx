@@ -15,6 +15,7 @@ import { useAuth } from "@/hooks/useAuth";
 import API_BASE_URL from "@/constants/Api";
 import { Ionicons } from "@expo/vector-icons";
 import { useSocket } from "@/contexts/SocketContext";
+import { DEALER_ROUTES, LOGIN_ROUTE } from "@/lib/roleRoutes";
 
 const COLORS = {
   background: "#14181F",
@@ -93,7 +94,7 @@ const StatCard = ({
 const ListingItem = ({ item }: { item: Listing }) => {
   const handlePress = () => {
     router.push({
-      pathname: "/(dealer)/edit-listing" as any,
+      pathname: DEALER_ROUTES.editListing as any,
       params: { id: item.id.toString() },
     });
   };
@@ -134,7 +135,7 @@ const ListingItem = ({ item }: { item: Listing }) => {
 const RequestItem = ({ item }: { item: CustomerRequest }) => {
   const handlePress = () => {
     router.push({
-      pathname: "/(dealer)/place-offer" as any,
+      pathname: DEALER_ROUTES.placeOffer as any,
       params: { request_id: item.id.toString() },
     });
   };
@@ -240,7 +241,7 @@ const DealerDashboard = () => {
 
   useEffect(() => {
     if (!isLoading && !token) {
-      router.replace("/(auth)/login");
+      router.replace(LOGIN_ROUTE);
     }
   }, [isLoading, token]);
 
@@ -341,7 +342,7 @@ const DealerDashboard = () => {
           </View>
           <Pressable
             style={styles.headerButton}
-            onPress={() => router.push("/(dealer)/submit" as any)}
+            onPress={() => router.push(DEALER_ROUTES.submit as any)}
           >
             <Ionicons
               name="add-circle-outline"
@@ -357,7 +358,7 @@ const DealerDashboard = () => {
             <StatCard
               label="Your Points"
               value={stats.points ?? 0}
-              onPress={() => router.push("/dealer-points")}
+              onPress={() => router.push(DEALER_ROUTES.points as any)}
             />
             <StatCard
               label="Active Listings"

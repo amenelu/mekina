@@ -1,6 +1,6 @@
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware.js";
-import { appStorage } from "@/lib/appStorage";
+import { authStorage } from "@/lib/appStorage";
 
 export interface User {
   id: number;
@@ -43,17 +43,12 @@ export const useAuth = create<AuthState>()(
     }),
     {
       name: "auth-storage", // unique name
-      storage: createJSONStorage(() => appStorage),
-      partialize: (state) =>
-        state.rememberMe
-          ? {
-              user: state.user,
-              token: state.token,
-              rememberMe: true,
-            }
-          : {
-              rememberMe: false,
-            },
+      storage: createJSONStorage(() => authStorage),
+      partialize: (state) => ({
+        user: state.user,
+        token: state.token,
+        rememberMe: state.rememberMe,
+      }),
       onRehydrateStorage: () => (state) => {
         state?.setIsLoading(false);
         state?.setHasHydrated(true);
