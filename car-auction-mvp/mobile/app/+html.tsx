@@ -3,6 +3,7 @@ import { ScrollViewStyleReset } from "expo-router/html";
 
 const BACKGROUND = "#14181F";
 const TAB_BAR = "#1C212B";
+const BOTTOM_SHELL_HEIGHT = 10;
 
 export default function RootHtml({ children }: PropsWithChildren) {
   return (
@@ -37,8 +38,8 @@ export default function RootHtml({ children }: PropsWithChildren) {
                   linear-gradient(
                     to bottom,
                     ${BACKGROUND} 0,
-                    ${BACKGROUND} calc(100% - 96px),
-                    ${TAB_BAR} calc(100% - 96px),
+                    ${BACKGROUND} calc(100% - ${BOTTOM_SHELL_HEIGHT}px),
+                    ${TAB_BAR} calc(100% - ${BOTTOM_SHELL_HEIGHT}px),
                     ${TAB_BAR} 100%
                   );
               }

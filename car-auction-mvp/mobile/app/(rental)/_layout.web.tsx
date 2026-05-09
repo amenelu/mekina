@@ -19,7 +19,7 @@ export default function RentalTabsLayoutWeb() {
         tabBarStyle: {
           backgroundColor: COLORS.card,
           borderTopColor: COLORS.border,
-          height: 62,
+          height: 64,
           paddingTop: 6,
           paddingBottom: 6,
         },
