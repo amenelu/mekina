@@ -30,6 +30,56 @@ const COLORS = {
   border: "#313843",
 };
 
+const CONDITION_OPTIONS = ["Used", "New"] as const;
+const BODY_TYPE_OPTIONS = [
+  "SUV",
+  "Sedan",
+  "Hatchback",
+  "Pickup",
+  "Coupe",
+  "Minivan",
+] as const;
+const TRANSMISSION_OPTIONS = ["Automatic", "Manual"] as const;
+const DRIVETRAIN_OPTIONS = ["FWD", "RWD", "AWD", "4WD"] as const;
+const FUEL_TYPE_OPTIONS = ["Gasoline", "Diesel", "Electric", "Hybrid"] as const;
+
+const ChoiceGroup = ({
+  label,
+  value,
+  options,
+  onChange,
+}: {
+  label: string;
+  value: string;
+  options: readonly string[];
+  onChange: (value: string) => void;
+}) => (
+  <View style={styles.inputGroup}>
+    <Text style={styles.label}>{label}</Text>
+    <View style={styles.choiceGroup}>
+      {options.map((option) => {
+        const selected = value === option;
+        return (
+          <Pressable
+            key={option}
+            style={[styles.choiceChip, selected && styles.choiceChipSelected]}
+            onPress={() => onChange(option)}
+          >
+            <Text
+              style={[
+                styles.choiceChipText,
+                selected && styles.choiceChipTextSelected,
+              ]}
+            >
+              {option}
+            </Text>
+          </Pressable>
+        );
+      })}
+    </View>
+  </View>
+);
+
 export default function RentalSubmitScreen() {
   const { token } = useAuth() as any;
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -40,6 +90,17 @@ export default function RentalSubmitScreen() {
   const [year, setYear] = useState("");
   const [pricePerDay, setPricePerDay] = useState("");
   const [description, setDescription] = useState("");
+  const [condition, setCondition] =
+    useState<(typeof CONDITION_OPTIONS)[number]>("Used");
+  const [bodyType, setBodyType] =
+    useState<(typeof BODY_TYPE_OPTIONS)[number]>("SUV");
+  const [transmission, setTransmission] =
+    useState<(typeof TRANSMISSION_OPTIONS)[number]>("Automatic");
+  const [drivetrain, setDrivetrain] =
+    useState<(typeof DRIVETRAIN_OPTIONS)[number]>("FWD");
+  const [fuelType, setFuelType] =
+    useState<(typeof FUEL_TYPE_OPTIONS)[number]>("Gasoline");
+  const [mileage, setMileage] = useState("");
   const [images, setImages] = useState<ImagePicker.ImagePickerAsset[]>([]);
 
   const showStatus = (
@@ -128,11 +189,14 @@ export default function RentalSubmitScreen() {
     formData.append("description", description);
     formData.append("listing_type", "rental");
     formData.append("price_per_day", pricePerDay);
-    formData.append("condition", "Used");
-    formData.append("body_type", "SUV");
-    formData.append("transmission", "Automatic");
-    formData.append("drivetrain", "FWD");
-    formData.append("fuel_type", "Gasoline");
+    formData.append("condition", condition);
+    formData.append("body_type", bodyType);
+    formData.append("transmission", transmission);
+    formData.append("drivetrain", drivetrain);
+    formData.append("fuel_type", fuelType);
+    if (mileage.trim()) {
+      formData.append("mileage", mileage);
+    }
 
     try {
       await appendImagesToFormData(formData);
@@ -281,6 +345,83 @@ export default function RentalSubmitScreen() {
                 placeholderTextColor={COLORS.textSecondary}
               />
             </View>
+            <ChoiceGroup
+              label="Condition"
+              value={condition}
+              options={CONDITION_OPTIONS}
+              onChange={(value) => {
+                setCondition(value as (typeof CONDITION_OPTIONS)[number]);
+                if (statusMessage) {
+                  setStatusMessage("");
+                  setStatusType(null);
+                }
+              }}
+            />
+            <ChoiceGroup
+              label="Body Type"
+              value={bodyType}
+              options={BODY_TYPE_OPTIONS}
+              onChange={(value) => {
+                setBodyType(value as (typeof BODY_TYPE_OPTIONS)[number]);
+                if (statusMessage) {
+                  setStatusMessage("");
+                  setStatusType(null);
+                }
+              }}
+            />
+            <ChoiceGroup
+              label="Transmission"
+              value={transmission}
+              options={TRANSMISSION_OPTIONS}
+              onChange={(value) => {
+                setTransmission(value as (typeof TRANSMISSION_OPTIONS)[number]);
+                if (statusMessage) {
+                  setStatusMessage("");
+                  setStatusType(null);
+                }
+              }}
+            />
+            <ChoiceGroup
+              label="Drivetrain"
+              value={drivetrain}
+              options={DRIVETRAIN_OPTIONS}
+              onChange={(value) => {
+                setDrivetrain(value as (typeof DRIVETRAIN_OPTIONS)[number]);
+                if (statusMessage) {
+                  setStatusMessage("");
+                  setStatusType(null);
+                }
+              }}
+            />
+            <ChoiceGroup
+              label="Fuel Type"
+              value={fuelType}
+              options={FUEL_TYPE_OPTIONS}
+              onChange={(value) => {
+                setFuelType(value as (typeof FUEL_TYPE_OPTIONS)[number]);
+                if (statusMessage) {
+                  setStatusMessage("");
+                  setStatusType(null);
+                }
+              }}
+            />
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>Mileage {condition === "Used" ? "(Recommended)" : "(Optional)"}</Text>
+              <TextInput
+                style={styles.input}
+                value={mileage}
+                onChangeText={(value) => {
+                  setMileage(value);
+                  if (statusMessage) {
+                    setStatusMessage("");
+                    setStatusType(null);
+                  }
+                }}
+                keyboardType="number-pad"
+                placeholder="e.g., 42000"
+                placeholderTextColor={COLORS.textSecondary}
+              />
+            </View>
           </View>
 
           <View style={styles.formCard}>
@@ -371,6 +512,31 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: COLORS.border,
     fontSize: 16,
+  },
+  choiceGroup: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+  },
+  choiceChip: {
+    backgroundColor: COLORS.input,
+    borderColor: COLORS.border,
+    borderWidth: 1,
+    borderRadius: 999,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+  },
+  choiceChipSelected: {
+    backgroundColor: "rgba(163, 112, 247, 0.18)",
+    borderColor: COLORS.accent,
+  },
+  choiceChipText: {
+    color: COLORS.textSecondary,
+    fontSize: 14,
+    fontWeight: "600",
+  },
+  choiceChipTextSelected: {
+    color: COLORS.accent,
   },
   textArea: { minHeight: 100, textAlignVertical: "top" },
   imageScrollView: { marginBottom: 15 },

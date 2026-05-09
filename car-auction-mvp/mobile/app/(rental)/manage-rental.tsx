@@ -29,12 +29,31 @@ const COLORS = {
   destructive: "#dc3545",
 };
 
+const CONDITION_OPTIONS = ["Used", "New"] as const;
+const BODY_TYPE_OPTIONS = [
+  "SUV",
+  "Sedan",
+  "Hatchback",
+  "Pickup",
+  "Coupe",
+  "Minivan",
+] as const;
+const TRANSMISSION_OPTIONS = ["Automatic", "Manual"] as const;
+const DRIVETRAIN_OPTIONS = ["FWD", "RWD", "AWD", "4WD"] as const;
+const FUEL_TYPE_OPTIONS = ["Gasoline", "Diesel", "Electric", "Hybrid"] as const;
+
 type RentalCar = {
   id: number;
   make: string;
   model: string;
   year: number;
   description?: string;
+  condition?: string;
+  body_type?: string;
+  mileage?: number;
+  transmission?: string;
+  drivetrain?: string;
+  fuel_type?: string;
   is_active: boolean;
   rental_listing?: {
     price_per_day: number;
@@ -53,6 +72,17 @@ export default function RentalEditListingScreen() {
   const [year, setYear] = useState("");
   const [pricePerDay, setPricePerDay] = useState("");
   const [description, setDescription] = useState("");
+  const [condition, setCondition] =
+    useState<(typeof CONDITION_OPTIONS)[number]>("Used");
+  const [bodyType, setBodyType] =
+    useState<(typeof BODY_TYPE_OPTIONS)[number]>("SUV");
+  const [mileage, setMileage] = useState("");
+  const [transmission, setTransmission] =
+    useState<(typeof TRANSMISSION_OPTIONS)[number]>("Automatic");
+  const [drivetrain, setDrivetrain] =
+    useState<(typeof DRIVETRAIN_OPTIONS)[number]>("FWD");
+  const [fuelType, setFuelType] =
+    useState<(typeof FUEL_TYPE_OPTIONS)[number]>("Gasoline");
   const [isActive, setIsActive] = useState(false);
   const [isAvailable, setIsAvailable] = useState(false);
 
@@ -72,6 +102,19 @@ export default function RentalEditListingScreen() {
         setYear(String(car.year));
         setPricePerDay(String(car.rental_listing?.price_per_day ?? ""));
         setDescription(car.description || "");
+        setCondition((car.condition as (typeof CONDITION_OPTIONS)[number]) || "Used");
+        setBodyType((car.body_type as (typeof BODY_TYPE_OPTIONS)[number]) || "SUV");
+        setMileage(car.mileage ? String(car.mileage) : "");
+        setTransmission(
+          (car.transmission as (typeof TRANSMISSION_OPTIONS)[number]) ||
+            "Automatic"
+        );
+        setDrivetrain(
+          (car.drivetrain as (typeof DRIVETRAIN_OPTIONS)[number]) || "FWD"
+        );
+        setFuelType(
+          (car.fuel_type as (typeof FUEL_TYPE_OPTIONS)[number]) || "Gasoline"
+        );
         setIsActive(car.is_active);
         setIsAvailable(Boolean(car.rental_listing?.is_available));
       } catch (error: any) {
@@ -104,6 +147,12 @@ export default function RentalEditListingScreen() {
           year: Number(year),
           price_per_day: Number(pricePerDay),
           description,
+          condition,
+          body_type: bodyType,
+          mileage: mileage ? Number(mileage) : null,
+          transmission,
+          drivetrain,
+          fuel_type: fuelType,
           is_active: isActive,
           is_available: isAvailable,
         },
@@ -111,8 +160,16 @@ export default function RentalEditListingScreen() {
       );
 
       setListing(response.data.car);
+      if (Platform.OS === "web") {
+        router.replace("/(rental)/rental-dashboard");
+        return;
+      }
+
       Alert.alert("Success", response.data.message, [
-        { text: "OK", onPress: () => router.replace("/(rental)/rental-dashboard") },
+        {
+          text: "OK",
+          onPress: () => router.replace("/(rental)/rental-dashboard"),
+        },
       ]);
     } catch (error: any) {
       Alert.alert(
@@ -170,6 +227,43 @@ export default function RentalEditListingScreen() {
     );
   }
 
+  const ChoiceGroup = ({
+    label,
+    value,
+    options,
+    onChange,
+  }: {
+    label: string;
+    value: string;
+    options: readonly string[];
+    onChange: (value: string) => void;
+  }) => (
+    <View style={styles.inputGroup}>
+      <Text style={styles.label}>{label}</Text>
+      <View style={styles.choiceGroup}>
+        {options.map((option) => {
+          const selected = value === option;
+          return (
+            <Pressable
+              key={option}
+              style={[styles.choiceChip, selected && styles.choiceChipSelected]}
+              onPress={() => onChange(option)}
+            >
+              <Text
+                style={[
+                  styles.choiceChipText,
+                  selected && styles.choiceChipTextSelected,
+                ]}
+              >
+                {option}
+              </Text>
+            </Pressable>
+          );
+        })}
+      </View>
+    </View>
+  );
+
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView contentContainerStyle={styles.content}>
@@ -209,6 +303,57 @@ export default function RentalEditListingScreen() {
                 value={description}
                 onChangeText={setDescription}
                 multiline
+              />
+            </View>
+            <ChoiceGroup
+              label="Condition"
+              value={condition}
+              options={CONDITION_OPTIONS}
+              onChange={(value) =>
+                setCondition(value as (typeof CONDITION_OPTIONS)[number])
+              }
+            />
+            <ChoiceGroup
+              label="Body Type"
+              value={bodyType}
+              options={BODY_TYPE_OPTIONS}
+              onChange={(value) =>
+                setBodyType(value as (typeof BODY_TYPE_OPTIONS)[number])
+              }
+            />
+            <ChoiceGroup
+              label="Transmission"
+              value={transmission}
+              options={TRANSMISSION_OPTIONS}
+              onChange={(value) =>
+                setTransmission(value as (typeof TRANSMISSION_OPTIONS)[number])
+              }
+            />
+            <ChoiceGroup
+              label="Drivetrain"
+              value={drivetrain}
+              options={DRIVETRAIN_OPTIONS}
+              onChange={(value) =>
+                setDrivetrain(value as (typeof DRIVETRAIN_OPTIONS)[number])
+              }
+            />
+            <ChoiceGroup
+              label="Fuel Type"
+              value={fuelType}
+              options={FUEL_TYPE_OPTIONS}
+              onChange={(value) =>
+                setFuelType(value as (typeof FUEL_TYPE_OPTIONS)[number])
+              }
+            />
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>Mileage</Text>
+              <TextInput
+                style={styles.input}
+                value={mileage}
+                onChangeText={setMileage}
+                keyboardType="number-pad"
+                placeholder="e.g., 42000"
+                placeholderTextColor={COLORS.textSecondary}
               />
             </View>
           </View>
@@ -275,6 +420,31 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: COLORS.border,
     fontSize: 16,
+  },
+  choiceGroup: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+  },
+  choiceChip: {
+    backgroundColor: COLORS.input,
+    borderColor: COLORS.border,
+    borderWidth: 1,
+    borderRadius: 999,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+  },
+  choiceChipSelected: {
+    backgroundColor: "rgba(163, 112, 247, 0.18)",
+    borderColor: COLORS.accent,
+  },
+  choiceChipText: {
+    color: COLORS.textSecondary,
+    fontSize: 14,
+    fontWeight: "600",
+  },
+  choiceChipTextSelected: {
+    color: COLORS.accent,
   },
   textArea: { minHeight: 100, textAlignVertical: "top" },
   switchRow: {

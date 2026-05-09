@@ -18,6 +18,7 @@ import { Ionicons } from "@expo/vector-icons";
 import API_BASE_URL from "@/constants/Api";
 import { useAuth } from "@/hooks/useAuth";
 import VehicleCard from "../_components/VehicleCard";
+import { PUBLIC_HOME_ROUTE } from "@/lib/roleRoutes";
 import {
   useWebPullToRefresh,
   WebPullToRefreshIndicator,
@@ -231,7 +232,7 @@ export default function RentalDashboardScreen() {
 
   useEffect(() => {
     if (!isLoading && !token) {
-      router.replace("/(auth)/login");
+      router.replace(PUBLIC_HOME_ROUTE as any);
     }
   }, [isLoading, token]);
 

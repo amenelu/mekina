@@ -10,14 +10,14 @@ import {
   View,
 } from "react-native";
 import axios from "axios";
-import { Link, router, useNavigation } from "expo-router";
+import { Link, router } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import API_BASE_URL from "@/constants/Api";
 import { useAuth } from "@/hooks/useAuth";
 import VehicleCard from "../_components/VehicleCard";
-import { PUBLIC_HOME_ROUTE, RENTAL_ROUTES } from "@/lib/roleRoutes";
+import { RENTAL_ROUTES } from "@/lib/roleRoutes";
 import {
   useWebPullToRefresh,
   WebPullToRefreshIndicator,
@@ -60,11 +60,16 @@ type ProfilePayload = {
 };
 
 export default function RentalProfileScreen() {
-  const { token, logout } = useAuth() as any;
-  const navigation = useNavigation();
+  const { token, logout, isLoading } = useAuth() as any;
   const [payload, setPayload] = useState<ProfilePayload | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+
+  useEffect(() => {
+    if (!isLoading && !token) {
+      router.replace("/" as any);
+    }
+  }, [isLoading, token]);
 
   const fetchProfile = useCallback(async (isRefresh = false) => {
     if (!token) return;
@@ -135,14 +140,7 @@ export default function RentalProfileScreen() {
             <Pressable
               onPress={() => {
                 logout();
-                if (Platform.OS === "web") {
-                  router.replace(PUBLIC_HOME_ROUTE as any);
-                } else {
-                  navigation.reset({
-                    index: 0,
-                    routes: [{ name: "(tabs)" as never }],
-                  });
-                }
+                router.replace("/" as any);
               }}
             >
               <Ionicons
