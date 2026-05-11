@@ -14,6 +14,10 @@ import {
   KeyboardAvoidingView,
   Platform,
   RefreshControl,
+  FlatList,
+  Dimensions,
+  Animated,
+  PanResponder,
 } from "react-native";
 import {
   useLocalSearchParams,
@@ -49,6 +53,9 @@ const CarDetailScreen = () => {
   const { token, user } = useAuth() as any;
   const [isFavorite, setIsFavorite] = useState(false);
   const router = useRouter();
+  const [isImageViewerVisible, setImageViewerVisible] = useState(false);
+  const [selectedImageIndex, setSelectedImageIndex] = useState(0);
+  const imageViewerTranslateY = React.useRef(new Animated.Value(0)).current;
 
   const [contactModalVisible, setContactModalVisible] = useState(false);
   const [message, setMessage] = useState("");
@@ -91,6 +98,34 @@ const CarDetailScreen = () => {
     fetchCarDetails();
   }, [fetchCarDetails]);
 
+  useEffect(() => {
+    if (Platform.OS !== "web" || typeof document === "undefined") {
+      return;
+    }
+
+    const { body, documentElement } = document;
+    const previousBodyOverflow = body.style.overflow;
+    const previousBodyOverscrollBehavior = body.style.overscrollBehavior;
+    const previousHtmlOverflow = documentElement.style.overflow;
+    const previousHtmlOverscrollBehavior =
+      documentElement.style.overscrollBehavior;
+
+    if (isImageViewerVisible) {
+      body.style.overflow = "hidden";
+      body.style.overscrollBehavior = "none";
+      documentElement.style.overflow = "hidden";
+      documentElement.style.overscrollBehavior = "none";
+    }
+
+    return () => {
+      body.style.overflow = previousBodyOverflow;
+      body.style.overscrollBehavior = previousBodyOverscrollBehavior;
+      documentElement.style.overflow = previousHtmlOverflow;
+      documentElement.style.overscrollBehavior =
+        previousHtmlOverscrollBehavior;
+    };
+  }, [isImageViewerVisible]);
+
   const onRefresh = () => {
     setRefreshing(true);
     fetchCarDetails(true);
@@ -104,8 +139,54 @@ const CarDetailScreen = () => {
       : id
       ? "Loading..."
       : "Not Found";
-    navigation.setOptions({ title });
+    navigation.setOptions({
+      title,
+      headerTitleAlign: "center",
+    });
   }, [navigation, car, id]);
+
+  const closeImageViewer = () => {
+    setImageViewerVisible(false);
+    imageViewerTranslateY.setValue(0);
+  };
+
+  const imageViewerPanResponder = React.useMemo(
+    () =>
+      PanResponder.create({
+        onMoveShouldSetPanResponder: (_, gestureState) =>
+          Math.abs(gestureState.dy) > Math.abs(gestureState.dx) &&
+          gestureState.dy > 8,
+        onPanResponderMove: (_, gestureState) => {
+          imageViewerTranslateY.setValue(Math.max(0, gestureState.dy));
+        },
+        onPanResponderRelease: (_, gestureState) => {
+          if (gestureState.dy > 140) {
+            Animated.timing(imageViewerTranslateY, {
+              toValue: Dimensions.get("window").height,
+              duration: 180,
+              useNativeDriver: true,
+            }).start(() => {
+              closeImageViewer();
+            });
+            return;
+          }
+
+          Animated.spring(imageViewerTranslateY, {
+            toValue: 0,
+            useNativeDriver: true,
+            bounciness: 6,
+          }).start();
+        },
+        onPanResponderTerminate: () => {
+          Animated.spring(imageViewerTranslateY, {
+            toValue: 0,
+            useNativeDriver: true,
+            bounciness: 6,
+          }).start();
+        },
+      }),
+    [imageViewerTranslateY]
+  );
 
   if (loading && !refreshing) {
     return (
@@ -126,11 +207,17 @@ const CarDetailScreen = () => {
     );
   }
 
-  // Mock thumbnails - in a real app, these would come from the API
-  const thumbnails = [
+  const galleryImages = [
     car.primary_image_url,
-    ...Array(4).fill("https://via.placeholder.com/100"),
-  ];
+    ...((car.images || []).map((image: any) => image.image_url) as string[]),
+  ].filter((uri, index, self) => Boolean(uri) && self.indexOf(uri) === index);
+
+  const thumbnails = galleryImages.length > 0 ? galleryImages : [car.primary_image_url];
+
+  const openImageViewer = (index: number) => {
+    setSelectedImageIndex(index);
+    setImageViewerVisible(true);
+  };
 
   const handleContactSeller = async () => {
     if (!token) {
@@ -289,21 +376,26 @@ const CarDetailScreen = () => {
       <Stack.Screen />
       <ScrollView
         style={styles.container}
+        scrollEnabled={!isImageViewerVisible}
         refreshControl={
+          !isImageViewerVisible ? (
           <RefreshControl
             refreshing={refreshing}
             onRefresh={onRefresh}
             tintColor={COLORS.accent}
           />
+          ) : undefined
         }
       >
         {/* Image Gallery */}
         <View style={styles.imageGallery}>
           <View>
-            <Image
-              source={{ uri: mainImage || car.primary_image_url }}
-              style={styles.mainImage}
-            />
+            <Pressable onPress={() => openImageViewer(thumbnails.indexOf(mainImage || car.primary_image_url))}>
+              <Image
+                source={{ uri: mainImage || car.primary_image_url }}
+                style={styles.mainImage}
+              />
+            </Pressable>
             {car.is_featured && (
               <View style={styles.featuredTagContainer}>
                 <Text style={styles.featuredTag}>Featured</Text>
@@ -322,7 +414,13 @@ const CarDetailScreen = () => {
           </View>
           <ScrollView horizontal showsHorizontalScrollIndicator={false}>
             {thumbnails.map((thumbUri, index) => (
-              <Pressable key={index} onPress={() => setMainImage(thumbUri)}>
+              <Pressable
+                key={index}
+                onPress={() => {
+                  setMainImage(thumbUri);
+                  openImageViewer(index);
+                }}
+              >
                 <Image source={{ uri: thumbUri }} style={styles.thumbnail} />
               </Pressable>
             ))}
@@ -462,7 +560,7 @@ const CarDetailScreen = () => {
           <Text style={styles.requestButtonText}>Request This Car</Text>
         </Pressable>
         <Pressable style={styles.contactButton} onPress={handleContactSeller}>
-          <Ionicons name="chatbubbles-outline" size={20} color="#fff" />
+          <Ionicons name="chatbubbles-outline" size={17} color="#fff" />
           <Text style={styles.contactButtonText}>Contact Seller</Text>
         </Pressable>
       </View>
@@ -514,6 +612,51 @@ const CarDetailScreen = () => {
           </View>
         </KeyboardAvoidingView>
       </Modal>
+
+      <Modal
+        visible={isImageViewerVisible}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={closeImageViewer}
+      >
+        <View style={styles.imageViewerBackdrop}>
+          <Animated.View
+            style={styles.imageViewerContainer}
+            {...imageViewerPanResponder.panHandlers}
+          >
+          <Pressable style={styles.closeButton} onPress={closeImageViewer}>
+            <Ionicons name="close" size={36} color={COLORS.foreground} />
+          </Pressable>
+          <Animated.View
+            style={{
+              transform: [{ translateY: imageViewerTranslateY }],
+              opacity: imageViewerTranslateY.interpolate({
+                inputRange: [0, 250],
+                outputRange: [1, 0.85],
+                extrapolate: "clamp",
+              }),
+            }}
+          >
+            <FlatList
+              data={thumbnails}
+              horizontal
+              pagingEnabled
+              showsHorizontalScrollIndicator={false}
+              keyExtractor={(item, index) => `car-image-${index}`}
+              initialScrollIndex={Math.max(0, selectedImageIndex)}
+              getItemLayout={(data, index) => ({
+                length: Dimensions.get("window").width,
+                offset: Dimensions.get("window").width * index,
+                index,
+              })}
+              renderItem={({ item }) => (
+                <Image source={{ uri: item }} style={styles.fullscreenImage} />
+              )}
+            />
+          </Animated.View>
+          </Animated.View>
+        </View>
+      </Modal>
     </>
   );
 };
@@ -545,6 +688,31 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     borderWidth: 2,
     borderColor: "transparent",
+  },
+  imageViewerBackdrop: {
+    flex: 1,
+    backgroundColor: "transparent",
+  },
+  imageViewerContainer: {
+    flex: 1,
+    backgroundColor: "rgba(0, 0, 0, 0.8)",
+    justifyContent: "center",
+    alignItems: "center",
+    overscrollBehavior: "none",
+  },
+  fullscreenImage: {
+    width: Dimensions.get("window").width,
+    height: Dimensions.get("window").height,
+    resizeMode: "contain",
+  },
+  closeButton: {
+    position: "absolute",
+    top: 50,
+    right: 20,
+    zIndex: 10,
+    padding: 10,
+    backgroundColor: "rgba(0,0,0,0.5)",
+    borderRadius: 25,
   },
   featuredTagContainer: {
     position: "absolute",
@@ -680,7 +848,7 @@ const styles = StyleSheet.create({
     fontWeight: "600",
   },
   footer: {
-    padding: 20,
+    padding: 17,
     backgroundColor: COLORS.card,
     borderTopWidth: 1,
     borderTopColor: COLORS.border,
@@ -689,7 +857,8 @@ const styles = StyleSheet.create({
   },
   contactButton: {
     backgroundColor: COLORS.accent,
-    padding: 15,
+    paddingVertical: 12,
+    paddingHorizontal: 13,
     borderRadius: 12,
     alignItems: "center",
     flexDirection: "row",
@@ -698,15 +867,16 @@ const styles = StyleSheet.create({
   },
   contactButtonText: {
     color: "#fff",
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: "bold",
-    marginLeft: 10,
+    marginLeft: 8,
   },
   requestButton: {
     backgroundColor: "transparent",
     borderWidth: 1,
     borderColor: COLORS.accent,
-    padding: 15,
+    paddingVertical: 12,
+    paddingHorizontal: 13,
     borderRadius: 12,
     alignItems: "center",
     justifyContent: "center",
@@ -714,7 +884,7 @@ const styles = StyleSheet.create({
   },
   requestButtonText: {
     color: COLORS.accent,
-    fontSize: 16,
+    fontSize: 13,
     fontWeight: "bold",
   },
   modalOverlay: {
