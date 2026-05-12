@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   View,
   Text,
@@ -8,8 +8,10 @@ import {
   StyleSheet,
   Alert,
   ActivityIndicator,
-  ImageBackground,
+  Image,
   SafeAreaView,
+  FlatList,
+  useWindowDimensions,
 } from "react-native";
 import { useLocalSearchParams, router } from "expo-router";
 import axios from "axios";
@@ -35,6 +37,29 @@ interface CarImage {
   is_primary: boolean;
 }
 
+interface CarResponse {
+  make: string;
+  model: string;
+  year: number;
+  fixed_price?: number;
+  description?: string;
+  primary_image_url?: string;
+  image_urls?: string[];
+  images?: CarImage[];
+}
+
+function resolveImageUrl(imageUrl?: string) {
+  if (!imageUrl) {
+    return undefined;
+  }
+
+  if (imageUrl.startsWith("http://") || imageUrl.startsWith("https://")) {
+    return imageUrl;
+  }
+
+  return `${API_BASE_URL}${imageUrl}`;
+}
+
 const EditListingScreen = () => {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { token } = useAuth();
@@ -46,7 +71,10 @@ const EditListingScreen = () => {
   const [year, setYear] = useState("");
   const [price, setPrice] = useState("");
   const [description, setDescription] = useState("");
-  const [images, setImages] = useState<CarImage[]>([]);
+  const [galleryImages, setGalleryImages] = useState<string[]>([]);
+  const [selectedImageIndex, setSelectedImageIndex] = useState(0);
+  const { width } = useWindowDimensions();
+  const carouselRef = useRef<FlatList<string>>(null);
 
   useEffect(() => {
     const fetchCarDetails = async () => {
@@ -56,13 +84,32 @@ const EditListingScreen = () => {
         const response = await axios.get(`${API_BASE_URL}/api/cars/${id}`, {
           headers: { Authorization: `Bearer ${token}` },
         });
-        const car = response.data.car;
+        const car = response.data.car as CarResponse;
         setMake(car.make);
         setModel(car.model);
         setYear(car.year.toString());
         setPrice(car.fixed_price?.toString() || "");
         setDescription(car.description || "");
-        setImages(car.images || []);
+
+        const resolvedGallery = [
+          resolveImageUrl(car.primary_image_url),
+          ...((car.image_urls || []).map((uri) => resolveImageUrl(uri))),
+          ...((car.images || []).map((img) => resolveImageUrl(img.image_url))),
+        ].filter(
+          (uri, index, self): uri is string =>
+            Boolean(uri) && self.indexOf(uri) === index
+        );
+
+        setGalleryImages(resolvedGallery);
+
+        const primaryIndexFromImages = (car.images || []).findIndex(
+          (img: CarImage) => img.is_primary
+        );
+        const initialIndex =
+          primaryIndexFromImages >= 0
+            ? Math.min(primaryIndexFromImages, Math.max(0, resolvedGallery.length - 1))
+            : 0;
+        setSelectedImageIndex(initialIndex);
       } catch (error) {
         console.error("Failed to fetch car details:", error);
         Alert.alert("Error", "Could not load car details.");
@@ -114,39 +161,87 @@ const EditListingScreen = () => {
     );
   }
 
-  const primaryImage = images.find((img) => img.is_primary) || images[0];
+  const activeImage = galleryImages[selectedImageIndex] || galleryImages[0];
 
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView>
-        <View style={styles.header}>
-          <ImageBackground
-            source={{
-              uri: primaryImage
-                ? `${API_BASE_URL}${primaryImage.image_url}`
-                : undefined,
-            }}
-            style={styles.headerImage}
-          >
-            <LinearGradient
-              colors={["rgba(0,0,0,0.8)", "transparent", "rgba(0,0,0,0.8)"]}
-              style={styles.gradientOverlay}
+        <View style={styles.gallerySection}>
+          {activeImage ? (
+            <FlatList
+              ref={carouselRef}
+              data={galleryImages}
+              horizontal
+              pagingEnabled
+              showsHorizontalScrollIndicator={false}
+              keyExtractor={(item, index) => `edit-image-${index}-${item}`}
+              initialScrollIndex={Math.max(0, selectedImageIndex)}
+              getItemLayout={(_, index) => ({
+                length: width,
+                offset: width * index,
+                index,
+              })}
+              onMomentumScrollEnd={(event) => {
+                const nextIndex = Math.round(
+                  event.nativeEvent.contentOffset.x / width
+                );
+                setSelectedImageIndex(nextIndex);
+              }}
+              renderItem={({ item }) => (
+                <Image source={{ uri: item }} style={[styles.headerImage, { width }]} />
+              )}
             />
-            <View style={styles.headerContent}>
-              <Pressable
-                onPress={() => router.back()}
-                style={styles.backButton}
-              >
-                <Ionicons name="arrow-back" size={28} color={COLORS.text} />
-              </Pressable>
-              <View style={styles.headerTextContainer}>
-                <Text style={styles.headerTitle}>
-                  {year} {make} {model}
-                </Text>
-                <Text style={styles.headerSubtitle}>Editing Your Listing</Text>
-              </View>
+          ) : (
+            <View style={[styles.headerImage, styles.headerImageFallback]}>
+              <Ionicons name="image-outline" size={36} color={COLORS.textSecondary} />
             </View>
-          </ImageBackground>
+          )}
+
+          <LinearGradient
+            colors={["rgba(0,0,0,0.78)", "rgba(0,0,0,0.18)", "transparent"]}
+            style={styles.topGradient}
+            pointerEvents="none"
+          />
+          <LinearGradient
+            colors={["transparent", "rgba(0,0,0,0.16)", "rgba(0,0,0,0.75)"]}
+            style={styles.bottomGradient}
+            pointerEvents="none"
+          />
+          <View style={styles.imageHeaderOverlay} pointerEvents="box-none">
+            <Pressable onPress={() => router.back()} style={styles.backButton}>
+              <Ionicons name="arrow-back" size={28} color={COLORS.text} />
+            </Pressable>
+            <Text style={styles.imageTitle}>
+              {year} {make} {model}
+            </Text>
+            <Text style={styles.imageSubtitle}>Editing Your Listing</Text>
+          </View>
+
+          {galleryImages.length > 1 && (
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.thumbnailRow}
+            >
+              {galleryImages.map((uri, index) => (
+                <Pressable
+                  key={`${uri}-${index}`}
+                  onPress={() => {
+                    setSelectedImageIndex(index);
+                    carouselRef.current?.scrollToIndex({ index, animated: true });
+                  }}
+                >
+                  <Image
+                    source={{ uri }}
+                    style={[
+                      styles.thumbnail,
+                      index === selectedImageIndex && styles.thumbnailActive,
+                    ]}
+                  />
+                </Pressable>
+              ))}
+            </ScrollView>
+          )}
         </View>
 
         <View style={styles.contentContainer}>
@@ -222,41 +317,92 @@ const EditListingScreen = () => {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.background },
-  header: { height: 250, backgroundColor: COLORS.card },
-  headerImage: {
-    flex: 1,
+  gallerySection: {
+    backgroundColor: COLORS.background,
+    marginBottom: 8,
+    position: "relative",
   },
-  gradientOverlay: { ...StyleSheet.absoluteFillObject },
-  headerContent: {
-    flex: 1,
-    justifyContent: "space-between",
-    padding: 20,
+  headerImage: {
+    height: 250,
+    resizeMode: "cover",
+    backgroundColor: COLORS.card,
+  },
+  headerImageFallback: {
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  topGradient: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 120,
+  },
+  bottomGradient: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    bottom: 86,
+    height: 120,
+  },
+  imageHeaderOverlay: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    paddingHorizontal: 16,
+    paddingTop: 12,
+    minHeight: 64,
+    justifyContent: "flex-start",
   },
   backButton: {
+    alignSelf: "flex-start",
+    backgroundColor: "rgba(0,0,0,0.35)",
+    borderRadius: 22,
+    padding: 8,
+    width: 44,
+    height: 44,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  imageTitle: {
     position: "absolute",
     top: 20,
-    left: 20,
-    backgroundColor: "rgba(0,0,0,0.5)",
-    borderRadius: 20,
-    padding: 4,
-    zIndex: 10, // Ensure it's on top
-  },
-  headerTextContainer: {
-    alignSelf: "flex-start",
-    paddingLeft: 50, // Add padding to avoid the back button
-  },
-  headerTitle: {
-    fontSize: 28,
+    left: 64,
+    right: 64,
+    fontSize: 24,
     fontWeight: "bold",
     color: COLORS.text,
-    textShadowColor: "rgba(0, 0, 0, 0.75)",
-    textShadowOffset: { width: -1, height: 1 },
-    textShadowRadius: 10,
+    textAlign: "center",
   },
-  headerSubtitle: {
+  imageSubtitle: {
+    position: "absolute",
+    top: 50,
+    left: 64,
+    right: 64,
     fontSize: 16,
-    color: COLORS.textSecondary,
+    color: "#D9DEE6",
     fontWeight: "600",
+    textAlign: "center",
+  },
+  thumbnailRow: {
+    paddingHorizontal: 12,
+    paddingTop: 10,
+    paddingBottom: 4,
+  },
+  thumbnail: {
+    width: 72,
+    height: 72,
+    borderRadius: 10,
+    marginHorizontal: 4,
+    borderWidth: 2,
+    borderColor: "transparent",
+    opacity: 0.8,
+    backgroundColor: COLORS.card,
+  },
+  thumbnailActive: {
+    borderColor: COLORS.accent,
+    opacity: 1,
   },
   contentContainer: { padding: 20 },
   formCard: {

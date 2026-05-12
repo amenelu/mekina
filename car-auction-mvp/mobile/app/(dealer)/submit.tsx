@@ -9,6 +9,7 @@ import {
   Alert,
   Image,
   ActivityIndicator,
+  Platform,
 } from "react-native";
 import { useNavigation, useRouter } from "expo-router";
 import axios from "axios";
@@ -17,6 +18,7 @@ import { useAuth } from "@/hooks/useAuth";
 import API_BASE_URL from "@/constants/Api";
 import * as ImagePicker from "expo-image-picker";
 import { Ionicons } from "@expo/vector-icons";
+import { DEALER_ROUTES } from "@/lib/roleRoutes";
 
 const COLORS = {
   background: "#14181F",
@@ -40,6 +42,34 @@ const CarSubmissionForm = () => {
   const [price, setPrice] = useState("");
   const [description, setDescription] = useState("");
   const [images, setImages] = useState<ImagePicker.ImagePickerAsset[]>([]);
+
+  const appendImagesToFormData = async (formData: FormData) => {
+    for (const image of images) {
+      const webFile = (image as any).file;
+
+      if (Platform.OS === "web" && webFile instanceof File) {
+        formData.append("images", webFile, webFile.name);
+        continue;
+      }
+
+      if (Platform.OS === "web" && image.uri) {
+        const response = await fetch(image.uri);
+        const blob = await response.blob();
+        formData.append(
+          "images",
+          blob,
+          image.fileName || `dealer_${Date.now()}.jpg`
+        );
+        continue;
+      }
+
+      formData.append("images", {
+        uri: image.uri,
+        name: image.fileName || `dealer_${Date.now()}.jpg`,
+        type: image.mimeType || "image/jpeg",
+      } as any);
+    }
+  };
 
   const handleSubmit = async () => {
     if (!token) {
@@ -74,15 +104,9 @@ const CarSubmissionForm = () => {
     formData.append("drivetrain", "FWD");
     formData.append("fuel_type", "Gasoline");
 
-    images.forEach((image) => {
-      formData.append("images", {
-        uri: image.uri,
-        name: image.fileName || `photo_${Date.now()}.jpg`,
-        type: image.mimeType || "image/jpeg",
-      } as any);
-    });
-
     try {
+      await appendImagesToFormData(formData);
+
       // Using the seller API endpoint to submit a new car
       await axios.post(`${API_BASE_URL}/seller/api/cars`, formData, {
         headers: {
@@ -91,9 +115,14 @@ const CarSubmissionForm = () => {
         },
       });
 
-      Alert.alert("Success", "Your car has been submitted for approval.", [
-        { text: "OK", onPress: () => navigation.goBack() },
-      ]);
+      if (Platform.OS === "web") {
+        router.replace(DEALER_ROUTES.dashboard as any);
+        return;
+      } else {
+        Alert.alert("Success", "Your car has been submitted for approval.", [
+          { text: "OK", onPress: () => navigation.goBack() },
+        ]);
+      }
     } catch (error: any) {
       const message = error.response?.data?.message || "Failed to submit car.";
       Alert.alert("Submission Failed", message);

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import {
   StyleSheet,
   Text,
@@ -45,7 +45,6 @@ const CarDetailScreen = () => {
   const { id } = useLocalSearchParams();
   const [car, setCar] = useState<any | null>(null); // Use 'any' for now to match API response
   const [similarCars, setSimilarCars] = useState<Vehicle[]>([]);
-  const [mainImage, setMainImage] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const navigation = useNavigation();
@@ -56,6 +55,8 @@ const CarDetailScreen = () => {
   const [isImageViewerVisible, setImageViewerVisible] = useState(false);
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const imageViewerTranslateY = React.useRef(new Animated.Value(0)).current;
+  const carouselRef = useRef<FlatList<string>>(null);
+  const thumbnailScrollRef = useRef<ScrollView>(null);
 
   const [contactModalVisible, setContactModalVisible] = useState(false);
   const [message, setMessage] = useState("");
@@ -83,7 +84,6 @@ const CarDetailScreen = () => {
           })
         );
         setSimilarCars(mappedSimilarCars);
-        setMainImage(data.car.primary_image_url);
       }
     } catch (error: any) {
       console.error("Failed to fetch car details:", error);
@@ -188,6 +188,65 @@ const CarDetailScreen = () => {
     [imageViewerTranslateY]
   );
 
+  const galleryImages = [
+    car?.primary_image_url,
+    ...((car?.image_urls || []) as string[]),
+    ...((car?.images || []).map((image: any) => image.image_url) as string[]),
+  ].filter((uri, index, self) => Boolean(uri) && self.indexOf(uri) === index);
+
+  const thumbnails =
+    galleryImages.length > 0
+      ? galleryImages
+      : car?.primary_image_url
+      ? [car.primary_image_url]
+      : [];
+  const isViewingOwnListing = car?.owner?.id === user?.id;
+  const showBuyerActions = !isViewingOwnListing;
+
+  const openImageViewer = (index: number) => {
+    setSelectedImageIndex(index);
+    setImageViewerVisible(true);
+  };
+
+  useEffect(() => {
+    if (!thumbnails.length) {
+      setSelectedImageIndex(0);
+      return;
+    }
+
+    const safeIndex = Math.min(selectedImageIndex, thumbnails.length - 1);
+    if (safeIndex !== selectedImageIndex) {
+      setSelectedImageIndex(safeIndex);
+    }
+  }, [selectedImageIndex, thumbnails]);
+
+  const scrollToImage = useCallback(
+    (index: number) => {
+      if (index < 0 || index >= thumbnails.length) return;
+      setSelectedImageIndex(index);
+      carouselRef.current?.scrollToIndex({ index, animated: true });
+      thumbnailScrollRef.current?.scrollTo({
+        x: Math.max(0, index * 92 - width / 2 + 40),
+        animated: true,
+      });
+    },
+    [thumbnails, width]
+  );
+
+  const handleCarouselMomentumEnd = useCallback(
+    (event: any) => {
+      const nextIndex = Math.round(event.nativeEvent.contentOffset.x / width);
+      if (nextIndex !== selectedImageIndex) {
+        setSelectedImageIndex(nextIndex);
+      }
+      thumbnailScrollRef.current?.scrollTo({
+        x: Math.max(0, nextIndex * 92 - width / 2 + 40),
+        animated: true,
+      });
+    },
+    [selectedImageIndex, width]
+  );
+
   if (loading && !refreshing) {
     return (
       <View style={styles.centered}>
@@ -206,18 +265,6 @@ const CarDetailScreen = () => {
       </View>
     );
   }
-
-  const galleryImages = [
-    car.primary_image_url,
-    ...((car.images || []).map((image: any) => image.image_url) as string[]),
-  ].filter((uri, index, self) => Boolean(uri) && self.indexOf(uri) === index);
-
-  const thumbnails = galleryImages.length > 0 ? galleryImages : [car.primary_image_url];
-
-  const openImageViewer = (index: number) => {
-    setSelectedImageIndex(index);
-    setImageViewerVisible(true);
-  };
 
   const handleContactSeller = async () => {
     if (!token) {
@@ -390,38 +437,62 @@ const CarDetailScreen = () => {
         {/* Image Gallery */}
         <View style={styles.imageGallery}>
           <View>
-            <Pressable onPress={() => openImageViewer(thumbnails.indexOf(mainImage || car.primary_image_url))}>
-              <Image
-                source={{ uri: mainImage || car.primary_image_url }}
-                style={styles.mainImage}
-              />
-            </Pressable>
+            <FlatList
+              ref={carouselRef}
+              data={thumbnails}
+              horizontal
+              pagingEnabled
+              showsHorizontalScrollIndicator={false}
+              keyExtractor={(item, index) => `gallery-image-${index}-${item}`}
+              initialScrollIndex={Math.max(0, selectedImageIndex)}
+              getItemLayout={(_, index) => ({
+                length: width,
+                offset: width * index,
+                index,
+              })}
+              onMomentumScrollEnd={handleCarouselMomentumEnd}
+              renderItem={({ item, index }) => (
+                <Pressable onPress={() => openImageViewer(index)}>
+                  <Image source={{ uri: item }} style={[styles.mainImage, { width }]} />
+                </Pressable>
+              )}
+            />
             {car.is_featured && (
               <View style={styles.featuredTagContainer}>
                 <Text style={styles.featuredTag}>Featured</Text>
               </View>
             )}
-            <Pressable
-              style={styles.favoriteButton}
-              onPress={handleToggleFavorite}
-            >
-              <Ionicons
-                name={isFavorite ? "heart" : "heart-outline"}
-                size={28}
-                color={isFavorite ? "#e74c3c" : "#fff"}
-              />
-            </Pressable>
+            {showBuyerActions && (
+              <Pressable
+                style={styles.favoriteButton}
+                onPress={handleToggleFavorite}
+              >
+                <Ionicons
+                  name={isFavorite ? "heart" : "heart-outline"}
+                  size={28}
+                  color={isFavorite ? "#e74c3c" : "#fff"}
+                />
+              </Pressable>
+            )}
           </View>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+          <ScrollView
+            ref={thumbnailScrollRef}
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.thumbnailRow}
+          >
             {thumbnails.map((thumbUri, index) => (
               <Pressable
                 key={index}
-                onPress={() => {
-                  setMainImage(thumbUri);
-                  openImageViewer(index);
-                }}
+                onPress={() => scrollToImage(index)}
               >
-                <Image source={{ uri: thumbUri }} style={styles.thumbnail} />
+                <Image
+                  source={{ uri: thumbUri }}
+                  style={[
+                    styles.thumbnail,
+                    index === selectedImageIndex && styles.thumbnailActive,
+                  ]}
+                />
               </Pressable>
             ))}
           </ScrollView>
@@ -555,21 +626,23 @@ const CarDetailScreen = () => {
         </View>
       </ScrollView>
       {/* Floating Action Button */}
-      <View style={styles.footer}>
-        <Pressable style={styles.requestButton} onPress={handleRequestCar}>
-          <Text style={styles.requestButtonText}>Request This Car</Text>
-        </Pressable>
-        <Pressable style={styles.contactButton} onPress={handleContactSeller}>
-          <Ionicons name="chatbubbles-outline" size={17} color="#fff" />
-          <Text style={styles.contactButtonText}>Contact Seller</Text>
-        </Pressable>
-      </View>
+      {showBuyerActions && (
+        <View style={styles.footer}>
+          <Pressable style={styles.requestButton} onPress={handleRequestCar}>
+            <Text style={styles.requestButtonText}>Request This Car</Text>
+          </Pressable>
+          <Pressable style={styles.contactButton} onPress={handleContactSeller}>
+            <Ionicons name="chatbubbles-outline" size={17} color="#fff" />
+            <Text style={styles.contactButtonText}>Contact Seller</Text>
+          </Pressable>
+        </View>
+      )}
 
       {/* Contact Seller Modal */}
       <Modal
         animationType="slide"
         transparent={true}
-        visible={contactModalVisible}
+        visible={showBuyerActions && contactModalVisible}
         onRequestClose={() => setContactModalVisible(false)}
       >
         <KeyboardAvoidingView
@@ -629,6 +702,7 @@ const CarDetailScreen = () => {
           </Pressable>
           <Animated.View
             style={{
+              width: Dimensions.get("window").width,
               transform: [{ translateY: imageViewerTranslateY }],
               opacity: imageViewerTranslateY.interpolate({
                 inputRange: [0, 250],
@@ -639,6 +713,7 @@ const CarDetailScreen = () => {
           >
             <FlatList
               data={thumbnails}
+              style={styles.imageViewerPager}
               horizontal
               pagingEnabled
               showsHorizontalScrollIndicator={false}
@@ -649,8 +724,16 @@ const CarDetailScreen = () => {
                 offset: Dimensions.get("window").width * index,
                 index,
               })}
+              onMomentumScrollEnd={(event) => {
+                const nextIndex = Math.round(
+                  event.nativeEvent.contentOffset.x / Dimensions.get("window").width
+                );
+                setSelectedImageIndex(nextIndex);
+              }}
               renderItem={({ item }) => (
-                <Image source={{ uri: item }} style={styles.fullscreenImage} />
+                <View style={styles.imageViewerPage}>
+                  <Image source={{ uri: item }} style={styles.fullscreenImage} />
+                </View>
               )}
             />
           </Animated.View>
@@ -673,21 +756,31 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.background,
   },
   imageGallery: {
-    // Styles for the gallery container
+    marginBottom: 8,
   },
   mainImage: {
-    width: "100%",
     height: 250,
     resizeMode: "cover",
+    backgroundColor: COLORS.card,
+  },
+  thumbnailRow: {
+    paddingHorizontal: 10,
+    paddingTop: 10,
+    paddingBottom: 4,
   },
   thumbnail: {
     width: 80,
     height: 80,
     resizeMode: "cover",
-    margin: 5,
+    marginHorizontal: 5,
     borderRadius: 8,
     borderWidth: 2,
     borderColor: "transparent",
+    opacity: 0.75,
+  },
+  thumbnailActive: {
+    borderColor: COLORS.accent,
+    opacity: 1,
   },
   imageViewerBackdrop: {
     flex: 1,
@@ -699,6 +792,15 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     overscrollBehavior: "none",
+  },
+  imageViewerPager: {
+    width: Dimensions.get("window").width,
+  },
+  imageViewerPage: {
+    width: Dimensions.get("window").width,
+    height: Dimensions.get("window").height,
+    justifyContent: "center",
+    alignItems: "center",
   },
   fullscreenImage: {
     width: Dimensions.get("window").width,
