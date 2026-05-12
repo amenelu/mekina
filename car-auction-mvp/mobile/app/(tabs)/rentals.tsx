@@ -11,11 +11,13 @@ import {
   Alert,
   RefreshControl,
 } from "react-native";
-import { useNavigation , useRouter } from "expo-router";
+import { Redirect, useNavigation, useRouter } from "expo-router";
 import { useScrollToTop } from "@react-navigation/native";
 import { Ionicons } from "@expo/vector-icons";
 import Footer from "../_components/Footer";
 import API_URL from "@/constants/Api";
+import { useAuth } from "@/hooks/useAuth";
+import { ADMIN_ROUTES } from "@/lib/roleRoutes";
 
 
 
@@ -65,6 +67,7 @@ const RentalCard = ({ item }: { item: RentalVehicle }) => {
 const RentalsScreen = () => {
   const navigation = useNavigation();
   const ref = useRef<ScrollView>(null);
+  const { hasHydrated, user } = useAuth();
   const [rentalVehicles, setRentalVehicles] = useState<RentalVehicle[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -86,6 +89,10 @@ const RentalsScreen = () => {
   }, [navigation]);
 
   const fetchRentals = async (isRefresh = false) => {
+    if (!hasHydrated || user?.is_admin) {
+      return;
+    }
+
     if (!isRefresh) setLoading(true);
     try {
       // The backend uses the main listings endpoint with a query parameter for rentals.
@@ -126,8 +133,16 @@ const RentalsScreen = () => {
   };
 
   useEffect(() => {
+    if (!hasHydrated || user?.is_admin) {
+      return;
+    }
+
     fetchRentals();
-  }, []);
+  }, [hasHydrated, user?.is_admin]);
+
+  if (hasHydrated && user?.is_admin) {
+    return <Redirect href={ADMIN_ROUTES.rentals} />;
+  }
 
   const onRefresh = () => {
     setRefreshing(true);

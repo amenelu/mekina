@@ -517,6 +517,16 @@ def api_request_more_points(current_user):
 
     db.session.commit()
 
+    for admin in admins:
+        unread_count = Notification.query.filter_by(
+            user_id=admin.id, is_read=False
+        ).count()
+        socketio.emit(
+            "new_notification",
+            {"count": unread_count, "message": message, "link": link},
+            room=str(admin.id),
+        )
+
     current_app.logger.info(
         "Dealer points request submitted by user_id=%s for %s points.",
         current_user.id,

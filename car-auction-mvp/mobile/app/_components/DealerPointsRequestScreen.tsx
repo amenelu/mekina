@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import {
   ActivityIndicator,
   Alert,
+  Keyboard,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -16,6 +17,7 @@ import { Ionicons } from "@expo/vector-icons";
 
 import API_BASE_URL from "@/constants/Api";
 import { useAuth } from "@/hooks/useAuth";
+import { DEALER_ROUTES } from "@/lib/roleRoutes";
 
 const COLORS = {
   background: "#14181F",
@@ -26,6 +28,22 @@ const COLORS = {
   border: "#313843",
 };
 
+const nonCredentialInputProps =
+  Platform.OS === "web"
+    ? ({
+        autoComplete: "off",
+        "data-1p-ignore": "true",
+        "data-bwignore": "true",
+        "data-form-type": "other",
+        "data-lpignore": "true",
+        "data-protonpass-ignore": "true",
+        "aria-autocomplete": "none",
+        name: "dealer-points-request-amount",
+        rows: 1,
+        spellCheck: false,
+      } as const)
+    : {};
+
 export default function DealerPointsRequestScreen() {
   const { token, user } = useAuth() as any;
   const [requestedPoints, setRequestedPoints] = useState("");
@@ -34,10 +52,22 @@ export default function DealerPointsRequestScreen() {
   const currentPoints = user?.points ?? 0;
 
   const goBackToDealerDashboard = () => {
-    router.back();
+    router.navigate(DEALER_ROUTES.dashboard as any);
+  };
+
+  const handleRequestedPointsChange = (value: string) => {
+    setRequestedPoints(value.replace(/\D/g, "").slice(0, 4));
   };
 
   const handleSubmit = async () => {
+    Keyboard.dismiss();
+
+    if (!token) {
+      Alert.alert("Login Required", "Please log in again to request points.");
+      router.replace("/(auth)/login" as any);
+      return;
+    }
+
     const parsedPoints = Number(requestedPoints);
     if (!Number.isInteger(parsedPoints) || parsedPoints <= 0) {
       Alert.alert(
@@ -59,13 +89,9 @@ export default function DealerPointsRequestScreen() {
         }
       );
 
-      Alert.alert("Request Sent", response.data.message, [
-        {
-          text: "OK",
-          onPress: goBackToDealerDashboard,
-        },
-      ]);
       setRequestedPoints("");
+      Alert.alert("Request Sent", response.data.message);
+      goBackToDealerDashboard();
     } catch (error: any) {
       const message =
         error.response?.data?.message || "Could not send your request.";
@@ -106,11 +132,25 @@ export default function DealerPointsRequestScreen() {
           <TextInput
             style={styles.input}
             value={requestedPoints}
-            onChangeText={setRequestedPoints}
+            onChangeText={handleRequestedPointsChange}
             keyboardType="number-pad"
+            inputMode="numeric"
+            autoComplete="off"
+            importantForAutofill="no"
+            textContentType="none"
+            autoCorrect={false}
+            autoCapitalize="none"
+            autoFocus={false}
+            secureTextEntry={false}
+            multiline={Platform.OS === "web"}
+            numberOfLines={Platform.OS === "web" ? 1 : undefined}
+            scrollEnabled={false}
             placeholder="e.g. 10"
             placeholderTextColor={COLORS.textSecondary}
             maxLength={4}
+            returnKeyType="done"
+            blurOnSubmit
+            {...(nonCredentialInputProps as any)}
           />
 
           <Pressable
@@ -204,6 +244,8 @@ const styles = StyleSheet.create({
     borderColor: COLORS.border,
     color: COLORS.text,
     fontSize: 16,
+    minHeight: 52,
+    maxHeight: 52,
     paddingHorizontal: 14,
     paddingVertical: 14,
     marginBottom: 18,

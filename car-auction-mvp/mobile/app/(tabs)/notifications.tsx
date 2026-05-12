@@ -13,6 +13,7 @@ import { useAuth } from "@/hooks/useAuth";
 import axios from "axios";
 import { useSocket } from "../../contexts/SocketContext";
 import API_URL from "@/constants/Api";
+import { ADMIN_ROUTES } from "@/lib/roleRoutes";
 
 const COLORS = {
   background: "#14181F",
@@ -33,6 +34,10 @@ interface Notification {
 
 const getMobileRoute = (webLink: string | null) => {
   if (!webLink) return null;
+
+  if (webLink.includes("/(admin)/dealers") || webLink.includes("/admin-dealers")) {
+    return ADMIN_ROUTES.dealers;
+  }
 
   // Handle Requests: /requests/123 -> /request/123
   if (webLink.includes("/requests/") && !webLink.includes("/deal/")) {

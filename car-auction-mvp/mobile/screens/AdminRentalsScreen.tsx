@@ -19,7 +19,7 @@ import { useFocusEffect, useRouter } from "expo-router";
 import {
   useWebPullToRefresh,
   WebPullToRefreshIndicator,
-} from "../_components/WebPullToRefresh";
+} from "@/app/_components/WebPullToRefresh";
 
 const COLORS = {
   background: "#14181F",

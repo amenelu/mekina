@@ -2,6 +2,7 @@ import React from "react";
 import { Tabs } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import AdminHeaderRight from "../_components/AdminHeaderRight";
+import { ADMIN_ROUTES } from "@/lib/roleRoutes";
 
 const COLORS = {
   card: "#1C212B",
@@ -30,6 +31,7 @@ export default function AdminLayoutWeb() {
       <Tabs.Screen
         name="admin-dashboard"
         options={{
+          href: ADMIN_ROUTES.dashboard,
           title: "Dashboard",
           tabBarIcon: ({ color }) => (
             <Ionicons name="grid" size={24} color={color} />
@@ -39,6 +41,7 @@ export default function AdminLayoutWeb() {
       <Tabs.Screen
         name="admin-users"
         options={{
+          href: ADMIN_ROUTES.users,
           title: "Users",
           tabBarIcon: ({ color }) => (
             <Ionicons name="people" size={24} color={color} />
@@ -48,6 +51,7 @@ export default function AdminLayoutWeb() {
       <Tabs.Screen
         name="admin-listings"
         options={{
+          href: ADMIN_ROUTES.listings,
           title: "Listings",
           tabBarIcon: ({ color }) => (
             <Ionicons name="car-sport" size={24} color={color} />
@@ -57,6 +61,7 @@ export default function AdminLayoutWeb() {
       <Tabs.Screen
         name="admin-dealers"
         options={{
+          href: ADMIN_ROUTES.dealers,
           title: "Dealers",
           tabBarIcon: ({ color }) => (
             <Ionicons name="briefcase" size={24} color={color} />
@@ -66,6 +71,7 @@ export default function AdminLayoutWeb() {
       <Tabs.Screen
         name="admin-rentals"
         options={{
+          href: ADMIN_ROUTES.rentals,
           title: "Rentals",
           tabBarIcon: ({ color }) => (
             <Ionicons name="key" size={24} color={color} />
@@ -76,7 +82,7 @@ export default function AdminLayoutWeb() {
       <Tabs.Screen name="users" options={{ href: null }} />
       <Tabs.Screen name="listings" options={{ href: null }} />
       <Tabs.Screen name="dealers" options={{ href: null }} />
-      <Tabs.Screen name="rentals" options={{ href: null }} />
+      <Tabs.Screen name="admin-notifications" options={{ href: null }} />
     </Tabs>
   );
 }

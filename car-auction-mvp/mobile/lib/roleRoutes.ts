@@ -13,6 +13,9 @@ export const ADMIN_ROUTES = {
   listings: isWeb ? "/(admin)/admin-listings" : "/(admin)/listings",
   dealers: isWeb ? "/(admin)/admin-dealers" : "/(admin)/dealers",
   rentals: isWeb ? "/(admin)/admin-rentals" : "/(admin)/rentals",
+  notifications: isWeb
+    ? "/(admin)/admin-notifications"
+    : "/(admin)/admin-notifications",
 } as const;
 
 export const DEALER_ROUTES = {
