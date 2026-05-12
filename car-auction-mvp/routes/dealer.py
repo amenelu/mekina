@@ -23,6 +23,7 @@ from models.conversation import Conversation
 import os  # Import the os module
 from models.chat_message import ChatMessage
 from models.notification import Notification
+from models.dealer_point_request import DealerPointRequest
 from models.dealer_rating import DealerRating
 from models.dealer_request_view import DealerRequestView
 from models.search_query import SearchQuery
@@ -510,6 +511,13 @@ def api_request_more_points(current_user):
         message += f" Reason: {reason}"
 
     link = "/(admin)/dealers"
+
+    point_request = DealerPointRequest(
+        dealer_id=current_user.id,
+        requested_points=requested_points,
+        reason=reason or None,
+    )
+    db.session.add(point_request)
 
     for admin in admins:
         notification = Notification(user_id=admin.id, message=message, link=link)

@@ -18,6 +18,7 @@ from models.user import User
 from models.car import Car
 from models.auction import Auction
 from models.notification import Notification
+from models.dealer_point_request import DealerPointRequest
 from models.equipment import Equipment
 from models.dealer_rating import DealerRating
 from models.car_image import CarImage
@@ -74,6 +75,9 @@ def dashboard():
         "pending_trade_in_count": TradeInRequest.query.filter_by(
             status="pending"
         ).count(),
+        "pending_point_request_count": DealerPointRequest.query.filter_by(
+            status="pending"
+        ).count(),
     }
     cars_pending_approval = (
         Car.query.filter_by(is_approved=False).order_by(Car.id.desc()).all()
@@ -110,6 +114,9 @@ def api_admin_dashboard(current_user):
         "pending_trade_in_count": TradeInRequest.query.filter_by(
             status="pending"
         ).count(),
+        "pending_point_request_count": DealerPointRequest.query.filter_by(
+            status="pending"
+        ).count(),
     }
     cars_pending_approval = (
         Car.query.filter_by(is_approved=False).order_by(Car.id.desc()).all()
@@ -126,6 +133,18 @@ def api_admin_dashboard(current_user):
         ],
         pending_trade_ins=[req.to_dict() for req in pending_trade_ins],
     )
+
+
+@admin_bp.route("/api/point-requests")
+@admin_token_required
+def api_point_requests(current_user):
+    status = request.args.get("status", "pending")
+    query = DealerPointRequest.query
+    if status != "all":
+        query = query.filter_by(status=status)
+
+    point_requests = query.order_by(DealerPointRequest.created_at.desc()).all()
+    return jsonify(point_requests=[req.to_dict() for req in point_requests])
 
 
 @admin_bp.route("/users")

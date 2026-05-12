@@ -22,3 +22,4 @@ from .user_favorite import UserFavorite
 from .car_request_image import CarRequestImage
 from .search_query import SearchQuery
 from .point_transaction import PointTransaction
+from .dealer_point_request import DealerPointRequest

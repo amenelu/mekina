@@ -17,6 +17,7 @@ import {
   useWebPullToRefresh,
   WebPullToRefreshIndicator,
 } from "../_components/WebPullToRefresh";
+import { ADMIN_ROUTES } from "@/lib/roleRoutes";
 
 const COLORS = {
   background: "#14181F",
@@ -32,6 +33,7 @@ const COLORS = {
 interface Stats {
   user_count: number;
   active_auction_count: number;
+  pending_point_request_count: number;
   for_sale_count: number;
   for_rent_count: number;
   pending_approval_count: number;
@@ -65,6 +67,21 @@ const StatCard = ({ label, value }: { label: string; value: number }) => (
     <Text style={styles.statValue}>{value}</Text>
     <Text style={styles.statLabel}>{label}</Text>
   </View>
+);
+
+const StatButton = ({
+  label,
+  value,
+  onPress,
+}: {
+  label: string;
+  value: number;
+  onPress: () => void;
+}) => (
+  <Pressable style={[styles.statCard, styles.statButton]} onPress={onPress}>
+    <Text style={styles.statValue}>{value}</Text>
+    <Text style={styles.statLabel}>{label}</Text>
+  </Pressable>
 );
 
 const PendingListingRow = ({
@@ -135,6 +152,7 @@ const AdminDashboardScreen = () => {
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { token } = useAuth();
+  const router = useRouter();
 
   const fetchData = useCallback(async (isRefresh = false) => {
     if (!token) return;
@@ -234,9 +252,10 @@ const AdminDashboardScreen = () => {
       {stats && (
         <View style={styles.statsGrid}>
           <StatCard label="Total Users" value={stats.user_count} />
-          <StatCard
-            label="Active Auctions"
-            value={stats.active_auction_count}
+          <StatButton
+            label="Point Requests"
+            value={stats.pending_point_request_count}
+            onPress={() => router.push(ADMIN_ROUTES.pointRequests as any)}
           />
           <StatCard label="Cars For Sale" value={stats.for_sale_count} />
           <StatCard label="Cars For Rent" value={stats.for_rent_count} />
@@ -298,6 +317,13 @@ const styles = StyleSheet.create({
     alignItems: "center",
     width: "30%",
     marginBottom: 20,
+  },
+  statButton: {
+    backgroundColor: COLORS.card,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: COLORS.accent,
+    paddingVertical: 14,
   },
   statValue: { fontSize: 24, fontWeight: "bold", color: COLORS.accent },
   statLabel: {
