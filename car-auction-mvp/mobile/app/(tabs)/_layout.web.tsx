@@ -1,7 +1,7 @@
 import React, { useEffect, useRef } from "react";
 import { Tabs, usePathname, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import HeaderRight from "../_components/HeaderRight";
+import HeaderRight from "@/components/_components/HeaderRight";
 import {
   Animated,
   StyleSheet,

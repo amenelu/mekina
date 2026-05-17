@@ -13,12 +13,12 @@ import {
   Modal,
 } from "react-native";
 import { useLocalSearchParams, useNavigation, router } from "expo-router";
-import axios from "axios";
 import { useAuth } from "@/hooks/useAuth";
-import API_BASE_URL from "@/constants/Api";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import * as ImagePicker from "expo-image-picker";
 import { Ionicons } from "@expo/vector-icons";
+import { mediaUrl } from "@/lib/api/client";
+import { getDealerRequestBids, placeDealerBid } from "@/lib/api/dealer";
 
 interface CustomerRequest {
   id: number;
@@ -175,10 +175,7 @@ const PlaceOfferScreen = () => {
       if (!token || !request_id) return;
       setLoading(true);
       try {
-        const response = await axios.get(
-          `${API_BASE_URL}/dealer/api/requests/${request_id}/bids`,
-          { headers: { Authorization: `Bearer ${token}` } }
-        );
+        const response = await getDealerRequestBids(request_id);
         setRequestDetails(response.data.car_request);
         setExistingBids(response.data.existing_bids || []);
       } catch (error) {
@@ -217,13 +214,7 @@ const PlaceOfferScreen = () => {
     }
 
     try {
-      await axios.post(
-        `${API_BASE_URL}/dealer/api/requests/${request_id}/bids`,
-        payload,
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
-      );
+      await placeDealerBid(request_id, payload);
 
       Alert.alert("Success", "Your offer has been placed successfully.", [
         { text: "OK", onPress: () => navigation.goBack() },
@@ -594,7 +585,7 @@ const PlaceOfferScreen = () => {
                       )}
                       {bid.image_url && (
                         <Image
-                          source={{ uri: `${API_BASE_URL}${bid.image_url}` }}
+                          source={{ uri: mediaUrl(bid.image_url) || "" }}
                           style={styles.previousBidImage}
                         />
                       )}

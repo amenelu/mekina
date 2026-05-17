@@ -8,11 +8,10 @@ import {
   Text,
   View,
 } from "react-native";
-import axios from "axios";
 import { useFocusEffect, useRouter } from "expo-router";
 
-import API_URL from "@/constants/Api";
 import { useAuth } from "@/hooks/useAuth";
+import { getAdminPointRequests } from "@/lib/api/admin";
 
 const COLORS = {
   background: "#14181F",
@@ -94,9 +93,7 @@ export default function AdminPointRequestsScreen() {
     }
 
     try {
-      const response = await axios.get(`${API_URL}/admin/api/point-requests`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const response = await getAdminPointRequests();
       setPointRequests(response.data.point_requests || []);
     } finally {
       setLoading(false);

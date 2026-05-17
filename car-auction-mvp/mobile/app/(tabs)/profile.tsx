@@ -13,10 +13,9 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useAuth } from "@/hooks/useAuth";
 import { useRouter, useFocusEffect } from "expo-router";
-import axios from "axios";
-import API_BASE_URL from "@/constants/Api";
-import VehicleCard, { Vehicle } from "../_components/VehicleCard";
+import VehicleCard, { Vehicle } from "@/components/_components/VehicleCard";
 import { Ionicons } from "@expo/vector-icons";
+import { getUserFavorites, toggleFavorite } from "@/lib/api/listings";
 
 const COLORS = {
   background: "#14181F",
@@ -42,9 +41,7 @@ const ProfileScreen = () => {
     if (!token) return;
     if (!isRefresh) setLoading(true);
     try {
-      const response = await axios.get(`${API_BASE_URL}/api/users/favorites`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const response = await getUserFavorites();
 
       const data = response.data.favorites || response.data;
       const list = Array.isArray(data) ? data : [];
@@ -96,11 +93,7 @@ const ProfileScreen = () => {
           onPress: async () => {
             if (!token) return;
             try {
-              await axios.post(
-                `${API_BASE_URL}/api/cars/${carId}/toggle-favorite`,
-                {},
-                { headers: { Authorization: `Bearer ${token}` } }
-              );
+              await toggleFavorite(carId);
               setFavorites((prev) => prev.filter((item) => item.id !== carId));
             } catch (error) {
               console.error("Failed to remove favorite:", error);

@@ -2,7 +2,7 @@ import React from "react";
 import { Tabs } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useSocket } from "../../contexts/SocketContext";
-import AuthGate from "../_components/AuthGate";
+import AuthGate from "@/components/_components/AuthGate";
 
 const COLORS = {
   background: "#14181F",

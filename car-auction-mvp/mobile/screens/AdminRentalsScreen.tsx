@@ -11,15 +11,19 @@ import {
   Platform,
   RefreshControl,
 } from "react-native";
-import axios from "axios";
-import API_URL from "@/constants/Api";
 import { useAuth } from "@/hooks/useAuth"; // Keep this import
 import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect, useRouter } from "expo-router";
 import {
   useWebPullToRefresh,
   WebPullToRefreshIndicator,
-} from "@/app/_components/WebPullToRefresh";
+} from "@/components/_components/WebPullToRefresh";
+import {
+  deleteAdminListing,
+  getAdminRentals,
+  resolveDealerPointRequests,
+} from "@/lib/api/admin";
+import type { AdminRental } from "@/lib/api/types";
 
 const COLORS = {
   background: "#14181F",
@@ -34,25 +38,9 @@ const COLORS = {
   // Add other colors if needed
 };
 
-interface Rental {
-  id: number;
-  year: number;
-  make: string;
-  model: string;
-  owner_id: number;
-  owner_username: string;
-  owner_pending_point_request?: {
-    requested_points: number;
-    request_count: number;
-    latest_request_id: number;
-  } | null;
-  price_per_day: string;
-  is_approved: boolean;
-  is_active: boolean;
-}
 // AdminRentalsScreen component
 const AdminRentalsScreen = () => {
-  const [rentals, setRentals] = useState<Rental[]>([]);
+  const [rentals, setRentals] = useState<AdminRental[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [search, setSearch] = useState("");
@@ -68,9 +56,7 @@ const AdminRentalsScreen = () => {
       setLoading(true);
     }
     try {
-      const response = await axios.get(`${API_URL}/admin/api/rentals?q=${search}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const response = await getAdminRentals(search);
       setRentals(response.data.cars);
     } catch (error: any) {
       console.error(
@@ -103,14 +89,12 @@ const AdminRentalsScreen = () => {
     onRefresh: () => fetchRentals(true),
   });
 
-  const handleDelete = (rental: Rental) => {
+  const handleDelete = (rental: AdminRental) => {
     const message = `Are you sure you want to delete the ${rental.year} ${rental.make} ${rental.model}?`;
 
     const performDelete = async () => {
       try {
-        await axios.delete(`${API_URL}/admin/api/listings/${rental.id}`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
+        await deleteAdminListing(rental.id);
         setRentals((prev) => prev.filter((r) => r.id !== rental.id));
         if (Platform.OS === "web") {
           setStatusMessage("Rental listing has been deleted.");
@@ -147,7 +131,7 @@ const AdminRentalsScreen = () => {
   };
 
   const handlePointRequestAction = async (
-    rental: Rental,
+    rental: AdminRental,
     action: "accept" | "deny"
   ) => {
     const verb = action === "accept" ? "approve" : "deny";
@@ -155,11 +139,7 @@ const AdminRentalsScreen = () => {
 
     const performAction = async () => {
       try {
-        await axios.post(
-          `${API_URL}/admin/api/dealers/${rental.owner_id}/point-requests`,
-          { action },
-          { headers: { Authorization: `Bearer ${token}` } }
-        );
+        await resolveDealerPointRequests(rental.owner_id, action);
         setRentals((prevRentals) =>
           prevRentals.map((item) =>
             item.owner_id === rental.owner_id
@@ -191,7 +171,7 @@ const AdminRentalsScreen = () => {
     ]);
   };
 
-  const renderItem = ({ item }: { item: Rental }) => (
+  const renderItem = ({ item }: { item: AdminRental }) => (
     <View style={styles.card}>
       <View>
         <View style={styles.titleRow}>

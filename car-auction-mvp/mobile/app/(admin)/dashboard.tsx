@@ -10,14 +10,21 @@ import {
   RefreshControl,
 } from "react-native";
 import { useAuth } from "@/hooks/useAuth";
-import axios from "axios";
-import API_URL from "@/constants/Api";
 import { useFocusEffect, useRouter } from "expo-router";
 import {
   useWebPullToRefresh,
   WebPullToRefreshIndicator,
-} from "../_components/WebPullToRefresh";
+} from "@/components/_components/WebPullToRefresh";
 import { ADMIN_ROUTES } from "@/lib/roleRoutes";
+import {
+  approveAdminListing,
+  getAdminDashboard,
+} from "@/lib/api/admin";
+import type {
+  AdminDashboardStats,
+  AdminPendingListing,
+  AdminTradeInRequest,
+} from "@/lib/api/types";
 
 const COLORS = {
   background: "#14181F",
@@ -29,38 +36,6 @@ const COLORS = {
   success: "#28a745",
   edit: "#ffc107",
 };
-
-interface Stats {
-  user_count: number;
-  active_auction_count: number;
-  pending_point_request_count: number;
-  for_sale_count: number;
-  for_rent_count: number;
-  pending_approval_count: number;
-  pending_trade_in_count: number;
-}
-
-interface PendingCar {
-  id: number;
-  year: number;
-  make: string;
-  model: string;
-  listing_type: string;
-  owner: {
-    id: number;
-    username: string;
-  };
-}
-
-interface TradeInRequest {
-  id: number;
-  make: string;
-  model: string;
-  year: number;
-  condition: string;
-  status: string;
-  created_at: string;
-}
 
 const StatCard = ({ label, value }: { label: string; value: number }) => (
   <View style={styles.statCard}>
@@ -88,7 +63,7 @@ const PendingListingRow = ({
   car,
   onApprove,
 }: {
-  car: PendingCar;
+  car: AdminPendingListing;
   onApprove: (id: number) => void;
 }) => {
   const router = useRouter();
@@ -120,7 +95,7 @@ const PendingListingRow = ({
   );
 };
 
-const TradeInRow = ({ request }: { request: TradeInRequest }) => {
+const TradeInRow = ({ request }: { request: AdminTradeInRequest }) => {
   const router = useRouter();
   return (
     <View style={styles.listingRow}>
@@ -145,9 +120,9 @@ const TradeInRow = ({ request }: { request: TradeInRequest }) => {
 };
 
 const AdminDashboardScreen = () => {
-  const [stats, setStats] = useState<Stats | null>(null);
-  const [pendingCars, setPendingCars] = useState<PendingCar[]>([]);
-  const [pendingTradeIns, setPendingTradeIns] = useState<TradeInRequest[]>([]);
+  const [stats, setStats] = useState<AdminDashboardStats | null>(null);
+  const [pendingCars, setPendingCars] = useState<AdminPendingListing[]>([]);
+  const [pendingTradeIns, setPendingTradeIns] = useState<AdminTradeInRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -163,9 +138,7 @@ const AdminDashboardScreen = () => {
     }
     setError(null);
     try {
-      const response = await axios.get(`${API_URL}/admin/api/dashboard`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const response = await getAdminDashboard();
       setStats(response.data.stats);
       setPendingCars(response.data.pending_approvals);
       setPendingTradeIns(response.data.pending_trade_ins);
@@ -190,11 +163,7 @@ const AdminDashboardScreen = () => {
 
   const handleApprove = async (carId: number) => {
     try {
-      await axios.post(
-        `${API_URL}/admin/api/listings/${carId}`,
-        { action: "approve" },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
+      await approveAdminListing(carId);
       Alert.alert("Success", "Listing has been approved.");
       // Refresh data after approval
       fetchData();

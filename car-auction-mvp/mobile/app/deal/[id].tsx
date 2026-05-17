@@ -17,9 +17,8 @@ import {
   useFocusEffect,
 } from "expo-router";
 import { useAuth } from "@/hooks/useAuth";
-import axios from "axios";
-import API_BASE_URL from "@/constants/Api";
 import { Ionicons } from "@expo/vector-icons";
+import { getDeal, rateDeal } from "@/lib/api/requests";
 
 const COLORS = {
   background: "#14181F",
@@ -64,12 +63,7 @@ const DealSummaryScreen = () => {
       if (!token || !id) return;
       if (!isRefresh) setLoading(true);
       try {
-        const response = await axios.get(
-          `${API_BASE_URL}/requests/api/deals/${id}`,
-          {
-            headers: { Authorization: `Bearer ${token}` },
-          }
-        );
+        const response = await getDeal(String(id));
         setDeal(response.data.deal);
       } catch (error) {
         console.error("Failed to fetch deal details:", error);
@@ -104,16 +98,10 @@ const DealSummaryScreen = () => {
     }
     setSubmittingReview(true);
     try {
-      const response = await axios.post(
-        `${API_BASE_URL}/requests/api/deals/${id}/rate`,
-        {
-          rating,
-          review_text: reviewText,
-        },
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
-      );
+      const response = await rateDeal(String(id), {
+        rating,
+        comment: reviewText,
+      });
       if (response.status === 201) {
         Alert.alert("Success", "Thank you for your review!");
         // Re-fetch data from the server to get the authoritative state

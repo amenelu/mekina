@@ -1,7 +1,7 @@
 import React from "react";
 import { fireEvent, render } from "@testing-library/react-native";
 
-import VehicleCard from "../app/_components/VehicleCard";
+import VehicleCard from "../components/_components/VehicleCard";
 
 const mockPush = jest.fn();
 

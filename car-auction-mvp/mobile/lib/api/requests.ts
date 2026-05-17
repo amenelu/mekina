@@ -1,0 +1,64 @@
+import { apiClient } from "./client";
+
+export function getMyRequests() {
+  return apiClient.get("/requests/api/requests");
+}
+
+export function createRequest(payload: unknown) {
+  return apiClient.post("/requests/api/requests", payload);
+}
+
+export function createRequestForm(data: FormData) {
+  return apiClient.post("/requests/api/requests", data, {
+    headers: { "Content-Type": "multipart/form-data" },
+  });
+}
+
+export function deleteRequest(requestId: string | number) {
+  return apiClient.delete(`/requests/api/requests/${requestId}`);
+}
+
+export function getRequestDetail(requestId: string | number) {
+  return apiClient.get(`/requests/api/requests/${requestId}`);
+}
+
+export function compareBids(requestId?: string | number) {
+  return apiClient.get("/requests/api/bids/compare", {
+    params: requestId ? { request_id: requestId } : undefined,
+  });
+}
+
+export function compareSelectedBids(ids: string) {
+  return apiClient.get("/requests/api/bids/compare", {
+    params: { ids },
+  });
+}
+
+export function askDealerQuestion(
+  bidId: string | number,
+  questionText: string
+) {
+  return apiClient.post(`/requests/api/bid/${bidId}/ask`, {
+    question_text: questionText,
+  });
+}
+
+export function acceptOffer(
+  bidId: string | number,
+  paymentMethod?: string | null
+) {
+  return apiClient.post(`/requests/api/offer/${bidId}/accept`, {
+    payment_method: paymentMethod,
+  });
+}
+
+export function getDeal(dealId: string | number) {
+  return apiClient.get(`/requests/api/deals/${dealId}`);
+}
+
+export function rateDeal(
+  dealId: string | number,
+  payload: { rating: number; comment?: string }
+) {
+  return apiClient.post(`/requests/api/deals/${dealId}/rate`, payload);
+}

@@ -8,7 +8,7 @@ import {
 import { useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
-import BrandPickerModal from "@/app/_components/BrandPickerModal";
+import BrandPickerModal from "@/components/_components/BrandPickerModal";
 import { CAR_BRANDS } from "@/constants/carBrands";
 import { useRequestDraftPersistence } from "@/hooks/useRequestDraftPersistence";
 

@@ -13,10 +13,13 @@ import {
   View,
 } from "react-native";
 import { useLocalSearchParams, router } from "expo-router";
-import axios from "axios";
 
-import API_BASE_URL from "@/constants/Api";
 import { useAuth } from "@/hooks/useAuth";
+import {
+  deleteRentalCar,
+  getRentalCar,
+  updateRentalCar,
+} from "@/lib/api/rentals";
 
 const COLORS = {
   background: "#14181F",
@@ -91,10 +94,7 @@ export default function RentalEditListingScreen() {
       if (!id || !token) return;
       setLoading(true);
       try {
-        const response = await axios.get(
-          `${API_BASE_URL}/seller/api/rental-cars/${id}`,
-          { headers: { Authorization: `Bearer ${token}` } }
-        );
+        const response = await getRentalCar(id);
         const car = response.data.car as RentalCar;
         setListing(car);
         setMake(car.make);
@@ -139,25 +139,21 @@ export default function RentalEditListingScreen() {
 
     setSaving(true);
     try {
-      const response = await axios.put(
-        `${API_BASE_URL}/seller/api/rental-cars/${id}`,
-        {
-          make,
-          model,
-          year: Number(year),
-          price_per_day: Number(pricePerDay),
-          description,
-          condition,
-          body_type: bodyType,
-          mileage: mileage ? Number(mileage) : null,
-          transmission,
-          drivetrain,
-          fuel_type: fuelType,
-          is_active: isActive,
-          is_available: isAvailable,
-        },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
+      const response = await updateRentalCar(id, {
+        make,
+        model,
+        year: Number(year),
+        price_per_day: Number(pricePerDay),
+        description,
+        condition,
+        body_type: bodyType,
+        mileage: mileage ? Number(mileage) : null,
+        transmission,
+        drivetrain,
+        fuel_type: fuelType,
+        is_active: isActive,
+        is_available: isAvailable,
+      });
 
       setListing(response.data.car);
       if (Platform.OS === "web") {
@@ -193,9 +189,7 @@ export default function RentalEditListingScreen() {
           style: "destructive",
           onPress: async () => {
             try {
-              await axios.delete(`${API_BASE_URL}/seller/api/rental-cars/${id}`, {
-                headers: { Authorization: `Bearer ${token}` },
-              });
+              await deleteRentalCar(id);
               router.replace("/(rental)/rental-dashboard");
             } catch (error: any) {
               Alert.alert(

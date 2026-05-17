@@ -9,19 +9,18 @@ import {
   Text,
   View,
 } from "react-native";
-import axios from "axios";
 import { Link, router } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-import API_BASE_URL from "@/constants/Api";
 import { useAuth } from "@/hooks/useAuth";
-import VehicleCard from "../_components/VehicleCard";
+import VehicleCard from "@/components/_components/VehicleCard";
 import { RENTAL_ROUTES } from "@/lib/roleRoutes";
 import {
   useWebPullToRefresh,
   WebPullToRefreshIndicator,
-} from "../_components/WebPullToRefresh";
+} from "@/components/_components/WebPullToRefresh";
+import { getRentalDashboard } from "@/lib/api/rentals";
 
 const COLORS = {
   background: "#14181F",
@@ -75,10 +74,7 @@ export default function RentalProfileScreen() {
     if (!token) return;
     if (!isRefresh) setLoading(true);
     try {
-      const response = await axios.get(
-        `${API_BASE_URL}/seller/api/rental-dashboard`,
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
+      const response = await getRentalDashboard();
       setPayload(response.data);
     } finally {
       setLoading(false);

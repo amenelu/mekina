@@ -11,9 +11,12 @@ import {
   ScrollView,
   TextInput,
 } from "react-native";
-import axios from "axios";
-import API_BASE_URL from "@/constants/Api";
 import { useAuth } from "@/hooks/useAuth";
+import {
+  deleteAdminUser,
+  getAdminUser,
+  updateAdminUser,
+} from "@/lib/api/admin";
 
 /**
  * @interface User
@@ -42,9 +45,7 @@ const fetchUser = async (id: string, token: string | null): Promise<User> => {
     throw new Error("Authentication token not found.");
   }
   console.log(`Fetching user with id: ${id}`);
-  const response = await axios.get(`${API_BASE_URL}/admin/api/users/${id}`, {
-    headers: { Authorization: `Bearer ${token}` },
-  });
+  const response = await getAdminUser(id);
   return response.data.user;
 };
 
@@ -60,16 +61,12 @@ const updateUser = async (
   token: string | null
 ) => {
   if (!token) throw new Error("Authentication token not found.");
-  await axios.put(`${API_BASE_URL}/admin/api/users/${id}`, data, {
-    headers: { Authorization: `Bearer ${token}` },
-  });
+  await updateAdminUser(id, data);
 };
 
 const deleteUser = async (id: string, token: string | null) => {
   if (!token) throw new Error("Authentication token not found.");
-  await axios.delete(`${API_BASE_URL}/admin/api/users/${id}`, {
-    headers: { Authorization: `Bearer ${token}` },
-  });
+  await deleteAdminUser(id);
 };
 /**
  * Renders the user details page.

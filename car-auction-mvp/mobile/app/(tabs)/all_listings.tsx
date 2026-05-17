@@ -18,8 +18,8 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter, useLocalSearchParams } from "expo-router";
 
-import Footer from "../_components/Footer";
-import VehicleCard, { Vehicle } from "../_components/VehicleCard";
+import Footer from "@/components/_components/Footer";
+import VehicleCard, { Vehicle } from "@/components/_components/VehicleCard";
 import { getListings } from "@/lib/api/listings";
 
 const COLORS = {

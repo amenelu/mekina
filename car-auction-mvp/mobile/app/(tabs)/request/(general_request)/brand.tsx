@@ -1,5 +1,4 @@
 import React, { useState } from "react";
-import API_URL from "@/constants/Api";
 import {
   Text,
   StyleSheet,
@@ -12,10 +11,11 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useAuth } from "@/hooks/useAuth";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import BrandPickerModal from "@/app/_components/BrandPickerModal";
+import BrandPickerModal from "@/components/_components/BrandPickerModal";
 import { CAR_BRANDS } from "@/constants/carBrands";
 import { clearRequestDraft } from "@/lib/requestDraft";
 import { useRequestDraftPersistence } from "@/hooks/useRequestDraftPersistence";
+import { createRequest } from "@/lib/api/requests";
 
 
 const COLORS = {
@@ -52,22 +52,7 @@ const RequestBrandScreen = () => {
     };
 
     try {
-      const response = await fetch(`${API_URL}/requests/api/requests`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify(finalRequest),
-      });
-
-      const responseData = await response.json();
-
-      if (!response.ok) {
-        throw new Error(
-          responseData.message || "An error occurred while submitting."
-        );
-      }
+      await createRequest(finalRequest);
 
       Alert.alert(
         "Request Submitted!",

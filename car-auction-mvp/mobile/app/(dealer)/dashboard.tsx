@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import {
   View,
   Text,
@@ -10,12 +10,11 @@ import {
   SafeAreaView,
 } from "react-native";
 import { router } from "expo-router";
-import axios from "axios";
 import { useAuth } from "@/hooks/useAuth";
-import API_BASE_URL from "@/constants/Api";
 import { Ionicons } from "@expo/vector-icons";
 import { useSocket } from "@/contexts/SocketContext";
 import { DEALER_ROUTES, LOGIN_ROUTE } from "@/lib/roleRoutes";
+import { getDealerDashboard } from "@/lib/api/dealer";
 
 const COLORS = {
   background: "#14181F",
@@ -228,6 +227,7 @@ const DashboardSection = <T,>({
 const DealerDashboard = () => {
   const { token, user, isLoading } = useAuth() as any;
   const { socket } = useSocket();
+  const hasRedirectedRef = useRef(false);
 
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -240,7 +240,8 @@ const DealerDashboard = () => {
   >("requests");
 
   useEffect(() => {
-    if (!isLoading && !token) {
+    if (!isLoading && !token && !hasRedirectedRef.current) {
+      hasRedirectedRef.current = true;
       router.replace(LOGIN_ROUTE);
     }
   }, [isLoading, token]);
@@ -248,10 +249,18 @@ const DealerDashboard = () => {
   useEffect(() => {
     if (!socket) return;
 
-    socket.on("request_updated", (data) => {
+    const handleRequestUpdated = (data: {
+      request_id: number;
+      bid_count?: number;
+      lowest_offer?: number;
+    }) => {
       setRequests((prevRequests) =>
         prevRequests.map((req) =>
           req.id === data.request_id
+            && req.bid_count === data.bid_count
+            && req.lowest_offer === data.lowest_offer
+            ? req
+            : req.id === data.request_id
             ? {
                 ...req,
                 bid_count: data.bid_count,
@@ -260,24 +269,37 @@ const DealerDashboard = () => {
             : req
         )
       );
-    });
+    };
 
     // Listen for entirely new customer requests
-    socket.on("new_customer_request", (newRequest) => {
-      setRequests((prevRequests) => [newRequest, ...prevRequests]);
-    });
+    const handleNewCustomerRequest = (newRequest: CustomerRequest) => {
+      setRequests((prevRequests) => {
+        if (prevRequests.some((req) => req.id === newRequest.id)) {
+          return prevRequests;
+        }
+
+        return [newRequest, ...prevRequests];
+      });
+    };
+
+    socket.on("request_updated", handleRequestUpdated);
+    socket.on("new_customer_request", handleNewCustomerRequest);
 
     return () => {
-      socket.off("request_updated");
-      socket.off("new_customer_request");
+      socket.off("request_updated", handleRequestUpdated);
+      socket.off("new_customer_request", handleNewCustomerRequest);
     };
   }, [socket]);
 
   const fetchData = useCallback(async () => {
+    if (!token) {
+      setLoading(false);
+      setRefreshing(false);
+      return;
+    }
+
     try {
-      const response = await axios.get(`${API_BASE_URL}/dealer/api/dashboard`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const response = await getDealerDashboard();
       const data = response.data;
 
       // Construct stats from the lengths of the returned arrays

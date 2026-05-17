@@ -11,9 +11,13 @@ import {
   Pressable,
 } from "react-native";
 import { useLocalSearchParams, Stack } from "expo-router";
-import axios from "axios";
-import API_URL from "@/constants/Api";
 import { useAuth } from "@/hooks/useAuth";
+import { mediaUrl } from "@/lib/api/client";
+import {
+  acceptTradeInOffer,
+  getTradeInRequest,
+  placeTradeInOffer,
+} from "@/lib/api/tradeIn";
 
 const COLORS = {
   background: "#14181F",
@@ -82,13 +86,9 @@ const TradeInRequestDetailScreen = () => {
 
   const fetchDetails = useCallback(async () => {
     // Ensure we are hitting the USER endpoint, NOT the ADMIN endpoint
-    const url = `${API_URL}/trade-in/api/requests/${id}`;
-    console.log(">>> MOUNTED: User Trade-In View. Fetching:", url);
     try {
       // Calls the USER endpoint, not the ADMIN endpoint
-      const response = await axios.get(url, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const response = await getTradeInRequest(String(id));
       setRequest(response.data.request);
     } catch (error: any) {
       console.error("Error fetching trade-in details:", error);
@@ -112,11 +112,10 @@ const TradeInRequestDetailScreen = () => {
     }
     setSubmittingOffer(true);
     try {
-      await axios.post(
-        `${API_URL}/trade-in/api/requests/${id}/offer`,
-        { amount: parseInt(offerAmount), notes: offerNotes },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
+      await placeTradeInOffer(String(id), {
+        amount: parseInt(offerAmount),
+        notes: offerNotes,
+      });
       Alert.alert("Success", "Offer placed successfully!");
       setOfferAmount("");
       setOfferNotes("");
@@ -140,11 +139,7 @@ const TradeInRequestDetailScreen = () => {
           onPress: async () => {
             setLoading(true);
             try {
-              await axios.post(
-                `${API_URL}/trade-in/api/requests/${id}/offers/${offerId}/accept`,
-                {},
-                { headers: { Authorization: `Bearer ${token}` } }
-              );
+              await acceptTradeInOffer(String(id), offerId);
               Alert.alert("Success", "Offer accepted!");
               fetchDetails();
             } catch (error: any) {
@@ -224,7 +219,7 @@ const TradeInRequestDetailScreen = () => {
             {request.photos.map((photo) => (
               <ImageWithLoader
                 key={photo.id}
-                uri={`${API_URL}${photo.image_url}`}
+                uri={mediaUrl(photo.image_url) || ""}
               />
             ))}
           </ScrollView>

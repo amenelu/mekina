@@ -14,11 +14,12 @@ import {
   useWindowDimensions,
 } from "react-native";
 import { useLocalSearchParams, router } from "expo-router";
-import axios from "axios";
 import { useAuth } from "@/hooks/useAuth";
-import API_BASE_URL from "@/constants/Api";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
+import { mediaUrl } from "@/lib/api/client";
+import { getListing } from "@/lib/api/listings";
+import { updateDealerCar } from "@/lib/api/dealer";
 
 const COLORS = {
   background: "#14181F",
@@ -57,11 +58,14 @@ function resolveImageUrl(imageUrl?: string) {
     return imageUrl;
   }
 
-  return `${API_BASE_URL}${imageUrl}`;
+  return mediaUrl(imageUrl) || undefined;
 }
 
 const EditListingScreen = () => {
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const { id, returnTo } = useLocalSearchParams<{
+    id: string;
+    returnTo?: string | string[];
+  }>();
   const { token } = useAuth();
   const [loading, setLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -75,15 +79,23 @@ const EditListingScreen = () => {
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const { width } = useWindowDimensions();
   const carouselRef = useRef<FlatList<string>>(null);
+  const resolvedReturnTo = Array.isArray(returnTo) ? returnTo[0] : returnTo;
+
+  const handleExit = () => {
+    if (resolvedReturnTo) {
+      router.navigate(resolvedReturnTo as any);
+      return;
+    }
+
+    router.back();
+  };
 
   useEffect(() => {
     const fetchCarDetails = async () => {
       if (!id || !token) return;
       setLoading(true);
       try {
-        const response = await axios.get(`${API_BASE_URL}/api/cars/${id}`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
+        const response = await getListing(id);
         const car = response.data.car as CarResponse;
         setMake(car.make);
         setModel(car.model);
@@ -127,20 +139,16 @@ const EditListingScreen = () => {
     }
     setIsSubmitting(true);
     try {
-      const response = await axios.put(
-        `${API_BASE_URL}/dealer/api/cars/${id}/update`,
-        {
-          make,
-          model,
-          year,
-          price,
-          description,
-        },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
+      const response = await updateDealerCar(id, {
+        make,
+        model,
+        year,
+        price,
+        description,
+      });
 
       Alert.alert("Success", response.data.message, [
-        { text: "OK", onPress: () => router.back() },
+        { text: "OK", onPress: handleExit },
       ]);
     } catch (error: any) {
       const message =
@@ -208,7 +216,7 @@ const EditListingScreen = () => {
             pointerEvents="none"
           />
           <View style={styles.imageHeaderOverlay} pointerEvents="box-none">
-            <Pressable onPress={() => router.back()} style={styles.backButton}>
+            <Pressable onPress={handleExit} style={styles.backButton}>
               <Ionicons name="arrow-back" size={28} color={COLORS.text} />
             </Pressable>
             <Text style={styles.imageTitle}>

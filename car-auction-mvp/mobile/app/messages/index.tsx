@@ -9,10 +9,9 @@ import {
 } from "react-native";
 import { Stack, useFocusEffect } from "expo-router";
 import { useAuth } from "@/hooks/useAuth";
-import axios from "axios";
 import { useSocket } from "../../contexts/SocketContext";
-import API_URL from "@/constants/Api";
-import ConversationItem from "../_components/ConversationItem";
+import ConversationItem from "@/components/_components/ConversationItem";
+import { getMyMessages } from "@/lib/api/messages";
 
 const COLORS = {
   background: "#14181F",
@@ -33,9 +32,7 @@ const MessagesScreen = () => {
   const fetchConversations = useCallback(async () => {
     if (!token) return;
     try {
-      const response = await axios.get(`${API_URL}/api/my-messages`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const response = await getMyMessages();
       setConversations(response.data.conversations);
     } catch (error) {
       console.error("Failed to fetch conversations:", error);

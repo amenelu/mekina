@@ -14,10 +14,10 @@ import {
 import { Redirect, useNavigation, useRouter } from "expo-router";
 import { useScrollToTop } from "@react-navigation/native";
 import { Ionicons } from "@expo/vector-icons";
-import Footer from "../_components/Footer";
-import API_URL from "@/constants/Api";
+import Footer from "@/components/_components/Footer";
 import { useAuth } from "@/hooks/useAuth";
 import { ADMIN_ROUTES } from "@/lib/roleRoutes";
+import { getListings } from "@/lib/api/listings";
 
 
 
@@ -96,15 +96,8 @@ const RentalsScreen = () => {
     if (!isRefresh) setLoading(true);
     try {
       // The backend uses the main listings endpoint with a query parameter for rentals.
-      const response = await fetch(
-        `${API_URL}/api/listings?listing_type=rental`
-      );
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const data = await response.json();
+      const response = await getListings({ listing_type: "rental" });
+      const data = response.data;
       const rentals = Array.isArray(data)
         ? data
         : Array.isArray(data.rentals)

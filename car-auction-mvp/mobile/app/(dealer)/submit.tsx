@@ -12,13 +12,12 @@ import {
   Platform,
 } from "react-native";
 import { useNavigation, useRouter } from "expo-router";
-import axios from "axios";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useAuth } from "@/hooks/useAuth";
-import API_BASE_URL from "@/constants/Api";
 import * as ImagePicker from "expo-image-picker";
 import { Ionicons } from "@expo/vector-icons";
 import { DEALER_ROUTES } from "@/lib/roleRoutes";
+import { createSellerCar } from "@/lib/api/rentals";
 
 const COLORS = {
   background: "#14181F",
@@ -108,12 +107,7 @@ const CarSubmissionForm = () => {
       await appendImagesToFormData(formData);
 
       // Using the seller API endpoint to submit a new car
-      await axios.post(`${API_BASE_URL}/seller/api/cars`, formData, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "multipart/form-data",
-        },
-      });
+      await createSellerCar(formData);
 
       if (Platform.OS === "web") {
         router.replace(DEALER_ROUTES.dashboard as any);

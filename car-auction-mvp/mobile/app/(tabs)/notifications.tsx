@@ -10,10 +10,9 @@ import {
 } from "react-native";
 import { Link, Stack, useFocusEffect } from "expo-router";
 import { useAuth } from "@/hooks/useAuth";
-import axios from "axios";
 import { useSocket } from "../../contexts/SocketContext";
-import API_URL from "@/constants/Api";
 import { ADMIN_ROUTES } from "@/lib/roleRoutes";
+import { getNotifications } from "@/lib/api/notifications";
 
 const COLORS = {
   background: "#14181F",
@@ -112,9 +111,7 @@ const NotificationsScreen = () => {
   const fetchNotifications = useCallback(async () => {
     if (!token) return;
     try {
-      const response = await axios.get(`${API_URL}/api/notifications`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const response = await getNotifications();
       setNotifications(response.data.notifications);
     } catch (error) {
       console.error("Failed to fetch notifications:", error);

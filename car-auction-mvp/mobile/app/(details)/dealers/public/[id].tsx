@@ -9,10 +9,9 @@ import {
   Image,
   Pressable,
 } from "react-native";
-import axios from "axios";
-import API_BASE_URL from "@/constants/Api";
 import { useAuth } from "@/hooks/useAuth";
 import { Ionicons } from "@expo/vector-icons";
+import { getDealerProfile } from "@/lib/api/dealer";
 
 const COLORS = {
   background: "#14181F",
@@ -59,16 +58,7 @@ const fetchDealerProfile = async (
   id: string,
   token: string | null
 ): Promise<ProfileData> => {
-  const headers: any = {};
-  if (token) {
-    headers.Authorization = `Bearer ${token}`;
-  }
-  const response = await axios.get(
-    `${API_BASE_URL}/dealer/api/dealers/${id}/profile`,
-    {
-      headers,
-    }
-  );
+  const response = await getDealerProfile(id);
   return response.data;
 };
 

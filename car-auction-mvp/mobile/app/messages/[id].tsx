@@ -15,8 +15,7 @@ import { Stack, useLocalSearchParams } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "@/hooks/useAuth";
 import { useSocket } from "../../contexts/SocketContext";
-import axios from "axios";
-import API_URL from "@/constants/Api";
+import { getConversation, sendChatMessage } from "@/lib/api/messages";
 
 const COLORS = {
   background: "#14181F",
@@ -41,9 +40,7 @@ const ConversationDetailScreen = () => {
   const fetchConversation = useCallback(async () => {
     if (!token || !id) return;
     try {
-      const response = await axios.get(`${API_URL}/api/my-messages/${id}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const response = await getConversation(String(id));
       setConversation(response.data.conversation);
       setMessages(response.data.messages);
     } catch (error) {
@@ -82,14 +79,10 @@ const ConversationDetailScreen = () => {
     }
     setSending(true);
     try {
-      const response = await axios.post(
-        `${API_URL}/chat/send`,
-        {
-          car_id: conversation.car.id,
-          message: inputText,
-        },
-        { headers: { Authorization: `Bearer ${token.trim()}` } }
-      );
+      const response = await sendChatMessage({
+        car_id: conversation.car.id,
+        body: inputText,
+      });
 
       if (response.data.status === "success") {
         setInputText("");

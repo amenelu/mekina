@@ -13,9 +13,8 @@ import {
 import { useRouter } from "expo-router";
 import * as ImagePicker from "expo-image-picker";
 import { Ionicons } from "@expo/vector-icons";
-import axios from "axios";
-import API_URL from "@/constants/Api";
 import { useAuth } from "@/hooks/useAuth";
+import { createTradeIn } from "@/lib/api/tradeIn";
 
 const COLORS = {
   background: "#14181F",
@@ -95,9 +94,7 @@ const TradeInScreen = () => {
         images: base64Images,
       };
 
-      const response = await axios.post(`${API_URL}/trade-in/api`, payload, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const response = await createTradeIn(payload);
 
       if (response.status === 201) {
         Alert.alert(

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from "react";
-import ConversationItem from "../_components/ConversationItem";
+import ConversationItem from "@/components/_components/ConversationItem";
 
 import {
   View,
@@ -10,10 +10,9 @@ import {
   SafeAreaView,
   RefreshControl,
 } from "react-native";
-import axios from "axios";
 import { useAuth } from "@/hooks/useAuth";
-import API_BASE_URL from "@/constants/Api";
 import { useSocket } from "../../contexts/SocketContext";
+import { getMyMessages } from "@/lib/api/messages";
 
 const COLORS = {
   background: "#14181F",
@@ -51,9 +50,7 @@ const MessagesScreen = () => {
     if (!token) return;
     if (!isRefresh) setLoading(true);
     try {
-      const response = await axios.get(`${API_BASE_URL}/api/my-messages`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const response = await getMyMessages();
       setConversations(response.data.conversations);
     } catch (error) {
       console.error("Failed to fetch messages:", error);

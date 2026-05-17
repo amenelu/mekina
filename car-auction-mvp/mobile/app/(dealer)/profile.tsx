@@ -9,13 +9,12 @@ import {
   ActivityIndicator,
   RefreshControl,
 } from "react-native";
-import axios from "axios";
 import { useAuth } from "@/hooks/useAuth";
 import { router } from "expo-router";
-import API_BASE_URL from "@/constants/Api";
 import { Ionicons } from "@expo/vector-icons";
-import VehicleCard from "../_components/VehicleCard";
+import VehicleCard from "@/components/_components/VehicleCard";
 import { DEALER_ROUTES, PUBLIC_HOME_ROUTE } from "@/lib/roleRoutes";
+import { getDealerProfile } from "@/lib/api/dealer";
 
 const COLORS = {
   background: "#14181F",
@@ -116,10 +115,7 @@ const ProfileScreen = () => {
     if (!user?.id || !token) return;
     if (!isRefresh) setLoading(true);
     try {
-      const response = await axios.get(
-        `${API_BASE_URL}/dealer/api/dealers/${user.id}/profile`,
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
+      const response = await getDealerProfile(user.id);
       setProfileData(response.data);
     } catch (error) {
       console.error("Failed to fetch dealer profile:", error);
@@ -216,7 +212,10 @@ const ProfileScreen = () => {
                     onPress={() => {
                       router.push({
                         pathname: DEALER_ROUTES.editListing as any,
-                        params: { id: item.id.toString() },
+                        params: {
+                          id: item.id.toString(),
+                          returnTo: DEALER_ROUTES.profile,
+                        },
                       });
                     }}
                     item={{

@@ -12,10 +12,12 @@ import {
 } from "react-native";
 import { Link, useFocusEffect, useRouter, Stack } from "expo-router";
 import { useAuth } from "@/hooks/useAuth";
-import axios, { isAxiosError } from "axios";
-import API_URL from "@/constants/Api";
+import { isAxiosError } from "axios";
 import { useSocket } from "../../contexts/SocketContext";
 import { Ionicons } from "@expo/vector-icons";
+import { mediaUrl } from "@/lib/api/client";
+import { deleteRequest, getMyRequests } from "@/lib/api/requests";
+import { deleteTradeInRequest } from "@/lib/api/tradeIn";
 
 const COLORS = {
   background: "#14181F",
@@ -105,7 +107,7 @@ const RequestCard = ({
       <Pressable onPress={handlePress}>
         {isImageBased && request.images && (
           <Image
-            source={{ uri: `${API_URL}${request.images[0].image_url}` }}
+            source={{ uri: mediaUrl(request.images[0].image_url) || "" }}
             style={styles.cardImage}
             resizeMode="cover"
           />
@@ -213,9 +215,7 @@ const MyRequestsScreen = () => {
     }
     try {
       setError(null); // Clear previous errors
-      const response = await axios.get(`${API_URL}/requests/api/requests`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const response = await getMyRequests();
       // Sort requests to show completed ones first
       const sortedRequests = (response.data.requests || []).sort(
         (a: CarRequest, b: CarRequest) => {
@@ -277,13 +277,9 @@ const MyRequestsScreen = () => {
     try {
       setLoading(true);
       if (req.type === "trade-in") {
-        await axios.delete(`${API_URL}/trade-in/api/requests/${req.id}`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
+        await deleteTradeInRequest(req.id);
       } else {
-        await axios.delete(`${API_URL}/requests/api/requests/${req.id}`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
+        await deleteRequest(req.id);
       }
       // Refresh list
       fetchRequests();

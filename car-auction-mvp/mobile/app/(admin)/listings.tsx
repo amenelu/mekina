@@ -12,15 +12,19 @@ import {
   Platform,
   RefreshControl,
 } from "react-native";
-import axios from "axios";
-import API_URL from "@/constants/Api";
 import { useAuth } from "@/hooks/useAuth"; // Keep this import
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter, useFocusEffect } from "expo-router";
 import {
   useWebPullToRefresh,
   WebPullToRefreshIndicator,
-} from "../_components/WebPullToRefresh";
+} from "@/components/_components/WebPullToRefresh";
+import {
+  deleteAdminListing,
+  getAdminListings,
+} from "@/lib/api/admin";
+import { mediaUrl } from "@/lib/api/client";
+import type { AdminListing } from "@/lib/api/types";
 
 const COLORS = {
   background: "#14181F",
@@ -34,19 +38,8 @@ const COLORS = {
   // Add other colors if needed
 };
 
-interface Listing {
-  id: number;
-  year: number;
-  make: string;
-  model: string;
-  owner_username: string;
-  listing_type: string;
-  image_url?: string;
-  is_approved: boolean;
-  is_active: boolean;
-}
 const AdminListingsScreen = () => {
-  const [listings, setListings] = useState<Listing[]>([]);
+  const [listings, setListings] = useState<AdminListing[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [search, setSearch] = useState("");
@@ -66,12 +59,7 @@ const AdminListingsScreen = () => {
       setLoading(true);
     }
     try {
-      const response = await axios.get(
-        `${API_URL}/auctions/api/admin/listings?q=${search}`,
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
-      );
+      const response = await getAdminListings(search);
       setListings(response.data.cars);
     } catch (error: any) {
       console.error(
@@ -99,14 +87,12 @@ const AdminListingsScreen = () => {
     }, [fetchListings])
   );
 
-  const handleDelete = (listing: Listing) => {
+  const handleDelete = (listing: AdminListing) => {
     const message = `Are you sure you want to delete the ${listing.year} ${listing.make} ${listing.model}?`;
 
     const performDelete = async () => {
       try {
-        await axios.delete(`${API_URL}/admin/api/listings/${listing.id}`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
+        await deleteAdminListing(listing.id);
         setListings((prev) => prev.filter((l) => l.id !== listing.id));
         if (Platform.OS === "web") {
           setStatusMessage("Listing has been deleted.");
@@ -142,15 +128,10 @@ const AdminListingsScreen = () => {
     ]);
   };
 
-  const ListingCard = ({ item }: { item: Listing }) => {
+  const ListingCard = ({ item }: { item: AdminListing }) => {
     const [imageLoading, setImageLoading] = useState(true);
     const router = useRouter();
-    const imageUrl =
-      item.image_url && item.image_url.startsWith("http")
-        ? item.image_url
-        : item.image_url
-        ? `${API_URL}${item.image_url}`
-        : null;
+    const imageUrl = mediaUrl(item.image_url);
 
     return (
       <View style={styles.card}>
@@ -220,7 +201,7 @@ const AdminListingsScreen = () => {
     );
   };
 
-  const renderItem = ({ item }: { item: Listing }) => (
+  const renderItem = ({ item }: { item: AdminListing }) => (
     <ListingCard item={item} />
   );
 

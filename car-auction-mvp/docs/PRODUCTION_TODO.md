@@ -1,0 +1,353 @@
+# Production TODO
+
+This checklist tracks the work needed before Mekina is production-ready.
+
+## Release Scope
+
+- [ ] Use Expo web as the first webapp release target.
+- [ ] Defer native app store release until after Expo web is stable.
+- [ ] Treat the older Flask/Jinja pages as legacy/supporting pages unless explicitly included in launch scope.
+- [ ] Define the first production launch scope: buyer flows, dealer flows, rental-company flows, admin flows.
+- [ ] Identify which experimental, legacy, duplicate, or incomplete screens should be hidden before launch.
+- [ ] Confirm supported platforms for launch: Expo web first, then Android/iOS later.
+- [ ] Create a release owner and approval checklist.
+
+## Expo Web Release Path
+
+Work through this section first. It is ordered so each item can be implemented and verified before moving to the next.
+
+### Release Phases
+
+- [ ] Phase 1: Expo web code stabilization, shared API calling code, auth/routing fixes, web UX fixes, and release-critical loading/error states.
+- [ ] Phase 2: Backend release safety, authorization audits, backend tests, validation, and pagination for release-critical data.
+- [ ] Phase 3: Staging and production preparation, environment configuration, database migrations, uploads, HTTPS, builds, and smoke tests.
+- [ ] Phase 4: Native app release preparation after Expo web is stable, including EAS builds, store metadata, permissions, and native push setup.
+
+### 1. Lock The Release Target
+
+- [ ] Confirm the first production release is the Expo webapp, not the Flask/Jinja web UI.
+- [ ] List the exact buyer screens included in the first Expo web release.
+- [ ] List the exact dealer screens included in the first Expo web release.
+- [ ] List the exact rental-company screens included in the first Expo web release.
+- [ ] List the exact admin screens included in the first Expo web release.
+- [ ] Hide any Expo routes that are not part of the first release.
+- [ ] Remove or hide duplicate route aliases that can send users to the wrong role area.
+- [ ] Verify role-based start routes after login for buyer, dealer, rental company, and admin.
+
+### 2. Centralize API Calling Code
+
+- [x] Keep `mobile/lib/api/client.ts` as the single shared HTTP client for Expo web and native.
+- [x] Add shared auth API methods in `mobile/lib/api/auth.ts`.
+- [x] Add shared listing API methods in `mobile/lib/api/listings.ts`.
+- [x] Add shared buyer request API methods in `mobile/lib/api/requests.ts`.
+- [x] Add shared dealer API methods in `mobile/lib/api/dealer.ts`.
+- [x] Add shared admin API methods in `mobile/lib/api/admin.ts`.
+- [x] Add shared rental-company API methods in `mobile/lib/api/rentals.ts`.
+- [x] Add shared messaging API methods in `mobile/lib/api/messages.ts`.
+- [x] Add shared notification API methods in `mobile/lib/api/notifications.ts`.
+- [x] Add shared trade-in API methods in `mobile/lib/api/tradeIn.ts`.
+- [x] Add shared response/request types in `mobile/lib/api/types.ts`.
+- [x] Replace direct `axios` calls in Expo screens with shared API methods.
+- [x] Replace direct backend `fetch` API calls in Expo screens with shared API methods.
+- [x] Normalize API error handling in the shared client.
+- [x] Normalize auth token attachment in the shared client.
+- [x] Normalize image URL handling in one shared helper.
+
+### 3. Stabilize Auth And Role Routing
+
+- [ ] Verify persisted auth loads before protected Expo routes redirect.
+- [ ] Verify buyer reload behavior on home, listings, requests, messages, notifications, and profile.
+- [ ] Verify dealer reload behavior on dashboard, analytics, messages, notifications, profile, submit, edit listing, offer, and points.
+- [ ] Verify rental-company reload behavior on dashboard, add rental, manage rental, and profile.
+- [ ] Verify admin reload behavior on dashboard, users, listings, dealers, rentals, notifications, and point requests.
+- [ ] Verify admin users cannot land in buyer rental tabs.
+- [ ] Verify buyer users cannot enter admin, dealer, or rental-company tabs.
+- [ ] Verify dealer users cannot enter admin or rental-company tabs.
+- [ ] Verify rental-company users cannot enter admin or dealer tabs.
+
+### 4. Stabilize Release-Critical Flows
+
+- [ ] Verify buyer browse/search/filter listing flow.
+- [ ] Verify buyer listing detail flow.
+- [ ] Verify buyer favorite/unfavorite flow.
+- [ ] Verify buyer compare flow.
+- [ ] Verify buyer vehicle request creation flow.
+- [ ] Verify buyer uploaded request creation flow.
+- [ ] Verify buyer request detail and offer comparison flow.
+- [ ] Verify buyer offer acceptance and deal summary flow.
+- [ ] Verify buyer trade-in request flow.
+- [ ] Verify buyer messages and notifications flow.
+- [ ] Verify dealer dashboard data loading.
+- [ ] Verify dealer offer creation flow.
+- [ ] Verify dealer listing submit/edit flow.
+- [ ] Verify dealer points request flow without browser password/autofill prompts.
+- [ ] Verify dealer analytics flow and locked/unlocked states.
+- [ ] Verify rental-company dashboard data loading.
+- [ ] Verify rental-company add/edit/toggle rental listing flow.
+- [ ] Verify admin dashboard counters.
+- [ ] Verify admin listing approve/edit/delete flow.
+- [ ] Verify admin user/dealer/rental management flow.
+- [ ] Verify admin point request accept/deny flow from dealer and rental cards.
+- [ ] Verify admin notifications flow.
+
+### 5. Fix Known Expo Web Release Issues
+
+- [x] Fix Expo Router warnings caused by component files inside `mobile/app`.
+- [x] Remove or hide unused Expo route files from the release build.
+- [ ] Verify pinned header/tab/footer behavior on desktop browser.
+- [ ] Verify pinned header/tab/footer behavior on mobile browser.
+- [ ] Verify pull-to-refresh still works where expected.
+- [ ] Verify all visible forms have correct autocomplete behavior.
+- [ ] Add missing empty states to release-critical screens.
+- [ ] Add missing loading states to release-critical screens.
+- [ ] Add missing error and retry states to release-critical screens.
+- [ ] Remove debug logs and noisy console output.
+- [ ] Run responsive checks at 360px, 390px, 430px, 768px, 1024px, and desktop widths.
+
+### 6. Prepare Staging
+
+- [ ] Choose staging backend host.
+- [ ] Choose staging Expo web host.
+- [ ] Configure staging API base URL for Expo web.
+- [ ] Configure staging CORS origins.
+- [ ] Configure staging database.
+- [ ] Run all database migrations on staging.
+- [ ] Configure staging upload/media storage.
+- [ ] Configure staging secret values outside git.
+- [ ] Verify staging HTTPS.
+- [ ] Verify Socket.IO works on staging if notifications/chat require it.
+
+### 7. Run Web Release Verification
+
+- [ ] Run backend test suite.
+- [ ] Run Expo TypeScript check.
+- [ ] Build Expo web production bundle.
+- [ ] Smoke test buyer flow on staging from a fresh browser session.
+- [ ] Smoke test dealer flow on staging from a fresh browser session.
+- [ ] Smoke test rental-company flow on staging from a fresh browser session.
+- [ ] Smoke test admin flow on staging from a fresh browser session.
+- [ ] Repeat smoke tests after closing and reopening the browser.
+- [ ] Repeat core smoke tests on a phone browser using the staging URL.
+- [ ] Verify no production-blocking errors appear in backend logs.
+- [ ] Verify no production-blocking errors appear in browser console.
+
+### 8. Deploy Expo Web Production
+
+- [ ] Configure production backend host.
+- [ ] Configure production Expo web host.
+- [ ] Configure production API base URL.
+- [ ] Configure production CORS origins.
+- [ ] Configure production database.
+- [ ] Run production migrations.
+- [ ] Deploy production backend.
+- [ ] Deploy production Expo web build.
+- [ ] Run production buyer smoke test.
+- [ ] Run production dealer smoke test.
+- [ ] Run production rental-company smoke test.
+- [ ] Run production admin smoke test.
+- [ ] Monitor backend logs after launch.
+- [ ] Monitor frontend errors after launch.
+
+## Environment And Secrets
+
+- [ ] Create separate production, staging, and local environment configurations.
+- [ ] Remove real secrets from checked-in `.env` files and rotate any exposed secrets.
+- [ ] Store production secrets in the hosting provider secret manager.
+- [ ] Set strong production `SECRET_KEY`.
+- [ ] Set production database URL through environment variables.
+- [ ] Set production API base URL for Expo web/native builds.
+- [ ] Configure allowed CORS origins for production only.
+- [ ] Disable Flask debug mode in production.
+- [ ] Document required environment variables.
+
+## Database
+
+- [ ] Choose production database provider, preferably PostgreSQL.
+- [ ] Run all migrations against staging.
+- [ ] Verify migration chain from an empty database.
+- [ ] Add backup and restore procedures.
+- [ ] Add recurring automated backups.
+- [ ] Test restoring a backup into staging.
+- [ ] Add indexes for high-traffic queries: listings, requests, messages, notifications, users.
+- [ ] Review SQLite-only assumptions and replace them before production.
+- [ ] Seed only safe production bootstrap data, such as initial admin user creation.
+
+## Authentication And Authorization
+
+- [ ] Audit every API endpoint for required auth decorators.
+- [ ] Verify admin-only endpoints reject buyers, dealers, and rental companies.
+- [ ] Verify dealer-only endpoints reject buyers and rental companies.
+- [ ] Verify rental-company endpoints reject buyers and dealers.
+- [ ] Add token expiry and refresh strategy, or define explicit re-login behavior.
+- [ ] Add password reset flow.
+- [ ] Add email verification if accounts are self-service.
+- [ ] Add rate limiting for login and registration.
+- [ ] Add account lockout or abuse detection for repeated failed login attempts.
+- [ ] Confirm "Remember me" behavior is intentional on web and native.
+- [ ] Add server-side checks for point request approval/denial.
+
+## Admin And Moderation
+
+- [ ] Add a durable admin workflow for point requests: pending, accepted, denied, audit history.
+- [ ] Add filters for point requests by status and dealer.
+- [ ] Add confirmation UX for accepting and denying point requests.
+- [ ] Add audit logging for admin actions: user edits, point changes, listing approval, deletion.
+- [ ] Add admin notifications or dashboard alerts for critical pending tasks.
+- [ ] Add pagination to admin lists.
+- [ ] Add search and filters to admin lists where missing.
+
+## Payments And Points
+
+- [ ] Define the business rules for dealer points and pricing.
+- [ ] Decide whether points are purchased, manually granted, or both.
+- [ ] Integrate payment provider if points are paid.
+- [ ] Add payment success/failure webhooks.
+- [ ] Make point transactions fully auditable.
+- [ ] Prevent duplicate point deductions on retries.
+- [ ] Prevent negative point balances.
+- [ ] Add tests for point deduction, point grants, and request approval.
+
+## Listings, Requests, Auctions, And Rentals
+
+- [ ] Define lifecycle states for listings: draft, pending, approved, rejected, active, inactive, deleted.
+- [ ] Define lifecycle states for buyer requests and trade-ins.
+- [ ] Define auction start/end behavior and what happens after auction close.
+- [ ] Add server-side validation for all listing and request forms.
+- [ ] Add image upload limits: file count, size, type, dimensions.
+- [ ] Add virus/malware scanning or use a managed media service.
+- [ ] Move uploaded files to durable object storage.
+- [ ] Add cleanup for orphaned uploads.
+- [ ] Confirm rental availability logic is correct.
+- [ ] Add tests for listing approval, rejection, edit, delete, and rental toggle flows.
+
+## Messaging And Notifications
+
+- [ ] Verify Socket.IO works behind the production reverse proxy.
+- [ ] Configure sticky sessions or a Socket.IO-compatible scaling strategy.
+- [ ] Add notification persistence for every important event.
+- [ ] Add unread count consistency tests.
+- [ ] Add push notification provider setup for native apps if required.
+- [ ] Add notification preferences if needed.
+- [ ] Ensure opening notifications routes to the correct screen for each role.
+
+## Frontend Web
+
+- [ ] Fix known Expo Router warnings, including route files without default exports.
+- [ ] Verify web reload behavior for admin, dealer, rental-company, and buyer routes.
+- [ ] Verify auth hydration after closing and reopening the browser.
+- [ ] Verify pinned headers and tab bars across mobile browser and desktop browser.
+- [ ] Verify pull-to-refresh still works on supported web screens.
+- [ ] Remove console noise and debug logs from production builds.
+- [ ] Run responsive QA on common phone widths, tablet widths, and desktop widths.
+- [ ] Check all forms for correct autocomplete behavior.
+- [ ] Add empty, loading, error, and retry states to every data screen.
+
+## Native Apps
+
+- [ ] Configure production Expo/EAS project.
+- [ ] Configure app icons, splash screens, app name, bundle id, and package name.
+- [ ] Configure native API URL for production.
+- [ ] Test Android production build.
+- [ ] Test iOS production build if iOS is in scope.
+- [ ] Add app permissions review for camera, media library, and notifications.
+- [ ] Prepare Play Store and App Store metadata if native launch is in scope.
+
+## Backend Deployment
+
+- [ ] Choose hosting platform.
+- [ ] Add production WSGI/ASGI server configuration.
+- [ ] Add reverse proxy configuration.
+- [ ] Enforce HTTPS.
+- [ ] Configure trusted proxy headers.
+- [ ] Configure static file serving strategy.
+- [ ] Configure upload storage strategy.
+- [ ] Add health check endpoint.
+- [ ] Add deployment scripts or CI/CD pipeline.
+- [ ] Document rollback procedure.
+
+## Security
+
+- [ ] Run dependency vulnerability scans for Python and npm packages.
+- [ ] Pin production dependency versions.
+- [ ] Add security headers.
+- [ ] Add CSRF protection review for web form routes.
+- [ ] Audit CORS behavior.
+- [ ] Audit file upload security.
+- [ ] Audit authorization on object access: users cannot access other users' private requests, deals, messages, or listings.
+- [ ] Add input validation and output encoding review.
+- [ ] Remove or protect debug/test endpoints.
+- [ ] Review logs to avoid leaking tokens, passwords, or private user data.
+
+## Testing
+
+- [ ] Add backend tests for admin point request accept/deny.
+- [ ] Add backend tests for role-based authorization.
+- [ ] Add backend tests for notifications and unread counts.
+- [ ] Add mobile/web tests for login persistence after browser reopen.
+- [ ] Add tests for admin dashboard counters.
+- [ ] Add tests for dealer dashboard data loading.
+- [ ] Add tests for rental-company dashboard data loading.
+- [ ] Add end-to-end smoke tests for buyer, dealer, rental-company, and admin flows.
+- [ ] Add production build smoke test.
+- [ ] Add manual QA checklist for release candidates.
+
+## Observability
+
+- [ ] Add structured server logging.
+- [ ] Add error tracking for backend and frontend.
+- [ ] Add uptime monitoring.
+- [ ] Add database monitoring.
+- [ ] Add alerting for failed deployments, high error rates, and database failures.
+- [ ] Add audit logs for high-risk admin actions.
+- [ ] Add basic business metrics: registrations, listings, requests, offers, accepted deals.
+
+## Performance
+
+- [ ] Profile slow API endpoints.
+- [ ] Add pagination to large list endpoints.
+- [ ] Add image optimization and thumbnails.
+- [ ] Add caching where appropriate.
+- [ ] Optimize initial Expo web bundle size.
+- [ ] Remove unused route files from Expo Router.
+- [ ] Test on low-end Android devices and slow networks.
+
+## Data Privacy And Legal
+
+- [ ] Create privacy policy.
+- [ ] Create terms of service.
+- [ ] Define data retention policy.
+- [ ] Define account deletion process.
+- [ ] Define user data export process if required.
+- [ ] Review local legal requirements for vehicle marketplace, auctions, payments, and rentals.
+- [ ] Add consent language for notifications and contact sharing.
+
+## Content And Support
+
+- [ ] Add production-ready support contact.
+- [ ] Add help/FAQ content for buyers, dealers, rental companies, and admins.
+- [ ] Add clear user-facing copy for errors and pending approval states.
+- [ ] Add moderation process for fraudulent listings.
+- [ ] Add internal runbook for common support issues.
+
+## Launch Process
+
+- [ ] Create staging environment.
+- [ ] Deploy latest code to staging.
+- [ ] Run migrations on staging.
+- [ ] Run smoke tests on staging.
+- [ ] Complete manual QA on staging.
+- [ ] Freeze release branch.
+- [ ] Tag release.
+- [ ] Deploy production backend.
+- [ ] Run production migrations.
+- [ ] Deploy production web/native builds.
+- [ ] Run production smoke tests.
+- [ ] Monitor logs and metrics after launch.
+
+## Post-Launch
+
+- [ ] Schedule first production backup restore drill.
+- [ ] Review first-week errors and crashes.
+- [ ] Review user feedback.
+- [ ] Prioritize production bug fixes.
+- [ ] Create recurring release cadence.

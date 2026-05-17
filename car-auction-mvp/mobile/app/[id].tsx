@@ -26,11 +26,11 @@ import {
   useRouter,
 } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import VehicleCard, { Vehicle } from "./_components/VehicleCard";
-import axios from "axios";
-import API_BASE_URL from "@/constants/Api";
+import VehicleCard, { Vehicle } from "@/components/_components/VehicleCard";
 import { useAuth } from "@/hooks/useAuth";
-import { getListing } from "@/lib/api/listings";
+import { getListing, toggleFavorite } from "@/lib/api/listings";
+import { createRequest } from "@/lib/api/requests";
+import { getChatHistory, sendChatMessage } from "@/lib/api/messages";
 const COLORS = {
   background: "#14181F",
   foreground: "#F8F8F8",
@@ -282,9 +282,7 @@ const CarDetailScreen = () => {
 
     setLoading(true);
     try {
-      const response = await axios.get(`${API_BASE_URL}/chat/history/${id}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const response = await getChatHistory(String(id));
 
       if (response.data.conversation_id) {
         router.push(`/messages/${response.data.conversation_id}`);
@@ -323,16 +321,12 @@ const CarDetailScreen = () => {
           onPress: async () => {
             setLoading(true);
             try {
-              await axios.post(
-                `${API_BASE_URL}/requests/api/requests`,
-                {
-                  make: car.make,
-                  model: car.model,
-                  min_year: car.year,
-                  notes: `I am interested in purchasing this specific vehicle: ${car.year} ${car.make} ${car.model}.`,
-                },
-                { headers: { Authorization: `Bearer ${token}` } }
-              );
+              await createRequest({
+                make: car.make,
+                model: car.model,
+                min_year: car.year,
+                notes: `I am interested in purchasing this specific vehicle: ${car.year} ${car.make} ${car.model}.`,
+              });
               Alert.alert(
                 "Success",
                 "Your request has been submitted successfully!",
@@ -366,15 +360,9 @@ const CarDetailScreen = () => {
     }
     setSendingMessage(true);
     try {
-      await axios.post(
-        `${API_BASE_URL}/chat/send`,
-        { car_id: id, message: message },
-        { headers: { Authorization: `Bearer ${token.trim()}` } }
-      );
+      await sendChatMessage({ car_id: String(id), message });
       // After sending, check history again to get the new conversation ID and navigate
-      const response = await axios.get(`${API_BASE_URL}/chat/history/${id}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const response = await getChatHistory(String(id));
 
       setContactModalVisible(false);
       setMessage("");
@@ -406,11 +394,7 @@ const CarDetailScreen = () => {
     setIsFavorite(!isFavorite);
 
     try {
-      await axios.post(
-        `${API_BASE_URL}/api/cars/${id}/toggle-favorite`,
-        {},
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
+      await toggleFavorite(String(id));
     } catch (error) {
       console.error("Failed to toggle favorite:", error);
       setIsFavorite(previousState); // Revert on error

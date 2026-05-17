@@ -15,9 +15,15 @@ import {
 } from "react-native";
 import { useLocalSearchParams, useRouter, Stack, Link } from "expo-router";
 import { useAuth } from "@/hooks/useAuth";
-import axios, { isAxiosError } from "axios";
-import API_BASE_URL from "@/constants/Api";
+import { isAxiosError } from "axios";
 import { Ionicons } from "@expo/vector-icons";
+import { mediaUrl } from "@/lib/api/client";
+import {
+  acceptOffer,
+  askDealerQuestion,
+  compareSelectedBids,
+  getRequestDetail,
+} from "@/lib/api/requests";
 
 const SCREEN_WIDTH = Dimensions.get("window").width;
 const COLORS = {
@@ -155,12 +161,7 @@ const RequestDetailScreen = () => {
       return;
     }
     try {
-      const response = await axios.get(
-        `${API_BASE_URL}/requests/api/requests/${id}`,
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
-      );
+      const response = await getRequestDetail(String(id));
       setRequest(response.data.request);
       setBids(response.data.bids);
     } catch (err) {
@@ -227,11 +228,7 @@ const RequestDetailScreen = () => {
           onPress: async () => {
             try {
               setLoading(true);
-              const response = await axios.post(
-                `${API_BASE_URL}/requests/api/offer/${bid.id}/accept`,
-                { payment_method: "cash" }, // Assuming cash for now
-                { headers: { Authorization: `Bearer ${token}` } }
-              );
+              const response = await acceptOffer(bid.id, "cash");
 
               if (response.data.status === "success") {
                 Alert.alert("Offer Accepted!", "The dealer has been notified.");
@@ -267,11 +264,7 @@ const RequestDetailScreen = () => {
 
         try {
           setLoading(true);
-          const response = await axios.post(
-            `${API_BASE_URL}/requests/api/bid/${bidId}/ask`,
-            { question_text: questionText },
-            { headers: { Authorization: `Bearer ${token}` } }
-          );
+          const response = await askDealerQuestion(bidId, questionText);
 
           if (response.data.status === "success") {
             Alert.alert("Question Sent", response.data.message);
@@ -301,13 +294,7 @@ const RequestDetailScreen = () => {
     setCompareModalVisible(true);
 
     try {
-      const response = await axios.get(
-        `${API_BASE_URL}/requests/api/bids/compare`,
-        {
-          params: { ids: selectedBids.join(",") },
-          headers: { Authorization: `Bearer ${token}` },
-        }
-      );
+      const response = await compareSelectedBids(selectedBids.join(","));
       setComparisonBids(response.data.bids);
     } catch (error) {
       console.error("Failed to fetch comparison:", error);
@@ -398,14 +385,14 @@ const RequestDetailScreen = () => {
                       onPress={() =>
                         openImageViewer(
                           request.images!.map(
-                            (i) => API_BASE_URL + i.image_url
+                            (i) => mediaUrl(i.image_url) || ""
                           ),
                           idx
                         )
                       }
                     >
                       <Image
-                        source={{ uri: API_BASE_URL + img.image_url }}
+                        source={{ uri: mediaUrl(img.image_url) || "" }}
                         style={styles.requestImage}
                       />
                     </Pressable>
@@ -782,7 +769,7 @@ const RequestDetailScreen = () => {
                   <View style={styles.compareImageContainer}>
                     {bid.image_url ? (
                       <Image
-                        source={{ uri: `${API_BASE_URL}${bid.image_url}` }}
+                        source={{ uri: mediaUrl(bid.image_url) || "" }}
                         style={styles.compareImage}
                       />
                     ) : (

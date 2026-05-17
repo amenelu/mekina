@@ -1,9 +1,9 @@
 import React from "react";
 import { Tabs } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import AdminHeaderRight from "../_components/AdminHeaderRight";
+import AdminHeaderRight from "@/components/_components/AdminHeaderRight";
 import { ADMIN_ROUTES } from "@/lib/roleRoutes";
-import AuthGate from "../_components/AuthGate";
+import AuthGate from "@/components/_components/AuthGate";
 
 const COLORS = {
   card: "#1C212B",

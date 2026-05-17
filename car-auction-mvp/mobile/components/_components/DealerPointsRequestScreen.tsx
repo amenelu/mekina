@@ -12,11 +12,10 @@ import {
   View,
 } from "react-native";
 import { router } from "expo-router";
-import axios from "axios";
 import { Ionicons } from "@expo/vector-icons";
 
-import API_BASE_URL from "@/constants/Api";
 import { useAuth } from "@/hooks/useAuth";
+import { requestDealerPoints } from "@/lib/api/dealer";
 import { DEALER_ROUTES } from "@/lib/roleRoutes";
 
 const COLORS = {
@@ -79,15 +78,7 @@ export default function DealerPointsRequestScreen() {
 
     setSubmitting(true);
     try {
-      const response = await axios.post(
-        `${API_BASE_URL}/dealer/api/points/request`,
-        {
-          requested_points: parsedPoints,
-        },
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
-      );
+      const response = await requestDealerPoints(parsedPoints);
 
       setRequestedPoints("");
       Alert.alert("Request Sent", response.data.message);

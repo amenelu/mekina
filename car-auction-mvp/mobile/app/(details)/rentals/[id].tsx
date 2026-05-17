@@ -14,15 +14,21 @@ import {
   Image,
   Platform,
 } from "react-native";
-import axios from "axios";
 import DraggableFlatList, {
   ScaleDecorator,
 } from "react-native-draggable-flatlist";
-import API_BASE_URL from "@/constants/Api";
 import { useAuth } from "@/hooks/useAuth";
 import * as ImagePicker from "expo-image-picker";
 import { Ionicons } from "@expo/vector-icons";
 import { ADMIN_ROUTES, toWebRoute } from "@/lib/roleRoutes";
+import {
+  approveAdminListing,
+  deleteAdminListing,
+  deleteAdminListingImage,
+  getAdminListing,
+  reorderAdminListingImages,
+  updateAdminListing,
+} from "@/lib/api/admin";
 
 /**
  * @interface Rental
@@ -62,9 +68,7 @@ const fetchListing = async (
 ): Promise<Rental> => {
   if (!token) throw new Error("Authentication token not found.");
   // Note: Using the listings endpoint as there's no specific rental detail endpoint
-  const response = await axios.get(`${API_BASE_URL}/admin/api/listings/${id}`, {
-    headers: { Authorization: `Bearer ${token}` },
-  });
+  const response = await getAdminListing(id);
   return response.data.car;
 };
 
@@ -105,31 +109,21 @@ const updateListing = async (
       type: image.mimeType,
     } as any);
   }
-  const response = await axios.put(
-    `${API_BASE_URL}/admin/api/listings/${id}`,
-    formData,
-    { headers: { Authorization: `Bearer ${token}` } }
-  );
+  const response = await updateAdminListing(id, formData);
   return response.data;
 };
 
 const approveListing = async (id: string, token: string | null) => {
   if (!token) throw new Error("Authentication token not found.");
 
-  const response = await axios.post(
-    `${API_BASE_URL}/admin/api/listings/${id}`,
-    { action: "approve" },
-    { headers: { Authorization: `Bearer ${token}` } }
-  );
+  const response = await approveAdminListing(id);
 
   return response.data;
 };
 
 const deleteListing = async (id: string, token: string | null) => {
   if (!token) throw new Error("Authentication token not found.");
-  await axios.delete(`${API_BASE_URL}/admin/api/listings/${id}`, {
-    headers: { Authorization: `Bearer ${token}` },
-  });
+  await deleteAdminListing(id);
 };
 
 const deleteImage = async (
@@ -138,12 +132,7 @@ const deleteImage = async (
   token: string | null
 ) => {
   if (!token) throw new Error("Authentication token not found.");
-  await axios.delete(
-    `${API_BASE_URL}/admin/api/listings/${carId}/images/${imageId}`,
-    {
-      headers: { Authorization: `Bearer ${token}` },
-    }
-  );
+  await deleteAdminListingImage(carId, imageId);
 };
 
 const reorderImages = async (
@@ -152,13 +141,7 @@ const reorderImages = async (
   token: string | null
 ) => {
   if (!token) throw new Error("Authentication token not found.");
-  await axios.post(
-    `${API_BASE_URL}/admin/api/listings/${carId}/images/reorder`,
-    { image_ids: imageIds },
-    {
-      headers: { Authorization: `Bearer ${token}` },
-    }
-  );
+  await reorderAdminListingImages(carId, imageIds);
 };
 
 const ImageThumbnail = ({

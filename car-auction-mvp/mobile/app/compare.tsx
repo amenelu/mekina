@@ -9,8 +9,8 @@ import {
   Pressable,
 } from "react-native";
 import { useLocalSearchParams, Stack, useRouter } from "expo-router";
-import { Vehicle } from "./_components/VehicleCard";
-import API_BASE_URL from "@/constants/Api";
+import { Vehicle } from "@/components/_components/VehicleCard";
+import { getCompareListings } from "@/lib/api/listings";
 
 const COLORS = {
   background: "#14181F",
@@ -89,13 +89,8 @@ const CompareScreen = () => {
         return;
       }
       try {
-        const response = await fetch(
-          `${API_BASE_URL}/api/compare?ids=${car_ids}`
-        );
-        if (!response.ok) {
-          throw new Error(`Failed to load comparison data (${response.status})`);
-        }
-        const data = await response.json();
+        const response = await getCompareListings(String(car_ids));
+        const data = response.data;
         if (data.cars && data.best_values) {
           // Map the API response to the Vehicle type structure
           const formattedCars = data.cars.map((item: any) => ({

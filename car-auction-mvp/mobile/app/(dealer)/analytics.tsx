@@ -8,10 +8,13 @@ import {
   RefreshControl,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import axios from "axios";
 import { useAuth } from "@/hooks/useAuth";
-import API_BASE_URL from "@/constants/Api";
 import { Ionicons } from "@expo/vector-icons";
+import {
+  getDealerAdvancedAnalytics,
+  getDealerPopularRequests,
+  getDealerPopularSearches,
+} from "@/lib/api/dealer";
 
 const COLORS = {
   background: "#14181F",
@@ -80,15 +83,9 @@ const AnalyticsScreen = () => {
     if (!token) return;
     try {
       const [requestsRes, searchesRes, advancedRes] = await Promise.all([
-        axios.get(`${API_BASE_URL}/dealer/api/analytics/popular-requests`, {
-          headers: { Authorization: `Bearer ${token}` },
-        }),
-        axios.get(`${API_BASE_URL}/dealer/api/analytics/popular-searches`, {
-          headers: { Authorization: `Bearer ${token}` },
-        }),
-        axios.get(`${API_BASE_URL}/dealer/api/analytics/advanced`, {
-          headers: { Authorization: `Bearer ${token}` },
-        }),
+        getDealerPopularRequests(),
+        getDealerPopularSearches(),
+        getDealerAdvancedAnalytics(),
       ]);
       setPopularMakes(requestsRes.data.popular_makes);
       setPopularModels(requestsRes.data.popular_models);

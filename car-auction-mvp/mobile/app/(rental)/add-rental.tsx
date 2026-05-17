@@ -13,12 +13,11 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import * as ImagePicker from "expo-image-picker";
-import axios from "axios";
 import { router } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 
-import API_BASE_URL from "@/constants/Api";
 import { useAuth } from "@/hooks/useAuth";
+import { createSellerCar } from "@/lib/api/rentals";
 
 const COLORS = {
   background: "#14181F",
@@ -200,12 +199,7 @@ export default function RentalSubmitScreen() {
 
     try {
       await appendImagesToFormData(formData);
-      await axios.post(`${API_BASE_URL}/seller/api/cars`, formData, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "multipart/form-data",
-        },
-      });
+      await createSellerCar(formData);
 
       if (Platform.OS === "web") {
         setStatusType("success");

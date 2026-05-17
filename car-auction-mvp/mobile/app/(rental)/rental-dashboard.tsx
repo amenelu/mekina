@@ -12,17 +12,19 @@ import {
   View,
 } from "react-native";
 import { Link, router } from "expo-router";
-import axios from "axios";
 import { Ionicons } from "@expo/vector-icons";
 
-import API_BASE_URL from "@/constants/Api";
 import { useAuth } from "@/hooks/useAuth";
-import VehicleCard from "../_components/VehicleCard";
+import VehicleCard from "@/components/_components/VehicleCard";
 import { PUBLIC_HOME_ROUTE } from "@/lib/roleRoutes";
 import {
   useWebPullToRefresh,
   WebPullToRefreshIndicator,
-} from "../_components/WebPullToRefresh";
+} from "@/components/_components/WebPullToRefresh";
+import {
+  getRentalDashboard,
+  toggleRentalCarActive,
+} from "@/lib/api/rentals";
 
 const COLORS = {
   background: "#14181F",
@@ -93,11 +95,7 @@ const FleetActions = ({
   const toggleActive = async () => {
     setBusy(true);
     try {
-      await axios.post(
-        `${API_BASE_URL}/seller/api/rental-cars/${car.id}/toggle-active`,
-        {},
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
+      await toggleRentalCarActive(car.id);
       onRefresh();
     } catch (error: any) {
       Alert.alert(
@@ -240,10 +238,7 @@ export default function RentalDashboardScreen() {
     if (!token) return;
     if (!isRefresh) setLoading(true);
     try {
-      const response = await axios.get(
-        `${API_BASE_URL}/seller/api/rental-dashboard`,
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
+      const response = await getRentalDashboard();
       setPayload(response.data);
     } catch (error: any) {
       Alert.alert(

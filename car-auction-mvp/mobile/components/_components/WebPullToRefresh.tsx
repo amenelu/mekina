@@ -119,6 +119,10 @@ export function WebPullToRefreshIndicator({
   );
 }
 
+export default function WebPullToRefreshRoutePlaceholder() {
+  return null;
+}
+
 const styles = StyleSheet.create({
   container: {
     alignItems: "center",

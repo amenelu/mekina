@@ -10,8 +10,8 @@ import {
 } from "react-native";
 import { useRouter } from "expo-router";
 import { useAuth } from "@/hooks/useAuth";
-import axios from "axios";
-import API_URL from "@/constants/Api";
+import { getAdminDashboard } from "@/lib/api/admin";
+import type { AdminDashboardStats } from "@/lib/api/types";
 
 const COLORS = {
   background: "#14181F",
@@ -24,9 +24,7 @@ const COLORS = {
   edit: "#ffc107",
 };
 
-interface Stats {
-  [key: string]: number;
-}
+type Stats = AdminDashboardStats;
 
 interface PendingCar {
   id: number;
@@ -77,9 +75,7 @@ const AdminDashboardScreen = () => {
     if (!token) return;
     try {
       if (!isRefresh) setLoading(true);
-      const response = await axios.get(`${API_URL}/admin/api/dashboard`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const response = await getAdminDashboard();
       setStats(response.data.stats);
       setPendingCars(response.data.pending_approvals);
     } catch (error) {

@@ -16,12 +16,17 @@ import {
 import { useRouter, useNavigation } from "expo-router";
 import { useScrollToTop } from "@react-navigation/native";
 import { Ionicons } from "@expo/vector-icons";
-import API_URL from "@/constants/Api";
 import { useAuth } from "@/hooks/useAuth";
 import { getItemAsync, setItemAsync } from "@/lib/appStorage";
+import {
+  getHome,
+  getListings,
+  getTrendingSearches,
+  logSearch as logSearchRequest,
+} from "@/lib/api/listings";
 
-import Footer from "../_components/Footer";
-import VehicleCard, { Vehicle } from "../_components/VehicleCard";
+import Footer from "@/components/_components/Footer";
+import VehicleCard, { Vehicle } from "@/components/_components/VehicleCard";
 // --- Mock Data based on home.html ---
 const quickFilters = [
   { label: "New", value: "New" },
@@ -117,13 +122,8 @@ const HomeScreen = () => {
               searchParams.set("body_type", activeFilter);
             }
           }
-          const response = await fetch(
-            `${API_URL}/api/listings?${searchParams.toString()}`
-          );
-          if (!response.ok) {
-            throw new Error(`Search request failed with status ${response.status}`);
-          }
-          const data = await response.json();
+          const response = await getListings(Object.fromEntries(searchParams));
+          const data = response.data;
           if (currentRequestId !== searchRequestIdRef.current) {
             return;
           }
@@ -162,18 +162,14 @@ const HomeScreen = () => {
   const fetchHomeData = async () => {
     try {
       const [featuredRes, recentRes, trendingRes] = await Promise.all([
-        fetch(`${API_URL}/api/home`),
-        fetch(`${API_URL}/api/listings?limit=4`),
-        fetch(`${API_URL}/api/trending-searches`),
+        getHome(),
+        getListings({ limit: 4 }),
+        getTrendingSearches(),
       ]);
 
-      if (!featuredRes.ok || !recentRes.ok || !trendingRes.ok) {
-        throw new Error("Failed to load home data.");
-      }
-
-      const featuredData = await featuredRes.json();
-      const recentData = await recentRes.json();
-      const trendingData = await trendingRes.json();
+      const featuredData = featuredRes.data;
+      const recentData = recentRes.data;
+      const trendingData = trendingRes.data;
 
       if (featuredData.featured_cars) {
         setFeaturedVehicles(
@@ -236,14 +232,7 @@ const HomeScreen = () => {
 
   const logSearch = async (term: string) => {
     try {
-      await fetch(`${API_URL}/api/log-search`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
-        body: JSON.stringify({ q: term }),
-      });
+      await logSearchRequest(term);
     } catch (error) {
       console.error("Failed to log search:", error);
     }

@@ -11,15 +11,19 @@ import {
   Platform,
   RefreshControl,
 } from "react-native";
-import axios from "axios";
-import API_URL from "@/constants/Api";
 import { useAuth } from "@/hooks/useAuth"; // Keep this import
 import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect, useRouter } from "expo-router";
 import {
   useWebPullToRefresh,
   WebPullToRefreshIndicator,
-} from "../_components/WebPullToRefresh";
+} from "@/components/_components/WebPullToRefresh";
+import {
+  deleteAdminUser,
+  getAdminDealers,
+  resolveDealerPointRequests,
+} from "@/lib/api/admin";
+import type { AdminDealer } from "@/lib/api/types";
 
 const COLORS = {
   background: "#14181F",
@@ -32,21 +36,8 @@ const COLORS = {
   // Add other colors if needed
 };
 
-interface Dealer {
-  id: number;
-  username: string;
-  email: string;
-  active_listings: number;
-  avg_rating: number;
-  review_count: number;
-  pending_point_request?: {
-    requested_points: number;
-    request_count: number;
-    latest_request_id: number;
-  } | null;
-}
 const AdminDealersScreen = () => {
-  const [dealers, setDealers] = useState<Dealer[]>([]);
+  const [dealers, setDealers] = useState<AdminDealer[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [search, setSearch] = useState("");
@@ -62,12 +53,7 @@ const AdminDealersScreen = () => {
       setLoading(true);
     }
     try {
-      const response = await axios.get(
-        `${API_URL}/admin/api/dealers?q=${search}`,
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
-      );
+      const response = await getAdminDealers(search);
       setDealers(response.data.dealers);
     } catch (error) {
       console.error("Failed to fetch dealers:", error);
@@ -95,14 +81,12 @@ const AdminDealersScreen = () => {
     onRefresh: () => fetchDealers(true),
   });
 
-  const handleDelete = (dealer: Dealer) => {
+  const handleDelete = (dealer: AdminDealer) => {
     const message = `Are you sure you want to delete ${dealer.username}? This action cannot be undone.`;
 
     const performDelete = async () => {
       try {
-        await axios.delete(`${API_URL}/admin/api/users/${dealer.id}`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
+        await deleteAdminUser(dealer.id);
         setDealers((prevDealers) => prevDealers.filter((d) => d.id !== dealer.id));
         if (Platform.OS === "web") {
           setStatusMessage("Dealer has been deleted.");
@@ -139,7 +123,7 @@ const AdminDealersScreen = () => {
   };
 
   const handlePointRequestAction = async (
-    dealer: Dealer,
+    dealer: AdminDealer,
     action: "accept" | "deny"
   ) => {
     const verb = action === "accept" ? "approve" : "deny";
@@ -147,11 +131,7 @@ const AdminDealersScreen = () => {
 
     const performAction = async () => {
       try {
-        await axios.post(
-          `${API_URL}/admin/api/dealers/${dealer.id}/point-requests`,
-          { action },
-          { headers: { Authorization: `Bearer ${token}` } }
-        );
+        await resolveDealerPointRequests(dealer.id, action);
         setDealers((prevDealers) =>
           prevDealers.map((item) =>
             item.id === dealer.id
@@ -183,7 +163,7 @@ const AdminDealersScreen = () => {
     ]);
   };
 
-  const renderItem = ({ item }: { item: Dealer }) => (
+  const renderItem = ({ item }: { item: AdminDealer }) => (
     <View style={styles.userCard}>
       <View style={styles.userInfo}>
         <View style={styles.titleRow}>

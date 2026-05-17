@@ -10,9 +10,12 @@ import {
   Alert,
 } from "react-native";
 import { useLocalSearchParams, Stack } from "expo-router";
-import axios from "axios";
-import API_URL from "@/constants/Api";
 import { useAuth } from "@/hooks/useAuth";
+import { mediaUrl } from "@/lib/api/client";
+import {
+  getAdminTradeInRequest,
+  updateAdminTradeInStatus,
+} from "@/lib/api/tradeIn";
 
 const COLORS = {
   background: "#14181F",
@@ -56,12 +59,7 @@ const TradeInAdminDetailScreen = () => {
 
   const fetchDetails = useCallback(async () => {
     try {
-      const response = await axios.get(
-        `${API_URL}/trade-in/api/admin/requests/${id}`,
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
-      );
+      const response = await getAdminTradeInRequest(String(id));
       setRequest(response.data.request);
     } catch (error) {
       console.error("Error fetching trade-in details:", error);
@@ -78,11 +76,7 @@ const TradeInAdminDetailScreen = () => {
   const updateStatus = async (newStatus: string) => {
     setUpdating(true);
     try {
-      await axios.post(
-        `${API_URL}/trade-in/api/admin/requests/${id}/status`,
-        { status: newStatus },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
+      await updateAdminTradeInStatus(String(id), newStatus);
       Alert.alert("Success", `Status updated to ${newStatus}`);
       fetchDetails(); // Refresh data
     } catch (error) {
@@ -160,7 +154,7 @@ const TradeInAdminDetailScreen = () => {
             {request.photos.map((photo) => (
               <Image
                 key={photo.id}
-                source={{ uri: `${API_URL}${photo.image_url}` }}
+                source={{ uri: mediaUrl(photo.image_url) || "" }}
                 style={styles.photo}
               />
             ))}

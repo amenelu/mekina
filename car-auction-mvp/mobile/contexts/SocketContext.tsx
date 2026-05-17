@@ -5,10 +5,10 @@ import React, {
   useState,
   ReactNode,
 } from "react";
-import axios from "axios";
 import { io, Socket } from "socket.io-client";
 import API_URL from "@/constants/Api";
 import { useAuth } from "@/hooks/useAuth";
+import { getUnreadCounts } from "@/lib/api/notifications";
 
 interface SocketContextType {
   socket: Socket | null;
@@ -36,9 +36,7 @@ export const SocketProvider = ({ children }: { children: ReactNode }) => {
   const fetchCounts = async () => {
     if (!token) return;
     try {
-      const response = await axios.get(`${API_URL}/api/unread-counts`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const response = await getUnreadCounts();
       setUnreadMessageCount(response.data.unread_messages);
       setUnreadNotificationCount(response.data.unread_notifications);
     } catch (error) {

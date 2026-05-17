@@ -9,15 +9,14 @@ import {
   Pressable,
   RefreshControl,
 } from "react-native";
-import axios from "axios";
-import API_BASE_URL from "@/constants/Api";
 import { useAuth } from "@/hooks/useAuth"; // Keep this import
 import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect, useRouter } from "expo-router";
 import {
   useWebPullToRefresh,
   WebPullToRefreshIndicator,
-} from "../_components/WebPullToRefresh";
+} from "@/components/_components/WebPullToRefresh";
+import { getAdminUsers } from "@/lib/api/admin";
 
 const COLORS = {
   background: "#14181F",
@@ -55,12 +54,7 @@ const AdminUsersScreen = () => {
       setLoading(true);
     }
     try {
-      const response = await axios.get(
-        `${API_BASE_URL}/admin/api/users?q=${search}`,
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
-      );
+      const response = await getAdminUsers(search);
       setUsers(response.data.users);
     } catch (error) {
       console.error("Failed to fetch users:", error);

@@ -10,11 +10,11 @@ import {
   Dimensions,
 } from "react-native";
 import { useLocalSearchParams, Stack, useRouter } from "expo-router";
-import axios from "axios";
 import { useAuth } from "@/hooks/useAuth";
-import API_BASE_URL from "@/constants/Api";
 import { Ionicons } from "@expo/vector-icons";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { mediaUrl } from "@/lib/api/client";
+import { compareSelectedBids } from "@/lib/api/requests";
 
 const COLORS = {
   background: "#14181F",
@@ -64,13 +64,7 @@ const CompareBidsScreen = () => {
     const fetchComparison = async () => {
       if (!ids || !token) return;
       try {
-        const response = await axios.get(
-          `${API_BASE_URL}/requests/api/bids/compare`,
-          {
-            params: { ids },
-            headers: { Authorization: `Bearer ${token}` },
-          }
-        );
+        const response = await compareSelectedBids(ids);
         setBids(response.data.bids);
       } catch (error) {
         console.error("Failed to fetch comparison:", error);
@@ -127,7 +121,7 @@ const CompareBidsScreen = () => {
               <View style={styles.imageContainer}>
                 {bid.image_url ? (
                   <Image
-                    source={{ uri: `${API_BASE_URL}${bid.image_url}` }}
+                    source={{ uri: mediaUrl(bid.image_url) || "" }}
                     style={styles.image}
                   />
                 ) : (

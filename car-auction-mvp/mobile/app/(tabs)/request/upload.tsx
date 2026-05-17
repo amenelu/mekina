@@ -15,10 +15,9 @@ import { useRouter, useLocalSearchParams } from "expo-router";
 import { useAuth } from "@/hooks/useAuth";
 import * as ImagePicker from "expo-image-picker";
 import { Ionicons } from "@expo/vector-icons";
-import axios from "axios";
-import API_URL from "@/constants/Api";
 import { clearRequestDraft } from "@/lib/requestDraft";
 import { useRequestDraftPersistence } from "@/hooks/useRequestDraftPersistence";
+import { createRequestForm } from "@/lib/api/requests";
 
 const COLORS = {
   background: "#14181F",
@@ -123,16 +122,7 @@ const RequestUploadScreen = () => {
     });
 
     try {
-      await axios.post(
-        `${API_URL}/requests/api/requests`,
-        formData,
-        {
-          headers: {
-            "Content-Type": "multipart/form-data",
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
+      await createRequestForm(formData);
 
       Alert.alert(
         "Request Submitted!",
