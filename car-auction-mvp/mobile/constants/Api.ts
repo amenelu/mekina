@@ -44,9 +44,15 @@ function getDevServerUrl(): string {
   return `http://localhost:${PORT}`;
 }
 
-// This is a placeholder for your future production API URL.
-const prodApiUrl = "https://api.your-production-domain.com";
+function getProductionApiUrl(): string {
+  if (!explicitApiUrl) {
+    throw new Error(
+      "EXPO_PUBLIC_API_URL must be set when building the production web app."
+    );
+  }
+  return explicitApiUrl;
+}
 
-const API_URL = __DEV__ ? getDevServerUrl() : prodApiUrl;
+const API_URL = __DEV__ ? getDevServerUrl() : getProductionApiUrl();
 
 export default API_URL;

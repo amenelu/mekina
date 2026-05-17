@@ -9,6 +9,7 @@
     "android": "npm --prefix mobile run android",
     "ios": "npm --prefix mobile run ios",
     "web": "npm --prefix mobile run web",
+    "web:build": "npm --prefix mobile run build:web",
     "mobile:lint": "npm --prefix mobile run lint"
   },
   "keywords": [],

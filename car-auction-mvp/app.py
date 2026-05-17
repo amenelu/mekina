@@ -9,6 +9,12 @@ login_manager.login_view = (
     "auth.login"  # Redirect to login page if user is not authenticated
 )
 
+REQUIRED_PRODUCTION_ENV = (
+    "SECRET_KEY",
+    "DATABASE_URL",
+    "CORS_ALLOWED_ORIGINS",
+)
+
 
 def create_app(config_class=None):
     """Create and configure an instance of the Flask application."""
@@ -20,6 +26,17 @@ def create_app(config_class=None):
         env_name = os.environ.get("FLASK_ENV") or os.environ.get("APP_ENV") or "default"
         config_class = config_by_name.get(env_name, Config)
     app.config.from_object(config_class)
+    if os.environ.get("SECRET_KEY"):
+        app.config["SECRET_KEY"] = os.environ["SECRET_KEY"]
+    if os.environ.get("DATABASE_URL"):
+        app.config["SQLALCHEMY_DATABASE_URI"] = os.environ["DATABASE_URL"]
+    if config_class is config_by_name["production"]:
+        missing = [name for name in REQUIRED_PRODUCTION_ENV if not os.environ.get(name)]
+        if missing:
+            raise RuntimeError(
+                "Missing required production environment variables: "
+                + ", ".join(missing)
+            )
 
     def _is_allowed_origin(origin: str | None) -> bool:
         if not origin:

@@ -19,7 +19,7 @@ Work through this section first. It is ordered so each item can be implemented a
 ### Release Phases
 
 - [ ] Phase 1: Expo web code stabilization, shared API calling code, auth/routing fixes, web UX fixes, and release-critical loading/error states.
-- [ ] Phase 2: Backend release safety, authorization audits, backend tests, validation, and pagination for release-critical data.
+- [x] Phase 2: Backend release safety, authorization audits, backend tests, validation, and pagination for release-critical data.
 - [ ] Phase 3: Staging and production preparation, environment configuration, database migrations, uploads, HTTPS, builds, and smoke tests.
 - [ ] Phase 4: Native app release preparation after Expo web is stable, including EAS builds, store metadata, permissions, and native push setup.
 
@@ -108,20 +108,20 @@ Work through this section first. It is ordered so each item can be implemented a
 
 - [ ] Choose staging backend host.
 - [ ] Choose staging Expo web host.
-- [ ] Configure staging API base URL for Expo web.
-- [ ] Configure staging CORS origins.
+- [x] Configure staging API base URL for Expo web.
+- [x] Configure staging CORS origins.
 - [ ] Configure staging database.
 - [ ] Run all database migrations on staging.
 - [ ] Configure staging upload/media storage.
-- [ ] Configure staging secret values outside git.
+- [x] Configure staging secret values outside git.
 - [ ] Verify staging HTTPS.
 - [ ] Verify Socket.IO works on staging if notifications/chat require it.
 
 ### 7. Run Web Release Verification
 
-- [ ] Run backend test suite.
-- [ ] Run Expo TypeScript check.
-- [ ] Build Expo web production bundle.
+- [x] Run backend test suite.
+- [x] Run Expo TypeScript check.
+- [x] Build Expo web production bundle.
 - [ ] Smoke test buyer flow on staging from a fresh browser session.
 - [ ] Smoke test dealer flow on staging from a fresh browser session.
 - [ ] Smoke test rental-company flow on staging from a fresh browser session.
@@ -164,7 +164,7 @@ Work through this section first. It is ordered so each item can be implemented a
 
 - [ ] Choose production database provider, preferably PostgreSQL.
 - [ ] Run all migrations against staging.
-- [ ] Verify migration chain from an empty database.
+- [x] Verify migration chain from an empty database.
 - [ ] Add backup and restore procedures.
 - [ ] Add recurring automated backups.
 - [ ] Test restoring a backup into staging.
@@ -175,16 +175,16 @@ Work through this section first. It is ordered so each item can be implemented a
 ## Authentication And Authorization
 
 - [ ] Audit every API endpoint for required auth decorators.
-- [ ] Verify admin-only endpoints reject buyers, dealers, and rental companies.
-- [ ] Verify dealer-only endpoints reject buyers and rental companies.
-- [ ] Verify rental-company endpoints reject buyers and dealers.
+- [x] Verify admin-only endpoints reject buyers, dealers, and rental companies.
+- [x] Verify dealer-only endpoints reject buyers and rental companies.
+- [x] Verify rental-company endpoints reject buyers and dealers.
 - [ ] Add token expiry and refresh strategy, or define explicit re-login behavior.
 - [ ] Add password reset flow.
 - [ ] Add email verification if accounts are self-service.
 - [ ] Add rate limiting for login and registration.
 - [ ] Add account lockout or abuse detection for repeated failed login attempts.
 - [ ] Confirm "Remember me" behavior is intentional on web and native.
-- [ ] Add server-side checks for point request approval/denial.
+- [x] Add server-side checks for point request approval/denial.
 
 ## Admin And Moderation
 
@@ -193,8 +193,8 @@ Work through this section first. It is ordered so each item can be implemented a
 - [ ] Add confirmation UX for accepting and denying point requests.
 - [ ] Add audit logging for admin actions: user edits, point changes, listing approval, deletion.
 - [ ] Add admin notifications or dashboard alerts for critical pending tasks.
-- [ ] Add pagination to admin lists.
-- [ ] Add search and filters to admin lists where missing.
+- [x] Add pagination to admin lists.
+- [x] Add search and filters to admin lists where missing.
 
 ## Payments And Points
 
@@ -203,9 +203,9 @@ Work through this section first. It is ordered so each item can be implemented a
 - [ ] Integrate payment provider if points are paid.
 - [ ] Add payment success/failure webhooks.
 - [ ] Make point transactions fully auditable.
-- [ ] Prevent duplicate point deductions on retries.
+- [x] Prevent duplicate point deductions on retries.
 - [ ] Prevent negative point balances.
-- [ ] Add tests for point deduction, point grants, and request approval.
+- [x] Add tests for point deduction, point grants, and request approval.
 
 ## Listings, Requests, Auctions, And Rentals
 
@@ -217,15 +217,15 @@ Work through this section first. It is ordered so each item can be implemented a
 - [ ] Add virus/malware scanning or use a managed media service.
 - [ ] Move uploaded files to durable object storage.
 - [ ] Add cleanup for orphaned uploads.
-- [ ] Confirm rental availability logic is correct.
-- [ ] Add tests for listing approval, rejection, edit, delete, and rental toggle flows.
+- [x] Confirm rental availability logic is correct.
+- [x] Add tests for listing approval, rejection, edit, delete, and rental toggle flows.
 
 ## Messaging And Notifications
 
 - [ ] Verify Socket.IO works behind the production reverse proxy.
 - [ ] Configure sticky sessions or a Socket.IO-compatible scaling strategy.
 - [ ] Add notification persistence for every important event.
-- [ ] Add unread count consistency tests.
+- [x] Add unread count consistency tests.
 - [ ] Add push notification provider setup for native apps if required.
 - [ ] Add notification preferences if needed.
 - [ ] Ensure opening notifications routes to the correct screen for each role.
@@ -280,13 +280,13 @@ Work through this section first. It is ordered so each item can be implemented a
 
 ## Testing
 
-- [ ] Add backend tests for admin point request accept/deny.
-- [ ] Add backend tests for role-based authorization.
-- [ ] Add backend tests for notifications and unread counts.
+- [x] Add backend tests for admin point request accept/deny.
+- [x] Add backend tests for role-based authorization.
+- [x] Add backend tests for notifications and unread counts.
 - [ ] Add mobile/web tests for login persistence after browser reopen.
-- [ ] Add tests for admin dashboard counters.
-- [ ] Add tests for dealer dashboard data loading.
-- [ ] Add tests for rental-company dashboard data loading.
+- [x] Add tests for admin dashboard counters.
+- [x] Add tests for dealer dashboard data loading.
+- [x] Add tests for rental-company dashboard data loading.
 - [ ] Add end-to-end smoke tests for buyer, dealer, rental-company, and admin flows.
 - [ ] Add production build smoke test.
 - [ ] Add manual QA checklist for release candidates.

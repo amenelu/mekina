@@ -78,6 +78,26 @@ def _pending_point_request_summary_by_dealer():
     return summaries
 
 
+def _pagination_args(default_per_page=50, max_per_page=100):
+    page = max(request.args.get("page", 1, type=int) or 1, 1)
+    per_page = request.args.get("per_page", default_per_page, type=int)
+    per_page = min(max(per_page or default_per_page, 1), max_per_page)
+    return page, per_page
+
+
+def _pagination_meta(pagination):
+    return {
+        "page": pagination.page,
+        "per_page": pagination.per_page,
+        "total": pagination.total,
+        "pages": pagination.pages,
+        "has_prev": pagination.has_prev,
+        "prev_num": pagination.prev_num,
+        "has_next": pagination.has_next,
+        "next_num": pagination.next_num,
+    }
+
+
 @admin_bp.route("/dashboard")
 @login_required
 @admin_required
@@ -173,6 +193,12 @@ def api_point_requests(current_user):
 @admin_token_required
 def api_resolve_dealer_point_requests(current_user, dealer_id):
     dealer = User.query.get_or_404(dealer_id)
+    if not dealer.is_dealer:
+        return (
+            jsonify({"message": "Point requests can only be resolved for dealers."}),
+            400,
+        )
+
     data = request.get_json() or {}
     action = data.get("action")
     if action not in {"accept", "deny"}:
@@ -257,7 +283,7 @@ def user_management():
 def api_admin_list_users(current_user):
     """API endpoint for admin to search/filter all non-dealer users."""
     query = request.args.get("q", "")
-    page = request.args.get("page", 1, type=int)
+    page, per_page = _pagination_args()
 
     users_query = User.query.filter_by(is_dealer=False).order_by(User.id.asc())
 
@@ -267,8 +293,9 @@ def api_admin_list_users(current_user):
             or_(User.username.ilike(search_term), User.email.ilike(search_term))
         )
 
-    paginated_users = users_query.paginate(page=page, per_page=20)
-    all_users = users_query.all()
+    paginated_users = users_query.paginate(
+        page=page, per_page=per_page, error_out=False
+    )
 
     users_data = [
         {
@@ -280,20 +307,13 @@ def api_admin_list_users(current_user):
             "points": user.points or 0,
             "edit_url": url_for("admin.edit_user", user_id=user.id),
         }
-        for user in all_users
+        for user in paginated_users.items
     ]
 
     return jsonify(
         {
             "users": users_data,
-            "pagination": {
-                "page": paginated_users.page,
-                "pages": paginated_users.pages,
-                "has_prev": paginated_users.has_prev,
-                "prev_num": paginated_users.prev_num,
-                "has_next": paginated_users.has_next,
-                "next_num": paginated_users.next_num,
-            },
+            "pagination": _pagination_meta(paginated_users),
         }
     )
 
@@ -471,6 +491,7 @@ def dealer_management():
 def api_admin_list_dealers(current_user):
     """API endpoint for admin to search/filter all dealer users with stats."""
     query = request.args.get("q", "")
+    page, per_page = _pagination_args()
     pending_point_requests = _pending_point_request_summary_by_dealer()
 
     # Subquery for active listings count per dealer
@@ -513,7 +534,9 @@ def api_admin_list_dealers(current_user):
             or_(User.username.ilike(search_term), User.email.ilike(search_term))
         )
 
-    all_dealers = dealers_query.order_by(User.username).all()
+    paginated_dealers = dealers_query.order_by(User.username).paginate(
+        page=page, per_page=per_page, error_out=False
+    )
 
     dealers_data = [
         {
@@ -526,12 +549,13 @@ def api_admin_list_dealers(current_user):
             "pending_point_request": pending_point_requests.get(dealer.id),
             "profile_url": url_for("dealer.profile", dealer_id=dealer.id),
         }
-        for dealer, active_listings, avg_rating, review_count in all_dealers
+        for dealer, active_listings, avg_rating, review_count in paginated_dealers.items
     ]
 
     return jsonify(
         {
             "dealers": dealers_data,
+            "pagination": _pagination_meta(paginated_dealers),
         }
     )
 
@@ -555,6 +579,7 @@ def rental_management():
 def api_admin_list_rentals(current_user):
     """API endpoint for admin to search/filter all rental listings."""
     query = request.args.get("q", "")
+    page, per_page = _pagination_args()
     pending_point_requests = _pending_point_request_summary_by_dealer()
 
     # Base query for rental cars
@@ -572,7 +597,9 @@ def api_admin_list_rentals(current_user):
             )
         )
 
-    all_cars = cars_query.all()
+    paginated_cars = cars_query.paginate(
+        page=page, per_page=per_page, error_out=False
+    )
 
     cars_data = [
         {
@@ -593,12 +620,13 @@ def api_admin_list_rentals(current_user):
             "edit_url": url_for("admin.edit_listing", car_id=car.id),
             "delete_url": url_for("admin.delete_listing", car_id=car.id),
         }
-        for car in all_cars
+        for car in paginated_cars.items
     ]
 
     return jsonify(
         {
             "cars": cars_data,
+            "pagination": _pagination_meta(paginated_cars),
         }
     )
 
@@ -1061,6 +1089,37 @@ def api_manage_listing(current_user, car_id):
             )
             send_push_notification(car.owner_id, notification.message)
             return jsonify({"status": "success", "message": "Car has been approved."})
+
+        if action == "reject":
+            car.is_approved = False
+            car.is_active = False
+            car.last_changes = None
+            message = (
+                f"Your listing for the {car.year} {car.make} {car.model} "
+                "was rejected by the admin."
+            )
+            notification = Notification(
+                user_id=car.owner_id,
+                message=message,
+                link=url_for("main.car_detail", car_id=car.id),
+            )
+            db.session.add(notification)
+            db.session.commit()
+            unread_count = Notification.query.filter_by(
+                user_id=car.owner_id, is_read=False
+            ).count()
+            socketio.emit(
+                "new_notification",
+                {
+                    "message": notification.message,
+                    "link": notification.link,
+                    "timestamp": notification.timestamp.isoformat() + "Z",
+                    "count": unread_count,
+                },
+                room=str(car.owner_id),
+            )
+            send_push_notification(car.owner_id, notification.message)
+            return jsonify({"status": "success", "message": "Car has been rejected."})
 
         return jsonify({"status": "error", "message": "Invalid action."}), 400
 

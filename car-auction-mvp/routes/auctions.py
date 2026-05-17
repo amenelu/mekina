@@ -276,6 +276,9 @@ def all_listings_api():
 def api_admin_list_cars(current_user):
     """API endpoint for admin to search/filter all car listings."""
     query = request.args.get('q', '')
+    page = max(request.args.get('page', 1, type=int) or 1, 1)
+    per_page = request.args.get('per_page', 50, type=int)
+    per_page = min(max(per_page or 50, 1), 100)
 
     cars_query = Car.query.order_by(Car.id.desc())
 
@@ -287,7 +290,9 @@ def api_admin_list_cars(current_user):
             Car.year.like(search_term)
         ))
 
-    all_cars = cars_query.all()
+    paginated_cars = cars_query.paginate(
+        page=page, per_page=per_page, error_out=False
+    )
 
     cars_data = [{
         'id': car.id,
@@ -301,8 +306,18 @@ def api_admin_list_cars(current_user):
         'is_active': car.is_active,
         'edit_url': url_for('admin.edit_listing', car_id=car.id),
         'delete_url': url_for('admin.delete_listing', car_id=car.id)
-    } for car in all_cars]
+    } for car in paginated_cars.items]
 
     return jsonify({
         'cars': cars_data,
+        'pagination': {
+            'page': paginated_cars.page,
+            'per_page': paginated_cars.per_page,
+            'total': paginated_cars.total,
+            'pages': paginated_cars.pages,
+            'has_prev': paginated_cars.has_prev,
+            'prev_num': paginated_cars.prev_num,
+            'has_next': paginated_cars.has_next,
+            'next_num': paginated_cars.next_num,
+        },
     })

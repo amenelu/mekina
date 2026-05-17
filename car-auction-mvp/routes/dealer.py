@@ -294,6 +294,9 @@ def dashboard():
 @token_required
 def api_dealer_dashboard(current_user):
     """API endpoint for dealer dashboard data."""
+    if not (current_user.is_dealer or current_user.is_admin):
+        return jsonify({"message": "Dealer access required."}), 403
+
     filter_new = request.args.get("filter_new", "false").lower() == "true"
 
     bid_count_subquery = (
@@ -485,7 +488,7 @@ def api_popular_searches(current_user):
 @dealer_bp.route("/api/points/request", methods=["POST"])
 @token_required
 def api_request_more_points(current_user):
-    if not (current_user.is_dealer or current_user.is_admin):
+    if not current_user.is_dealer:
         return jsonify({"message": "Only dealers can request more points."}), 403
 
     data = request.get_json() or {}
