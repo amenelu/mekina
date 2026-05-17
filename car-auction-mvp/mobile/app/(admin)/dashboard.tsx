@@ -242,12 +242,6 @@ const AdminDashboardScreen = () => {
         readyToRefresh={pullToRefresh.readyToRefresh}
         refreshing={refreshing}
       />
-      {/* Header */}
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>Admin Dashboard</Text>
-        <Text style={styles.headerSubtitle}>Site overview and management.</Text>
-      </View>
-
       {/* Stats */}
       {stats && (
         <View style={styles.statsGrid}>
@@ -255,7 +249,7 @@ const AdminDashboardScreen = () => {
           <StatButton
             label="Point Requests"
             value={stats.pending_point_request_count}
-            onPress={() => router.push(ADMIN_ROUTES.pointRequests as any)}
+            onPress={() => router.push(ADMIN_ROUTES.dealers as any)}
           />
           <StatCard label="Cars For Sale" value={stats.for_sale_count} />
           <StatCard label="Cars For Rent" value={stats.for_rent_count} />
@@ -304,9 +298,6 @@ const AdminDashboardScreen = () => {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.background },
-  header: { padding: 20, backgroundColor: COLORS.card },
-  headerTitle: { fontSize: 28, fontWeight: "bold", color: COLORS.foreground },
-  headerSubtitle: { fontSize: 16, color: COLORS.mutedForeground, marginTop: 4 },
   statsGrid: {
     flexDirection: "row",
     flexWrap: "wrap",

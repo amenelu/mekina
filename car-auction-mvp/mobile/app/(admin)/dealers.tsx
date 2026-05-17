@@ -39,6 +39,11 @@ interface Dealer {
   active_listings: number;
   avg_rating: number;
   review_count: number;
+  pending_point_request?: {
+    requested_points: number;
+    request_count: number;
+    latest_request_id: number;
+  } | null;
 }
 const AdminDealersScreen = () => {
   const [dealers, setDealers] = useState<Dealer[]>([]);
@@ -133,15 +138,86 @@ const AdminDealersScreen = () => {
     ]);
   };
 
+  const handlePointRequestAction = async (
+    dealer: Dealer,
+    action: "accept" | "deny"
+  ) => {
+    const verb = action === "accept" ? "approve" : "deny";
+    const message = `Are you sure you want to ${verb} ${dealer.username}'s request for ${dealer.pending_point_request?.requested_points ?? 0} points?`;
+
+    const performAction = async () => {
+      try {
+        await axios.post(
+          `${API_URL}/admin/api/dealers/${dealer.id}/point-requests`,
+          { action },
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+        setDealers((prevDealers) =>
+          prevDealers.map((item) =>
+            item.id === dealer.id
+              ? { ...item, pending_point_request: null }
+              : item
+          )
+        );
+        setStatusMessage(
+          action === "accept"
+            ? "Point request approved."
+            : "Point request denied."
+        );
+      } catch (error) {
+        console.error("Failed to update point request:", error);
+        setStatusMessage("Failed to update point request.");
+      }
+    };
+
+    if (Platform.OS === "web") {
+      if (typeof window !== "undefined" && window.confirm(message)) {
+        void performAction();
+      }
+      return;
+    }
+
+    Alert.alert("Point Request", message, [
+      { text: "Cancel", style: "cancel" },
+      { text: action === "accept" ? "Approve" : "Deny", onPress: performAction },
+    ]);
+  };
+
   const renderItem = ({ item }: { item: Dealer }) => (
     <View style={styles.userCard}>
       <View style={styles.userInfo}>
-        <Text style={styles.username}>{item.username}</Text>
+        <View style={styles.titleRow}>
+          <Text style={styles.username}>{item.username}</Text>
+          {item.pending_point_request ? (
+            <View style={styles.pointRequestBadge}>
+              <Ionicons name="flash" size={13} color={COLORS.foreground} />
+              <Text style={styles.pointRequestBadgeText}>
+                {item.pending_point_request.requested_points}
+              </Text>
+            </View>
+          ) : null}
+        </View>
         <Text style={styles.email}>{item.email}</Text>
         <Text style={styles.stats}>
           {item.active_listings} listings · ★ {item.avg_rating.toFixed(1)} (
           {item.review_count} reviews)
         </Text>
+        {item.pending_point_request ? (
+          <View style={styles.pointRequestActions}>
+            <Pressable
+              style={[styles.pointActionButton, styles.acceptButton]}
+              onPress={() => handlePointRequestAction(item, "accept")}
+            >
+              <Text style={styles.pointActionText}>Accept</Text>
+            </Pressable>
+            <Pressable
+              style={[styles.pointActionButton, styles.denyButton]}
+              onPress={() => handlePointRequestAction(item, "deny")}
+            >
+              <Text style={styles.pointActionText}>Deny</Text>
+            </Pressable>
+          </View>
+        ) : null}
       </View>
       <View style={styles.buttonContainer}>
         <Pressable
@@ -254,7 +330,48 @@ const styles = StyleSheet.create({
   userInfo: {
     marginBottom: 12,
   },
+  titleRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 10,
+  },
   username: { fontSize: 16, fontWeight: "bold", color: COLORS.foreground },
+  pointRequestBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    backgroundColor: COLORS.accent,
+    borderRadius: 999,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+  },
+  pointRequestBadgeText: {
+    color: COLORS.foreground,
+    fontSize: 12,
+    fontWeight: "700",
+  },
+  pointRequestActions: {
+    flexDirection: "row",
+    gap: 8,
+    marginTop: 12,
+  },
+  pointActionButton: {
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+  },
+  acceptButton: {
+    backgroundColor: "#28a745",
+  },
+  denyButton: {
+    backgroundColor: COLORS.destructive,
+  },
+  pointActionText: {
+    color: COLORS.foreground,
+    fontSize: 12,
+    fontWeight: "700",
+  },
   email: { fontSize: 14, color: COLORS.mutedForeground, marginTop: 4 },
   stats: { fontSize: 12, color: COLORS.accent, marginTop: 8 },
   buttonContainer: {

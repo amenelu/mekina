@@ -39,7 +39,13 @@ interface Rental {
   year: number;
   make: string;
   model: string;
+  owner_id: number;
   owner_username: string;
+  owner_pending_point_request?: {
+    requested_points: number;
+    request_count: number;
+    latest_request_id: number;
+  } | null;
   price_per_day: string;
   is_approved: boolean;
   is_active: boolean;
@@ -140,12 +146,67 @@ const AdminRentalsScreen = () => {
     ]);
   };
 
+  const handlePointRequestAction = async (
+    rental: Rental,
+    action: "accept" | "deny"
+  ) => {
+    const verb = action === "accept" ? "approve" : "deny";
+    const message = `Are you sure you want to ${verb} ${rental.owner_username}'s request for ${rental.owner_pending_point_request?.requested_points ?? 0} points?`;
+
+    const performAction = async () => {
+      try {
+        await axios.post(
+          `${API_URL}/admin/api/dealers/${rental.owner_id}/point-requests`,
+          { action },
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+        setRentals((prevRentals) =>
+          prevRentals.map((item) =>
+            item.owner_id === rental.owner_id
+              ? { ...item, owner_pending_point_request: null }
+              : item
+          )
+        );
+        setStatusMessage(
+          action === "accept"
+            ? "Point request approved."
+            : "Point request denied."
+        );
+      } catch (error) {
+        console.error("Failed to update point request:", error);
+        setStatusMessage("Failed to update point request.");
+      }
+    };
+
+    if (Platform.OS === "web") {
+      if (typeof window !== "undefined" && window.confirm(message)) {
+        void performAction();
+      }
+      return;
+    }
+
+    Alert.alert("Point Request", message, [
+      { text: "Cancel", style: "cancel" },
+      { text: action === "accept" ? "Approve" : "Deny", onPress: performAction },
+    ]);
+  };
+
   const renderItem = ({ item }: { item: Rental }) => (
     <View style={styles.card}>
       <View>
-        <Text style={styles.title}>
-          {item.year} {item.make} {item.model}
-        </Text>
+        <View style={styles.titleRow}>
+          <Text style={styles.title}>
+            {item.year} {item.make} {item.model}
+          </Text>
+          {item.owner_pending_point_request ? (
+            <View style={styles.pointRequestBadge}>
+              <Ionicons name="flash" size={13} color={COLORS.foreground} />
+              <Text style={styles.pointRequestBadgeText}>
+                {item.owner_pending_point_request.requested_points}
+              </Text>
+            </View>
+          ) : null}
+        </View>
         <Text style={styles.subtitle}>
           by {item.owner_username} - {item.price_per_day} ETB/day
         </Text>
@@ -163,6 +224,22 @@ const AdminRentalsScreen = () => {
             {item.is_approved ? "Approved" : "Pending"}
           </Text>
         </View>
+        {item.owner_pending_point_request ? (
+          <View style={styles.pointRequestActions}>
+            <Pressable
+              style={[styles.pointActionButton, styles.acceptButton]}
+              onPress={() => handlePointRequestAction(item, "accept")}
+            >
+              <Text style={styles.pointActionText}>Accept</Text>
+            </Pressable>
+            <Pressable
+              style={[styles.pointActionButton, styles.denyButton]}
+              onPress={() => handlePointRequestAction(item, "deny")}
+            >
+              <Text style={styles.pointActionText}>Deny</Text>
+            </Pressable>
+          </View>
+        ) : null}
       </View>
       <View style={styles.buttonContainer}>
         <Pressable
@@ -272,7 +349,48 @@ const styles = StyleSheet.create({
     padding: 15,
     marginBottom: 10,
   },
+  titleRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 10,
+  },
   title: { fontSize: 16, fontWeight: "bold", color: COLORS.foreground },
+  pointRequestBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    backgroundColor: COLORS.accent,
+    borderRadius: 999,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+  },
+  pointRequestBadgeText: {
+    color: COLORS.foreground,
+    fontSize: 12,
+    fontWeight: "700",
+  },
+  pointRequestActions: {
+    flexDirection: "row",
+    gap: 8,
+    marginTop: 12,
+  },
+  pointActionButton: {
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+  },
+  acceptButton: {
+    backgroundColor: COLORS.success,
+  },
+  denyButton: {
+    backgroundColor: COLORS.destructive,
+  },
+  pointActionText: {
+    color: COLORS.foreground,
+    fontSize: 12,
+    fontWeight: "700",
+  },
   subtitle: { fontSize: 14, color: COLORS.mutedForeground, marginTop: 4 },
   statusContainer: { flexDirection: "row", marginTop: 8 },
   statusTag: {

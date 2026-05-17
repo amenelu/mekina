@@ -2,6 +2,7 @@ import React from "react";
 import { Tabs } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useSocket } from "../../contexts/SocketContext";
+import AuthGate from "../_components/AuthGate";
 
 const COLORS = {
   background: "#14181F",
@@ -15,7 +16,8 @@ export default function DealerTabsLayoutWeb() {
   const { unreadMessageCount, unreadNotificationCount } = useSocket();
 
   return (
-    <Tabs
+    <AuthGate role="dealer">
+      <Tabs
       screenOptions={{
         headerShown: false,
         tabBarActiveTintColor: COLORS.accent,
@@ -89,6 +91,7 @@ export default function DealerTabsLayoutWeb() {
       <Tabs.Screen name="edit-listing" options={{ href: null }} />
       <Tabs.Screen name="submit" options={{ href: null }} />
       <Tabs.Screen name="points" options={{ href: null }} />
-    </Tabs>
+      </Tabs>
+    </AuthGate>
   );
 }

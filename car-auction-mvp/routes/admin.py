@@ -19,6 +19,7 @@ from models.car import Car
 from models.auction import Auction
 from models.notification import Notification
 from models.dealer_point_request import DealerPointRequest
+from models.point_transaction import PointTransaction
 from models.equipment import Equipment
 from models.dealer_rating import DealerRating
 from models.car_image import CarImage
@@ -54,6 +55,27 @@ class EditUserForm(FlaskForm):
     is_admin = BooleanField("Is Admin")
     points = IntegerField("Points", validators=[Optional(), NumberRange(min=0)])
     submit = SubmitField("Update User")
+
+
+def _pending_point_request_summary_by_dealer():
+    summaries = {}
+    pending_requests = (
+        DealerPointRequest.query.filter_by(status="pending")
+        .order_by(DealerPointRequest.created_at.desc())
+        .all()
+    )
+    for point_request in pending_requests:
+        summary = summaries.setdefault(
+            point_request.dealer_id,
+            {
+                "requested_points": 0,
+                "request_count": 0,
+                "latest_request_id": point_request.id,
+            },
+        )
+        summary["requested_points"] += point_request.requested_points
+        summary["request_count"] += 1
+    return summaries
 
 
 @admin_bp.route("/dashboard")
@@ -145,6 +167,69 @@ def api_point_requests(current_user):
 
     point_requests = query.order_by(DealerPointRequest.created_at.desc()).all()
     return jsonify(point_requests=[req.to_dict() for req in point_requests])
+
+
+@admin_bp.route("/api/dealers/<int:dealer_id>/point-requests", methods=["POST"])
+@admin_token_required
+def api_resolve_dealer_point_requests(current_user, dealer_id):
+    dealer = User.query.get_or_404(dealer_id)
+    data = request.get_json() or {}
+    action = data.get("action")
+    if action not in {"accept", "deny"}:
+        return jsonify({"message": "Action must be accept or deny."}), 400
+
+    pending_requests = DealerPointRequest.query.filter_by(
+        dealer_id=dealer.id, status="pending"
+    ).all()
+    if not pending_requests:
+        return jsonify({"message": "No pending point requests found."}), 404
+
+    total_points = sum(req.requested_points for req in pending_requests)
+    reviewed_at = datetime.utcnow()
+
+    for point_request in pending_requests:
+        point_request.status = "accepted" if action == "accept" else "denied"
+        point_request.reviewed_at = reviewed_at
+
+    if action == "accept":
+        dealer.points = (dealer.points or 0) + total_points
+        db.session.add(
+            PointTransaction(
+                user_id=dealer.id,
+                amount=total_points,
+                transaction_type="admin_point_request",
+                description=f"Admin approved {total_points} requested points.",
+            )
+        )
+
+    message = (
+        f"Your request for {total_points} points was approved."
+        if action == "accept"
+        else f"Your request for {total_points} points was denied."
+    )
+    db.session.add(Notification(user_id=dealer.id, message=message))
+    db.session.commit()
+
+    unread_count = Notification.query.filter_by(
+        user_id=dealer.id, is_read=False
+    ).count()
+    socketio.emit(
+        "new_notification",
+        {"count": unread_count, "message": message},
+        room=str(dealer.id),
+    )
+
+    return jsonify(
+        {
+            "status": "success",
+            "message": (
+                "Point request accepted."
+                if action == "accept"
+                else "Point request denied."
+            ),
+            "dealer_points": dealer.points,
+        }
+    )
 
 
 @admin_bp.route("/users")
@@ -386,6 +471,7 @@ def dealer_management():
 def api_admin_list_dealers(current_user):
     """API endpoint for admin to search/filter all dealer users with stats."""
     query = request.args.get("q", "")
+    pending_point_requests = _pending_point_request_summary_by_dealer()
 
     # Subquery for active listings count per dealer
     active_listings_sub = (
@@ -437,6 +523,7 @@ def api_admin_list_dealers(current_user):
             "active_listings": active_listings,
             "avg_rating": float(avg_rating) if avg_rating else 0,
             "review_count": review_count,
+            "pending_point_request": pending_point_requests.get(dealer.id),
             "profile_url": url_for("dealer.profile", dealer_id=dealer.id),
         }
         for dealer, active_listings, avg_rating, review_count in all_dealers
@@ -468,6 +555,7 @@ def rental_management():
 def api_admin_list_rentals(current_user):
     """API endpoint for admin to search/filter all rental listings."""
     query = request.args.get("q", "")
+    pending_point_requests = _pending_point_request_summary_by_dealer()
 
     # Base query for rental cars
     cars_query = Car.query.filter_by(listing_type="rental").order_by(Car.id.desc())
@@ -492,7 +580,9 @@ def api_admin_list_rentals(current_user):
             "year": car.year,
             "make": car.make,
             "model": car.model,
+            "owner_id": car.owner_id,
             "owner_username": car.owner.username,
+            "owner_pending_point_request": pending_point_requests.get(car.owner_id),
             "price_per_day": (
                 "{:,.2f}".format(car.rental_listing.price_per_day)
                 if car.rental_listing and car.rental_listing.price_per_day is not None

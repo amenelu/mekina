@@ -31,10 +31,12 @@ export default function RootHtml({ children }: PropsWithChildren) {
               }
 
               body {
+                height: 100%;
                 min-height: 100dvh;
-                overflow-y: auto;
+                overflow: hidden;
                 overflow-x: hidden;
-                -webkit-overflow-scrolling: touch;
+                overscroll-behavior: contain;
+                touch-action: pan-x pan-y;
                 background:
                   linear-gradient(
                     to bottom,
@@ -50,6 +52,7 @@ export default function RootHtml({ children }: PropsWithChildren) {
                 height: 100%;
                 min-height: 100dvh;
                 width: 100%;
+                overflow: hidden;
                 background: transparent;
               }
             `,

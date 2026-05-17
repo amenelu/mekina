@@ -3,6 +3,7 @@ import { Tabs } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import AdminHeaderRight from "../_components/AdminHeaderRight";
 import { ADMIN_ROUTES } from "@/lib/roleRoutes";
+import AuthGate from "../_components/AuthGate";
 
 const COLORS = {
   card: "#1C212B",
@@ -12,7 +13,8 @@ const COLORS = {
 
 export default function AdminLayoutWeb() {
   return (
-    <Tabs
+    <AuthGate role="admin">
+      <Tabs
       screenOptions={{
         tabBarActiveTintColor: COLORS.accent,
         tabBarInactiveTintColor: "#8A94A3",
@@ -84,6 +86,7 @@ export default function AdminLayoutWeb() {
       <Tabs.Screen name="dealers" options={{ href: null }} />
       <Tabs.Screen name="admin-point-requests" options={{ href: null }} />
       <Tabs.Screen name="admin-notifications" options={{ href: null }} />
-    </Tabs>
+      </Tabs>
+    </AuthGate>
   );
 }

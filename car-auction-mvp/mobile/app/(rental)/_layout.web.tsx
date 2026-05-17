@@ -1,6 +1,7 @@
 import React from "react";
 import { Tabs } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
+import AuthGate from "../_components/AuthGate";
 
 const COLORS = {
   card: "#1C212B",
@@ -11,7 +12,8 @@ const COLORS = {
 
 export default function RentalTabsLayoutWeb() {
   return (
-    <Tabs
+    <AuthGate role="rental">
+      <Tabs
       screenOptions={{
         headerShown: false,
         tabBarActiveTintColor: COLORS.accent,
@@ -55,6 +57,7 @@ export default function RentalTabsLayoutWeb() {
           href: null,
         }}
       />
-    </Tabs>
+      </Tabs>
+    </AuthGate>
   );
 }
