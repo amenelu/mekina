@@ -17,7 +17,6 @@ import { clearRequestDraft } from "@/lib/requestDraft";
 import { useRequestDraftPersistence } from "@/hooks/useRequestDraftPersistence";
 import { createRequest } from "@/lib/api/requests";
 import { showNativeFlowAlert } from "@/lib/nativeFlowAlert";
-import { isWebRuntime, replaceWebRoute } from "@/lib/webRouteReset";
 import { saveRecentSubmittedRequest } from "@/lib/recentSubmittedRequests";
 
 
@@ -40,6 +39,10 @@ const RequestBrandScreen = () => {
 
   useRequestDraftPersistence("/request/brand", { ...params, brand });
 
+  const goToMyRequests = () => {
+    router.replace("/my-requests");
+  };
+
   const handleSubmit = async () => {
     if (!token) {
       showNativeFlowAlert(
@@ -55,6 +58,7 @@ const RequestBrandScreen = () => {
     const finalRequest = {
       ...params,
       brand,
+      request_source: "general",
     };
 
     try {
@@ -62,22 +66,10 @@ const RequestBrandScreen = () => {
       await saveRecentSubmittedRequest(response.data.request, user?.id);
       await clearRequestDraft(user?.id);
 
-      if (isWebRuntime()) {
-        showNativeFlowAlert(
-          "Request Submitted!",
-          "Your request has been sent to our dealers. They will contact you with offers soon.",
-          () => {
-            replaceWebRoute("/my-requests");
-          },
-          "Close"
-        );
-        return;
-      }
-
       showNativeFlowAlert(
         "Request Submitted!",
         "Your request has been sent to our dealers. They will contact you with offers soon.",
-        () => router.replace("/(tabs)/my-requests"),
+        goToMyRequests,
         "Close"
       );
     } catch (error: any) {

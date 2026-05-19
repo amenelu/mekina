@@ -9,6 +9,7 @@ import {
   ScrollView,
   ActivityIndicator,
   TextInput,
+  Platform,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter, useLocalSearchParams } from "expo-router";
@@ -19,7 +20,6 @@ import { clearRequestDraft } from "@/lib/requestDraft";
 import { useRequestDraftPersistence } from "@/hooks/useRequestDraftPersistence";
 import { createRequestForm } from "@/lib/api/requests";
 import { showNativeFlowAlert } from "@/lib/nativeFlowAlert";
-import { isWebRuntime, replaceWebRoute } from "@/lib/webRouteReset";
 import { saveRecentSubmittedRequest } from "@/lib/recentSubmittedRequests";
 
 const COLORS = {
@@ -57,6 +57,34 @@ function parseDraftImages(
   }));
 }
 
+async function appendPickedImage(
+  formData: FormData,
+  image: ImagePicker.ImagePickerAsset,
+  index: number
+) {
+  const fileName = image.fileName || `request_photo_${Date.now()}_${index}.jpg`;
+  const mimeType = image.mimeType || "image/jpeg";
+
+  if (Platform.OS === "web") {
+    const webFile = (image as any).file;
+    if (webFile) {
+      formData.append("images", webFile, fileName);
+      return;
+    }
+
+    const response = await fetch(image.uri);
+    const blob = await response.blob();
+    formData.append("images", blob, fileName);
+    return;
+  }
+
+  formData.append("images", {
+    uri: image.uri,
+    name: fileName,
+    type: mimeType,
+  } as any);
+}
+
 const RequestUploadScreen = () => {
   const router = useRouter();
   const params = useLocalSearchParams();
@@ -73,6 +101,10 @@ const RequestUploadScreen = () => {
     notes,
     images: getDraftImageUris(images),
   });
+
+  const goToMyRequests = () => {
+    router.replace("/my-requests");
+  };
 
   const handleImagePick = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -105,7 +137,7 @@ const RequestUploadScreen = () => {
       return;
     }
 
-    if (images.length === 0 && !notes.trim() && !params.make) {
+    if (!params.make && images.length === 0) {
       setShowValidation(true);
       return;
     }
@@ -114,40 +146,25 @@ const RequestUploadScreen = () => {
     setLoading(true);
 
     const formData = new FormData();
+    formData.append("request_source", params.make ? "specific" : "image_based");
     if (params.make) formData.append("make", params.make as string);
     if (params.model) formData.append("model", params.model as string);
     if (params.min_year) formData.append("min_year", params.min_year as string);
     formData.append("notes", notes);
 
-    images.forEach((image) => {
-      formData.append("images", {
-        uri: image.uri,
-        name: image.fileName || `photo_${Date.now()}.jpg`,
-        type: image.mimeType || "image/jpeg",
-      } as any);
-    });
-
     try {
+      for (const [index, image] of images.entries()) {
+        await appendPickedImage(formData, image, index);
+      }
+
       const response = await createRequestForm(formData);
       await saveRecentSubmittedRequest(response.data.request, user?.id);
       await clearRequestDraft(user?.id);
 
-      if (isWebRuntime()) {
-        showNativeFlowAlert(
-          "Request Submitted!",
-          "Your request has been sent to our dealers. They will contact you with offers soon.",
-          () => {
-            replaceWebRoute("/my-requests");
-          },
-          "Close"
-        );
-        return;
-      }
-
       showNativeFlowAlert(
         "Request Submitted!",
         "Your request has been sent to our dealers. They will contact you with offers soon.",
-        () => router.replace("/(tabs)/my-requests"),
+        goToMyRequests,
         "Close"
       );
     } catch (error: any) {
@@ -179,7 +196,7 @@ const RequestUploadScreen = () => {
             style={[
               styles.input,
               { height: 100, textAlignVertical: "top" },
-              showValidation && images.length === 0 && !notes.trim() && !params.make
+              showValidation && images.length === 0 && !params.make
                 ? styles.inputError
                 : null,
             ]}
@@ -199,7 +216,7 @@ const RequestUploadScreen = () => {
         <View
           style={[
             styles.formCard,
-            showValidation && images.length === 0 && !notes.trim() && !params.make
+            showValidation && images.length === 0 && !params.make
               ? styles.formCardError
               : null,
           ]}
@@ -225,9 +242,9 @@ const RequestUploadScreen = () => {
               {images.length > 0 ? "Reselect Images" : "Select Images"}
             </Text>
           </TouchableOpacity>
-          {showValidation && images.length === 0 && !notes.trim() && !params.make && (
+          {showValidation && images.length === 0 && !params.make && (
             <Text style={styles.errorText}>
-              Add notes or at least one photo before submitting.
+              Add at least one photo before submitting an image based request.
             </Text>
           )}
         </View>

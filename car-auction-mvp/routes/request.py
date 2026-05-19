@@ -1193,8 +1193,14 @@ def api_create_request(current_user):
     if not data:
         return jsonify({"status": "error", "message": "Invalid payload."}), 400
 
+    request_source = data.get("request_source")
+    if request_source not in {"image_based", "specific", "general"}:
+        request_source = None
+
     # --- Logic to handle both "I know what I want" and "Help me decide" paths ---
-    is_guided_path = "price" in data or "body_type" in data
+    is_guided_path = (
+        request_source == "general" or "price" in data or "body_type" in data
+    )
 
     if is_guided_path:
         # Define a mapping from the equipment values to human-readable labels
@@ -1288,6 +1294,8 @@ def api_create_request(current_user):
             db.session.add(new_img)
 
     db.session.commit()
+    if request_source:
+        new_req._request_source = request_source
 
     return (
         jsonify(

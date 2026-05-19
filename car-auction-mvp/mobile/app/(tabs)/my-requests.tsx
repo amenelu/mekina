@@ -42,6 +42,8 @@ interface CarRequest {
   id: number;
   make: string | null;
   model: string | null;
+  request_source?: "image_based" | "specific" | "general";
+  min_year?: number | null;
   status: string;
   notes: string;
   comments?: string;
@@ -50,6 +52,7 @@ interface CarRequest {
   deal_id: number | null;
   type?: "buy" | "trade-in";
   images?: { image_url: string }[];
+  image_urls?: string[];
   detail_score?: number;
 }
 
@@ -63,6 +66,91 @@ const formatDate = (dateString: string) => {
   } catch {
     return "";
   }
+};
+
+const cleanText = (value?: string | null) => {
+  const cleaned = value?.trim();
+  if (!cleaned || cleaned.toLowerCase() === "not specified") {
+    return "";
+  }
+  return cleaned;
+};
+
+const getGuidedPreference = (notes: string | undefined, label: string) => {
+  const match = notes?.match(new RegExp(`- ${label}:\\s*([^\\n]+)`, "i"));
+  return cleanText(match?.[1]);
+};
+
+const isGuidedRequest = (request: CarRequest) =>
+  request.notes?.includes("Customer is looking for a car") ||
+  Boolean(
+    getGuidedPreference(request.notes, "Budget") ||
+      getGuidedPreference(request.notes, "Body Type") ||
+      getGuidedPreference(request.notes, "Fuel Type")
+  );
+
+const getFirstRequestImage = (request: CarRequest) =>
+  request.images?.[0]?.image_url || request.image_urls?.[0] || "";
+
+const getRequestSource = (request: CarRequest) => {
+  if (request.request_source) {
+    return request.request_source;
+  }
+
+  if (isGuidedRequest(request)) {
+    return "general";
+  }
+
+  if (
+    getFirstRequestImage(request) &&
+    !cleanText(request.make) &&
+    !cleanText(request.model) &&
+    !request.min_year
+  ) {
+    return "image_based";
+  }
+
+  return "specific";
+};
+
+const getRequestTitle = (request: CarRequest) => {
+  const isTradeIn = request.type === "trade-in";
+
+  if (isTradeIn) {
+    return "Trade-in Request";
+  }
+
+  const requestSource = getRequestSource(request);
+  if (requestSource === "image_based") {
+    return "Image Based Request";
+  }
+
+  if (requestSource === "general") {
+    return "General Request";
+  }
+
+  return "Specific Request";
+};
+
+const getRequestDetailLabel = (request: CarRequest) => {
+  const make = cleanText(request.make);
+  const model = cleanText(request.model);
+  const bodyType = getGuidedPreference(request.notes, "Body Type");
+  const fuelType = getGuidedPreference(request.notes, "Fuel Type");
+
+  if (make && model) {
+    return `${make} ${model}`;
+  }
+  if (make) {
+    return make;
+  }
+  if (model) {
+    return model;
+  }
+  if (bodyType && fuelType) {
+    return `${bodyType} · ${fuelType}`;
+  }
+  return bodyType || fuelType || "";
 };
 
 const RequestCard = ({
@@ -85,7 +173,10 @@ const RequestCard = ({
   const statusText =
     request.status.charAt(0).toUpperCase() + request.status.slice(1);
   const isTradeIn = request.type === "trade-in";
-  const isImageBased = request.images && request.images.length > 0;
+  const firstRequestImage = getFirstRequestImage(request);
+  const isImageBased = Boolean(firstRequestImage);
+  const requestSource = getRequestSource(request);
+  const requestDetailLabel = getRequestDetailLabel(request);
 
   const handlePress = () => {
     if (isTradeIn) {
@@ -108,22 +199,16 @@ const RequestCard = ({
   return (
     <View style={styles.requestCard}>
       <Pressable onPress={handlePress}>
-        {isImageBased && request.images && (
+        {isImageBased && (
           <Image
-            source={{ uri: mediaUrl(request.images[0].image_url) || "" }}
+            source={{ uri: mediaUrl(firstRequestImage) || "" }}
             style={styles.cardImage}
             resizeMode="cover"
           />
         )}
         <View style={styles.cardHeader}>
           <View>
-            <Text style={styles.cardTitle}>
-              {request.make && request.model
-                ? `${request.make} ${request.model}`
-                : isImageBased
-                ? "Image Based Request"
-                : "General Request"}
-            </Text>
+            <Text style={styles.cardTitle}>{getRequestTitle(request)}</Text>
             <View
               style={{
                 flexDirection: "row",
@@ -133,8 +218,14 @@ const RequestCard = ({
               }}
             >
               {isTradeIn && <Text style={styles.tagText}>Trade-in</Text>}
+              {requestDetailLabel && (
+                <Text style={styles.tagText}>{requestDetailLabel}</Text>
+              )}
               {isImageBased && (
-                <Text style={styles.tagText}>Image Request</Text>
+                <Text style={styles.tagText}>Photo</Text>
+              )}
+              {!isTradeIn && requestSource === "general" && (
+                <Text style={styles.tagText}>Guided</Text>
               )}
               {request.detail_score !== undefined && (
                 <Text style={styles.scoreText}>

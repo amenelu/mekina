@@ -16,7 +16,6 @@ import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "@/hooks/useAuth";
 import { createTradeIn } from "@/lib/api/tradeIn";
 import { showNativeFlowAlert } from "@/lib/nativeFlowAlert";
-import { isWebRuntime, replaceWebRoute } from "@/lib/webRouteReset";
 
 const COLORS = {
   background: "#14181F",
@@ -102,22 +101,10 @@ const TradeInScreen = () => {
       const response = await createTradeIn(payload);
 
       if (response.status === 201) {
-        if (isWebRuntime()) {
-          showNativeFlowAlert(
-            "Offer Submitted",
-            "Thank you! We will review your submission and get back to you with a trade-in offer soon.",
-            () => {
-              replaceWebRoute("/my-requests");
-            },
-            "Close"
-          );
-          return;
-        }
-
         showNativeFlowAlert(
           "Offer Submitted",
           "Thank you! We will review your submission and get back to you with a trade-in offer soon.",
-          () => router.replace("/(tabs)/my-requests"),
+          () => router.replace("/my-requests"),
           "Close"
         );
       }

@@ -19,9 +19,7 @@ export function createRequest(payload: unknown) {
 }
 
 export function createRequestForm(data: FormData) {
-  return apiClient.post("/requests/api/requests", data, {
-    headers: { "Content-Type": "multipart/form-data" },
-  });
+  return apiClient.post("/requests/api/requests", data);
 }
 
 export function deleteRequest(requestId: string | number) {

@@ -11,8 +11,8 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { register as registerRequest } from "@/lib/api/auth";
+import { setItemAsync } from "@/lib/appStorage";
 import { showNativeFlowAlert } from "@/lib/nativeFlowAlert";
-import { isWebRuntime, replaceWebRoute } from "@/lib/webRouteReset";
 
 const RegisterScreen = () => {
   const [username, setUsername] = useState("");
@@ -54,16 +54,22 @@ const RegisterScreen = () => {
         password,
         password2,
       })
-      .then(() => {
-        if (isWebRuntime()) {
-          showNativeFlowAlert(
-            "Registration Successful",
-            "You can now log in with your new account.",
-            () => {
-              replaceWebRoute("/login");
+      .then((response) => {
+        const userId = response.data?.user_id;
+        if (userId) {
+          setItemAsync(`new_user_how_it_works:${userId}`, "true").catch(
+            (error) => {
+              console.error("Failed to save new-user intro flag:", error);
             }
           );
-          return;
+        }
+        if (email.trim()) {
+          setItemAsync(
+            `new_user_how_it_works_email:${email.trim().toLowerCase()}`,
+            "true"
+          ).catch((error) => {
+            console.error("Failed to save new-user intro email flag:", error);
+          });
         }
 
         showNativeFlowAlert(

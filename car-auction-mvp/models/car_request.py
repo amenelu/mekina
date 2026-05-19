@@ -55,11 +55,19 @@ class CarRequest(db.Model):
         deal_id = None
         if self.status == "completed" and self.accepted_bid and self.accepted_bid.deal:
             deal_id = self.accepted_bid.deal.id
+        request_source = getattr(self, "_request_source", None)
+        if not request_source and self.notes and "Customer is looking for a car" in self.notes:
+            request_source = "general"
+        elif not request_source and self.images and not (self.make or self.model or self.min_year):
+            request_source = "image_based"
+        elif not request_source:
+            request_source = "specific"
 
         return {
             "id": self.id,
             "make": self.make,
             "model": self.model,
+            "request_source": request_source,
             "min_year": self.min_year,
             "max_mileage": self.max_mileage,
             "notes": self.notes,

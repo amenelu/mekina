@@ -16,7 +16,7 @@ import { useRouter, useNavigation } from "expo-router";
 import { useScrollToTop } from "@react-navigation/native";
 import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "@/hooks/useAuth";
-import { getItemAsync, setItemAsync } from "@/lib/appStorage";
+import { deleteItemAsync, getItemAsync, setItemAsync } from "@/lib/appStorage";
 import {
   getHome,
   getListings,
@@ -99,10 +99,21 @@ const HomeScreen = () => {
   useEffect(() => {
     const checkInfoStatus = async () => {
       if (user) {
-        const hasSeen = await getItemAsync("has_seen_request_info");
-        if (!hasSeen) {
-          setShowInfo(true);
-        }
+        const userSeenKey = `has_seen_request_info:${user.id}`;
+        const pendingUserKey = `new_user_how_it_works:${user.id}`;
+        const pendingEmailKey = `new_user_how_it_works_email:${user.email.toLowerCase()}`;
+        const [hasSeenUserInfo, hasSeenLegacyInfo, pendingByUser, pendingByEmail] =
+          await Promise.all([
+            getItemAsync(userSeenKey),
+            getItemAsync("has_seen_request_info"),
+            getItemAsync(pendingUserKey),
+            getItemAsync(pendingEmailKey),
+          ]);
+
+        setShowInfo(
+          Boolean(pendingByUser || pendingByEmail) ||
+            (!hasSeenUserInfo && !hasSeenLegacyInfo)
+        );
       } else {
         setShowInfo(false);
       }
@@ -112,7 +123,13 @@ const HomeScreen = () => {
 
   const handleDismissInfo = async () => {
     setShowInfo(false);
-    await setItemAsync("has_seen_request_info", "true");
+    if (!user) return;
+
+    await Promise.all([
+      setItemAsync(`has_seen_request_info:${user.id}`, "true"),
+      deleteItemAsync(`new_user_how_it_works:${user.id}`),
+      deleteItemAsync(`new_user_how_it_works_email:${user.email.toLowerCase()}`),
+    ]);
   };
 
   useEffect(() => {

@@ -10,6 +10,8 @@ export type RecentSubmittedRequest = {
   id: number;
   make: string | null;
   model: string | null;
+  request_source?: "image_based" | "specific" | "general";
+  min_year?: number | null;
   status: string;
   notes: string;
   created_at: string;
@@ -17,6 +19,7 @@ export type RecentSubmittedRequest = {
   deal_id: number | null;
   type?: "buy" | "trade-in";
   images?: { image_url: string }[];
+  image_urls?: string[];
   detail_score?: number;
   user_id?: number;
 };
@@ -30,6 +33,8 @@ function normalizeRequest(value: any): RecentSubmittedRequest | null {
     id: value.id,
     make: value.make ?? null,
     model: value.model ?? null,
+    request_source: value.request_source,
+    min_year: value.min_year ?? null,
     status: value.status || "active",
     notes: value.notes || value.comments || "",
     created_at: value.created_at || new Date().toISOString(),
@@ -37,6 +42,7 @@ function normalizeRequest(value: any): RecentSubmittedRequest | null {
     deal_id: value.deal_id ?? null,
     type: value.type || "buy",
     images: value.images || [],
+    image_urls: value.image_urls || [],
     detail_score: value.detail_score,
     user_id: value.user_id,
   };

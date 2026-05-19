@@ -35,7 +35,6 @@ import {
   showNativeFlowAlert,
   showNativeFlowConfirm,
 } from "@/lib/nativeFlowAlert";
-import { isWebRuntime, replaceWebRoute } from "@/lib/webRouteReset";
 import { saveRecentSubmittedRequest } from "@/lib/recentSubmittedRequests";
 const COLORS = {
   background: "#14181F",
@@ -354,28 +353,17 @@ const CarDetailScreen = () => {
         make: car.make,
         model: car.model,
         min_year: car.year,
+        request_source: "specific",
         target_car_id: car.id,
         notes: `I am interested in purchasing this specific vehicle: ${car.year} ${car.make} ${car.model}.`,
       });
       setRequestModalVisible(false);
       await saveRecentSubmittedRequest(response.data.request, user?.id);
 
-      if (isWebRuntime()) {
-        showNativeFlowAlert(
-          "Success",
-          "Your request has been submitted successfully!",
-          () => {
-            replaceWebRoute("/my-requests");
-          },
-          "Close"
-        );
-        return;
-      }
-
       showNativeFlowAlert(
         "Success",
         "Your request has been submitted successfully!",
-        () => router.push("/(tabs)/my-requests"),
+        () => router.replace("/my-requests"),
         "Close"
       );
     } catch (error: any) {
