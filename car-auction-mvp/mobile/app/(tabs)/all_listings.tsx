@@ -33,6 +33,10 @@ const COLORS = {
   secondary: "#313843",
 };
 
+function normalizeSearchText(value: string) {
+  return value.toLowerCase().replace(/\s+/g, "");
+}
+
 function matchesSearchTerms(searchQuery: string, item: { year?: number; make?: string; model?: string }) {
   const terms = searchQuery
     .toLowerCase()
@@ -44,7 +48,12 @@ function matchesSearchTerms(searchQuery: string, item: { year?: number; make?: s
   }
 
   const haystack = `${item.year ?? ""} ${item.make ?? ""} ${item.model ?? ""}`.toLowerCase();
-  return terms.every((term) => haystack.includes(term));
+  const normalizedHaystack = normalizeSearchText(haystack);
+  const normalizedQuery = normalizeSearchText(searchQuery);
+  return (
+    normalizedHaystack.includes(normalizedQuery) ||
+    terms.every((term) => haystack.includes(term))
+  );
 }
 
 const AllListingsScreen = () => {

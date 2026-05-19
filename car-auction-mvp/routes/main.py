@@ -25,7 +25,7 @@ from models.user import User
 from extensions import db, socketio
 from flask import current_app
 from models.search_query import SearchQuery
-from sqlalchemy import or_, func
+from sqlalchemy import String, and_, cast, or_, func
 from datetime import datetime, timedelta
 
 
@@ -109,9 +109,21 @@ def _serialize_listing_card(car):
 def _apply_multi_term_search(query, raw_query):
     """Require every search term to match at least one supported field."""
     search_terms = [term for term in raw_query.lower().split() if term]
-    if not search_terms:
+    normalized_query = re.sub(r"\s+", "", raw_query.lower())
+    if not search_terms and not normalized_query:
         return query
 
+    normalized_listing_text = func.replace(
+        func.lower(
+            func.coalesce(Car.make, "")
+            + func.coalesce(Car.model, "")
+            + func.coalesce(cast(Car.year, String), "")
+        ),
+        " ",
+        "",
+    )
+
+    term_filters = []
     for term in search_terms:
         term_conditions = [
             Car.make.ilike(f"%{term}%"),
@@ -119,9 +131,15 @@ def _apply_multi_term_search(query, raw_query):
         ]
         if term.isdigit():
             term_conditions.append(Car.year == int(term))
-        query = query.filter(or_(*term_conditions))
+        term_filters.append(or_(*term_conditions))
 
-    return query
+    filters = []
+    if normalized_query:
+        filters.append(normalized_listing_text.ilike(f"%{normalized_query}%"))
+    if term_filters:
+        filters.append(and_(*term_filters))
+
+    return query.filter(or_(*filters)) if filters else query
 
 
 def get_similar_cars(car, listing_type_filter):

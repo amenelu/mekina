@@ -170,10 +170,42 @@ function WebRuntimeMonitor({ children }: React.PropsWithChildren) {
   return <>{children}</>;
 }
 
+function WebInputFocusStyles() {
+  useEffect(() => {
+    if (Platform.OS !== "web" || typeof document === "undefined") {
+      return;
+    }
+
+    const styleId = "mekina-web-input-focus-reset";
+    if (document.getElementById(styleId)) {
+      return;
+    }
+
+    const style = document.createElement("style");
+    style.id = styleId;
+    style.textContent = `
+      input:focus,
+      textarea:focus,
+      [contenteditable="true"]:focus {
+        outline: none !important;
+        box-shadow: none !important;
+      }
+    `;
+    document.head.appendChild(style);
+
+    return () => {
+      style.remove();
+    };
+  }, []);
+
+  return null;
+}
+
 export default function RootLayout() {
   return (
     <RootErrorBoundary>
       <WebRuntimeMonitor>
+        <WebInputFocusStyles />
         <SocketProvider>
           <ThemeProvider value={MyDarkTheme}>
             <Stack

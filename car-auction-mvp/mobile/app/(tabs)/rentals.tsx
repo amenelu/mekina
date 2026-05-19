@@ -31,6 +31,10 @@ const COLORS = {
   secondary: "#313843",
 };
 
+function normalizeSearchText(value: string) {
+  return value.toLowerCase().replace(/\s+/g, "");
+}
+
 export type RentalVehicle = {
   id: number; // The API sends the car ID as a number
   year: number;
@@ -142,11 +146,12 @@ const RentalsScreen = () => {
     fetchRentals(true);
   };
 
-  const filteredVehicles = rentalVehicles.filter((vehicle) =>
-    `${vehicle.year} ${vehicle.make} ${vehicle.model}`
-      .toLowerCase()
-      .includes(searchQuery.toLowerCase())
-  );
+  const filteredVehicles = rentalVehicles.filter((vehicle) => {
+    const haystack = `${vehicle.year} ${vehicle.make} ${vehicle.model}`;
+    return normalizeSearchText(haystack).includes(
+      normalizeSearchText(searchQuery)
+    );
+  });
 
   if (loading && !refreshing) {
     return (
