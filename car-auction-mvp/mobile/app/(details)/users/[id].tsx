@@ -1,4 +1,4 @@
-import { useLocalSearchParams, useNavigation } from "expo-router";
+import { router, useLocalSearchParams, useNavigation } from "expo-router";
 import React, { useEffect, useLayoutEffect, useState } from "react";
 import {
   View,
@@ -17,6 +17,11 @@ import {
   getAdminUser,
   updateAdminUser,
 } from "@/lib/api/admin";
+import {
+  showNativeFlowAlert,
+  showNativeFlowConfirm,
+} from "@/lib/nativeFlowAlert";
+import { ADMIN_ROUTES, toWebRoute } from "@/lib/roleRoutes";
 
 /**
  * @interface User
@@ -82,6 +87,15 @@ const UserDetailsPage: React.FC = () => {
   const [isSaving, setIsSaving] = useState(false);
   const [editedUser, setEditedUser] = useState<User | null>(null);
 
+  const goBackToUsers = () => {
+    if (typeof window !== "undefined") {
+      router.replace(toWebRoute(ADMIN_ROUTES.users) as any);
+      return;
+    }
+
+    navigation.goBack();
+  };
+
   useEffect(() => {
     if (id && token) {
       setLoading(true);
@@ -142,9 +156,7 @@ const UserDetailsPage: React.FC = () => {
     try {
       await updateUser(id, editedUser, token);
       setUser(editedUser); // Update the main user state
-      Alert.alert("Success", "User updated successfully.", [
-        { text: "OK", onPress: () => navigation.goBack() },
-      ]);
+      showNativeFlowAlert("Success", "User updated successfully.", goBackToUsers);
     } catch (err: any) {
       const message = err.response?.data?.message || "Failed to update user.";
       Alert.alert("Error", message);
@@ -155,22 +167,16 @@ const UserDetailsPage: React.FC = () => {
 
   const handleDeleteUser = () => {
     if (!id) return;
-    Alert.alert(
-      "Delete User",
-      `Are you sure you want to permanently delete ${user?.username}? This action cannot be undone.`,
-      [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "Delete",
-          style: "destructive",
-          onPress: async () => {
-            await deleteUser(id, token);
-            Alert.alert("Success", "User has been deleted.");
-            navigation.goBack();
-          },
-        },
-      ]
-    );
+    showNativeFlowConfirm({
+      title: "Delete User",
+      message: `Are you sure you want to permanently delete ${user?.username}? This action cannot be undone.`,
+      confirmText: "Delete",
+      destructive: true,
+      onConfirm: async () => {
+        await deleteUser(id, token);
+        showNativeFlowAlert("Success", "User has been deleted.", goBackToUsers);
+      },
+    });
   };
 
   if (loading) {

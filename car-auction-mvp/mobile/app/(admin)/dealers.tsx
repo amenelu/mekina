@@ -54,7 +54,14 @@ const AdminDealersScreen = () => {
     }
     try {
       const response = await getAdminDealers(search);
-      setDealers(response.data.dealers);
+      setDealers(
+        (response.data.dealers || []).map((dealer: AdminDealer) => ({
+          ...dealer,
+          active_listings: dealer.active_listings ?? 0,
+          avg_rating: dealer.avg_rating ?? 0,
+          review_count: dealer.review_count ?? 0,
+        }))
+      );
     } catch (error) {
       console.error("Failed to fetch dealers:", error);
     } finally {

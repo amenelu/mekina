@@ -23,6 +23,10 @@ import * as ImagePicker from "expo-image-picker";
 import { Ionicons } from "@expo/vector-icons";
 import { ADMIN_ROUTES, toWebRoute } from "@/lib/roleRoutes";
 import {
+  showNativeFlowAlert,
+  showNativeFlowConfirm,
+} from "@/lib/nativeFlowAlert";
+import {
   approveAdminListing,
   deleteAdminListing,
   deleteAdminListingImage,
@@ -274,21 +278,20 @@ const ListingDetailsPage: React.FC = () => {
 
   const handleImageDelete = (imageId: number) => {
     if (!id) return;
-    Alert.alert("Delete Image", "Are you sure you want to delete this image?", [
-      { text: "Cancel", style: "cancel" },
-      {
-        text: "Delete",
-        style: "destructive",
-        onPress: async () => {
-          await deleteImage(id, imageId, token);
-          setEditedListing((prev) => ({
-            ...prev!,
-            images: prev!.images?.filter((img) => img.id !== imageId),
-          }));
-          Alert.alert("Success", "Image deleted.");
-        },
+    showNativeFlowConfirm({
+      title: "Delete Image",
+      message: "Are you sure you want to delete this image?",
+      confirmText: "Delete",
+      destructive: true,
+      onConfirm: async () => {
+        await deleteImage(id, imageId, token);
+        setEditedListing((prev) => ({
+          ...prev!,
+          images: prev!.images?.filter((img) => img.id !== imageId),
+        }));
+        showNativeFlowAlert("Success", "Image deleted.");
       },
-    ]);
+    });
   };
 
   const handleSetCoverImage = (imageId: number) => {
@@ -315,16 +318,9 @@ const ListingDetailsPage: React.FC = () => {
       // Update both states with the fresh data from the backend
       setListing(response.car);
       setEditedListing(response.car);
-      if (Platform.OS === "web") {
-        goToAdminDestination(response.car.listing_type);
-      } else {
-        Alert.alert("Success", "Listing updated successfully.", [
-          {
-            text: "OK",
-            onPress: () => goToAdminDestination(response.car.listing_type),
-          },
-        ]);
-      }
+      showNativeFlowAlert("Success", "Listing updated successfully.", () =>
+        goToAdminDestination(response.car.listing_type)
+      );
     } catch (err: any) {
       const message =
         err.response?.data?.message || "Failed to update listing.";
@@ -338,14 +334,13 @@ const ListingDetailsPage: React.FC = () => {
     if (!id) return;
     try {
       await manageListingAction(id, "approve", token);
-      Alert.alert("Success", "Listing has been approved.");
       // Update both states to reflect the change immediately
       const updatedState = { ...editedListing, is_approved: true } as Listing;
       setListing(updatedState);
       setEditedListing(updatedState);
-      if (Platform.OS === "web") {
-        goToAdminDestination(updatedState.listing_type);
-      }
+      showNativeFlowAlert("Success", "Listing has been approved.", () =>
+        goToAdminDestination(updatedState.listing_type)
+      );
     } catch {
       Alert.alert("Error", "Failed to approve listing.");
     }
@@ -353,30 +348,22 @@ const ListingDetailsPage: React.FC = () => {
 
   const handleDelete = () => {
     if (!id) return;
-    Alert.alert(
-      "Delete Listing",
-      "Are you sure you want to permanently delete this listing?",
-      [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "Delete",
-          style: "destructive",
-          onPress: async () => {
-            try {
-              await manageListingAction(id, "delete", token);
-              if (Platform.OS === "web") {
-                goToAdminDestination(editedListing?.listing_type);
-              } else {
-                Alert.alert("Success", "Listing has been deleted.");
-                goToAdminDestination(editedListing?.listing_type);
-              }
-            } catch {
-              Alert.alert("Error", "Failed to delete listing.");
-            }
-          },
-        },
-      ]
-    );
+    showNativeFlowConfirm({
+      title: "Delete Listing",
+      message: "Are you sure you want to permanently delete this listing?",
+      confirmText: "Delete",
+      destructive: true,
+      onConfirm: async () => {
+        try {
+          await manageListingAction(id, "delete", token);
+          showNativeFlowAlert("Success", "Listing has been deleted.", () =>
+            goToAdminDestination(editedListing?.listing_type)
+          );
+        } catch {
+          Alert.alert("Error", "Failed to delete listing.");
+        }
+      },
+    });
   };
 
   const handleImagePick = async () => {

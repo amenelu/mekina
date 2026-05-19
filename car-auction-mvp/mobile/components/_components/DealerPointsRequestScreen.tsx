@@ -17,6 +17,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "@/hooks/useAuth";
 import { requestDealerPoints } from "@/lib/api/dealer";
 import { DEALER_ROUTES } from "@/lib/roleRoutes";
+import { showNativeFlowAlert } from "@/lib/nativeFlowAlert";
 
 const COLORS = {
   background: "#14181F",
@@ -26,22 +27,6 @@ const COLORS = {
   accent: "#A370F7",
   border: "#313843",
 };
-
-const nonCredentialInputProps =
-  Platform.OS === "web"
-    ? ({
-        autoComplete: "off",
-        "data-1p-ignore": "true",
-        "data-bwignore": "true",
-        "data-form-type": "other",
-        "data-lpignore": "true",
-        "data-protonpass-ignore": "true",
-        "aria-autocomplete": "none",
-        name: "dealer-points-request-amount",
-        rows: 1,
-        spellCheck: false,
-      } as const)
-    : {};
 
 export default function DealerPointsRequestScreen() {
   const { token, user } = useAuth() as any;
@@ -62,8 +47,11 @@ export default function DealerPointsRequestScreen() {
     Keyboard.dismiss();
 
     if (!token) {
-      Alert.alert("Login Required", "Please log in again to request points.");
-      router.replace("/(auth)/login" as any);
+      showNativeFlowAlert(
+        "Login Required",
+        "Please log in again to request points.",
+        () => router.replace("/(auth)/login" as any)
+      );
       return;
     }
 
@@ -78,15 +66,18 @@ export default function DealerPointsRequestScreen() {
 
     setSubmitting(true);
     try {
-      const response = await requestDealerPoints(parsedPoints);
+      await requestDealerPoints(parsedPoints);
 
       setRequestedPoints("");
-      Alert.alert("Request Sent", response.data.message);
-      goBackToDealerDashboard();
+      showNativeFlowAlert("Request Sent", "Your point request has been sent.", () => {
+        goBackToDealerDashboard();
+      });
     } catch (error: any) {
       const message =
-        error.response?.data?.message || "Could not send your request.";
-      Alert.alert("Request Failed", message);
+        error.response?.data?.message ||
+        error.userMessage ||
+        "Could not send your request.";
+      showNativeFlowAlert("Request Failed", message);
     } finally {
       setSubmitting(false);
     }
@@ -120,29 +111,60 @@ export default function DealerPointsRequestScreen() {
 
         <View style={styles.formCard}>
           <Text style={styles.label}>Points needed</Text>
-          <TextInput
-            style={styles.input}
-            value={requestedPoints}
-            onChangeText={handleRequestedPointsChange}
-            keyboardType="number-pad"
-            inputMode="numeric"
-            autoComplete="off"
-            importantForAutofill="no"
-            textContentType="none"
-            autoCorrect={false}
-            autoCapitalize="none"
-            autoFocus={false}
-            secureTextEntry={false}
-            multiline={Platform.OS === "web"}
-            numberOfLines={Platform.OS === "web" ? 1 : undefined}
-            scrollEnabled={false}
-            placeholder="e.g. 10"
-            placeholderTextColor={COLORS.textSecondary}
-            maxLength={4}
-            returnKeyType="done"
-            blurOnSubmit
-            {...(nonCredentialInputProps as any)}
-          />
+          {Platform.OS === "web" ? (
+            React.createElement("input", {
+              "aria-autocomplete": "none",
+              "aria-label": "Points needed",
+              "data-1p-ignore": "true",
+              "data-bwignore": "true",
+              "data-form-type": "other",
+              "data-lpignore": "true",
+              "data-protonpass-ignore": "true",
+              autoCapitalize: "none",
+              autoComplete: "off",
+              autoCorrect: "off",
+              disabled: submitting,
+              id: "dealer-points-request-amount",
+              inputMode: "numeric",
+              maxLength: 4,
+              name: "dealer-points-request-amount",
+              onChange: (event: React.ChangeEvent<HTMLInputElement>) =>
+                handleRequestedPointsChange(event.target.value),
+              onKeyDown: (event: React.KeyboardEvent<HTMLInputElement>) => {
+                if (event.key === "Enter") {
+                  event.preventDefault();
+                  void handleSubmit();
+                }
+              },
+              pattern: "[0-9]*",
+              placeholder: "e.g. 10",
+              spellCheck: false,
+              style: styles.webInput,
+              type: "text",
+              value: requestedPoints,
+            })
+          ) : (
+            <TextInput
+              style={styles.input}
+              value={requestedPoints}
+              onChangeText={handleRequestedPointsChange}
+              keyboardType="number-pad"
+              inputMode="numeric"
+              autoComplete="off"
+              importantForAutofill="no"
+              textContentType="none"
+              autoCorrect={false}
+              autoCapitalize="none"
+              autoFocus={false}
+              secureTextEntry={false}
+              scrollEnabled={false}
+              placeholder="e.g. 10"
+              placeholderTextColor={COLORS.textSecondary}
+              maxLength={4}
+              returnKeyType="done"
+              blurOnSubmit
+            />
+          )}
 
           <Pressable
             style={[styles.submitButton, submitting && styles.buttonDisabled]}
@@ -240,6 +262,22 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 14,
     marginBottom: 18,
+  },
+  webInput: {
+    backgroundColor: COLORS.background,
+    borderColor: COLORS.border,
+    borderRadius: 12,
+    borderStyle: "solid",
+    borderWidth: 1,
+    boxSizing: "border-box",
+    color: COLORS.text,
+    fontSize: 16,
+    marginBottom: 18,
+    minHeight: 52,
+    outlineColor: COLORS.accent,
+    paddingLeft: 14,
+    paddingRight: 14,
+    width: "100%",
   },
   submitButton: {
     backgroundColor: COLORS.accent,

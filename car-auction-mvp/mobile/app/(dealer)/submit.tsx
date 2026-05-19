@@ -18,6 +18,8 @@ import * as ImagePicker from "expo-image-picker";
 import { Ionicons } from "@expo/vector-icons";
 import { DEALER_ROUTES } from "@/lib/roleRoutes";
 import { createSellerCar } from "@/lib/api/rentals";
+import { showNativeFlowAlert } from "@/lib/nativeFlowAlert";
+import { isWebRuntime, replaceWebRoute } from "@/lib/webRouteReset";
 
 const COLORS = {
   background: "#14181F",
@@ -72,8 +74,11 @@ const CarSubmissionForm = () => {
 
   const handleSubmit = async () => {
     if (!token) {
-      Alert.alert("Login Required", "Please log in before submitting a listing.");
-      router.replace("/(auth)/login");
+      showNativeFlowAlert(
+        "Login Required",
+        "Please log in before submitting a listing.",
+        () => router.replace("/(auth)/login")
+      );
       return;
     }
 
@@ -109,17 +114,30 @@ const CarSubmissionForm = () => {
       // Using the seller API endpoint to submit a new car
       await createSellerCar(formData);
 
-      if (Platform.OS === "web") {
-        router.replace(DEALER_ROUTES.dashboard as any);
+      if (isWebRuntime()) {
+        showNativeFlowAlert(
+          "Success",
+          "Your car has been submitted for approval.",
+          () => {
+            replaceWebRoute(DEALER_ROUTES.dashboard);
+          }
+        );
         return;
-      } else {
-        Alert.alert("Success", "Your car has been submitted for approval.", [
-          { text: "OK", onPress: () => navigation.goBack() },
-        ]);
       }
+
+      showNativeFlowAlert(
+        "Success",
+        "Your car has been submitted for approval.",
+        () => {
+          navigation.goBack();
+        }
+      );
     } catch (error: any) {
-      const message = error.response?.data?.message || "Failed to submit car.";
-      Alert.alert("Submission Failed", message);
+      const message =
+        error.response?.data?.message ||
+        error.userMessage ||
+        "Failed to submit car.";
+      showNativeFlowAlert("Submission Failed", message);
     } finally {
       setIsSubmitting(false);
     }

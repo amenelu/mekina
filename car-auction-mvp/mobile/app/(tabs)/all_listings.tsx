@@ -20,6 +20,7 @@ import { useRouter, useLocalSearchParams } from "expo-router";
 
 import Footer from "@/components/_components/Footer";
 import VehicleCard, { Vehicle } from "@/components/_components/VehicleCard";
+import API_URL from "@/constants/Api";
 import { getListings } from "@/lib/api/listings";
 
 const COLORS = {
@@ -134,10 +135,7 @@ const AllListingsScreen = () => {
     } catch (error) {
       if (currentRequestId === searchRequestIdRef.current) {
         console.error("Failed to fetch vehicles:", error);
-        Alert.alert(
-          "Connection Error",
-          "Could not connect to the server. Please make sure your backend is running and you are on the same network."
-        );
+        Alert.alert("Connection Error", `Could not connect to ${API_URL}`);
       }
     } finally {
       if (currentRequestId === searchRequestIdRef.current) {

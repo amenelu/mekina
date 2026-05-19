@@ -10,7 +10,6 @@ import {
   FlatList,
   ActivityIndicator,
   RefreshControl,
-  Alert,
   Platform,
 } from "react-native";
 import { useRouter, useNavigation } from "expo-router";
@@ -24,9 +23,11 @@ import {
   getTrendingSearches,
   logSearch as logSearchRequest,
 } from "@/lib/api/listings";
+import { getRequestLimit } from "@/lib/api/requests";
 
 import Footer from "@/components/_components/Footer";
 import VehicleCard, { Vehicle } from "@/components/_components/VehicleCard";
+import { showNativeFlowAlert } from "@/lib/nativeFlowAlert";
 // --- Mock Data based on home.html ---
 const quickFilters = [
   { label: "New", value: "New" },
@@ -84,6 +85,7 @@ const HomeScreen = () => {
   const [trendingSearches, setTrendingSearches] = useState<string[]>([]);
   const [refreshing, setRefreshing] = useState(false);
   const [showInfo, setShowInfo] = useState(false);
+  const [checkingRequestLimit, setCheckingRequestLimit] = useState(false);
 
   useEffect(() => {
     const checkInfoStatus = async () => {
@@ -249,15 +251,42 @@ const HomeScreen = () => {
   };
 
   const requireLogin = (message: string) => {
-    if (Platform.OS === "web") {
-      router.push("/login");
+    showNativeFlowAlert(
+      "Login Required",
+      message,
+      () => router.push("/login"),
+      "Login"
+    );
+  };
+
+  const startFindCarFlow = async () => {
+    if (!user || !token) {
+      requireLogin("Please log in to let us find a car for you.");
       return;
     }
 
-    Alert.alert("Login Required", message, [
-      { text: "Cancel", style: "cancel" },
-      { text: "Login", onPress: () => router.push("/login") },
-    ]);
+    setCheckingRequestLimit(true);
+    try {
+      const response = await getRequestLimit();
+      if (!response.data.can_create_request) {
+        showNativeFlowAlert(
+          "Daily Limit Reached",
+          response.data.message ||
+            "You have reached the daily limit of 3 requests. Please try again later."
+        );
+        return;
+      }
+      router.push("/request");
+    } catch (error: any) {
+      showNativeFlowAlert(
+        "Unable to Start Request",
+        error.response?.data?.message ||
+          error.userMessage ||
+          "We could not check your request limit. Please try again."
+      );
+    } finally {
+      setCheckingRequestLimit(false);
+    }
   };
 
   // This hook handles scrolling to top when the active tab is pressed
@@ -417,17 +446,16 @@ const HomeScreen = () => {
             <Pressable
               testID="home-find-request-button"
               style={[styles.heroButton, styles.primaryButton]}
-              onPress={() => {
-                if (!user) {
-                  requireLogin("Please log in to let us find a car for you.");
-                } else {
-                  router.push("/request");
-                }
-              }}
+              onPress={startFindCarFlow}
+              disabled={checkingRequestLimit}
             >
-              <Text style={[styles.heroButtonText, styles.primaryButtonText]}>
-                Let Us Find It For You
-              </Text>
+              {checkingRequestLimit ? (
+                <ActivityIndicator color={COLORS.foreground} />
+              ) : (
+                <Text style={[styles.heroButtonText, styles.primaryButtonText]}>
+                  Let Us Find It For You
+                </Text>
+              )}
             </Pressable>
           </View>
           <View style={{ flex: 1, marginLeft: 8 }}>

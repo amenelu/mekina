@@ -184,6 +184,23 @@ def get_recent_request_count(user_id):
     ).count()
 
 
+def get_request_limit_status(user_id):
+    count = get_recent_request_count(user_id)
+    limit = 3
+    remaining = max(0, limit - count)
+    return {
+        "limit": limit,
+        "used": count,
+        "remaining": remaining,
+        "can_create_request": remaining > 0,
+        "message": (
+            "You have reached the daily limit of 3 requests. Please try again later."
+            if remaining == 0
+            else None
+        ),
+    }
+
+
 @request_bp.context_processor
 def inject_remaining_requests():
     """Injects the remaining number of requests allowed for the day into templates."""
@@ -585,6 +602,13 @@ def api_my_requests(current_user):
             ),
             500,
         )
+
+
+@request_bp.route("/api/request-limit")
+@token_required
+def api_request_limit(current_user):
+    """API endpoint to check whether the current buyer can start a new request."""
+    return jsonify(get_request_limit_status(current_user.id))
 
 
 @request_bp.route("/api/requests/<int:request_id>", methods=["DELETE"])
@@ -1145,17 +1169,14 @@ def api_create_request(current_user):
     API endpoint for creating a new car request from a mobile client.
     The client is expected to send all collected data in a single JSON payload.
     """
-    # Check daily request limit (3 per 24 hours)
-    last_24h = datetime.utcnow() - timedelta(hours=24)
-    recent_requests_count = CarRequest.query.filter(
-        CarRequest.user_id == current_user.id, CarRequest.created_at >= last_24h
-    ).count()
-    if recent_requests_count >= 3:
+    request_limit = get_request_limit_status(current_user.id)
+    if not request_limit["can_create_request"]:
         return (
             jsonify(
                 {
                     "status": "error",
-                    "message": "You have reached the daily limit of 3 requests.",
+                    "message": request_limit["message"],
+                    "request_limit": request_limit,
                 }
             ),
             429,

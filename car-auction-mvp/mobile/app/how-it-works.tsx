@@ -1,6 +1,7 @@
 import React from "react";
 import { View, Text, StyleSheet, ScrollView } from "react-native";
 import { Stack, Link } from "expo-router";
+import { DEALER_ROUTES } from "@/lib/roleRoutes";
 
 const COLORS = {
   background: "#14181F",
@@ -71,7 +72,7 @@ const HowItWorksScreen = () => {
 
           <Text style={styles.sectionTitle}>For Sellers & Dealers</Text>
           <StepCard number="1" title="Submit Your Car">
-            <Link href="/(tabs)/sell" asChild>
+            <Link href={DEALER_ROUTES.submit as any} asChild>
               <Text style={styles.linkText}>
                 Use our simple submission form
               </Text>

@@ -10,6 +10,7 @@ import {
 } from "react-native";
 import { useSocket } from "../../contexts/SocketContext";
 import { useAuth } from "@/hooks/useAuth";
+import { showNativeFlowAlert } from "@/lib/nativeFlowAlert";
 
 const COLORS = {
   background: "#14181F",
@@ -146,7 +147,12 @@ export default function TabsLayoutWeb() {
               {...props}
               onPress={(e: any) => {
                 if (!user) {
-                  router.push("/login");
+                  showNativeFlowAlert(
+                    "Login Required",
+                    "Please log in to find a car.",
+                    () => router.push("/login"),
+                    "Login"
+                  );
                 } else {
                   props.onPress?.(e);
                 }

@@ -174,19 +174,19 @@ export default function RentalProfileScreen() {
           <View style={styles.statsRow}>
             <View style={styles.statPill}>
               <Text style={styles.statPillValue}>
-                {payload?.stats.total_fleet_count ?? 0}
+                {payload?.stats?.total_fleet_count ?? 0}
               </Text>
               <Text style={styles.statPillLabel}>Total</Text>
             </View>
             <View style={styles.statPill}>
               <Text style={styles.statPillValue}>
-                {payload?.stats.active_fleet_count ?? 0}
+                {payload?.stats?.active_fleet_count ?? 0}
               </Text>
               <Text style={styles.statPillLabel}>Active</Text>
             </View>
             <View style={styles.statPill}>
               <Text style={styles.statPillValue}>
-                {payload?.stats.pending_approval_count ?? 0}
+                {payload?.stats?.pending_approval_count ?? 0}
               </Text>
               <Text style={styles.statPillLabel}>Pending</Text>
             </View>

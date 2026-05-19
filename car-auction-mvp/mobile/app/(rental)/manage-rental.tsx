@@ -20,6 +20,10 @@ import {
   getRentalCar,
   updateRentalCar,
 } from "@/lib/api/rentals";
+import {
+  showNativeFlowAlert,
+  showNativeFlowConfirm,
+} from "@/lib/nativeFlowAlert";
 
 const COLORS = {
   background: "#14181F",
@@ -156,17 +160,9 @@ export default function RentalEditListingScreen() {
       });
 
       setListing(response.data.car);
-      if (Platform.OS === "web") {
-        router.replace("/(rental)/rental-dashboard");
-        return;
-      }
-
-      Alert.alert("Success", response.data.message, [
-        {
-          text: "OK",
-          onPress: () => router.replace("/(rental)/rental-dashboard"),
-        },
-      ]);
+      showNativeFlowAlert("Success", response.data.message, () =>
+        router.replace("/(rental)/rental-dashboard")
+      );
     } catch (error: any) {
       Alert.alert(
         "Save Failed",
@@ -179,28 +175,23 @@ export default function RentalEditListingScreen() {
 
   const handleDelete = () => {
     if (!id || !token) return;
-    Alert.alert(
-      "Delete Rental",
-      "Are you sure you want to permanently delete this rental listing?",
-      [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "Delete",
-          style: "destructive",
-          onPress: async () => {
-            try {
-              await deleteRentalCar(id);
-              router.replace("/(rental)/rental-dashboard");
-            } catch (error: any) {
-              Alert.alert(
-                "Delete Failed",
-                error.response?.data?.message || "Could not delete rental listing."
-              );
-            }
-          },
-        },
-      ]
-    );
+    showNativeFlowConfirm({
+      title: "Delete Rental",
+      message: "Are you sure you want to permanently delete this rental listing?",
+      confirmText: "Delete",
+      destructive: true,
+      onConfirm: async () => {
+        try {
+          await deleteRentalCar(id);
+          router.replace("/(rental)/rental-dashboard");
+        } catch (error: any) {
+          Alert.alert(
+            "Delete Failed",
+            error.response?.data?.message || "Could not delete rental listing."
+          );
+        }
+      },
+    });
   };
 
   if (loading) {

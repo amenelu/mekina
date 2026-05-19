@@ -15,6 +15,8 @@ import * as ImagePicker from "expo-image-picker";
 import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "@/hooks/useAuth";
 import { createTradeIn } from "@/lib/api/tradeIn";
+import { showNativeFlowAlert } from "@/lib/nativeFlowAlert";
+import { isWebRuntime, replaceWebRoute } from "@/lib/webRouteReset";
 
 const COLORS = {
   background: "#14181F",
@@ -67,8 +69,11 @@ const TradeInScreen = () => {
 
   const handleSubmit = async () => {
     if (!token) {
-      Alert.alert("Login Required", "Please log in before submitting a trade-in request.");
-      router.replace("/(auth)/login");
+      showNativeFlowAlert(
+        "Login Required",
+        "Please log in before submitting a trade-in request.",
+        () => router.replace("/(auth)/login")
+      );
       return;
     }
 
@@ -97,17 +102,32 @@ const TradeInScreen = () => {
       const response = await createTradeIn(payload);
 
       if (response.status === 201) {
-        Alert.alert(
+        if (isWebRuntime()) {
+          showNativeFlowAlert(
+            "Offer Submitted",
+            "Thank you! We will review your submission and get back to you with a trade-in offer soon.",
+            () => {
+              replaceWebRoute("/my-requests");
+            },
+            "Close"
+          );
+          return;
+        }
+
+        showNativeFlowAlert(
           "Offer Submitted",
           "Thank you! We will review your submission and get back to you with a trade-in offer soon.",
-          [{ text: "OK", onPress: () => router.back() }]
+          () => router.replace("/(tabs)/my-requests"),
+          "Close"
         );
       }
     } catch (error: any) {
       console.error("Trade-in submission error:", error);
-      Alert.alert(
+      showNativeFlowAlert(
         "Error",
-        error.response?.data?.message || "Failed to submit trade-in request."
+        error.response?.data?.message ||
+          error.userMessage ||
+          "Failed to submit trade-in request."
       );
     } finally {
       setLoading(false);
@@ -115,100 +135,102 @@ const TradeInScreen = () => {
   };
 
   return (
-    <ScrollView style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.subtitle}>
-          Tell us about your car to get a competitive trade-in offer.
-        </Text>
-      </View>
-
-      <View style={styles.form}>
-        <View style={styles.formGrid}>
-          <TextInput
-            style={styles.input}
-            placeholder="Make (e.g., Toyota)"
-            placeholderTextColor={COLORS.mutedForeground}
-            value={make}
-            onChangeText={setMake}
-          />
-          <TextInput
-            style={styles.input}
-            placeholder="Model (e.g., Vitz)"
-            placeholderTextColor={COLORS.mutedForeground}
-            value={model}
-            onChangeText={setModel}
-          />
-        </View>
-        <View style={styles.formGrid}>
-          <TextInput
-            style={styles.input}
-            placeholder="Year (e.g., 2018)"
-            placeholderTextColor={COLORS.mutedForeground}
-            value={year}
-            onChangeText={setYear}
-            keyboardType="numeric"
-          />
-          <TextInput
-            style={styles.input}
-            placeholder="Mileage (e.g., 55000)"
-            placeholderTextColor={COLORS.mutedForeground}
-            value={mileage}
-            onChangeText={setMileage}
-            keyboardType="numeric"
-          />
+    <>
+      <ScrollView style={styles.container}>
+        <View style={styles.header}>
+          <Text style={styles.subtitle}>
+            Tell us about your car to get a competitive trade-in offer.
+          </Text>
         </View>
 
-        <TextInput
-          style={styles.input}
-          placeholder="VIN (17-digit Vehicle Identification Number)"
-          placeholderTextColor={COLORS.mutedForeground}
-          value={vin}
-          onChangeText={setVin}
-          autoCapitalize="characters"
-        />
+        <View style={styles.form}>
+          <View style={styles.formGrid}>
+            <TextInput
+              style={styles.input}
+              placeholder="Make (e.g., Toyota)"
+              placeholderTextColor={COLORS.mutedForeground}
+              value={make}
+              onChangeText={setMake}
+            />
+            <TextInput
+              style={styles.input}
+              placeholder="Model (e.g., Vitz)"
+              placeholderTextColor={COLORS.mutedForeground}
+              value={model}
+              onChangeText={setModel}
+            />
+          </View>
+          <View style={styles.formGrid}>
+            <TextInput
+              style={styles.input}
+              placeholder="Year (e.g., 2018)"
+              placeholderTextColor={COLORS.mutedForeground}
+              value={year}
+              onChangeText={setYear}
+              keyboardType="numeric"
+            />
+            <TextInput
+              style={styles.input}
+              placeholder="Mileage (e.g., 55000)"
+              placeholderTextColor={COLORS.mutedForeground}
+              value={mileage}
+              onChangeText={setMileage}
+              keyboardType="numeric"
+            />
+          </View>
 
-        <TextInput
-          style={styles.input}
-          placeholder="Are you trading for a specific car? (e.g. Toyota RAV4)"
-          placeholderTextColor={COLORS.mutedForeground}
-          value={targetCar}
-          onChangeText={setTargetCar}
-        />
+          <TextInput
+            style={styles.input}
+            placeholder="VIN (17-digit Vehicle Identification Number)"
+            placeholderTextColor={COLORS.mutedForeground}
+            value={vin}
+            onChangeText={setVin}
+            autoCapitalize="characters"
+          />
 
-        <TextInput
-          style={[styles.input, styles.textArea]}
-          placeholder="Mention any upgrades, recent repairs, or known issues..."
-          placeholderTextColor={COLORS.mutedForeground}
-          value={comments}
-          onChangeText={setComments}
-          multiline
-        />
+          <TextInput
+            style={styles.input}
+            placeholder="Are you trading for a specific car? (e.g. Toyota RAV4)"
+            placeholderTextColor={COLORS.mutedForeground}
+            value={targetCar}
+            onChangeText={setTargetCar}
+          />
 
-        <Pressable style={styles.imagePickerButton} onPress={handleImagePick}>
-          <Ionicons name="camera" size={20} color={COLORS.accent} />
-          <Text style={styles.imagePickerText}>Upload Photos</Text>
-        </Pressable>
+          <TextInput
+            style={[styles.input, styles.textArea]}
+            placeholder="Mention any upgrades, recent repairs, or known issues..."
+            placeholderTextColor={COLORS.mutedForeground}
+            value={comments}
+            onChangeText={setComments}
+            multiline
+          />
 
-        <ScrollView horizontal style={styles.imagePreviewContainer}>
-          {images.map((uri, index) => (
-            <Image key={index} source={{ uri }} style={styles.previewImage} />
-          ))}
-        </ScrollView>
+          <Pressable style={styles.imagePickerButton} onPress={handleImagePick}>
+            <Ionicons name="camera" size={20} color={COLORS.accent} />
+            <Text style={styles.imagePickerText}>Upload Photos</Text>
+          </Pressable>
 
-        <Pressable
-          testID="trade-in-submit"
-          style={styles.submitButton}
-          onPress={handleSubmit}
-          disabled={loading}
-        >
-          {loading ? (
-            <ActivityIndicator color={COLORS.foreground} />
-          ) : (
-            <Text style={styles.submitButtonText}>Submit for Offer</Text>
-          )}
-        </Pressable>
-      </View>
-    </ScrollView>
+          <ScrollView horizontal style={styles.imagePreviewContainer}>
+            {images.map((uri, index) => (
+              <Image key={index} source={{ uri }} style={styles.previewImage} />
+            ))}
+          </ScrollView>
+
+          <Pressable
+            testID="trade-in-submit"
+            style={styles.submitButton}
+            onPress={handleSubmit}
+            disabled={loading}
+          >
+            {loading ? (
+              <ActivityIndicator color={COLORS.foreground} />
+            ) : (
+              <Text style={styles.submitButtonText}>Submit for Offer</Text>
+            )}
+          </Pressable>
+        </View>
+      </ScrollView>
+    </>
   );
 };
 

@@ -34,6 +34,19 @@ export function placeDealerBid(requestId: string | number, data: unknown) {
   return apiClient.post(`/dealer/api/requests/${requestId}/bids`, data);
 }
 
+export function getDealerUnansweredRequestQuestions() {
+  return apiClient.get("/dealer/api/request-questions/unanswered");
+}
+
+export function answerDealerRequestQuestion(
+  questionId: string | number,
+  answerText: string
+) {
+  return apiClient.post(`/dealer/api/request-questions/${questionId}/answer`, {
+    answer_text: answerText,
+  });
+}
+
 export function updateDealerCar(carId: string | number, data: unknown) {
   return apiClient.put(`/dealer/api/cars/${carId}/update`, data);
 }

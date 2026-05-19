@@ -392,13 +392,115 @@ def api_dealer_dashboard(current_user):
         my_cars=[car.to_dict() for car in my_cars],
         unanswered_questions=[q.to_dict() for q in unanswered_questions],
         unanswered_request_questions=[
-            q.to_dict() for q in unanswered_request_questions
+            _request_question_to_api_dict(q) for q in unanswered_request_questions
         ],
         conversations=[conv.to_dict(current_user.id) for conv in recent_conversations],
         now=datetime.utcnow().isoformat() + "Z",
         user_points=current_user.points,
         pending_approval_count=len(pending_approvals),
         pending_approvals=[car.to_dict() for car in pending_approvals],
+    )
+
+
+def _request_question_to_api_dict(question):
+    bid = question.dealer_bid
+    car_request = bid.car_request if bid else None
+    buyer = User.query.get(question.user_id) if question.user_id else None
+    return {
+        **question.to_dict(),
+        "request_id": car_request.id if car_request else None,
+        "request_title": (
+            f"{car_request.make or 'Any Make'} {car_request.model or ''}".strip()
+            if car_request
+            else "Customer Request"
+        ),
+        "bid_id": bid.id if bid else None,
+        "bid_price": bid.price if bid else None,
+        "bid_vehicle": (
+            f"{bid.car_year} {bid.make} {bid.model}".strip() if bid else None
+        ),
+        "buyer": (
+            {
+                "id": buyer.id,
+                "username": buyer.username,
+            }
+            if buyer
+            else None
+        ),
+    }
+
+
+@dealer_bp.route("/api/request-questions/unanswered")
+@token_required
+def api_unanswered_request_questions(current_user):
+    if not current_user.is_dealer:
+        return jsonify({"message": "Dealer access required."}), 403
+
+    questions = (
+        RequestQuestion.query.join(DealerBid)
+        .filter(
+            DealerBid.dealer_id == current_user.id,
+            RequestQuestion.answer_text == None,
+        )
+        .order_by(RequestQuestion.timestamp.desc())
+        .all()
+    )
+    return jsonify(
+        questions=[_request_question_to_api_dict(question) for question in questions]
+    )
+
+
+@dealer_bp.route("/api/request-questions/<int:question_id>/answer", methods=["POST"])
+@token_required
+def api_answer_request_question(current_user, question_id):
+    if not current_user.is_dealer:
+        return jsonify({"message": "Dealer access required."}), 403
+
+    question = RequestQuestion.query.get_or_404(question_id)
+    bid = question.dealer_bid
+    if not bid or bid.dealer_id != current_user.id:
+        return jsonify({"message": "Permission denied."}), 403
+
+    data = request.get_json(silent=True) or {}
+    answer_text = (data.get("answer_text") or "").strip()
+    if len(answer_text) < 2:
+        return jsonify({"message": "Answer text is required."}), 400
+
+    question.answer_text = answer_text
+    question.answered_at = datetime.utcnow()
+
+    notification = Notification(
+        user_id=question.user_id,
+        message=(
+            "The dealer answered your question about their offer "
+            f"for request #{bid.car_request.id}."
+        ),
+        link=f"/request/{bid.car_request.id}",
+    )
+    db.session.add(notification)
+    db.session.commit()
+
+    unread_count = Notification.query.filter_by(
+        user_id=question.user_id, is_read=False
+    ).count()
+    socketio.emit(
+        "new_notification",
+        {
+            "message": notification.message,
+            "link": notification.link,
+            "timestamp": notification.timestamp.isoformat() + "Z",
+            "count": unread_count,
+        },
+        room=str(question.user_id),
+    )
+    send_push_notification(question.user_id, notification.message)
+
+    return jsonify(
+        {
+            "status": "success",
+            "message": "Your answer has been sent.",
+            "question": _request_question_to_api_dict(question),
+        }
     )
 
 
@@ -1451,7 +1553,7 @@ def answer_request_question(question_id):
     form = RequestAnswerForm()
     if form.validate_on_submit():
         question.answer_text = form.answer_text.data
-        question.answer_timestamp = datetime.utcnow()
+        question.answered_at = datetime.utcnow()
 
         # Notify the buyer that their question was answered
         notification_message = f"The dealer has answered your question regarding their offer for request #{bid.car_request.id}."

@@ -55,4 +55,8 @@ function getProductionApiUrl(): string {
 
 const API_URL = __DEV__ ? getDevServerUrl() : getProductionApiUrl();
 
+if (__DEV__) {
+  console.log("[API_URL]", API_URL);
+}
+
 export default API_URL;

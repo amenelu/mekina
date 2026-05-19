@@ -1,6 +1,6 @@
 from flask import Flask, request as flask_request
 from flask_login import current_user
-from config import Config, config_by_name
+from config import Config, config_by_name, _database_uri
 import os
 
 from extensions import db, socketio, login_manager, migrate
@@ -22,14 +22,17 @@ def create_app(config_class=None):
 
     app.jinja_env.add_extension("jinja2.ext.do")
 
+    config_was_explicit = config_class is not None
     if config_class is None:
         env_name = os.environ.get("FLASK_ENV") or os.environ.get("APP_ENV") or "default"
         config_class = config_by_name.get(env_name, Config)
     app.config.from_object(config_class)
     if os.environ.get("SECRET_KEY"):
         app.config["SECRET_KEY"] = os.environ["SECRET_KEY"]
-    if os.environ.get("DATABASE_URL"):
-        app.config["SQLALCHEMY_DATABASE_URI"] = os.environ["DATABASE_URL"]
+    if os.environ.get("DATABASE_URL") and (
+        not config_was_explicit or config_class is config_by_name["production"]
+    ):
+        app.config["SQLALCHEMY_DATABASE_URI"] = _database_uri()
     if config_class is config_by_name["production"]:
         missing = [name for name in REQUIRED_PRODUCTION_ENV if not os.environ.get(name)]
         if missing:

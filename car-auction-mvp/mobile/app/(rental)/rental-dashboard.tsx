@@ -309,7 +309,7 @@ export default function RentalDashboardScreen() {
             <View>
               <Text style={styles.headerTitle}>Rental Fleet</Text>
               <Text style={styles.headerSubtitle}>
-                Welcome back, {payload?.profile.username || user?.username}!
+                Welcome back, {payload?.profile?.username || user?.username || "Rental Company"}!
               </Text>
             </View>
             <Link href="/(rental)/add-rental" asChild>

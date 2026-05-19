@@ -101,19 +101,37 @@ function WebRuntimeMonitor({ children }: React.PropsWithChildren) {
       return;
     }
 
+    const isRecoverableHydrationError = (message?: string) =>
+      Boolean(
+        message &&
+          (message.includes("Minified React error #418") ||
+            message.toLowerCase().includes("hydration"))
+      );
+
     const onError = (event: ErrorEvent) => {
+      const message =
+        event.error?.message || event.message || "Unknown web error";
+      if (isRecoverableHydrationError(message)) {
+        return;
+      }
+
       setRuntimeError({
-        message: event.error?.message || event.message || "Unknown web error",
+        message,
         stack: event.error?.stack,
       });
     };
 
     const onUnhandledRejection = (event: PromiseRejectionEvent) => {
       const reason = event.reason;
+      const message =
+        reason?.message ||
+        (typeof reason === "string" ? reason : "Unhandled promise rejection");
+      if (isRecoverableHydrationError(message)) {
+        return;
+      }
+
       setRuntimeError({
-        message:
-          reason?.message ||
-          (typeof reason === "string" ? reason : "Unhandled promise rejection"),
+        message,
         stack: reason?.stack,
       });
     };

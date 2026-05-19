@@ -14,6 +14,10 @@ export type RequestDraft = {
   updatedAt: string;
 };
 
+function getRequestDraftKey(userId?: number | string | null) {
+  return userId ? `${REQUEST_DRAFT_KEY}:${userId}` : REQUEST_DRAFT_KEY;
+}
+
 function normalizeParams(
   params: Record<string, unknown> | undefined
 ): RequestDraftParams {
@@ -45,7 +49,8 @@ function normalizeParams(
 
 export async function saveRequestDraft(
   pathname: string,
-  params?: Record<string, unknown>
+  params?: Record<string, unknown>,
+  userId?: number | string | null
 ) {
   const draft: RequestDraft = {
     pathname,
@@ -53,11 +58,13 @@ export async function saveRequestDraft(
     updatedAt: new Date().toISOString(),
   };
 
-  await setItemAsync(REQUEST_DRAFT_KEY, JSON.stringify(draft));
+  await setItemAsync(getRequestDraftKey(userId), JSON.stringify(draft));
 }
 
-export async function loadRequestDraft(): Promise<RequestDraft | null> {
-  const rawValue = await getItemAsync(REQUEST_DRAFT_KEY);
+export async function loadRequestDraft(
+  userId?: number | string | null
+): Promise<RequestDraft | null> {
+  const rawValue = await getItemAsync(getRequestDraftKey(userId));
   if (!rawValue) return null;
 
   try {
@@ -73,6 +80,10 @@ export async function loadRequestDraft(): Promise<RequestDraft | null> {
   }
 }
 
-export async function clearRequestDraft() {
+export async function clearRequestDraft(userId?: number | string | null) {
+  await deleteItemAsync(getRequestDraftKey(userId));
+}
+
+export async function clearLegacyRequestDraft() {
   await deleteItemAsync(REQUEST_DRAFT_KEY);
 }

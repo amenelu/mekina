@@ -12,6 +12,7 @@ import {
   Image,
   FlatList,
   RefreshControl,
+  TextInput,
 } from "react-native";
 import { useLocalSearchParams, useRouter, Stack, Link } from "expo-router";
 import { useAuth } from "@/hooks/useAuth";
@@ -24,6 +25,10 @@ import {
   compareSelectedBids,
   getRequestDetail,
 } from "@/lib/api/requests";
+import {
+  showNativeFlowAlert,
+  showNativeFlowConfirm,
+} from "@/lib/nativeFlowAlert";
 
 const SCREEN_WIDTH = Dimensions.get("window").width;
 const COLORS = {
@@ -154,6 +159,9 @@ const RequestDetailScreen = () => {
   const [isCompareModalVisible, setCompareModalVisible] = useState(false);
   const [comparisonBids, setComparisonBids] = useState<ComparisonBid[]>([]);
   const [isComparisonLoading, setComparisonLoading] = useState(false);
+  const [questionBidId, setQuestionBidId] = useState<number | null>(null);
+  const [questionText, setQuestionText] = useState("");
+  const [isQuestionSubmitting, setQuestionSubmitting] = useState(false);
 
   const fetchRequestDetails = useCallback(async () => {
     if (!token || !id) {
@@ -166,10 +174,10 @@ const RequestDetailScreen = () => {
       setBids(response.data.bids);
     } catch (err) {
       if (isAxiosError(err) && err.response?.status === 401) {
-        Alert.alert("Session Expired", "Please log in again.", [
-          { text: "OK", onPress: () => logout() },
-        ]);
-        router.replace("/login");
+        showNativeFlowAlert("Session Expired", "Please log in again.", () => {
+          logout();
+          router.replace("/login");
+        });
       } else {
         console.error("Failed to fetch request details:", err);
         Alert.alert(
@@ -216,65 +224,28 @@ const RequestDetailScreen = () => {
 
   const handleAcceptOffer = async (bid: DealerBid) => {
     // Confirmation Dialog
-    Alert.alert(
-      "Accept Offer?",
-      `Are you sure you want to accept the offer of ${bid.price.toLocaleString()} ETB from ${
+    showNativeFlowConfirm({
+      title: "Accept Offer?",
+      message: `Are you sure you want to accept the offer of ${bid.price.toLocaleString()} ETB from ${
         bid.dealer.username
       }? This will close the request.`,
-      [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "Accept",
-          onPress: async () => {
-            try {
-              setLoading(true);
-              const response = await acceptOffer(bid.id, "cash");
-
-              if (response.data.status === "success") {
-                Alert.alert("Offer Accepted!", "The dealer has been notified.");
-                // Navigate to the new deal summary page
-                router.replace(`/deal/${response.data.deal.id}`);
-              } else {
-                throw new Error(
-                  response.data.message || "Failed to accept offer."
-                );
-              }
-            } catch (error: any) {
-              console.error("Failed to accept offer:", error);
-              Alert.alert(
-                "Error",
-                error.response?.data?.message ||
-                  "An error occurred. Please try again."
-              );
-            } finally {
-              setLoading(false);
-            }
-          },
-        },
-      ]
-    );
-  };
-
-  const handleAskQuestion = (bidId: number) => {
-    Alert.prompt(
-      "Ask a Question",
-      "Enter your question for the dealer below:",
-      async (questionText) => {
-        if (!questionText) return;
-
+      confirmText: "Accept",
+      onConfirm: async () => {
         try {
           setLoading(true);
-          const response = await askDealerQuestion(bidId, questionText);
+          const response = await acceptOffer(bid.id, "cash");
 
           if (response.data.status === "success") {
-            Alert.alert("Question Sent", response.data.message);
-          } else {
-            throw new Error(
-              response.data.message || "Failed to send question."
+            showNativeFlowAlert(
+              "Offer Accepted!",
+              "The dealer has been notified.",
+              () => router.replace(`/deal/${response.data.deal.id}`)
             );
+          } else {
+            throw new Error(response.data.message || "Failed to accept offer.");
           }
         } catch (error: any) {
-          console.error("Failed to send question:", error);
+          console.error("Failed to accept offer:", error);
           Alert.alert(
             "Error",
             error.response?.data?.message ||
@@ -283,8 +254,48 @@ const RequestDetailScreen = () => {
         } finally {
           setLoading(false);
         }
+      },
+    });
+  };
+
+  const handleAskQuestion = (bidId: number) => {
+    setQuestionBidId(bidId);
+    setQuestionText("");
+  };
+
+  const closeQuestionModal = () => {
+    if (isQuestionSubmitting) return;
+    setQuestionBidId(null);
+    setQuestionText("");
+  };
+
+  const submitQuestion = async () => {
+    const trimmed = questionText.trim();
+    if (!questionBidId || trimmed.length < 2) {
+      Alert.alert("Question Required", "Please enter your question.");
+      return;
+    }
+
+    try {
+      setQuestionSubmitting(true);
+      const response = await askDealerQuestion(questionBidId, trimmed);
+
+      if (response.data.status === "success") {
+        Alert.alert("Question Sent", response.data.message);
+        closeQuestionModal();
+        fetchRequestDetails();
+      } else {
+        throw new Error(response.data.message || "Failed to send question.");
       }
-    );
+    } catch (error: any) {
+      console.error("Failed to send question:", error);
+      Alert.alert(
+        "Error",
+        error.response?.data?.message || "An error occurred. Please try again."
+      );
+    } finally {
+      setQuestionSubmitting(false);
+    }
   };
 
   const handleCompare = async () => {
@@ -715,6 +726,48 @@ const RequestDetailScreen = () => {
           </Pressable>
         </View>
       )}
+
+      <Modal
+        animationType="fade"
+        transparent
+        visible={questionBidId !== null}
+        onRequestClose={closeQuestionModal}
+      >
+        <View style={styles.questionModalOverlay}>
+          <View style={styles.questionModal}>
+            <Text style={styles.questionModalTitle}>Ask Dealer A Question</Text>
+            <TextInput
+              style={styles.questionInput}
+              value={questionText}
+              onChangeText={setQuestionText}
+              placeholder="Type your question..."
+              placeholderTextColor={COLORS.mutedForeground}
+              multiline
+              textAlignVertical="top"
+            />
+            <View style={styles.questionModalActions}>
+              <Pressable
+                style={[styles.questionModalButton, styles.questionCancelButton]}
+                onPress={closeQuestionModal}
+                disabled={isQuestionSubmitting}
+              >
+                <Text style={styles.questionCancelText}>Cancel</Text>
+              </Pressable>
+              <Pressable
+                style={[styles.questionModalButton, styles.questionSubmitButton]}
+                onPress={submitQuestion}
+                disabled={isQuestionSubmitting}
+              >
+                {isQuestionSubmitting ? (
+                  <ActivityIndicator color="white" />
+                ) : (
+                  <Text style={styles.questionSubmitText}>Send Question</Text>
+                )}
+              </Pressable>
+            </View>
+          </View>
+        </View>
+      </Modal>
 
       {/* Comparison Modal */}
       <Modal
@@ -1247,6 +1300,63 @@ const styles = StyleSheet.create({
     color: COLORS.foreground,
     fontSize: 18,
     fontWeight: "bold",
+  },
+  questionModalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.65)",
+    justifyContent: "center",
+    padding: 20,
+  },
+  questionModal: {
+    backgroundColor: COLORS.card,
+    borderRadius: 10,
+    padding: 20,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+  },
+  questionModalTitle: {
+    color: COLORS.foreground,
+    fontSize: 18,
+    fontWeight: "700",
+    marginBottom: 14,
+  },
+  questionInput: {
+    minHeight: 120,
+    color: COLORS.foreground,
+    backgroundColor: COLORS.background,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    borderRadius: 8,
+    padding: 12,
+  },
+  questionModalActions: {
+    flexDirection: "row",
+    justifyContent: "flex-end",
+    gap: 10,
+    marginTop: 16,
+  },
+  questionModalButton: {
+    minHeight: 44,
+    paddingHorizontal: 16,
+    borderRadius: 6,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  questionCancelButton: {
+    borderWidth: 1,
+    borderColor: COLORS.border,
+  },
+  questionCancelText: {
+    color: COLORS.foreground,
+    fontWeight: "600",
+  },
+  questionSubmitButton: {
+    backgroundColor: COLORS.accent,
+    minWidth: 130,
+  },
+  questionSubmitText: {
+    color: "white",
+    fontWeight: "700",
   },
   // Comparison Modal Styles
   compareContainer: {

@@ -10,6 +10,22 @@ def _env_bool(name, default=False):
     return os.environ.get(name, str(default)).lower() in ("true", "1", "t", "yes")
 
 
+def _database_uri():
+    uri = os.environ.get("DATABASE_URL")
+    if not uri:
+        return "sqlite:///" + os.path.join(basedir, "database.db")
+
+    if uri == "sqlite:///:memory:":
+        return uri
+
+    if uri.startswith("sqlite:///") and not uri.startswith("sqlite:////"):
+        path = uri.removeprefix("sqlite:///")
+        if path and not os.path.isabs(path):
+            return "sqlite:///" + os.path.join(basedir, path).replace("\\", "/")
+
+    return uri
+
+
 class Config:
     """Base Flask configuration."""
 
@@ -18,9 +34,7 @@ class Config:
     FLASK_DEBUG = _env_bool("FLASK_DEBUG", False)
     TESTING = False
 
-    SQLALCHEMY_DATABASE_URI = os.environ.get("DATABASE_URL") or "sqlite:///" + os.path.join(
-        basedir, "database.db"
-    )
+    SQLALCHEMY_DATABASE_URI = _database_uri()
     SQLALCHEMY_TRACK_MODIFICATIONS = False
 
     MAX_CONTENT_LENGTH = int(os.environ.get("MAX_CONTENT_LENGTH", 16 * 1024 * 1024))

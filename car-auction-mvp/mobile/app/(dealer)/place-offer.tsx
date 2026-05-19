@@ -19,6 +19,9 @@ import * as ImagePicker from "expo-image-picker";
 import { Ionicons } from "@expo/vector-icons";
 import { mediaUrl } from "@/lib/api/client";
 import { getDealerRequestBids, placeDealerBid } from "@/lib/api/dealer";
+import { DEALER_ROUTES } from "@/lib/roleRoutes";
+import { showNativeFlowAlert } from "@/lib/nativeFlowAlert";
+import { isWebRuntime, replaceWebRoute } from "@/lib/webRouteReset";
 
 interface CustomerRequest {
   id: number;
@@ -216,12 +219,30 @@ const PlaceOfferScreen = () => {
     try {
       await placeDealerBid(request_id, payload);
 
-      Alert.alert("Success", "Your offer has been placed successfully.", [
-        { text: "OK", onPress: () => navigation.goBack() },
-      ]);
+      if (isWebRuntime()) {
+        showNativeFlowAlert(
+          "Success",
+          "Your offer has been placed successfully.",
+          () => {
+            replaceWebRoute(DEALER_ROUTES.dashboard);
+          }
+        );
+        return;
+      }
+
+      showNativeFlowAlert(
+        "Success",
+        "Your offer has been placed successfully.",
+        () => {
+          navigation.goBack();
+        }
+      );
     } catch (error: any) {
-      const message = error.response?.data?.message || "Failed to place offer.";
-      Alert.alert("Offer Failed", message);
+      const message =
+        error.response?.data?.message ||
+        error.userMessage ||
+        "Failed to place offer.";
+      showNativeFlowAlert("Offer Failed", message);
     } finally {
       setIsSubmitting(false);
     }

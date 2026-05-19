@@ -1,6 +1,5 @@
 import React, { useState } from "react";
 import {
-  Alert,
   View,
   Text,
   TextInput,
@@ -12,6 +11,8 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { register as registerRequest } from "@/lib/api/auth";
+import { showNativeFlowAlert } from "@/lib/nativeFlowAlert";
+import { isWebRuntime, replaceWebRoute } from "@/lib/webRouteReset";
 
 const RegisterScreen = () => {
   const [username, setUsername] = useState("");
@@ -53,11 +54,22 @@ const RegisterScreen = () => {
         password,
         password2,
       })
-      .then((response) => {
-        Alert.alert(
+      .then(() => {
+        if (isWebRuntime()) {
+          showNativeFlowAlert(
+            "Registration Successful",
+            "You can now log in with your new account.",
+            () => {
+              replaceWebRoute("/login");
+            }
+          );
+          return;
+        }
+
+        showNativeFlowAlert(
           "Registration Successful",
           "You can now log in with your new account.",
-          [{ text: "OK", onPress: () => router.push("/login") }]
+          () => router.replace("/login")
         );
       })
       .catch((error) => {
@@ -70,8 +82,10 @@ const RegisterScreen = () => {
           setErrors((prev) => ({ ...prev, ...error.response.data.errors }));
         } else {
           const message =
-            error.response?.data?.message || "An unexpected error occurred.";
-          Alert.alert("Registration Failed", message);
+            error.response?.data?.message ||
+            error.userMessage ||
+            "An unexpected error occurred.";
+          showNativeFlowAlert("Registration Failed", message);
         }
       })
       .finally(() => {

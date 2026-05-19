@@ -1,12 +1,15 @@
 from extensions import db
+from datetime import date
 from models.car import Car
 from models.car_image import CarImage
 from models.car_request import CarRequest
 from models.chat_message import ChatMessage
 from models.conversation import Conversation
+from models.dealer_bid import DealerBid
 from models.dealer_point_request import DealerPointRequest
 from models.notification import Notification
 from models.point_transaction import PointTransaction
+from models.request_question import RequestQuestion
 from models.rental_listing import RentalListing
 from models.trade_in import TradeInRequest
 from models.user import User
@@ -55,6 +58,35 @@ def create_car(owner, listing_type="sale", image_url="/static/uploads/test-car.j
     db.session.add(CarImage(car_id=car.id, image_url=image_url, order=0))
     db.session.flush()
     return car
+
+
+def create_request_with_bid(buyer, dealer):
+    car_request = CarRequest(
+        make="Toyota",
+        model="RAV4",
+        min_year=2020,
+        notes="Looking for a clean SUV.",
+        user_id=buyer.id,
+    )
+    db.session.add(car_request)
+    db.session.flush()
+
+    bid = DealerBid(
+        price=2_500_000,
+        make="Toyota",
+        model="RAV4",
+        car_year=2021,
+        mileage=32000,
+        condition="Used",
+        availability="In Stock",
+        valid_until=date(2026, 12, 31),
+        dealer_id=dealer.id,
+        request_id=car_request.id,
+        message="Available for inspection.",
+    )
+    db.session.add(bid)
+    db.session.flush()
+    return car_request, bid
 
 
 def test_admin_api_rejects_non_admin_roles(client):
@@ -309,6 +341,42 @@ def test_dealer_dashboard_returns_release_payload_for_dealers(client):
     assert payload["requests"][0]["make"] == "Toyota"
 
 
+def test_buyer_request_limit_endpoint_blocks_when_daily_limit_reached(client):
+    buyer = create_user("limit_buyer", "limit-buyer@example.com")
+    for index in range(3):
+        db.session.add(
+            CarRequest(
+                make="Toyota",
+                model=f"Rav4 {index}",
+                user_id=buyer.id,
+                status="active",
+            )
+        )
+    db.session.commit()
+
+    headers = login_headers(client, buyer.username)
+    status_response = client.get("/requests/api/request-limit", headers=headers)
+
+    assert status_response.status_code == 200
+    status_payload = status_response.get_json()
+    assert status_payload["limit"] == 3
+    assert status_payload["used"] == 3
+    assert status_payload["remaining"] == 0
+    assert status_payload["can_create_request"] is False
+    assert "daily limit" in status_payload["message"]
+
+    create_response = client.post(
+        "/requests/api/requests",
+        headers=headers,
+        json={"make": "Honda", "model": "CR-V"},
+    )
+
+    assert create_response.status_code == 429
+    payload = create_response.get_json()
+    assert payload["request_limit"]["remaining"] == 0
+    assert payload["message"] == status_payload["message"]
+
+
 def test_notification_and_unread_count_lifecycle(client):
     buyer = create_user("unread_buyer", "unread-buyer@example.com")
     dealer = create_user("unread_dealer", "unread-dealer@example.com", is_dealer=True)
@@ -345,6 +413,95 @@ def test_notification_and_unread_count_lifecycle(client):
     assert conversation_detail.status_code == 200
     final_counts = client.get("/api/unread-counts", headers=headers)
     assert final_counts.get_json() == {"unread_messages": 0, "unread_notifications": 0}
+
+
+def test_buyer_question_can_be_answered_by_dealer_api(client):
+    buyer = create_user("qa_buyer", "qa-buyer@example.com")
+    dealer = create_user("qa_dealer", "qa-dealer@example.com", is_dealer=True)
+    car_request, bid = create_request_with_bid(buyer, dealer)
+    db.session.commit()
+
+    ask_response = client.post(
+        f"/requests/api/bid/{bid.id}/ask",
+        headers=login_headers(client, buyer.username),
+        json={"question_text": "Is service history available?"},
+    )
+    assert ask_response.status_code == 201
+    question = RequestQuestion.query.filter_by(dealer_bid_id=bid.id).one()
+    assert question.answer_text is None
+    assert Notification.query.filter_by(user_id=dealer.id, is_read=False).count() == 1
+
+    dashboard_response = client.get(
+        "/dealer/api/dashboard",
+        headers=login_headers(client, dealer.username),
+    )
+    assert dashboard_response.status_code == 200
+    unanswered = dashboard_response.get_json()["unanswered_request_questions"]
+    assert len(unanswered) == 1
+    assert unanswered[0]["id"] == question.id
+    assert unanswered[0]["request_id"] == car_request.id
+    assert unanswered[0]["bid_price"] == bid.price
+
+    answer_response = client.post(
+        f"/dealer/api/request-questions/{question.id}/answer",
+        headers=login_headers(client, dealer.username),
+        json={"answer_text": "Yes, full service records are available."},
+    )
+    assert answer_response.status_code == 200
+    db.session.refresh(question)
+    assert question.answer_text == "Yes, full service records are available."
+    assert question.answered_at is not None
+    assert Notification.query.filter_by(user_id=buyer.id, is_read=False).count() == 1
+
+    unanswered_response = client.get(
+        "/dealer/api/request-questions/unanswered",
+        headers=login_headers(client, dealer.username),
+    )
+    assert unanswered_response.status_code == 200
+    assert unanswered_response.get_json()["questions"] == []
+
+    detail_response = client.get(
+        f"/requests/api/requests/{car_request.id}",
+        headers=login_headers(client, buyer.username),
+    )
+    assert detail_response.status_code == 200
+    bid_payload = detail_response.get_json()["bids"][0]
+    assert bid_payload["questions"][0]["answer_text"] == question.answer_text
+
+
+def test_dealer_question_answer_api_rejects_wrong_roles(client):
+    buyer = create_user("qa_wrong_buyer", "qa-wrong-buyer@example.com")
+    dealer = create_user("qa_wrong_dealer", "qa-wrong-dealer@example.com", is_dealer=True)
+    other_dealer = create_user(
+        "qa_other_dealer",
+        "qa-other-dealer@example.com",
+        is_dealer=True,
+    )
+    _, bid = create_request_with_bid(buyer, dealer)
+    question = RequestQuestion(
+        question_text="Can I inspect it today?",
+        user_id=buyer.id,
+        dealer_bid_id=bid.id,
+    )
+    db.session.add(question)
+    db.session.commit()
+
+    buyer_response = client.post(
+        f"/dealer/api/request-questions/{question.id}/answer",
+        headers=login_headers(client, buyer.username),
+        json={"answer_text": "Trying as buyer."},
+    )
+    assert buyer_response.status_code == 403
+
+    other_dealer_response = client.post(
+        f"/dealer/api/request-questions/{question.id}/answer",
+        headers=login_headers(client, other_dealer.username),
+        json={"answer_text": "Trying as another dealer."},
+    )
+    assert other_dealer_response.status_code == 403
+
+    db.session.refresh(question)
+    assert question.answer_text is None
 
 
 def test_admin_listing_approval_and_delete_flow(client):

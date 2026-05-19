@@ -1,6 +1,11 @@
 import { Platform } from "react-native";
 import * as SecureStore from "expo-secure-store";
 
+function getNativeStorageKey(key: string) {
+  const normalized = key.replace(/[^A-Za-z0-9._-]/g, "_");
+  return normalized || "app_storage_key";
+}
+
 function getBrowserStorage(kind: "local" | "session") {
   if (typeof window === "undefined") {
     return null;
@@ -93,7 +98,7 @@ export async function getItemAsync(key: string) {
     return getWebStorageItem(key);
   }
 
-  return SecureStore.getItemAsync(key);
+  return SecureStore.getItemAsync(getNativeStorageKey(key));
 }
 
 export async function setItemAsync(key: string, value: string) {
@@ -101,7 +106,7 @@ export async function setItemAsync(key: string, value: string) {
     return setWebStorageItem(key, value);
   }
 
-  return SecureStore.setItemAsync(key, value);
+  return SecureStore.setItemAsync(getNativeStorageKey(key), value);
 }
 
 export async function deleteItemAsync(key: string) {
@@ -109,7 +114,7 @@ export async function deleteItemAsync(key: string) {
     return removeWebStorageItem(key);
   }
 
-  return SecureStore.deleteItemAsync(key);
+  return SecureStore.deleteItemAsync(getNativeStorageKey(key));
 }
 
 export const appStorage = {
@@ -124,20 +129,20 @@ export const authStorage = {
       return getAuthWebStorageItem(key);
     }
 
-    return SecureStore.getItemAsync(key);
+    return SecureStore.getItemAsync(getNativeStorageKey(key));
   },
   setItem(key: string, value: string) {
     if (Platform.OS === "web") {
       return setAuthWebStorageItem(key, value);
     }
 
-    return SecureStore.setItemAsync(key, value);
+    return SecureStore.setItemAsync(getNativeStorageKey(key), value);
   },
   removeItem(key: string) {
     if (Platform.OS === "web") {
       return removeAuthWebStorageItem(key);
     }
 
-    return SecureStore.deleteItemAsync(key);
+    return SecureStore.deleteItemAsync(getNativeStorageKey(key));
   },
 };

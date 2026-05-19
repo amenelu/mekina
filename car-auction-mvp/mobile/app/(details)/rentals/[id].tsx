@@ -22,6 +22,10 @@ import * as ImagePicker from "expo-image-picker";
 import { Ionicons } from "@expo/vector-icons";
 import { ADMIN_ROUTES, toWebRoute } from "@/lib/roleRoutes";
 import {
+  showNativeFlowAlert,
+  showNativeFlowConfirm,
+} from "@/lib/nativeFlowAlert";
+import {
   approveAdminListing,
   deleteAdminListing,
   deleteAdminListingImage,
@@ -249,21 +253,20 @@ const RentalDetailsPage: React.FC = () => {
 
   const handleImageDelete = (imageId: number) => {
     if (!id) return;
-    Alert.alert("Delete Image", "Are you sure you want to delete this image?", [
-      { text: "Cancel", style: "cancel" },
-      {
-        text: "Delete",
-        style: "destructive",
-        onPress: async () => {
-          await deleteImage(id, imageId, token);
-          setEditedRental((prev) => ({
-            ...prev!,
-            images: prev!.images?.filter((img) => img.id !== imageId),
-          }));
-          Alert.alert("Success", "Image deleted.");
-        },
+    showNativeFlowConfirm({
+      title: "Delete Image",
+      message: "Are you sure you want to delete this image?",
+      confirmText: "Delete",
+      destructive: true,
+      onConfirm: async () => {
+        await deleteImage(id, imageId, token);
+        setEditedRental((prev) => ({
+          ...prev!,
+          images: prev!.images?.filter((img) => img.id !== imageId),
+        }));
+        showNativeFlowAlert("Success", "Image deleted.");
       },
-    ]);
+    });
   };
 
   const handleSetCoverImage = (imageId: number) => {
@@ -291,13 +294,9 @@ const RentalDetailsPage: React.FC = () => {
       setStatusType("success");
       setStatusMessage("Rental listing updated successfully.");
 
-      if (Platform.OS !== "web") {
-        Alert.alert("Success", "Rental listing updated successfully.", [
-          { text: "OK", onPress: () => navigation.goBack() },
-        ]);
-      } else {
-        goToAdminRentals();
-      }
+      showNativeFlowAlert("Success", "Rental listing updated successfully.", () =>
+        goToAdminRentals()
+      );
     } catch (err: any) {
       const message =
         err.response?.data?.message || "Failed to update rental listing.";
@@ -325,20 +324,16 @@ const RentalDetailsPage: React.FC = () => {
       setStatusType("success");
       setStatusMessage("Rental listing approved successfully.");
 
-      if (Platform.OS !== "web") {
-        Alert.alert("Success", "Rental listing approved successfully.");
-      } else {
-        goToAdminRentals();
-      }
+      showNativeFlowAlert("Success", "Rental listing approved successfully.", () =>
+        goToAdminRentals()
+      );
     } catch (err: any) {
       const message =
         err.response?.data?.message || "Failed to approve rental listing.";
       setStatusType("error");
       setStatusMessage(message);
 
-      if (Platform.OS !== "web") {
-        Alert.alert("Error", message);
-      }
+      Alert.alert("Error", message);
     } finally {
       setIsApproving(false);
     }
@@ -346,26 +341,22 @@ const RentalDetailsPage: React.FC = () => {
 
   const handleDelete = () => {
     if (!id) return;
-    Alert.alert(
-      "Delete Rental Listing",
-      `Are you sure you want to permanently delete this listing?`,
-      [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "Delete",
-          style: "destructive",
-          onPress: async () => {
-            try {
-              await deleteListing(id, token);
-              Alert.alert("Success", "Listing has been deleted.");
-              goToAdminRentals();
-            } catch {
-              Alert.alert("Error", "Failed to delete listing.");
-            }
-          },
-        },
-      ]
-    );
+    showNativeFlowConfirm({
+      title: "Delete Rental Listing",
+      message: "Are you sure you want to permanently delete this listing?",
+      confirmText: "Delete",
+      destructive: true,
+      onConfirm: async () => {
+        try {
+          await deleteListing(id, token);
+          showNativeFlowAlert("Success", "Listing has been deleted.", () =>
+            goToAdminRentals()
+          );
+        } catch {
+          Alert.alert("Error", "Failed to delete listing.");
+        }
+      },
+    });
   };
 
   const handleImagePick = async () => {

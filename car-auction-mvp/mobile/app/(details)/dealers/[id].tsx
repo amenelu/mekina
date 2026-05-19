@@ -1,4 +1,4 @@
-import { useLocalSearchParams, useNavigation } from "expo-router";
+import { router, useLocalSearchParams, useNavigation } from "expo-router";
 import React, { useEffect, useLayoutEffect, useState } from "react";
 import {
   View,
@@ -17,6 +17,11 @@ import {
   getAdminUser,
   updateAdminUser,
 } from "@/lib/api/admin";
+import {
+  showNativeFlowAlert,
+  showNativeFlowConfirm,
+} from "@/lib/nativeFlowAlert";
+import { ADMIN_ROUTES, toWebRoute } from "@/lib/roleRoutes";
 
 /**
  * @interface User - Reusing the User interface as dealers are a type of user.
@@ -80,6 +85,15 @@ const DealerDetailsPage: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
 
+  const goBackToDealers = () => {
+    if (typeof window !== "undefined") {
+      router.replace(toWebRoute(ADMIN_ROUTES.dealers) as any);
+      return;
+    }
+
+    navigation.goBack();
+  };
+
   useEffect(() => {
     if (id && token) {
       setLoading(true);
@@ -140,9 +154,11 @@ const DealerDetailsPage: React.FC = () => {
     try {
       await updateUser(id, editedDealer, token);
       setDealer(editedDealer);
-      Alert.alert("Success", "Dealer updated successfully.", [
-        { text: "OK", onPress: () => navigation.goBack() },
-      ]);
+      showNativeFlowAlert(
+        "Success",
+        "Dealer updated successfully.",
+        goBackToDealers
+      );
     } catch (err: any) {
       const message = err.response?.data?.message || "Failed to update dealer.";
       Alert.alert("Error", message);
@@ -153,22 +169,16 @@ const DealerDetailsPage: React.FC = () => {
 
   const handleDeleteUser = () => {
     if (!id) return;
-    Alert.alert(
-      "Delete Dealer",
-      `Are you sure you want to permanently delete ${dealer?.username}? This action cannot be undone.`,
-      [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "Delete",
-          style: "destructive",
-          onPress: async () => {
-            await deleteUser(id, token);
-            Alert.alert("Success", "Dealer has been deleted.");
-            navigation.goBack();
-          },
-        },
-      ]
-    );
+    showNativeFlowConfirm({
+      title: "Delete Dealer",
+      message: `Are you sure you want to permanently delete ${dealer?.username}? This action cannot be undone.`,
+      confirmText: "Delete",
+      destructive: true,
+      onConfirm: async () => {
+        await deleteUser(id, token);
+        showNativeFlowAlert("Success", "Dealer has been deleted.", goBackToDealers);
+      },
+    });
   };
 
   if (loading) {

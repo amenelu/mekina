@@ -16,6 +16,9 @@ import { CAR_BRANDS } from "@/constants/carBrands";
 import { clearRequestDraft } from "@/lib/requestDraft";
 import { useRequestDraftPersistence } from "@/hooks/useRequestDraftPersistence";
 import { createRequest } from "@/lib/api/requests";
+import { showNativeFlowAlert } from "@/lib/nativeFlowAlert";
+import { isWebRuntime, replaceWebRoute } from "@/lib/webRouteReset";
+import { saveRecentSubmittedRequest } from "@/lib/recentSubmittedRequests";
 
 
 const COLORS = {
@@ -33,14 +36,17 @@ const RequestBrandScreen = () => {
   const [brand, setBrand] = useState(String(params.brand || ""));
   const [loading, setLoading] = useState(false);
   const [isBrandPickerVisible, setBrandPickerVisible] = useState(false);
-  const { token } = useAuth();
+  const { token, user } = useAuth();
 
   useRequestDraftPersistence("/request/brand", { ...params, brand });
 
   const handleSubmit = async () => {
     if (!token) {
-      Alert.alert("Login Required", "Please log in before submitting a request.");
-      router.replace("/(auth)/login");
+      showNativeFlowAlert(
+        "Login Required",
+        "Please log in before submitting a request.",
+        () => router.replace("/(auth)/login")
+      );
       return;
     }
 
@@ -52,26 +58,36 @@ const RequestBrandScreen = () => {
     };
 
     try {
-      await createRequest(finalRequest);
+      const response = await createRequest(finalRequest);
+      await saveRecentSubmittedRequest(response.data.request, user?.id);
+      await clearRequestDraft(user?.id);
 
-      Alert.alert(
+      if (isWebRuntime()) {
+        showNativeFlowAlert(
+          "Request Submitted!",
+          "Your request has been sent to our dealers. They will contact you with offers soon.",
+          () => {
+            replaceWebRoute("/my-requests");
+          },
+          "Close"
+        );
+        return;
+      }
+
+      showNativeFlowAlert(
         "Request Submitted!",
         "Your request has been sent to our dealers. They will contact you with offers soon.",
-        [
-          {
-            text: "OK",
-            onPress: async () => {
-              await clearRequestDraft();
-              router.replace("/(tabs)/my-requests");
-            },
-          },
-        ]
+        () => router.replace("/(tabs)/my-requests"),
+        "Close"
       );
     } catch (error: any) {
       console.error("Failed to submit request:", error);
-      Alert.alert(
+      showNativeFlowAlert(
         "Submission Failed",
-        error.message || "An unknown error occurred."
+        error.response?.data?.message ||
+          error.userMessage ||
+          error.message ||
+          "An unknown error occurred."
       );
     } finally {
       setLoading(false);

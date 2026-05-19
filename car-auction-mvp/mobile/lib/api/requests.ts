@@ -4,6 +4,16 @@ export function getMyRequests() {
   return apiClient.get("/requests/api/requests");
 }
 
+export function getRequestLimit() {
+  return apiClient.get<{
+    limit: number;
+    used: number;
+    remaining: number;
+    can_create_request: boolean;
+    message?: string | null;
+  }>("/requests/api/request-limit");
+}
+
 export function createRequest(payload: unknown) {
   return apiClient.post("/requests/api/requests", payload);
 }

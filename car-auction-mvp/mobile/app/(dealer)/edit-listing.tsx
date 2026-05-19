@@ -20,6 +20,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import { mediaUrl } from "@/lib/api/client";
 import { getListing } from "@/lib/api/listings";
 import { updateDealerCar } from "@/lib/api/dealer";
+import { showNativeFlowAlert } from "@/lib/nativeFlowAlert";
 
 const COLORS = {
   background: "#14181F",
@@ -147,9 +148,11 @@ const EditListingScreen = () => {
         description,
       });
 
-      Alert.alert("Success", response.data.message, [
-        { text: "OK", onPress: handleExit },
-      ]);
+      showNativeFlowAlert(
+        "Success",
+        response.data.message || "Listing updated successfully.",
+        handleExit
+      );
     } catch (error: any) {
       const message =
         error.response?.data?.message || "Failed to update listing.";

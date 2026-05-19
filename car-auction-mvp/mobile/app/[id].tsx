@@ -31,6 +31,12 @@ import { useAuth } from "@/hooks/useAuth";
 import { getListing, toggleFavorite } from "@/lib/api/listings";
 import { createRequest } from "@/lib/api/requests";
 import { getChatHistory, sendChatMessage } from "@/lib/api/messages";
+import {
+  showNativeFlowAlert,
+  showNativeFlowConfirm,
+} from "@/lib/nativeFlowAlert";
+import { isWebRuntime, replaceWebRoute } from "@/lib/webRouteReset";
+import { saveRecentSubmittedRequest } from "@/lib/recentSubmittedRequests";
 const COLORS = {
   background: "#14181F",
   foreground: "#F8F8F8",
@@ -54,9 +60,12 @@ const CarDetailScreen = () => {
   const router = useRouter();
   const [isImageViewerVisible, setImageViewerVisible] = useState(false);
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
+  const [requestModalVisible, setRequestModalVisible] = useState(false);
+  const [requestSubmitting, setRequestSubmitting] = useState(false);
   const imageViewerTranslateY = React.useRef(new Animated.Value(0)).current;
   const carouselRef = useRef<FlatList<string>>(null);
   const thumbnailScrollRef = useRef<ScrollView>(null);
+  const mainImageWidth = Math.max(width, 1);
 
   const [contactModalVisible, setContactModalVisible] = useState(false);
   const [message, setMessage] = useState("");
@@ -235,16 +244,34 @@ const CarDetailScreen = () => {
 
   const handleCarouselMomentumEnd = useCallback(
     (event: any) => {
-      const nextIndex = Math.round(event.nativeEvent.contentOffset.x / width);
+      const nextIndex = Math.round(
+        event.nativeEvent.contentOffset.x / mainImageWidth
+      );
       if (nextIndex !== selectedImageIndex) {
         setSelectedImageIndex(nextIndex);
       }
       thumbnailScrollRef.current?.scrollTo({
-        x: Math.max(0, nextIndex * 92 - width / 2 + 40),
+        x: Math.max(0, nextIndex * 92 - mainImageWidth / 2 + 40),
         animated: true,
       });
     },
-    [selectedImageIndex, width]
+    [mainImageWidth, selectedImageIndex]
+  );
+
+  const handleCarouselScroll = useCallback(
+    (event: any) => {
+      const nextIndex = Math.round(
+        event.nativeEvent.contentOffset.x / mainImageWidth
+      );
+      if (
+        nextIndex >= 0 &&
+        nextIndex < thumbnails.length &&
+        nextIndex !== selectedImageIndex
+      ) {
+        setSelectedImageIndex(nextIndex);
+      }
+    },
+    [mainImageWidth, selectedImageIndex, thumbnails.length]
   );
 
   if (loading && !refreshing) {
@@ -268,10 +295,12 @@ const CarDetailScreen = () => {
 
   const handleContactSeller = async () => {
     if (!token) {
-      Alert.alert("Login Required", "Please log in to contact the seller.", [
-        { text: "Cancel", style: "cancel" },
-        { text: "Login", onPress: () => router.push("/login") },
-      ]);
+      showNativeFlowConfirm({
+        title: "Login Required",
+        message: "Please log in to contact the seller.",
+        confirmText: "Login",
+        onConfirm: () => router.push("/login"),
+      });
       return;
     }
 
@@ -299,10 +328,12 @@ const CarDetailScreen = () => {
 
   const handleRequestCar = async () => {
     if (!token) {
-      Alert.alert("Login Required", "Please log in to request this car.", [
-        { text: "Cancel", style: "cancel" },
-        { text: "Login", onPress: () => router.push("/login") },
-      ]);
+      showNativeFlowConfirm({
+        title: "Login Required",
+        message: "Please log in to request this car.",
+        confirmText: "Login",
+        onConfirm: () => router.push("/login"),
+      });
       return;
     }
 
@@ -311,45 +342,52 @@ const CarDetailScreen = () => {
       return;
     }
 
-    Alert.alert(
-      "Confirm Request",
-      `Do you want to submit a request for this ${car.year} ${car.make} ${car.model}?`,
-      [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "Confirm",
-          onPress: async () => {
-            setLoading(true);
-            try {
-              await createRequest({
-                make: car.make,
-                model: car.model,
-                min_year: car.year,
-                notes: `I am interested in purchasing this specific vehicle: ${car.year} ${car.make} ${car.model}.`,
-              });
-              Alert.alert(
-                "Success",
-                "Your request has been submitted successfully!",
-                [
-                  {
-                    text: "View Requests",
-                    onPress: () => router.push("/(tabs)/my-requests"),
-                  },
-                  { text: "OK" },
-                ]
-              );
-            } catch (error: any) {
-              console.error(error);
-              const errorMessage =
-                error.response?.data?.message || "Failed to submit request.";
-              Alert.alert("Error", errorMessage);
-            } finally {
-              setLoading(false);
-            }
+    setRequestModalVisible(true);
+  };
+
+  const submitCarRequest = async () => {
+    if (requestSubmitting) return;
+
+    setRequestSubmitting(true);
+    try {
+      const response = await createRequest({
+        make: car.make,
+        model: car.model,
+        min_year: car.year,
+        target_car_id: car.id,
+        notes: `I am interested in purchasing this specific vehicle: ${car.year} ${car.make} ${car.model}.`,
+      });
+      setRequestModalVisible(false);
+      await saveRecentSubmittedRequest(response.data.request, user?.id);
+
+      if (isWebRuntime()) {
+        showNativeFlowAlert(
+          "Success",
+          "Your request has been submitted successfully!",
+          () => {
+            replaceWebRoute("/my-requests");
           },
-        },
-      ]
-    );
+          "Close"
+        );
+        return;
+      }
+
+      showNativeFlowAlert(
+        "Success",
+        "Your request has been submitted successfully!",
+        () => router.push("/(tabs)/my-requests"),
+        "Close"
+      );
+    } catch (error: any) {
+      console.error(error);
+      const errorMessage =
+        error.response?.data?.message ||
+        error.userMessage ||
+        "Failed to submit request.";
+      showNativeFlowAlert("Request Failed", errorMessage);
+    } finally {
+      setRequestSubmitting(false);
+    }
   };
 
   const sendMessage = async () => {
@@ -382,10 +420,12 @@ const CarDetailScreen = () => {
 
   const handleToggleFavorite = async () => {
     if (!token) {
-      Alert.alert("Login Required", "Please log in to add to favorites.", [
-        { text: "Cancel", style: "cancel" },
-        { text: "Login", onPress: () => router.push("/login") },
-      ]);
+      showNativeFlowConfirm({
+        title: "Login Required",
+        message: "Please log in to add to favorites.",
+        confirmText: "Login",
+        onConfirm: () => router.push("/login"),
+      });
       return;
     }
 
@@ -429,15 +469,21 @@ const CarDetailScreen = () => {
               showsHorizontalScrollIndicator={false}
               keyExtractor={(item, index) => `gallery-image-${index}-${item}`}
               initialScrollIndex={Math.max(0, selectedImageIndex)}
+              extraData={selectedImageIndex}
               getItemLayout={(_, index) => ({
-                length: width,
-                offset: width * index,
+                length: mainImageWidth,
+                offset: mainImageWidth * index,
                 index,
               })}
+              onScroll={handleCarouselScroll}
+              scrollEventThrottle={16}
               onMomentumScrollEnd={handleCarouselMomentumEnd}
               renderItem={({ item, index }) => (
                 <Pressable onPress={() => openImageViewer(index)}>
-                  <Image source={{ uri: item }} style={[styles.mainImage, { width }]} />
+                  <Image
+                    source={{ uri: item }}
+                    style={[styles.mainImage, { width: mainImageWidth }]}
+                  />
                 </Pressable>
               )}
             />
@@ -468,14 +514,15 @@ const CarDetailScreen = () => {
             {thumbnails.map((thumbUri, index) => (
               <Pressable
                 key={index}
+                style={[
+                  styles.thumbnailButton,
+                  index === selectedImageIndex && styles.thumbnailButtonActive,
+                ]}
                 onPress={() => scrollToImage(index)}
               >
                 <Image
                   source={{ uri: thumbUri }}
-                  style={[
-                    styles.thumbnail,
-                    index === selectedImageIndex && styles.thumbnailActive,
-                  ]}
+                  style={styles.thumbnail}
                 />
               </Pressable>
             ))}
@@ -671,6 +718,45 @@ const CarDetailScreen = () => {
       </Modal>
 
       <Modal
+        animationType="fade"
+        transparent={true}
+        visible={showBuyerActions && requestModalVisible}
+        onRequestClose={() => {
+          if (!requestSubmitting) setRequestModalVisible(false);
+        }}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Request This Car</Text>
+            <Text style={styles.modalSubtitle}>
+              Submit a buyer request for this {car.year} {car.make} {car.model}.
+              Dealers will be able to respond with offers.
+            </Text>
+            <View style={styles.modalButtons}>
+              <Pressable
+                style={[styles.modalButton, styles.cancelButton]}
+                onPress={() => setRequestModalVisible(false)}
+                disabled={requestSubmitting}
+              >
+                <Text style={styles.cancelButtonText}>Cancel</Text>
+              </Pressable>
+              <Pressable
+                style={[styles.modalButton, styles.sendButton]}
+                onPress={submitCarRequest}
+                disabled={requestSubmitting}
+              >
+                {requestSubmitting ? (
+                  <ActivityIndicator color="#fff" size="small" />
+                ) : (
+                  <Text style={styles.sendButtonText}>Submit Request</Text>
+                )}
+              </Pressable>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      <Modal
         visible={isImageViewerVisible}
         transparent={true}
         animationType="fade"
@@ -752,19 +838,26 @@ const styles = StyleSheet.create({
     paddingTop: 10,
     paddingBottom: 4,
   },
+  thumbnailButton: {
+    width: 88,
+    height: 88,
+    marginHorizontal: 5,
+    borderRadius: 10,
+    borderWidth: 2,
+    borderColor: "transparent",
+    padding: 2,
+    opacity: 0.72,
+  },
+  thumbnailButtonActive: {
+    borderColor: COLORS.accent,
+    opacity: 1,
+    backgroundColor: "rgba(163, 112, 247, 0.16)",
+  },
   thumbnail: {
     width: 80,
     height: 80,
     resizeMode: "cover",
-    marginHorizontal: 5,
     borderRadius: 8,
-    borderWidth: 2,
-    borderColor: "transparent",
-    opacity: 0.75,
-  },
-  thumbnailActive: {
-    borderColor: COLORS.accent,
-    opacity: 1,
   },
   imageViewerBackdrop: {
     flex: 1,

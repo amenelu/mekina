@@ -20,11 +20,20 @@ apiClient.interceptors.response.use(
   (response) => response,
   (error: AxiosError<{ message?: string; error?: string }>) => {
     const data = error.response?.data;
+    const isAuthRequest = error.config?.url?.includes("/auth/api/login");
+    const isUnauthorized = error.response?.status === 401;
+
+    if (isUnauthorized && !isAuthRequest) {
+      useAuth.getState().logout();
+    }
+
     const message =
-      data?.message ||
-      data?.error ||
-      error.message ||
-      "Something went wrong. Please try again.";
+      isUnauthorized && !isAuthRequest
+        ? "Your session expired. Please log in again."
+        : data?.message ||
+          data?.error ||
+          error.message ||
+          "Something went wrong. Please try again.";
 
     return Promise.reject(
       Object.assign(error, {

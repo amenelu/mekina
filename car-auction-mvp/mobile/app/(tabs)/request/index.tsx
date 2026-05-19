@@ -1,7 +1,21 @@
 import React, { useCallback, useState } from "react";
-import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
-import { Stack, Link, useFocusEffect, useNavigation, useRouter } from "expo-router";
-import { clearRequestDraft, loadRequestDraft, RequestDraft } from "@/lib/requestDraft";
+import {
+  ActivityIndicator,
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+} from "react-native";
+import { Stack, useFocusEffect, useNavigation, useRouter } from "expo-router";
+import {
+  clearLegacyRequestDraft,
+  clearRequestDraft,
+  loadRequestDraft,
+  RequestDraft,
+} from "@/lib/requestDraft";
+import { getRequestLimit } from "@/lib/api/requests";
+import { showNativeFlowAlert } from "@/lib/nativeFlowAlert";
+import { useAuth } from "@/hooks/useAuth";
 
 const COLORS = {
   background: "#14181F",
@@ -33,7 +47,11 @@ const choiceOptions = [
 const RequestChoiceScreen = () => {
   const router = useRouter();
   const navigation = useNavigation();
+  const userId = useAuth((state) => state.user?.id);
   const [savedDraft, setSavedDraft] = useState<RequestDraft | null>(null);
+  const [checkingLimit, setCheckingLimit] = useState(true);
+  const [canCreateRequest, setCanCreateRequest] = useState(true);
+  const [limitMessage, setLimitMessage] = useState("");
 
   useFocusEffect(
     useCallback(() => {
@@ -47,7 +65,11 @@ const RequestChoiceScreen = () => {
         });
       }
 
-      loadRequestDraft().then((draft) => {
+      clearLegacyRequestDraft().catch((error) => {
+        console.error("Failed to clear legacy request draft:", error);
+      });
+
+      loadRequestDraft(userId).then((draft) => {
         if (!isActive) return;
         if (draft?.pathname && draft.pathname !== "/request") {
           setSavedDraft(draft);
@@ -56,16 +78,76 @@ const RequestChoiceScreen = () => {
         }
       });
 
+      setCheckingLimit(true);
+      getRequestLimit()
+        .then((response) => {
+          if (!isActive) return;
+          const canCreate = response.data.can_create_request;
+          setCanCreateRequest(canCreate);
+          setLimitMessage(response.data.message || "");
+          if (!canCreate) {
+            showNativeFlowAlert(
+              "Daily Limit Reached",
+              response.data.message ||
+                "You have reached the daily limit of 3 requests. Please try again later."
+            );
+          }
+        })
+        .catch((error: any) => {
+          if (!isActive) return;
+          const message =
+            error.response?.data?.message ||
+            error.userMessage ||
+            "We could not check your request limit. Please try again.";
+          setCanCreateRequest(false);
+          setLimitMessage(message);
+          showNativeFlowAlert("Unable to Start Request", message);
+        })
+        .finally(() => {
+          if (isActive) {
+            setCheckingLimit(false);
+          }
+        });
+
       return () => {
         isActive = false;
       };
-    }, [navigation])
+    }, [navigation, userId])
   );
+
+  const navigateIfAllowed = (href: string, params?: Record<string, unknown>) => {
+    if (checkingLimit) return;
+    if (!canCreateRequest) {
+      showNativeFlowAlert(
+        "Daily Limit Reached",
+        limitMessage ||
+          "You have reached the daily limit of 3 requests. Please try again later."
+      );
+      return;
+    }
+
+    router.push(params ? ({ pathname: href as any, params } as any) : (href as any));
+  };
 
   return (
     <View style={styles.container}>
       <Stack.Screen options={{ title: "Let's Find Your Next Car" }} />
       <Text style={styles.title}>Do you know which car you want?</Text>
+      {checkingLimit && (
+        <View style={styles.limitCard}>
+          <ActivityIndicator color={COLORS.accent} />
+          <Text style={styles.limitText}>Checking your daily request limit...</Text>
+        </View>
+      )}
+      {!checkingLimit && !canCreateRequest && (
+        <View style={styles.limitCard}>
+          <Text style={styles.limitTitle}>Daily Limit Reached</Text>
+          <Text style={styles.limitText}>
+            {limitMessage ||
+              "You have reached the daily limit of 3 requests. Please try again later."}
+          </Text>
+        </View>
+      )}
       {savedDraft && (
         <View style={styles.savedDraftCard}>
           <Text style={styles.savedDraftTitle}>Continue your saved request</Text>
@@ -75,12 +157,13 @@ const RequestChoiceScreen = () => {
           <View style={styles.savedDraftActions}>
             <TouchableOpacity
               testID="saved-request-continue"
-              style={styles.resumeButton}
+              style={[
+                styles.resumeButton,
+                (!canCreateRequest || checkingLimit) && styles.disabledButton,
+              ]}
+              disabled={!canCreateRequest || checkingLimit}
               onPress={() =>
-                router.push({
-                  pathname: savedDraft.pathname as any,
-                  params: savedDraft.params,
-                })
+                navigateIfAllowed(savedDraft.pathname, savedDraft.params)
               }
             >
               <Text style={styles.resumeButtonText}>Continue</Text>
@@ -89,7 +172,7 @@ const RequestChoiceScreen = () => {
               testID="saved-request-discard"
               style={styles.discardButton}
               onPress={async () => {
-                await clearRequestDraft();
+                await clearRequestDraft(userId);
                 setSavedDraft(null);
               }}
             >
@@ -100,21 +183,25 @@ const RequestChoiceScreen = () => {
       )}
       <View style={styles.optionsContainer}>
         {choiceOptions.map((option) => (
-          <Link key={option.href} href={option.href as any} asChild>
-            <TouchableOpacity
-              testID={
-                option.href === "/request/make"
-                  ? "request-choice-specific"
-                  : option.href === "/request/budget"
-                  ? "request-choice-guided"
-                  : "request-choice-upload"
-              }
-              style={styles.optionButton}
-            >
-              <Text style={styles.optionText}>{option.label}</Text>
-              <Text style={styles.optionDescription}>{option.description}</Text>
-            </TouchableOpacity>
-          </Link>
+          <TouchableOpacity
+            key={option.href}
+            testID={
+              option.href === "/request/make"
+                ? "request-choice-specific"
+                : option.href === "/request/budget"
+                ? "request-choice-guided"
+                : "request-choice-upload"
+            }
+            style={[
+              styles.optionButton,
+              (!canCreateRequest || checkingLimit) && styles.disabledOption,
+            ]}
+            disabled={checkingLimit}
+            onPress={() => navigateIfAllowed(option.href)}
+          >
+            <Text style={styles.optionText}>{option.label}</Text>
+            <Text style={styles.optionDescription}>{option.description}</Text>
+          </TouchableOpacity>
         ))}
       </View>
     </View>
@@ -136,6 +223,28 @@ const styles = StyleSheet.create({
   },
   optionsContainer: {
     gap: 15,
+  },
+  limitCard: {
+    backgroundColor: "rgba(163, 112, 247, 0.12)",
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: COLORS.accent,
+    padding: 16,
+    marginBottom: 20,
+    alignItems: "center",
+  },
+  limitTitle: {
+    color: COLORS.foreground,
+    fontSize: 17,
+    fontWeight: "700",
+    marginBottom: 6,
+  },
+  limitText: {
+    color: COLORS.foreground,
+    opacity: 0.85,
+    fontSize: 14,
+    lineHeight: 20,
+    textAlign: "center",
   },
   savedDraftCard: {
     backgroundColor: COLORS.card,
@@ -190,6 +299,12 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     borderWidth: 2,
     borderColor: COLORS.border,
+  },
+  disabledButton: {
+    opacity: 0.55,
+  },
+  disabledOption: {
+    opacity: 0.45,
   },
   optionText: {
     color: COLORS.foreground,

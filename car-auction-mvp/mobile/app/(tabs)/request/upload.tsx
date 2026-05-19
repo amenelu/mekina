@@ -18,6 +18,9 @@ import { Ionicons } from "@expo/vector-icons";
 import { clearRequestDraft } from "@/lib/requestDraft";
 import { useRequestDraftPersistence } from "@/hooks/useRequestDraftPersistence";
 import { createRequestForm } from "@/lib/api/requests";
+import { showNativeFlowAlert } from "@/lib/nativeFlowAlert";
+import { isWebRuntime, replaceWebRoute } from "@/lib/webRouteReset";
+import { saveRecentSubmittedRequest } from "@/lib/recentSubmittedRequests";
 
 const COLORS = {
   background: "#14181F",
@@ -57,7 +60,7 @@ function parseDraftImages(
 const RequestUploadScreen = () => {
   const router = useRouter();
   const params = useLocalSearchParams();
-  const { token } = useAuth();
+  const { token, user } = useAuth();
   const [images, setImages] = useState<ImagePicker.ImagePickerAsset[]>(
     parseDraftImages(params.images)
   );
@@ -94,8 +97,11 @@ const RequestUploadScreen = () => {
 
   const handleSubmit = async () => {
     if (!token) {
-      Alert.alert("Login Required", "Please log in before submitting a request.");
-      router.replace("/(auth)/login");
+      showNativeFlowAlert(
+        "Login Required",
+        "Please log in before submitting a request.",
+        () => router.replace("/(auth)/login")
+      );
       return;
     }
 
@@ -122,26 +128,35 @@ const RequestUploadScreen = () => {
     });
 
     try {
-      await createRequestForm(formData);
+      const response = await createRequestForm(formData);
+      await saveRecentSubmittedRequest(response.data.request, user?.id);
+      await clearRequestDraft(user?.id);
 
-      Alert.alert(
+      if (isWebRuntime()) {
+        showNativeFlowAlert(
+          "Request Submitted!",
+          "Your request has been sent to our dealers. They will contact you with offers soon.",
+          () => {
+            replaceWebRoute("/my-requests");
+          },
+          "Close"
+        );
+        return;
+      }
+
+      showNativeFlowAlert(
         "Request Submitted!",
         "Your request has been sent to our dealers. They will contact you with offers soon.",
-        [
-          {
-            text: "OK",
-            onPress: async () => {
-              await clearRequestDraft();
-              router.replace("/(tabs)/my-requests");
-            },
-          },
-        ]
+        () => router.replace("/(tabs)/my-requests"),
+        "Close"
       );
     } catch (error: any) {
       console.error("Failed to submit request:", error);
       const message =
-        error.response?.data?.message || "An unknown error occurred.";
-      Alert.alert("Submission Failed", message);
+        error.response?.data?.message ||
+        error.userMessage ||
+        "An unknown error occurred.";
+      showNativeFlowAlert("Submission Failed", message);
     } finally {
       setLoading(false);
     }

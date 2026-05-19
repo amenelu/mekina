@@ -18,6 +18,14 @@ import { Ionicons } from "@expo/vector-icons";
 import { mediaUrl } from "@/lib/api/client";
 import { deleteRequest, getMyRequests } from "@/lib/api/requests";
 import { deleteTradeInRequest } from "@/lib/api/tradeIn";
+import {
+  showNativeFlowAlert,
+  showNativeFlowConfirm,
+} from "@/lib/nativeFlowAlert";
+import {
+  loadRecentSubmittedRequests,
+  mergeRecentSubmittedRequests,
+} from "@/lib/recentSubmittedRequests";
 
 const COLORS = {
   background: "#14181F",
@@ -88,18 +96,13 @@ const RequestCard = ({
   };
 
   const handleDelete = () => {
-    Alert.alert(
-      "Delete Request",
-      "Are you sure you want to delete this request?",
-      [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "Delete",
-          style: "destructive",
-          onPress: () => onDelete(request),
-        },
-      ]
-    );
+    showNativeFlowConfirm({
+      title: "Delete Request",
+      message: "Are you sure you want to delete this request?",
+      confirmText: "Delete",
+      destructive: true,
+      onConfirm: () => onDelete(request),
+    });
   };
 
   return (
@@ -198,7 +201,7 @@ const RequestCard = ({
 };
 
 const MyRequestsScreen = () => {
-  const { token, logout, isLoading } = useAuth() as any;
+  const { token, logout, isLoading, user } = useAuth() as any;
   const router = useRouter();
   const { socket } = useSocket();
   const [requests, setRequests] = useState<CarRequest[]>([]);
@@ -215,23 +218,32 @@ const MyRequestsScreen = () => {
     }
     try {
       setError(null); // Clear previous errors
-      const response = await getMyRequests();
+      const [response, recentRequests] = await Promise.all([
+        getMyRequests(),
+        loadRecentSubmittedRequests(user?.id),
+      ]);
       // Sort requests to show completed ones first
-      const sortedRequests = (response.data.requests || []).sort(
+      const mergedRequests = mergeRecentSubmittedRequests(
+        response.data.requests || [],
+        recentRequests
+      );
+      const sortedRequests = mergedRequests.sort(
         (a: CarRequest, b: CarRequest) => {
           if (a.status === "completed" && b.status !== "completed") return -1;
           if (b.status === "completed" && a.status !== "completed") return 1;
-          return 0;
+          return (
+            new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+          );
         }
       );
       setRequests(sortedRequests);
     } catch (err) {
       if (isAxiosError(err) && err.response?.status === 401) {
         // Handle token expiration
-        Alert.alert("Session Expired", "Please log in again.", [
-          { text: "OK", onPress: () => logout() },
-        ]);
-        router.replace("/(auth)/login");
+        showNativeFlowAlert("Session Expired", "Please log in again.", () => {
+          logout();
+          router.replace("/(auth)/login");
+        });
       } else {
         console.error("Failed to fetch car requests:", err);
         setError("Could not load your requests. Please try again.");
@@ -244,7 +256,7 @@ const MyRequestsScreen = () => {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [logout, router, token]);
+  }, [logout, router, token, user?.id]);
 
   // useFocusEffect will re-fetch data every time the screen comes into view
   useFocusEffect(
@@ -283,7 +295,7 @@ const MyRequestsScreen = () => {
       }
       // Refresh list
       fetchRequests();
-      Alert.alert("Success", "Request deleted successfully.");
+      showNativeFlowAlert("Success", "Request deleted successfully.");
     } catch (error) {
       console.error("Failed to delete request:", error);
       Alert.alert("Error", "Failed to delete request.");

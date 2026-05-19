@@ -8,13 +8,19 @@ import {
   Pressable,
   RefreshControl,
   SafeAreaView,
+  TextInput,
+  Modal,
+  Alert,
 } from "react-native";
 import { router } from "expo-router";
 import { useAuth } from "@/hooks/useAuth";
 import { Ionicons } from "@expo/vector-icons";
 import { useSocket } from "@/contexts/SocketContext";
 import { DEALER_ROUTES, LOGIN_ROUTE } from "@/lib/roleRoutes";
-import { getDealerDashboard } from "@/lib/api/dealer";
+import {
+  answerDealerRequestQuestion,
+  getDealerDashboard,
+} from "@/lib/api/dealer";
 
 const COLORS = {
   background: "#14181F",
@@ -61,6 +67,20 @@ interface CustomerRequest {
   lowest_offer?: number;
   has_been_viewed?: boolean;
   detail_score?: number;
+}
+
+interface RequestQuestion {
+  id: number;
+  question_text: string;
+  timestamp: string;
+  request_id?: number;
+  request_title?: string;
+  bid_price?: number;
+  bid_vehicle?: string;
+  buyer?: {
+    id: number;
+    username: string;
+  } | null;
 }
 
 const StatCard = ({
@@ -208,6 +228,43 @@ const RequestItem = ({ item }: { item: CustomerRequest }) => {
   );
 };
 
+const QuestionItem = ({
+  item,
+  onAnswer,
+}: {
+  item: RequestQuestion;
+  onAnswer: (question: RequestQuestion) => void;
+}) => {
+  return (
+    <View style={styles.itemCard}>
+      <View style={styles.requestCardHeader}>
+        <View style={{ flex: 1 }}>
+          <Text style={styles.itemTitle}>
+            {item.request_title || "Customer Request"}
+          </Text>
+          <Text style={styles.itemSubtitle}>
+            {item.bid_vehicle || "Your offer"}
+            {item.bid_price ? ` - ${item.bid_price.toLocaleString()} ETB` : ""}
+          </Text>
+        </View>
+        <View style={styles.newBadge}>
+          <Text style={styles.newBadgeText}>QUESTION</Text>
+        </View>
+      </View>
+      <Text style={styles.itemNotes}>{item.question_text}</Text>
+      <View style={styles.questionFooter}>
+        <Text style={styles.detailText}>
+          {item.buyer?.username ? `From ${item.buyer.username}` : "Buyer question"}
+        </Text>
+        <Pressable style={styles.answerButton} onPress={() => onAnswer(item)}>
+          <Ionicons name="return-up-forward" size={18} color="white" />
+          <Text style={styles.answerButtonText}>Answer</Text>
+        </Pressable>
+      </View>
+    </View>
+  );
+};
+
 const DashboardSection = <T,>({
   data,
   emptyText,
@@ -235,9 +292,14 @@ const DealerDashboard = () => {
   const [listings, setListings] = useState<Listing[]>([]);
   const [pendingListings, setPendingListings] = useState<Listing[]>([]);
   const [requests, setRequests] = useState<CustomerRequest[]>([]);
+  const [questions, setQuestions] = useState<RequestQuestion[]>([]);
   const [activeTab, setActiveTab] = useState<
-    "listings" | "requests" | "pending"
+    "listings" | "requests" | "pending" | "questions"
   >("requests");
+  const [selectedQuestion, setSelectedQuestion] =
+    useState<RequestQuestion | null>(null);
+  const [answerText, setAnswerText] = useState("");
+  const [answerSubmitting, setAnswerSubmitting] = useState(false);
 
   useEffect(() => {
     if (!isLoading && !token && !hasRedirectedRef.current) {
@@ -324,6 +386,7 @@ const DealerDashboard = () => {
           new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
       );
       setRequests(sortedRequests);
+      setQuestions(data.unanswered_request_questions || []);
     } catch (error) {
       console.error("Failed to fetch dealer dashboard data:", error);
     } finally {
@@ -341,6 +404,54 @@ const DealerDashboard = () => {
   const onRefresh = () => {
     setRefreshing(true);
     fetchData();
+  };
+
+  const openAnswerModal = (question: RequestQuestion) => {
+    setSelectedQuestion(question);
+    setAnswerText("");
+  };
+
+  const closeAnswerModal = () => {
+    if (answerSubmitting) return;
+    setSelectedQuestion(null);
+    setAnswerText("");
+  };
+
+  const submitAnswer = async () => {
+    const trimmed = answerText.trim();
+    if (!selectedQuestion || trimmed.length < 2) {
+      Alert.alert("Answer Required", "Please enter an answer for the buyer.");
+      return;
+    }
+
+    try {
+      setAnswerSubmitting(true);
+      await answerDealerRequestQuestion(selectedQuestion.id, trimmed);
+      setQuestions((current) =>
+        current.filter((question) => question.id !== selectedQuestion.id)
+      );
+      setStats((current) =>
+        current
+          ? {
+              ...current,
+              unanswered_questions_count: Math.max(
+                (current.unanswered_questions_count || 1) - 1,
+                0
+              ),
+            }
+          : current
+      );
+      closeAnswerModal();
+      Alert.alert("Answer Sent", "The buyer has been notified.");
+    } catch (error: any) {
+      const message =
+        error?.response?.data?.message ||
+        error?.userMessage ||
+        "Could not send your answer.";
+      Alert.alert("Answer Failed", message);
+    } finally {
+      setAnswerSubmitting(false);
+    }
   };
 
   if (loading) {
@@ -397,6 +508,7 @@ const DealerDashboard = () => {
             <StatCard
               label="Unanswered"
               value={stats.unanswered_questions_count ?? 0}
+              onPress={() => setActiveTab("questions")}
             />
           </View>
         )}
@@ -426,6 +538,13 @@ const DealerDashboard = () => {
           >
             <Text style={styles.tabText}>Pending Approval</Text>
           </Pressable>
+
+          <Pressable
+            style={[styles.tab, activeTab === "questions" && styles.activeTab]}
+            onPress={() => setActiveTab("questions")}
+          >
+            <Text style={styles.tabText}>Questions</Text>
+          </Pressable>
         </ScrollView>
 
         {activeTab === "listings" && (
@@ -451,7 +570,62 @@ const DealerDashboard = () => {
             renderItem={(item) => <ListingItem key={item.id} item={item} />}
           />
         )}
+
+        {activeTab === "questions" && (
+          <DashboardSection
+            data={questions}
+            emptyText="No unanswered buyer questions."
+            renderItem={(item) => (
+              <QuestionItem key={item.id} item={item} onAnswer={openAnswerModal} />
+            )}
+          />
+        )}
       </ScrollView>
+
+      <Modal
+        transparent
+        animationType="fade"
+        visible={!!selectedQuestion}
+        onRequestClose={closeAnswerModal}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.answerModal}>
+            <Text style={styles.modalTitle}>Answer Buyer Question</Text>
+            <Text style={styles.modalQuestion}>
+              {selectedQuestion?.question_text}
+            </Text>
+            <TextInput
+              style={styles.answerInput}
+              value={answerText}
+              onChangeText={setAnswerText}
+              placeholder="Type your answer..."
+              placeholderTextColor={COLORS.textSecondary}
+              multiline
+              textAlignVertical="top"
+            />
+            <View style={styles.modalActions}>
+              <Pressable
+                style={[styles.modalButton, styles.cancelButton]}
+                onPress={closeAnswerModal}
+                disabled={answerSubmitting}
+              >
+                <Text style={styles.cancelButtonText}>Cancel</Text>
+              </Pressable>
+              <Pressable
+                style={[styles.modalButton, styles.submitAnswerButton]}
+                onPress={submitAnswer}
+                disabled={answerSubmitting}
+              >
+                {answerSubmitting ? (
+                  <ActivityIndicator color="white" />
+                ) : (
+                  <Text style={styles.submitAnswerText}>Send Answer</Text>
+                )}
+              </Pressable>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 };
@@ -611,6 +785,88 @@ const styles = StyleSheet.create({
   requestStatLabel: {
     color: COLORS.textSecondary,
     fontSize: 12,
+  },
+  questionFooter: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    gap: 12,
+    marginTop: 14,
+  },
+  answerButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    backgroundColor: COLORS.accent,
+    paddingHorizontal: 14,
+    paddingVertical: 9,
+    borderRadius: 6,
+  },
+  answerButtonText: {
+    color: "white",
+    fontWeight: "700",
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.65)",
+    justifyContent: "center",
+    padding: 20,
+  },
+  answerModal: {
+    backgroundColor: COLORS.card,
+    borderRadius: 8,
+    padding: 20,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+  },
+  modalTitle: {
+    color: COLORS.text,
+    fontSize: 18,
+    fontWeight: "700",
+    marginBottom: 10,
+  },
+  modalQuestion: {
+    color: COLORS.textSecondary,
+    marginBottom: 14,
+    lineHeight: 20,
+  },
+  answerInput: {
+    minHeight: 120,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    borderRadius: 8,
+    color: COLORS.text,
+    padding: 12,
+    backgroundColor: COLORS.background,
+  },
+  modalActions: {
+    flexDirection: "row",
+    justifyContent: "flex-end",
+    gap: 10,
+    marginTop: 16,
+  },
+  modalButton: {
+    minHeight: 44,
+    paddingHorizontal: 16,
+    borderRadius: 6,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  cancelButton: {
+    borderWidth: 1,
+    borderColor: COLORS.border,
+  },
+  cancelButtonText: {
+    color: COLORS.text,
+    fontWeight: "600",
+  },
+  submitAnswerButton: {
+    backgroundColor: COLORS.accent,
+    minWidth: 120,
+  },
+  submitAnswerText: {
+    color: "white",
+    fontWeight: "700",
   },
 });
 

@@ -18,6 +18,10 @@ import {
   getTradeInRequest,
   placeTradeInOffer,
 } from "@/lib/api/tradeIn";
+import {
+  showNativeFlowAlert,
+  showNativeFlowConfirm,
+} from "@/lib/nativeFlowAlert";
 
 const COLORS = {
   background: "#14181F",
@@ -116,7 +120,7 @@ const TradeInRequestDetailScreen = () => {
         amount: parseInt(offerAmount),
         notes: offerNotes,
       });
-      Alert.alert("Success", "Offer placed successfully!");
+      showNativeFlowAlert("Success", "Offer placed successfully.");
       setOfferAmount("");
       setOfferNotes("");
       fetchDetails(); // Refresh to show updated state if needed
@@ -129,29 +133,23 @@ const TradeInRequestDetailScreen = () => {
   };
 
   const handleAcceptOffer = async (offerId: number) => {
-    Alert.alert(
-      "Accept Offer",
-      "Are you sure you want to accept this offer? This action cannot be undone.",
-      [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "Accept",
-          onPress: async () => {
-            setLoading(true);
-            try {
-              await acceptTradeInOffer(String(id), offerId);
-              Alert.alert("Success", "Offer accepted!");
-              fetchDetails();
-            } catch (error: any) {
-              const msg =
-                error.response?.data?.message || "Failed to accept offer.";
-              Alert.alert("Error", msg);
-              setLoading(false);
-            }
-          },
-        },
-      ]
-    );
+    showNativeFlowConfirm({
+      title: "Accept Offer",
+      message: "Are you sure you want to accept this offer? This action cannot be undone.",
+      confirmText: "Accept",
+      onConfirm: async () => {
+        setLoading(true);
+        try {
+          await acceptTradeInOffer(String(id), offerId);
+          showNativeFlowAlert("Success", "Offer accepted.", fetchDetails);
+        } catch (error: any) {
+          const msg =
+            error.response?.data?.message || "Failed to accept offer.";
+          Alert.alert("Error", msg);
+          setLoading(false);
+        }
+      },
+    });
   };
 
   if (loading) {

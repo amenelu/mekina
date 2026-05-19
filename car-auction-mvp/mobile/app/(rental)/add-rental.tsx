@@ -18,6 +18,8 @@ import { Ionicons } from "@expo/vector-icons";
 
 import { useAuth } from "@/hooks/useAuth";
 import { createSellerCar } from "@/lib/api/rentals";
+import { showNativeFlowAlert } from "@/lib/nativeFlowAlert";
+import { isWebRuntime, replaceWebRoute } from "@/lib/webRouteReset";
 
 const COLORS = {
   background: "#14181F",
@@ -201,16 +203,22 @@ export default function RentalSubmitScreen() {
       await appendImagesToFormData(formData);
       await createSellerCar(formData);
 
-      if (Platform.OS === "web") {
-        setStatusType("success");
-        setStatusMessage("Your rental has been submitted for approval.");
-        router.replace("/(rental)/rental-dashboard");
+      if (isWebRuntime()) {
+        showNativeFlowAlert(
+          "Success",
+          "Your rental has been submitted for approval.",
+          () => {
+            replaceWebRoute("/rental-dashboard");
+          }
+        );
         return;
       }
 
-      Alert.alert("Success", "Your rental has been submitted for approval.", [
-        { text: "OK", onPress: () => router.replace("/(rental)/rental-dashboard") },
-      ]);
+      showNativeFlowAlert(
+        "Success",
+        "Your rental has been submitted for approval.",
+        () => router.replace("/(rental)/rental-dashboard")
+      );
     } catch (error: any) {
       showStatus(
         "error",

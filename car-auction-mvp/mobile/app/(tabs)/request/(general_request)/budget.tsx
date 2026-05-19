@@ -1,5 +1,5 @@
 import React, { useEffect } from "react";
-import { View, Text, StyleSheet, Pressable, Image } from "react-native";
+import { View, Text, StyleSheet, Pressable } from "react-native";
 import { useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { bodyTypeOptions } from "./body-type";
@@ -31,13 +31,8 @@ const RequestBudgetScreen = () => {
   useEffect(() => {
     router.prefetch("./body-type");
 
-    // Also prefetch the images for the next screen.
-    bodyTypeOptions.forEach((option) => {
-      const source = Image.resolveAssetSource(option.image);
-      if (source?.uri) {
-        Image.prefetch(source.uri);
-      }
-    });
+    // Static images are bundled by Expo; avoid Image.resolveAssetSource here
+    // because it is not available in the current web runtime bundle.
   }, [router]);
 
   const handleSelect = (value: string) => {
