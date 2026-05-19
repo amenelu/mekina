@@ -181,8 +181,11 @@ function showWebDialog({ title, message, buttons }: WebDialogOptions) {
   closeButton.setAttribute("aria-label", "Close alert");
   closeButton.textContent = "×";
 
-  const getDismissButton = () =>
-    safeButtons.find((button) => button.variant === "cancel") || safeButtons[0];
+  const getDismissButton = (): WebDialogButton =>
+    safeButtons.find((button) => button.variant === "cancel") || {
+      text: "Dismiss",
+      variant: "cancel",
+    };
 
   const close = (button: WebDialogButton) => {
     if (closed) return;

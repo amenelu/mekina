@@ -22,6 +22,10 @@ export function requestDealerPoints(requestedPoints: number) {
   });
 }
 
+export function unlockDealerConversation(conversationId: string | number) {
+  return apiClient.post(`/dealer/api/messages/${conversationId}/unlock`);
+}
+
 export function getDealerProfile(dealerId: string | number) {
   return apiClient.get(`/dealer/api/dealers/${dealerId}/profile`);
 }

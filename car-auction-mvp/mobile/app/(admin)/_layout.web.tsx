@@ -84,6 +84,8 @@ export default function AdminLayoutWeb() {
       <Tabs.Screen name="users" options={{ href: null }} />
       <Tabs.Screen name="listings" options={{ href: null }} />
       <Tabs.Screen name="dealers" options={{ href: null }} />
+      <Tabs.Screen name="rentals" options={{ href: null }} />
+      <Tabs.Screen name="point-requests" options={{ href: null }} />
       <Tabs.Screen name="admin-point-requests" options={{ href: null }} />
       <Tabs.Screen name="admin-notifications" options={{ href: null }} />
       </Tabs>

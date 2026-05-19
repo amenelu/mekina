@@ -26,6 +26,7 @@ class Conversation(db.Model):
 
     def to_dict(self, current_user_id):
         """Serializes the Conversation object to a dictionary."""
+        free_message_limit = 3
         # Determine the 'other party' in the conversation
         if current_user_id == self.buyer_id:
             other_party = self.dealer
@@ -33,6 +34,10 @@ class Conversation(db.Model):
             other_party = self.buyer
 
         last_message = self.messages.order_by(db.desc(ChatMessage.timestamp)).first()
+        buyer_message_count = self.messages.filter_by(sender_id=self.buyer_id).count()
+        current_user_message_count = self.messages.filter_by(
+            sender_id=current_user_id
+        ).count()
 
         # --- Defensive serialization ---
         # If the other party or car was deleted, provide a placeholder to prevent client-side crashes.
@@ -76,6 +81,17 @@ class Conversation(db.Model):
             "unread_count": self.messages.filter_by(is_read=False)
             .filter(ChatMessage.sender_id != current_user_id)
             .count(),
+            "is_unlocked": self.is_unlocked,
+            "message_count": self.message_count,
+            "buyer_message_count": buyer_message_count,
+            "current_user_message_count": current_user_message_count,
+            "free_message_limit": free_message_limit,
+            "remaining_free_messages": max(
+                0, free_message_limit - current_user_message_count
+            ),
+            "unlock_cost": 1,
+            "can_unlock": current_user_id == self.dealer_id and not self.is_unlocked,
+            "lead_score": self.lead_score.score if self.lead_score else 0,
         }
 
     def __repr__(self):

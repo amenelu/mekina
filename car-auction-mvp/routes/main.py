@@ -118,6 +118,12 @@ def _apply_multi_term_search(query, raw_query):
             func.coalesce(Car.make, "")
             + func.coalesce(Car.model, "")
             + func.coalesce(cast(Car.year, String), "")
+            + func.coalesce(Car.condition, "")
+            + func.coalesce(Car.body_type, "")
+            + func.coalesce(Car.drivetrain, "")
+            + func.coalesce(Car.fuel_type, "")
+            + func.coalesce(cast(Car.mileage, String), "")
+            + func.coalesce(cast(Car.electric_range_km, String), "")
         ),
         " ",
         "",
@@ -128,6 +134,10 @@ def _apply_multi_term_search(query, raw_query):
         term_conditions = [
             Car.make.ilike(f"%{term}%"),
             Car.model.ilike(f"%{term}%"),
+            Car.condition.ilike(f"%{term}%"),
+            Car.body_type.ilike(f"%{term}%"),
+            Car.drivetrain.ilike(f"%{term}%"),
+            Car.fuel_type.ilike(f"%{term}%"),
         ]
         if term.isdigit():
             term_conditions.append(Car.year == int(term))
@@ -480,6 +490,8 @@ def search_suggestions():
         query = query.filter(Car.fuel_type == fuel_type)
     if body_type := request.args.get("body_type"):
         query = query.filter(Car.body_type == body_type)
+    if drivetrain := request.args.get("drivetrain"):
+        query = query.filter(Car.drivetrain == drivetrain)
     if max_price := request.args.get("max_price", type=float):
         # This filter needs to check both fixed_price and auction price
         query = query.outerjoin(Car.auction).filter(
@@ -994,42 +1006,61 @@ def send_chat_message():
 
     data = request.get_json()
     car_id = data.get("car_id")
+    conversation_id = data.get("conversation_id")
     message_body = data.get("message")
 
-    if not car_id or not message_body:
+    if not (car_id or conversation_id) or not message_body:
         return (
-            jsonify({"status": "error", "message": "Missing car ID or message."}),
+            jsonify(
+                {
+                    "status": "error",
+                    "message": "Missing conversation, car ID, or message.",
+                }
+            ),
             400,
         )
 
-    car = Car.query.get_or_404(car_id)
-    dealer_id = car.owner_id
-
-    # --- Refactored Conversation Logic ---
-    # If the current user is the dealer, we need to find the conversation based on the car and a potential buyer.
-    # Since the buyer initiates, we can assume a conversation exists if the dealer is replying.
-    # A more robust solution would pass the buyer_id from the client, but for now we can infer it.
-    if user.id == dealer_id:  # The dealer is replying
-        # Find any conversation for this car. This is a simplification.
-        # A better approach would be to know which buyer the dealer is talking to.
-        # We'll find the first conversation for this car initiated by any buyer.
-        conversation = Conversation.query.filter_by(car_id=car_id).first()
-        if not conversation:
+    if conversation_id:
+        conversation = Conversation.query.get_or_404(conversation_id)
+        if user.id not in (conversation.buyer_id, conversation.dealer_id):
+            return jsonify({"status": "error", "message": "Permission denied."}), 403
+        if car_id and int(car_id) != conversation.car_id:
             return (
-                jsonify({"status": "error", "message": "Conversation not found."}),
-                404,
+                jsonify(
+                    {
+                        "status": "error",
+                        "message": "Conversation does not match this listing.",
+                    }
+                ),
+                400,
             )
-    else:  # A buyer is sending a message
-        conversation = Conversation.query.filter_by(
-            car_id=car_id, buyer_id=user.id
-        ).first()
-        if not conversation:
-            conversation = Conversation(
-                car_id=car_id, buyer_id=user.id, dealer_id=dealer_id
-            )
-            # Explicitly create the LeadScore at the same time
-            conversation.lead_score = LeadScore(score=0)
-            db.session.add(conversation)
+        car = conversation.car
+        dealer_id = conversation.dealer_id
+    else:
+        car = Car.query.get_or_404(car_id)
+        dealer_id = car.owner_id
+
+        # --- Refactored Conversation Logic ---
+        # Buyers create or reuse their own conversation. Dealer replies should pass
+        # conversation_id so replies go to the intended buyer.
+        if user.id == dealer_id:
+            conversation = Conversation.query.filter_by(car_id=car_id).first()
+            if not conversation:
+                return (
+                    jsonify({"status": "error", "message": "Conversation not found."}),
+                    404,
+                )
+        else:
+            conversation = Conversation.query.filter_by(
+                car_id=car_id, buyer_id=user.id
+            ).first()
+            if not conversation:
+                conversation = Conversation(
+                    car_id=car_id, buyer_id=user.id, dealer_id=dealer_id
+                )
+                # Explicitly create the LeadScore at the same time
+                conversation.lead_score = LeadScore(score=0)
+                db.session.add(conversation)
 
     # Ensure a lead score object exists for this conversation (for older conversations)
     if not conversation.lead_score:
@@ -1038,15 +1069,20 @@ def send_chat_message():
 
     # --- Free Message Limit Logic ---
     FREE_MESSAGE_LIMIT = 3
-    # Check individual message count for the current user
-    user_message_count = ChatMessage.query.filter_by(
-        conversation_id=conversation.id, sender_id=user.id
+    buyer_message_count = ChatMessage.query.filter_by(
+        conversation_id=conversation.id, sender_id=conversation.buyer_id
     ).count()
-    if not conversation.is_unlocked and user_message_count >= FREE_MESSAGE_LIMIT:
+    if (
+        not conversation.is_unlocked
+        and user.id == conversation.buyer_id
+        and buyer_message_count >= FREE_MESSAGE_LIMIT
+    ):
         return jsonify(
             {
                 "status": "limit_reached",
-                "message": "Free message limit reached. The dealer must unlock the conversation to continue.",
+                "message": "You can send up to 3 messages before the dealer unlocks this chat.",
+                "free_message_limit": FREE_MESSAGE_LIMIT,
+                "remaining_free_messages": 0,
             }
         )
 
@@ -1191,6 +1227,11 @@ def send_chat_message():
             {"conversation_id": conversation.id},
             room=str(recipient_id),
         )
+        socketio.emit(
+            "conversation_list_update",
+            {"conversation_id": conversation.id},
+            room=str(user.id),
+        )
         send_push_notification(
             recipient_id,
             notification_message,
@@ -1205,7 +1246,13 @@ def send_chat_message():
             room=str(dealer_id),
         )
 
-    response_data = {"status": "success", "message": "Message sent!"}
+    response_data = {
+        "status": "success",
+        "message": "Message sent!",
+        "conversation_id": conversation.id,
+        "chat_message": chat_message_data,
+        "conversation": conversation.to_dict(user.id),
+    }
     # If the buyer's message was masked, add a flag to the response for the UI
     if is_serious and user.id == conversation.buyer_id:
         response_data["buyer_action_required"] = "request_call"

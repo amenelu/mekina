@@ -29,7 +29,58 @@ const COLORS = {
   accent: "#A370F7",
   input: "#14181F",
   border: "#313843",
+  danger: "#E35D6A",
 };
+
+const CONDITION_OPTIONS = ["Used", "New"] as const;
+const BODY_TYPE_OPTIONS = [
+  "SUV",
+  "Sedan",
+  "Hatchback",
+  "Pickup",
+  "Coupe",
+  "Minivan",
+] as const;
+const TRANSMISSION_OPTIONS = ["Automatic", "Manual"] as const;
+const DRIVETRAIN_OPTIONS = ["FWD", "RWD", "AWD", "4WD"] as const;
+const FUEL_TYPE_OPTIONS = ["Gasoline", "Diesel", "Electric", "Hybrid"] as const;
+
+const ChoiceGroup = ({
+  label,
+  value,
+  options,
+  onChange,
+}: {
+  label: string;
+  value: string;
+  options: readonly string[];
+  onChange: (value: string) => void;
+}) => (
+  <View style={styles.inputGroup}>
+    <Text style={styles.label}>{label}</Text>
+    <View style={styles.choiceGroup}>
+      {options.map((option) => {
+        const selected = value === option;
+        return (
+          <Pressable
+            key={option}
+            style={[styles.choiceChip, selected && styles.choiceChipSelected]}
+            onPress={() => onChange(option)}
+          >
+            <Text
+              style={[
+                styles.choiceChipText,
+                selected && styles.choiceChipTextSelected,
+              ]}
+            >
+              {option}
+            </Text>
+          </Pressable>
+        );
+      })}
+    </View>
+  </View>
+);
 
 const CarSubmissionForm = () => {
   const navigation = useNavigation();
@@ -42,7 +93,20 @@ const CarSubmissionForm = () => {
   const [year, setYear] = useState("");
   const [price, setPrice] = useState("");
   const [description, setDescription] = useState("");
+  const [condition, setCondition] =
+    useState<(typeof CONDITION_OPTIONS)[number]>("Used");
+  const [mileage, setMileage] = useState("");
+  const [bodyType, setBodyType] =
+    useState<(typeof BODY_TYPE_OPTIONS)[number]>("SUV");
+  const [transmission, setTransmission] =
+    useState<(typeof TRANSMISSION_OPTIONS)[number]>("Automatic");
+  const [drivetrain, setDrivetrain] =
+    useState<(typeof DRIVETRAIN_OPTIONS)[number]>("FWD");
+  const [fuelType, setFuelType] =
+    useState<(typeof FUEL_TYPE_OPTIONS)[number]>("Gasoline");
+  const [electricRangeKm, setElectricRangeKm] = useState("");
   const [images, setImages] = useState<ImagePicker.ImagePickerAsset[]>([]);
+  const needsRange = fuelType === "Electric" || fuelType === "Hybrid";
 
   const appendImagesToFormData = async (formData: FormData) => {
     for (const image of images) {
@@ -87,6 +151,16 @@ const CarSubmissionForm = () => {
       return;
     }
 
+    if (condition === "Used" && !mileage.trim()) {
+      Alert.alert("Error", "Mileage is required for used cars.");
+      return;
+    }
+
+    if (needsRange && !electricRangeKm.trim()) {
+      Alert.alert("Error", "Range is required for hybrid and electric cars.");
+      return;
+    }
+
     if (images.length === 0) {
       Alert.alert("Error", "Please upload at least one photo of the car.");
       return;
@@ -101,12 +175,17 @@ const CarSubmissionForm = () => {
     formData.append("description", description);
     formData.append("listing_type", "sale");
     formData.append("fixed_price", price);
-    // Add other default values
-    formData.append("condition", "Used");
-    formData.append("body_type", "Sedan");
-    formData.append("transmission", "Automatic");
-    formData.append("drivetrain", "FWD");
-    formData.append("fuel_type", "Gasoline");
+    formData.append("condition", condition);
+    formData.append("body_type", bodyType);
+    formData.append("transmission", transmission);
+    formData.append("drivetrain", drivetrain);
+    formData.append("fuel_type", fuelType);
+    if (condition === "Used" && mileage.trim()) {
+      formData.append("mileage", mileage);
+    }
+    if (needsRange && electricRangeKm.trim()) {
+      formData.append("electric_range_km", electricRangeKm);
+    }
 
     try {
       await appendImagesToFormData(formData);
@@ -227,6 +306,78 @@ const CarSubmissionForm = () => {
               placeholderTextColor={COLORS.textSecondary}
             />
           </View>
+          <ChoiceGroup
+            label="Condition"
+            value={condition}
+            options={CONDITION_OPTIONS}
+            onChange={(value) => {
+              setCondition(value as (typeof CONDITION_OPTIONS)[number]);
+              if (value === "New") {
+                setMileage("");
+              }
+            }}
+          />
+          {condition === "Used" && (
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>Mileage (km)</Text>
+              <TextInput
+                style={styles.input}
+                value={mileage}
+                onChangeText={setMileage}
+                placeholder="e.g., 42000"
+                keyboardType="number-pad"
+                placeholderTextColor={COLORS.textSecondary}
+              />
+            </View>
+          )}
+          <ChoiceGroup
+            label="Body Type"
+            value={bodyType}
+            options={BODY_TYPE_OPTIONS}
+            onChange={(value) =>
+              setBodyType(value as (typeof BODY_TYPE_OPTIONS)[number])
+            }
+          />
+          <ChoiceGroup
+            label="Transmission"
+            value={transmission}
+            options={TRANSMISSION_OPTIONS}
+            onChange={(value) =>
+              setTransmission(value as (typeof TRANSMISSION_OPTIONS)[number])
+            }
+          />
+          <ChoiceGroup
+            label="Drivetrain"
+            value={drivetrain}
+            options={DRIVETRAIN_OPTIONS}
+            onChange={(value) =>
+              setDrivetrain(value as (typeof DRIVETRAIN_OPTIONS)[number])
+            }
+          />
+          <ChoiceGroup
+            label="Fuel Type"
+            value={fuelType}
+            options={FUEL_TYPE_OPTIONS}
+            onChange={(value) => {
+              setFuelType(value as (typeof FUEL_TYPE_OPTIONS)[number]);
+              if (value !== "Electric" && value !== "Hybrid") {
+                setElectricRangeKm("");
+              }
+            }}
+          />
+          {needsRange && (
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>Range (km)</Text>
+              <TextInput
+                style={styles.input}
+                value={electricRangeKm}
+                onChangeText={setElectricRangeKm}
+                placeholder="e.g., 450"
+                keyboardType="number-pad"
+                placeholderTextColor={COLORS.textSecondary}
+              />
+            </View>
+          )}
         </View>
 
         <View style={styles.formCard}>
@@ -287,6 +438,31 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: COLORS.border,
     fontSize: 16,
+  },
+  choiceGroup: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+  },
+  choiceChip: {
+    paddingVertical: 9,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    backgroundColor: COLORS.input,
+  },
+  choiceChipSelected: {
+    borderColor: COLORS.accent,
+    backgroundColor: COLORS.accent,
+  },
+  choiceChipText: {
+    color: COLORS.textSecondary,
+    fontSize: 14,
+    fontWeight: "600",
+  },
+  choiceChipTextSelected: {
+    color: COLORS.text,
   },
   submitButton: {
     backgroundColor: COLORS.accent,

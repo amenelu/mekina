@@ -625,6 +625,24 @@ const CarDetailScreen = () => {
               <Text style={styles.specLabel}>Fuel Type</Text>
               <Text style={styles.specValue}>{car.fuel_type}</Text>
             </View>
+            {(car.fuel_type === "Electric" || car.fuel_type === "Hybrid") && (
+              <View style={styles.specItem}>
+                <Text style={styles.specLabel}>Range</Text>
+                <Text style={styles.specValue}>
+                  {car.electric_range_km
+                    ? `${car.electric_range_km.toLocaleString()} km`
+                    : "N/A"}
+                </Text>
+              </View>
+            )}
+            <View style={styles.specItem}>
+              <Text style={styles.specLabel}>Body Type</Text>
+              <Text style={styles.specValue}>{car.body_type || "N/A"}</Text>
+            </View>
+            <View style={styles.specItem}>
+              <Text style={styles.specLabel}>Drivetrain</Text>
+              <Text style={styles.specValue}>{car.drivetrain || "N/A"}</Text>
+            </View>
           </View>
 
           {/* Similar Cars Section */}

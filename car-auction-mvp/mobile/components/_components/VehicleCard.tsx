@@ -27,6 +27,11 @@ export type Vehicle = {
   price: string; // The formatted price string to display
   image: string; // The image URL to display
   mileage: number;
+  condition?: string;
+  body_type?: string;
+  drivetrain?: string;
+  fuel_type?: string;
+  electric_range_km?: number | null;
   is_featured?: boolean;
   listingType: "Sale" | "Auction" | "Rental" | "sale" | "auction" | "rental"; // The type of listing
 };

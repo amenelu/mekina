@@ -96,9 +96,20 @@ def create_app(config_class=None):
             response.headers["Vary"] = "Origin"
         return response
 
+    configured_socket_origins = [
+        item.strip()
+        for item in os.environ.get("CORS_ALLOWED_ORIGINS", "").split(",")
+        if item.strip()
+    ]
+    socket_allowed_origins = (
+        configured_socket_origins
+        if configured_socket_origins
+        else ("*" if app.config.get("FLASK_DEBUG", False) else [])
+    )
+
     # Initialize Flask extensions here
     db.init_app(app)
-    socketio.init_app(app)
+    socketio.init_app(app, cors_allowed_origins=socket_allowed_origins)
     login_manager.init_app(app)
     migrate.init_app(app, db)
 

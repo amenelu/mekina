@@ -129,6 +129,130 @@ def test_dealer_and_rental_apis_reject_wrong_roles(client):
     assert client.get("/seller/api/rental-dashboard", headers=dealer_headers).status_code == 403
 
 
+def test_dealer_reply_uses_target_conversation_for_message_limit(client):
+    dealer = create_user("chat_dealer", "chat-dealer@example.com", is_dealer=True)
+    buyer_one = create_user("chat_buyer_one", "chat-buyer-one@example.com")
+    buyer_two = create_user("chat_buyer_two", "chat-buyer-two@example.com")
+    car = create_car(dealer)
+    db.session.flush()
+
+    first_conversation = Conversation(
+        car_id=car.id, buyer_id=buyer_one.id, dealer_id=dealer.id
+    )
+    second_conversation = Conversation(
+        car_id=car.id, buyer_id=buyer_two.id, dealer_id=dealer.id
+    )
+    db.session.add_all([first_conversation, second_conversation])
+    db.session.flush()
+
+    for index in range(3):
+        db.session.add(
+            ChatMessage(
+                conversation_id=first_conversation.id,
+                sender_id=dealer.id,
+                body=f"Used free dealer message {index}",
+            )
+        )
+    db.session.commit()
+
+    response = client.post(
+        "/chat/send",
+        json={
+            "conversation_id": second_conversation.id,
+            "car_id": car.id,
+            "message": "This reply should go to the second buyer.",
+        },
+        headers=login_headers(client, dealer.username),
+    )
+
+    assert response.status_code == 200
+    assert response.get_json()["status"] == "success"
+    sent_message = (
+        ChatMessage.query.filter_by(conversation_id=second_conversation.id)
+        .order_by(ChatMessage.id.desc())
+        .first()
+    )
+    assert sent_message is not None
+    assert sent_message.sender_id == dealer.id
+    assert sent_message.body == "This reply should go to the second buyer."
+
+
+def test_buyer_message_limit_and_dealer_unlock_flow(client):
+    dealer = create_user(
+        "unlock_dealer", "unlock-dealer@example.com", is_dealer=True, points=2
+    )
+    buyer = create_user("unlock_buyer", "unlock-buyer@example.com")
+    car = create_car(dealer)
+    conversation = Conversation(car_id=car.id, buyer_id=buyer.id, dealer_id=dealer.id)
+    db.session.add(conversation)
+    db.session.flush()
+
+    for index in range(3):
+        db.session.add(
+            ChatMessage(
+                conversation_id=conversation.id,
+                sender_id=buyer.id,
+                body=f"Buyer message {index}",
+                original_body=f"Buyer message {index}",
+            )
+        )
+    db.session.commit()
+
+    limited_response = client.post(
+        "/chat/send",
+        json={
+            "conversation_id": conversation.id,
+            "car_id": car.id,
+            "message": "Fourth buyer message should be blocked.",
+        },
+        headers=login_headers(client, buyer.username),
+    )
+
+    assert limited_response.status_code == 200
+    assert limited_response.get_json()["status"] == "limit_reached"
+    assert limited_response.get_json()["free_message_limit"] == 3
+
+    dealer_reply_response = client.post(
+        "/chat/send",
+        json={
+            "conversation_id": conversation.id,
+            "car_id": car.id,
+            "message": "Dealer can still reply before unlock.",
+        },
+        headers=login_headers(client, dealer.username),
+    )
+
+    assert dealer_reply_response.status_code == 200
+    assert dealer_reply_response.get_json()["status"] == "success"
+
+    unlock_response = client.post(
+        f"/dealer/api/messages/{conversation.id}/unlock",
+        headers=login_headers(client, dealer.username),
+    )
+
+    assert unlock_response.status_code == 200
+    unlock_data = unlock_response.get_json()
+    assert unlock_data["status"] == "success"
+    assert unlock_data["dealer_points"] == 1
+    assert unlock_data["conversation"]["is_unlocked"] is True
+    assert PointTransaction.query.filter_by(
+        user_id=dealer.id, amount=-1, transaction_type="unlock_chat"
+    ).first()
+
+    unlocked_response = client.post(
+        "/chat/send",
+        json={
+            "conversation_id": conversation.id,
+            "car_id": car.id,
+            "message": "Buyer can continue after unlock.",
+        },
+        headers=login_headers(client, buyer.username),
+    )
+
+    assert unlocked_response.status_code == 200
+    assert unlocked_response.get_json()["status"] == "success"
+
+
 def test_only_dealers_can_request_more_points(client):
     admin = create_user("points_admin", "points-admin@example.com", is_admin=True)
     buyer = create_user("points_buyer", "points-buyer@example.com")

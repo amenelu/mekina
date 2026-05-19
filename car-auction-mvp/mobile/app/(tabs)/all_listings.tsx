@@ -37,7 +37,20 @@ function normalizeSearchText(value: string) {
   return value.toLowerCase().replace(/\s+/g, "");
 }
 
-function matchesSearchTerms(searchQuery: string, item: { year?: number; make?: string; model?: string }) {
+function matchesSearchTerms(
+  searchQuery: string,
+  item: {
+    year?: number;
+    make?: string;
+    model?: string;
+    condition?: string;
+    body_type?: string;
+    drivetrain?: string;
+    fuel_type?: string;
+    mileage?: number;
+    electric_range_km?: number | null;
+  }
+) {
   const terms = searchQuery
     .toLowerCase()
     .split(/\s+/)
@@ -47,7 +60,20 @@ function matchesSearchTerms(searchQuery: string, item: { year?: number; make?: s
     return true;
   }
 
-  const haystack = `${item.year ?? ""} ${item.make ?? ""} ${item.model ?? ""}`.toLowerCase();
+  const haystack = [
+    item.year,
+    item.make,
+    item.model,
+    item.condition,
+    item.body_type,
+    item.drivetrain,
+    item.fuel_type,
+    item.mileage,
+    item.electric_range_km,
+  ]
+    .filter((value) => value !== undefined && value !== null)
+    .join(" ")
+    .toLowerCase();
   const normalizedHaystack = normalizeSearchText(haystack);
   const normalizedQuery = normalizeSearchText(searchQuery);
   return (
@@ -74,6 +100,7 @@ const AllListingsScreen = () => {
     condition: "",
     body_type: "",
     fuel_type: "",
+    drivetrain: "",
   });
   // State for the new unified filter modal
   const [isFilterModalVisible, setFilterModalVisible] = useState(false);
@@ -119,6 +146,9 @@ const AllListingsScreen = () => {
       if (filters.fuel_type) {
         params.fuel_type = filters.fuel_type;
       }
+      if (filters.drivetrain) {
+        params.drivetrain = filters.drivetrain;
+      }
 
       const response = await getListings(params);
       if (currentRequestId !== searchRequestIdRef.current) {
@@ -136,6 +166,11 @@ const AllListingsScreen = () => {
           price: item.price_display || "N/A",
           image: item.image_url,
           mileage: item.mileage || 0,
+          condition: item.condition,
+          body_type: item.body_type,
+          drivetrain: item.drivetrain,
+          fuel_type: item.fuel_type,
+          electric_range_km: item.electric_range_km,
           is_featured: item.is_featured,
           listingType: item.listing_type,
         }));
@@ -191,12 +226,14 @@ const AllListingsScreen = () => {
     condition: ["New", "Used"],
     body_type: ["SUV", "Sedan", "Hatchback", "Pickup", "Coupe", "Minivan"],
     fuel_type: ["Gasoline", "Diesel", "Electric", "Hybrid"],
+    drivetrain: ["FWD", "RWD", "AWD", "4WD"],
   };
 
   const filterLabels: Record<keyof typeof filters, string> = {
     condition: "Condition",
     body_type: "Body Type",
     fuel_type: "Fuel Type",
+    drivetrain: "Drivetrain",
   };
 
   const clearSingleFilter = (key: keyof typeof filters) => {
@@ -215,6 +252,7 @@ const AllListingsScreen = () => {
       condition: "",
       body_type: "",
       fuel_type: "",
+      drivetrain: "",
     };
     setFilters(clearedFilters);
     setTempFilters(clearedFilters);
@@ -506,6 +544,37 @@ const AllListingsScreen = () => {
                       style={[
                         styles.modalOptionText,
                         tempFilters.fuel_type === option &&
+                          styles.modalOptionTextSelected,
+                      ]}
+                    >
+                      {option}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+
+              {/* Drivetrain Filter */}
+              <Text style={styles.modalSectionTitle}>Drivetrain</Text>
+              <View style={styles.modalOptionsGrid}>
+                {filterOptions.drivetrain.map((option) => (
+                  <TouchableOpacity
+                    key={option}
+                    style={[
+                      styles.modalOption,
+                      tempFilters.drivetrain === option &&
+                        styles.modalOptionSelected,
+                    ]}
+                    onPress={() =>
+                      setTempFilters((f) => ({
+                        ...f,
+                        drivetrain: f.drivetrain === option ? "" : option,
+                      }))
+                    }
+                  >
+                    <Text
+                      style={[
+                        styles.modalOptionText,
+                        tempFilters.drivetrain === option &&
                           styles.modalOptionTextSelected,
                       ]}
                     >

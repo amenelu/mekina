@@ -41,7 +41,7 @@ interface Conversation {
 
 const MessagesScreen = () => {
   const { token } = useAuth();
-  const { socket } = useSocket();
+  const { socket, refreshCounts } = useSocket();
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [conversations, setConversations] = useState<Conversation[]>([]);
@@ -52,13 +52,14 @@ const MessagesScreen = () => {
     try {
       const response = await getMyMessages();
       setConversations(response.data.conversations);
+      refreshCounts();
     } catch (error) {
       console.error("Failed to fetch messages:", error);
     } finally {
       setLoading(false);
       if (isRefresh) setRefreshing(false);
     }
-  }, [token]);
+  }, [refreshCounts, token]);
 
   useEffect(() => {
     fetchMessages();

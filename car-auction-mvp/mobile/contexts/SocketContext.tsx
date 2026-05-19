@@ -15,6 +15,7 @@ interface SocketContextType {
   isConnected: boolean;
   unreadMessageCount: number;
   unreadNotificationCount: number;
+  refreshCounts: () => Promise<void>;
 }
 
 const SocketContext = createContext<SocketContextType>({
@@ -22,7 +23,17 @@ const SocketContext = createContext<SocketContextType>({
   isConnected: false,
   unreadMessageCount: 0,
   unreadNotificationCount: 0,
+  refreshCounts: async () => {},
 });
+
+function getSocketUrl() {
+  const explicitSocketUrl = process.env.EXPO_PUBLIC_SOCKET_URL;
+  if (explicitSocketUrl) {
+    return explicitSocketUrl;
+  }
+
+  return API_URL.replace(/:8083(?=\/|$)/, ":5001");
+}
 
 export const useSocket = () => useContext(SocketContext);
 
@@ -33,7 +44,7 @@ export const SocketProvider = ({ children }: { children: ReactNode }) => {
   const [unreadMessageCount, setUnreadMessageCount] = useState(0);
   const [unreadNotificationCount, setUnreadNotificationCount] = useState(0);
 
-  const fetchCounts = async () => {
+  const fetchCounts = React.useCallback(async () => {
     if (!token) return;
     try {
       const response = await getUnreadCounts();
@@ -42,7 +53,7 @@ export const SocketProvider = ({ children }: { children: ReactNode }) => {
     } catch (error) {
       console.error("Failed to fetch unread counts", error);
     }
-  };
+  }, [token]);
 
   useEffect(() => {
     if (!token) {
@@ -55,9 +66,9 @@ export const SocketProvider = ({ children }: { children: ReactNode }) => {
 
     fetchCounts();
 
-    const newSocket = io(API_URL, {
+    const newSocket = io(getSocketUrl(), {
       query: { token },
-      transports: ["websocket"],
+      transports: ["websocket", "polling"],
     });
 
     setSocket(newSocket);
@@ -86,7 +97,7 @@ export const SocketProvider = ({ children }: { children: ReactNode }) => {
     return () => {
       newSocket.disconnect();
     };
-  }, [token]);
+  }, [fetchCounts, token]);
 
   return (
     <SocketContext.Provider
@@ -95,6 +106,7 @@ export const SocketProvider = ({ children }: { children: ReactNode }) => {
         isConnected,
         unreadMessageCount,
         unreadNotificationCount,
+        refreshCounts: fetchCounts,
       }}
     >
       {children}

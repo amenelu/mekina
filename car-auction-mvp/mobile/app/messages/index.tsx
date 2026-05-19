@@ -24,7 +24,7 @@ const COLORS = {
 
 const MessagesScreen = () => {
   const { token } = useAuth();
-  const { socket } = useSocket();
+  const { socket, refreshCounts } = useSocket();
   const [conversations, setConversations] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -34,13 +34,14 @@ const MessagesScreen = () => {
     try {
       const response = await getMyMessages();
       setConversations(response.data.conversations);
+      refreshCounts();
     } catch (error) {
       console.error("Failed to fetch conversations:", error);
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [token]);
+  }, [refreshCounts, token]);
 
   useFocusEffect(
     useCallback(() => {

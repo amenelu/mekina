@@ -925,10 +925,20 @@ def toggle_verification(dealer_id):
 
 
 @dealer_bp.route("/api/messages/<int:conversation_id>/unlock", methods=["POST"])
-@login_required
-@dealer_required
-def api_unlock_conversation(conversation_id):
+@token_required
+def api_unlock_conversation(current_user, conversation_id):
     """API endpoint for a dealer to spend a point to unlock a conversation."""
+    if not current_user.is_dealer:
+        return (
+            jsonify(
+                {
+                    "status": "error",
+                    "message": "Only dealers can unlock conversations.",
+                }
+            ),
+            403,
+        )
+
     conversation = Conversation.query.get_or_404(conversation_id)
 
     if conversation.dealer_id != current_user.id:
@@ -961,21 +971,32 @@ def api_unlock_conversation(conversation_id):
         for msg in conversation.messages.filter(
             ChatMessage.sender_id == conversation.buyer_id
         ):
-            msg.body = msg.original_body  # Restore original message
+            if msg.original_body:
+                msg.body = msg.original_body  # Restore original message
         db.session.commit()
+        messages = conversation.messages.order_by(ChatMessage.timestamp.asc()).all()
         return (
             jsonify(
                 {
                     "status": "success",
                     "message": "Conversation unlocked!",
+                    "dealer_points": current_user.points,
                     "conversation": conversation.to_dict(current_user.id),
+                    "messages": [msg.to_dict() for msg in messages],
                 }
             ),
             200,
         )
+    messages = conversation.messages.order_by(ChatMessage.timestamp.asc()).all()
     return (
         jsonify(
-            {"status": "info", "message": "This conversation is already unlocked."}
+            {
+                "status": "info",
+                "message": "This conversation is already unlocked.",
+                "dealer_points": current_user.points,
+                "conversation": conversation.to_dict(current_user.id),
+                "messages": [msg.to_dict() for msg in messages],
+            }
         ),
         200,
     )

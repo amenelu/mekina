@@ -32,6 +32,7 @@ class Car(db.Model):
     drivetrain = db.Column(db.String(50))
     mileage = db.Column(db.Integer)
     fuel_type = db.Column(db.String(50))
+    electric_range_km = db.Column(db.Integer, nullable=True)
     condition = db.Column(db.String(50))  # e.g., New, Used
     body_type = db.Column(db.String(50), nullable=True)  # e.g., SUV, Sedan
     listing_type = db.Column(
@@ -108,6 +109,7 @@ class Car(db.Model):
             "drivetrain": self.drivetrain,
             "mileage": self.mileage,
             "fuel_type": self.fuel_type,
+            "electric_range_km": self.electric_range_km,
             "condition": self.condition,
             "body_type": self.body_type,
             "listing_type": self.listing_type,

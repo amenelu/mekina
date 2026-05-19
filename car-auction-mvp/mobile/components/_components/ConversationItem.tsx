@@ -1,6 +1,7 @@
 import React from "react";
 import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
 import { useRouter } from "expo-router";
+import { Ionicons } from "@expo/vector-icons";
 
 const COLORS = {
   background: "#14181F",
@@ -26,6 +27,7 @@ interface Conversation {
   last_message_body: string;
   last_message_timestamp: string;
   unread_count?: number;
+  is_unlocked?: boolean;
 }
 
 const ConversationItem = ({ conv }: { conv: Conversation }) => {
@@ -60,9 +62,16 @@ const ConversationItem = ({ conv }: { conv: Conversation }) => {
     <TouchableOpacity style={styles.notificationItem} onPress={handlePress}>
       <View style={styles.notificationContent}>
         <View style={styles.headerRow}>
-          <Text style={styles.notificationText}>
-            {conv.other_party?.username || "User"}
-          </Text>
+          <View style={styles.nameRow}>
+            <Text style={styles.notificationText}>
+              {conv.other_party?.username || "User"}
+            </Text>
+            {conv.is_unlocked && (
+              <View style={styles.unlockedBadge}>
+                <Ionicons name="lock-open" size={13} color={COLORS.foreground} />
+              </View>
+            )}
+          </View>
           <Text style={styles.dateText}>{formattedDate}</Text>
         </View>
         <Text style={styles.subText}>
@@ -109,7 +118,21 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "center",
   },
+  nameRow: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+  },
   notificationText: { color: COLORS.accent, fontSize: 16, fontWeight: "bold" },
+  unlockedBadge: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    backgroundColor: "#2E7D5B",
+    alignItems: "center",
+    justifyContent: "center",
+  },
   subText: {
     color: COLORS.mutedForeground,
     fontSize: 12,

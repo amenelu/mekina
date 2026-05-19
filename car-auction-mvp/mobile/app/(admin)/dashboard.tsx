@@ -130,7 +130,11 @@ const AdminDashboardScreen = () => {
   const router = useRouter();
 
   const fetchData = useCallback(async (isRefresh = false) => {
-    if (!token) return;
+    if (!token) {
+      setLoading(false);
+      setRefreshing(false);
+      return;
+    }
     if (isRefresh) {
       setRefreshing(true);
     } else {

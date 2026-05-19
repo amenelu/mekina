@@ -16,6 +16,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "@/hooks/useAuth";
 import { useSocket } from "../../contexts/SocketContext";
 import { getConversation, sendChatMessage } from "@/lib/api/messages";
+import { unlockDealerConversation } from "@/lib/api/dealer";
 
 const COLORS = {
   background: "#14181F",
@@ -28,13 +29,14 @@ const COLORS = {
 
 const ConversationDetailScreen = () => {
   const { id } = useLocalSearchParams();
-  const { token, user } = useAuth() as any;
-  const { socket } = useSocket();
+  const { token, user, login } = useAuth() as any;
+  const { socket, refreshCounts } = useSocket();
   const [conversation, setConversation] = useState<any>(null);
   const [messages, setMessages] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [inputText, setInputText] = useState("");
   const [sending, setSending] = useState(false);
+  const [unlocking, setUnlocking] = useState(false);
   const scrollViewRef = useRef<ScrollView>(null);
 
   const fetchConversation = useCallback(async () => {
@@ -43,13 +45,14 @@ const ConversationDetailScreen = () => {
       const response = await getConversation(String(id));
       setConversation(response.data.conversation);
       setMessages(response.data.messages);
+      refreshCounts();
     } catch (error) {
       console.error("Failed to fetch conversation:", error);
       Alert.alert("Error", "Could not load chat history.");
     } finally {
       setLoading(false);
     }
-  }, [id, token]);
+  }, [id, refreshCounts, token]);
 
   useEffect(() => {
     fetchConversation();
@@ -59,7 +62,12 @@ const ConversationDetailScreen = () => {
       socket.emit("join_conversation", { room: conversationRoom });
 
       const handleNewMessage = (newMessage: any) => {
+        if (newMessage.sender?.id !== user?.id) {
+          fetchConversation();
+          return;
+        }
         setMessages((prevMessages) => [...prevMessages, newMessage]);
+        refreshCounts();
       };
 
       socket.on("new_chat_message", handleNewMessage);
@@ -69,7 +77,7 @@ const ConversationDetailScreen = () => {
         socket.off("new_chat_message", handleNewMessage);
       };
     }
-  }, [fetchConversation, id, socket]);
+  }, [fetchConversation, id, refreshCounts, socket, user?.id]);
 
   const handleSend = async () => {
     if (!inputText.trim() || !conversation) return;
@@ -77,17 +85,31 @@ const ConversationDetailScreen = () => {
       Alert.alert("Error", "You are not logged in.");
       return;
     }
+    const outgoingText = inputText.trim();
     setSending(true);
     try {
       const response = await sendChatMessage({
         car_id: conversation.car.id,
-        body: inputText,
+        conversation_id: conversation.id,
+        body: outgoingText,
       });
 
       if (response.data.status === "success") {
         setInputText("");
-        // The new message will be received via the socket listener,
-        // so no need to manually update state here.
+        if (response.data.conversation) {
+          setConversation(response.data.conversation);
+        }
+        if (response.data.chat_message) {
+          setMessages((prevMessages) => {
+            const alreadyAdded = prevMessages.some(
+              (message) => message.id === response.data.chat_message.id
+            );
+            return alreadyAdded
+              ? prevMessages
+              : [...prevMessages, response.data.chat_message];
+          });
+        }
+        refreshCounts();
       } else if (response.data.status === "limit_reached") {
         Alert.alert("Limit Reached", response.data.message);
       }
@@ -98,6 +120,36 @@ const ConversationDetailScreen = () => {
       Alert.alert("Error", errorMessage);
     } finally {
       setSending(false);
+    }
+  };
+
+  const handleUnlockConversation = async () => {
+    if (!conversation || unlocking) return;
+    setUnlocking(true);
+    try {
+      const response = await unlockDealerConversation(conversation.id);
+      if (response.data.conversation) {
+        setConversation(response.data.conversation);
+      }
+      if (response.data.messages) {
+        setMessages(response.data.messages);
+      }
+      if (
+        typeof response.data.dealer_points === "number" &&
+        user &&
+        token &&
+        login
+      ) {
+        login({ ...user, points: response.data.dealer_points }, token);
+      }
+      Alert.alert("Unlocked", response.data.message || "Conversation unlocked.");
+    } catch (error: any) {
+      console.error("Failed to unlock conversation:", error);
+      const errorMessage =
+        error.response?.data?.message || "Failed to unlock conversation.";
+      Alert.alert("Unlock Failed", errorMessage);
+    } finally {
+      setUnlocking(false);
     }
   };
 
@@ -124,6 +176,16 @@ const ConversationDetailScreen = () => {
     );
   }
 
+  const isDealer = Boolean(user?.is_dealer);
+  const isLocked = conversation && !conversation.is_unlocked;
+  const freeLimit = conversation?.free_message_limit ?? 3;
+  const buyerMessageCount = conversation?.buyer_message_count ?? 0;
+  const remainingBuyerMessages = Math.max(0, freeLimit - buyerMessageCount);
+  const buyerLimitReached = !isDealer && isLocked && remainingBuyerMessages <= 0;
+  const leadScore = conversation?.lead_score ?? 0;
+  const canUnlock =
+    isDealer && isLocked && conversation?.can_unlock && (user?.points ?? 0) > 0;
+
   return (
     <>
       <Stack.Screen
@@ -143,6 +205,62 @@ const ConversationDetailScreen = () => {
             scrollViewRef.current?.scrollToEnd({ animated: true })
           }
         >
+          {conversation?.is_unlocked && (
+            <View style={[styles.limitNotice, styles.unlockedNotice]}>
+              <View style={[styles.limitNoticeIcon, styles.unlockedNoticeIcon]}>
+                <Ionicons name="lock-open" size={18} color={COLORS.foreground} />
+              </View>
+              <View style={styles.limitNoticeTextWrap}>
+                <Text style={styles.limitNoticeTitle}>Chat unlocked</Text>
+                <Text style={styles.limitNoticeText}>
+                  Messages are fully unlocked for this conversation.
+                </Text>
+              </View>
+            </View>
+          )}
+          {isLocked && (
+            <View style={styles.limitNotice}>
+              <View style={styles.limitNoticeIcon}>
+                <Ionicons
+                  name={isDealer ? "lock-closed" : "chatbubble-ellipses"}
+                  size={18}
+                  color={COLORS.foreground}
+                />
+              </View>
+              <View style={styles.limitNoticeTextWrap}>
+                <Text style={styles.limitNoticeTitle}>
+                  {isDealer
+                    ? "Unlock full chat for 1 point"
+                    : `${freeLimit} free messages before dealer unlock`}
+                </Text>
+                <Text style={styles.limitNoticeText}>
+                  {isDealer
+                    ? `Score: ${leadScore}. Buyer has used ${buyerMessageCount}/${freeLimit} free messages. Unlocking reveals full buyer messages and removes the limit.`
+                    : buyerLimitReached
+                      ? "You have reached the free message limit. The dealer must unlock this chat before you can send more messages."
+                      : `${remainingBuyerMessages} message${remainingBuyerMessages === 1 ? "" : "s"} remaining before the dealer must unlock this chat.`}
+                </Text>
+              </View>
+              {isDealer && (
+                <Pressable
+                  style={[
+                    styles.unlockButton,
+                    (!canUnlock || unlocking) && styles.unlockButtonDisabled,
+                  ]}
+                  onPress={handleUnlockConversation}
+                  disabled={!canUnlock || unlocking}
+                >
+                  {unlocking ? (
+                    <ActivityIndicator color={COLORS.foreground} size="small" />
+                  ) : (
+                    <Text style={styles.unlockButtonText}>
+                      {(user?.points ?? 0) > 0 ? "Unlock" : "No Points"}
+                    </Text>
+                  )}
+                </Pressable>
+              )}
+            </View>
+          )}
           {messages.map((message, index) => {
             const isSentByMe = message.sender?.id === user?.id;
             return (
@@ -181,11 +299,16 @@ const ConversationDetailScreen = () => {
             value={inputText}
             onChangeText={setInputText}
             multiline
+            autoCorrect
+            editable={!buyerLimitReached && !sending}
           />
           <Pressable
-            style={styles.sendButton}
+            style={[
+              styles.sendButton,
+              (buyerLimitReached || sending) && styles.sendButtonDisabled,
+            ]}
             onPress={handleSend}
-            disabled={sending}
+            disabled={sending || buyerLimitReached}
           >
             {sending ? (
               <ActivityIndicator color={COLORS.foreground} size="small" />
@@ -213,6 +336,61 @@ const styles = StyleSheet.create({
   chatHistory: {
     flex: 1,
     padding: 10,
+  },
+  limitNotice: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    backgroundColor: "#252A35",
+    borderColor: COLORS.border,
+    borderWidth: 1,
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 10,
+  },
+  limitNoticeIcon: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    backgroundColor: COLORS.accent,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  unlockedNotice: {
+    borderColor: "#2E7D5B",
+  },
+  unlockedNoticeIcon: {
+    backgroundColor: "#2E7D5B",
+  },
+  limitNoticeTextWrap: {
+    flex: 1,
+  },
+  limitNoticeTitle: {
+    color: COLORS.foreground,
+    fontSize: 14,
+    fontWeight: "700",
+  },
+  limitNoticeText: {
+    color: COLORS.mutedForeground,
+    fontSize: 12,
+    lineHeight: 17,
+    marginTop: 3,
+  },
+  unlockButton: {
+    backgroundColor: COLORS.accent,
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    minWidth: 76,
+    alignItems: "center",
+  },
+  unlockButtonDisabled: {
+    opacity: 0.55,
+  },
+  unlockButtonText: {
+    color: COLORS.foreground,
+    fontSize: 12,
+    fontWeight: "700",
   },
   messageWrapper: {
     marginVertical: 5,
@@ -263,6 +441,8 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     color: COLORS.foreground,
     marginRight: 10,
+    fontSize: 16,
+    lineHeight: 20,
   },
   sendButton: {
     backgroundColor: COLORS.accent,
@@ -271,6 +451,9 @@ const styles = StyleSheet.create({
     height: 50,
     justifyContent: "center",
     alignItems: "center",
+  },
+  sendButtonDisabled: {
+    opacity: 0.55,
   },
 });
 

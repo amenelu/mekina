@@ -331,6 +331,7 @@ def api_submit_car(current_user):
             transmission=data.get('transmission'),
             drivetrain=data.get('drivetrain'),
             fuel_type=data.get('fuel_type'),
+            electric_range_km=int(data.get('electric_range_km')) if data.get('electric_range_km') else None,
             owner_id=current_user.id,
             listing_type=listing_type,
             is_bank_loan_available=data.get('is_bank_loan_available', 'false').lower() == 'true',
