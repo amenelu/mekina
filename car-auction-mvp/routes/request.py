@@ -11,6 +11,7 @@ from flask import (
     current_app,
 )
 from flask_login import login_required, current_user
+from models.car import Car
 from models.car_request import CarRequest
 from models.dealer_bid import DealerBid
 from models.car_request_image import CarRequestImage
@@ -1202,6 +1203,14 @@ def api_create_request(current_user):
         request_source == "general" or "price" in data or "body_type" in data
     )
 
+    target_car = None
+    target_car_id = data.get("target_car_id")
+    if target_car_id:
+        try:
+            target_car = Car.query.get(int(target_car_id))
+        except (TypeError, ValueError):
+            target_car = None
+
     if is_guided_path:
         # Define a mapping from the equipment values to human-readable labels
         equipment_map = {
@@ -1239,6 +1248,8 @@ def api_create_request(current_user):
             notes=notes,
             user_id=current_user.id,
             make=data.get("brand") or None,  # Save brand to the structured 'make' field
+            target_car_id=target_car.id if target_car else None,
+            request_source=request_source,
         )
     else:  # "I know what I want" path
         if (
@@ -1257,12 +1268,14 @@ def api_create_request(current_user):
                 400,
             )
         new_req = CarRequest(
-            make=data.get("make"),
-            model=data.get("model"),
-            min_year=data.get("min_year"),
+            make=data.get("make") or (target_car.make if target_car else None),
+            model=data.get("model") or (target_car.model if target_car else None),
+            min_year=data.get("min_year") or (target_car.year if target_car else None),
             max_mileage=data.get("max_mileage"),
             notes=data.get("notes"),
             user_id=current_user.id,
+            target_car_id=target_car.id if target_car else None,
+            request_source=request_source,
         )
 
     db.session.add(new_req)
@@ -1294,9 +1307,6 @@ def api_create_request(current_user):
             db.session.add(new_img)
 
     db.session.commit()
-    if request_source:
-        new_req._request_source = request_source
-
     return (
         jsonify(
             {

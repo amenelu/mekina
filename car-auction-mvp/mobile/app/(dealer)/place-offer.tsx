@@ -11,6 +11,8 @@ import {
   ActivityIndicator,
   Image,
   Modal,
+  Platform,
+  TouchableOpacity,
 } from "react-native";
 import { useLocalSearchParams, useNavigation, router } from "expo-router";
 import { useAuth } from "@/hooks/useAuth";
@@ -37,6 +39,16 @@ interface CustomerRequest {
   fuel_type?: string;
   message?: string;
   notes?: string;
+  request_source?: "image_based" | "specific" | "general";
+  image_urls?: string[];
+  target_car?: {
+    make?: string;
+    model?: string;
+    year?: number;
+    condition?: string;
+    mileage?: number;
+    fixed_price?: number;
+  } | null;
 }
 
 interface DealerBid {
@@ -62,6 +74,24 @@ const COLORS = {
   input: "#14181F",
   border: "#313843",
 };
+
+const webDateInputStyle = {
+  backgroundColor: COLORS.input,
+  color: COLORS.text,
+  padding: "12px",
+  borderRadius: 8,
+  border: `1px solid ${COLORS.border}`,
+  fontSize: 16,
+  height: 50,
+  width: "100%",
+  maxWidth: "100%",
+  boxSizing: "border-box",
+  fontFamily: "inherit",
+  lineHeight: "24px",
+  outline: "none",
+  appearance: "none",
+  WebkitAppearance: "none",
+} as const;
 
 interface PickerOption {
   label: string;
@@ -163,7 +193,7 @@ const PlaceOfferScreen = () => {
   const [make, setMake] = useState("");
   const [model, setModel] = useState("");
   const [carYear, setCarYear] = useState("");
-  const [condition, setCondition] = useState("Used");
+  const [condition, setCondition] = useState("New");
   const [mileage, setMileage] = useState("");
   const [price, setPrice] = useState("");
   const [priceWithLoan, setPriceWithLoan] = useState("");
@@ -190,9 +220,41 @@ const PlaceOfferScreen = () => {
     };
     fetchRequestDetails();
   }, [request_id, token]);
+
+  useEffect(() => {
+    if (!requestDetails) return;
+
+    const targetCar = requestDetails.target_car;
+    setMake((current) => current || targetCar?.make || requestDetails.make || "");
+    setModel((current) => current || targetCar?.model || requestDetails.model || "");
+    setCarYear((current) =>
+      current ||
+      String(targetCar?.year || requestDetails.min_year || requestDetails.year || "")
+    );
+    setMileage((current) =>
+      current || (targetCar?.mileage ? String(targetCar.mileage) : "")
+    );
+    setPrice((current) =>
+      current || (targetCar?.fixed_price ? String(Math.round(targetCar.fixed_price)) : "")
+    );
+  }, [requestDetails]);
+
+  const validUntilValue = validUntil.toISOString().split("T")[0];
   const handleSubmit = async () => {
-    if (!price || !make || !model || !carYear) {
-      Alert.alert("Error", "Please fill in all required fields.");
+    const missingFields = [
+      !make.trim() ? "Make" : null,
+      !model.trim() ? "Model" : null,
+      !carYear.trim() ? "Year" : null,
+      condition === "Used" && !mileage.trim() ? "Mileage" : null,
+      !price.trim() ? "Price" : null,
+      !validUntilValue ? "Offer valid until" : null,
+    ].filter(Boolean);
+
+    if (missingFields.length > 0) {
+      showNativeFlowAlert(
+        "Missing Required Details",
+        `Please fill in: ${missingFields.join(", ")}.`
+      );
       return;
     }
 
@@ -256,6 +318,14 @@ const PlaceOfferScreen = () => {
     const currentDate = selectedDate || validUntil;
     setShowDatePicker(false);
     setValidUntil(currentDate);
+  };
+
+  const handleWebDateChange = (value: string) => {
+    if (!value) return;
+    const nextDate = new Date(`${value}T12:00:00`);
+    if (!Number.isNaN(nextDate.getTime())) {
+      setValidUntil(nextDate);
+    }
   };
 
   const handleImagePick = async () => {
@@ -356,22 +426,24 @@ const PlaceOfferScreen = () => {
                   selectedValue={condition}
                   onValueChange={setCondition}
                   options={[
-                    { label: "Used", value: "Used" },
                     { label: "New", value: "New" },
+                    { label: "Used", value: "Used" },
                   ]}
                 />
               </View>
-              <View style={styles.inputGroup}>
-                <Text style={styles.label}>Mileage (km)</Text>
-                <TextInput
-                  style={styles.input}
-                  value={mileage}
-                  onChangeText={setMileage}
-                  placeholder="e.g., 50000"
-                  keyboardType="number-pad"
-                  placeholderTextColor={COLORS.textSecondary}
-                />
-              </View>
+              {condition === "Used" && (
+                <View style={styles.inputGroup}>
+                  <Text style={styles.label}>Mileage (km)</Text>
+                  <TextInput
+                    style={styles.input}
+                    value={mileage}
+                    onChangeText={setMileage}
+                    placeholder="e.g., 50000"
+                    keyboardType="number-pad"
+                    placeholderTextColor={COLORS.textSecondary}
+                  />
+                </View>
+              )}
             </View>
 
             <View style={styles.formCard}>
@@ -414,28 +486,40 @@ const PlaceOfferScreen = () => {
               </View>
               <View style={styles.inputGroup}>
                 <Text style={styles.label}>Offer Valid Until</Text>
-                <Pressable
-                  style={styles.dateInput}
-                  onPress={() => setShowDatePicker(true)}
-                >
-                  <Text style={styles.dateInputText}>
-                    {validUntil.toLocaleDateString()}
-                  </Text>
-                  <Ionicons
-                    name="calendar-outline"
-                    size={20}
-                    color={COLORS.textSecondary}
-                  />
-                </Pressable>
-                {/* On iOS, the picker can be a modal, on Android it can be a dialog */}
-                {showDatePicker && (
-                  <DateTimePicker
-                    value={validUntil}
-                    mode="date"
-                    display="default"
-                    onChange={onDateChange}
-                    minimumDate={new Date()}
-                  />
+                {Platform.OS === "web" ? (
+                  React.createElement("input", {
+                    type: "date",
+                    value: validUntilValue,
+                    min: new Date().toISOString().split("T")[0],
+                    onChange: (event: React.ChangeEvent<HTMLInputElement>) =>
+                      handleWebDateChange(event.target.value),
+                    style: webDateInputStyle,
+                  })
+                ) : (
+                  <>
+                    <Pressable
+                      style={styles.dateInput}
+                      onPress={() => setShowDatePicker(true)}
+                    >
+                      <Text style={styles.dateInputText}>
+                        {validUntil.toLocaleDateString()}
+                      </Text>
+                      <Ionicons
+                        name="calendar-outline"
+                        size={20}
+                        color={COLORS.textSecondary}
+                      />
+                    </Pressable>
+                    {showDatePicker && (
+                      <DateTimePicker
+                        value={validUntil}
+                        mode="date"
+                        display="default"
+                        onChange={onDateChange}
+                        minimumDate={new Date()}
+                      />
+                    )}
+                  </>
                 )}
               </View>
             </View>
@@ -473,23 +557,38 @@ const PlaceOfferScreen = () => {
               </View>
             </View>
 
-            <Pressable
-              style={styles.submitButton}
+            <TouchableOpacity
+              testID="place-offer-submit"
+              accessibilityRole="button"
+              style={[
+                styles.submitButton,
+                isSubmitting && styles.submitButtonDisabled,
+              ]}
               onPress={handleSubmit}
               disabled={isSubmitting}
+              activeOpacity={0.85}
             >
               {isSubmitting ? (
                 <ActivityIndicator color="white" />
               ) : (
-                <Text style={styles.submitButtonText}>Submit Offer</Text>
+                <>
+                  <Ionicons name="send" size={18} color="white" />
+                  <Text style={styles.submitButtonText}>Place an Offer</Text>
+                </>
               )}
-            </Pressable>
+            </TouchableOpacity>
           </View>
 
-          <View style={styles.sidebarColumn}>
+          <View style={[styles.sidebarColumn, styles.requestSummaryColumn]}>
             {requestDetails && (
               <View style={styles.formCard}>
                 <Text style={styles.sectionTitle}>Customer Request</Text>
+                {requestDetails.request_source === "image_based" && (
+                  <View style={styles.sourceBadge}>
+                    <Ionicons name="image" size={14} color="white" />
+                    <Text style={styles.sourceBadgeText}>Image Based Request</Text>
+                  </View>
+                )}
                 <Text style={styles.requestTitle}>
                   {requestDetails.make || "Any Make"}{" "}
                   {requestDetails.model || ""}
@@ -500,6 +599,22 @@ const PlaceOfferScreen = () => {
                     ? `${requestDetails.min_year || requestDetails.year}+`
                     : "Any"}
                 </Text>
+
+                {requestDetails.image_urls?.length ? (
+                  <ScrollView
+                    horizontal
+                    showsHorizontalScrollIndicator={false}
+                    style={styles.requestImages}
+                  >
+                    {requestDetails.image_urls.map((imageUrl, index) => (
+                      <Image
+                        key={`${imageUrl}-${index}`}
+                        source={{ uri: imageUrl }}
+                        style={styles.requestImage}
+                      />
+                    ))}
+                  </ScrollView>
+                ) : null}
 
                 <View style={styles.requestSection}>
                   <Text style={styles.requestSectionTitle}>Budget</Text>
@@ -649,21 +764,24 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.background,
   },
   header: {
-    padding: 20,
+    paddingHorizontal: 18,
+    paddingVertical: 12,
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
     borderBottomWidth: 1,
     borderBottomColor: COLORS.border,
   },
-  headerTitle: { fontSize: 24, fontWeight: "bold", color: COLORS.text },
-  headerSubtitle: { fontSize: 16, color: COLORS.textSecondary, marginTop: 4 },
+  headerTitle: { fontSize: 18, fontWeight: "700", color: COLORS.text },
+  headerSubtitle: { fontSize: 12, color: COLORS.textSecondary, marginTop: 2 },
   contentGrid: {
     flexDirection: "column", // Stack columns vertically on mobile
     paddingHorizontal: 10,
+    paddingBottom: 24,
   },
-  formColumn: { flex: 1 },
-  sidebarColumn: { flex: 1, marginTop: 20 },
+  formColumn: { width: "100%" },
+  sidebarColumn: { width: "100%", marginTop: 20 },
+  requestSummaryColumn: { marginTop: 40 },
   formCard: {
     backgroundColor: COLORS.card,
     marginHorizontal: 10,
@@ -760,9 +878,17 @@ const styles = StyleSheet.create({
   submitButton: {
     backgroundColor: COLORS.accent,
     marginHorizontal: 20,
+    marginTop: 16,
+    marginBottom: 16,
     padding: 15,
     borderRadius: 10,
     alignItems: "center",
+    justifyContent: "center",
+    flexDirection: "row",
+    gap: 8,
+  },
+  submitButtonDisabled: {
+    opacity: 0.65,
   },
   submitButtonText: {
     color: "white",
@@ -839,6 +965,32 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: COLORS.textSecondary,
     marginBottom: 16,
+  },
+  sourceBadge: {
+    alignSelf: "flex-start",
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    backgroundColor: COLORS.accent,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 6,
+    marginBottom: 12,
+  },
+  sourceBadgeText: {
+    color: "white",
+    fontSize: 12,
+    fontWeight: "700",
+  },
+  requestImages: {
+    marginBottom: 14,
+  },
+  requestImage: {
+    width: 112,
+    height: 84,
+    borderRadius: 8,
+    marginRight: 10,
+    backgroundColor: COLORS.input,
   },
   requestSection: {
     borderTopWidth: 1,

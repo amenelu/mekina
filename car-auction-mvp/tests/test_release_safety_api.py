@@ -3,6 +3,7 @@ from datetime import date
 from models.car import Car
 from models.car_image import CarImage
 from models.car_request import CarRequest
+from models.car_request_image import CarRequestImage
 from models.chat_message import ChatMessage
 from models.conversation import Conversation
 from models.dealer_bid import DealerBid
@@ -251,6 +252,98 @@ def test_buyer_message_limit_and_dealer_unlock_flow(client):
 
     assert unlocked_response.status_code == 200
     assert unlocked_response.get_json()["status"] == "success"
+
+
+def test_specific_car_request_prefills_target_car_for_dealer_offer(client):
+    dealer = create_user(
+        "target_offer_dealer",
+        "target-offer-dealer@example.com",
+        is_dealer=True,
+        points=2,
+    )
+    buyer = create_user("target_offer_buyer", "target-offer-buyer@example.com")
+    car = create_car(
+        dealer,
+        make="Honda",
+        model="Civic",
+        year=2024,
+        condition="New",
+        mileage=0,
+        fixed_price=2_700_000,
+    )
+    db.session.commit()
+
+    response = client.post(
+        "/requests/api/requests",
+        json={
+            "request_source": "specific",
+            "target_car_id": car.id,
+            "notes": "I am interested in this exact listing.",
+        },
+        headers=login_headers(client, buyer.username),
+    )
+
+    assert response.status_code == 201
+    created_request = response.get_json()["request"]
+    assert created_request["target_car_id"] == car.id
+    assert created_request["target_car"]["make"] == "Honda"
+    assert created_request["make"] == "Honda"
+    assert created_request["model"] == "Civic"
+    assert created_request["min_year"] == 2024
+
+    dealer_response = client.get(
+        f"/dealer/api/requests/{created_request['id']}/bids",
+        headers=login_headers(client, dealer.username),
+    )
+
+    assert dealer_response.status_code == 200
+    dealer_request = dealer_response.get_json()["car_request"]
+    assert dealer_request["target_car"]["condition"] == "New"
+    assert dealer_request["target_car"]["fixed_price"] == 2_700_000
+
+
+def test_image_based_request_is_visible_to_dealer_with_images(client):
+    dealer = create_user(
+        "image_request_dealer",
+        "image-request-dealer@example.com",
+        is_dealer=True,
+    )
+    buyer = create_user("image_request_buyer", "image-request-buyer@example.com")
+    image_request = CarRequest(
+        user_id=buyer.id,
+        notes="Please find this car from the photo.",
+        request_source="image_based",
+    )
+    db.session.add_all([dealer, image_request])
+    db.session.flush()
+    db.session.add(
+        CarRequestImage(
+            request_id=image_request.id,
+            image_url="/static/uploads/request-photo.jpg",
+        )
+    )
+    db.session.commit()
+
+    response = client.get(
+        "/dealer/api/dashboard",
+        headers=login_headers(client, dealer.username),
+    )
+
+    assert response.status_code == 200
+    requests = response.get_json()["requests"]
+    dealer_request = next(req for req in requests if req["id"] == image_request.id)
+    assert dealer_request["request_source"] == "image_based"
+    assert dealer_request["image_urls"]
+    assert "request-photo.jpg" in dealer_request["image_urls"][0]
+
+    details_response = client.get(
+        f"/dealer/api/requests/{image_request.id}/bids",
+        headers=login_headers(client, dealer.username),
+    )
+    assert details_response.status_code == 200
+    details_request = details_response.get_json()["car_request"]
+    assert details_request["request_source"] == "image_based"
+    assert details_request["image_urls"]
 
 
 def test_only_dealers_can_request_more_points(client):

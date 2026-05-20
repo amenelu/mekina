@@ -15,6 +15,7 @@ class CarRequest(db.Model):
     min_year = db.Column(db.Integer, nullable=True)
     max_mileage = db.Column(db.Integer, nullable=True)
     notes = db.Column(db.Text, nullable=True)
+    request_source = db.Column(db.String(20), nullable=True)
     status = db.Column(
         db.String(20), default="active", nullable=False
     )  # e.g., active, completed, expired
@@ -22,6 +23,8 @@ class CarRequest(db.Model):
 
     # Foreign Key to the user who made the request
     user_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False)
+    target_car_id = db.Column(db.Integer, db.ForeignKey("car.id"), nullable=True)
+    target_car = db.relationship("Car", foreign_keys=[target_car_id])
 
     # Relationship to dealer bids
     dealer_bids = db.relationship(
@@ -55,7 +58,7 @@ class CarRequest(db.Model):
         deal_id = None
         if self.status == "completed" and self.accepted_bid and self.accepted_bid.deal:
             deal_id = self.accepted_bid.deal.id
-        request_source = getattr(self, "_request_source", None)
+        request_source = self.request_source or getattr(self, "_request_source", None)
         if not request_source and self.notes and "Customer is looking for a car" in self.notes:
             request_source = "general"
         elif not request_source and self.images and not (self.make or self.model or self.min_year):
@@ -68,6 +71,8 @@ class CarRequest(db.Model):
             "make": self.make,
             "model": self.model,
             "request_source": request_source,
+            "target_car_id": self.target_car_id,
+            "target_car": self.target_car.to_dict() if self.target_car else None,
             "min_year": self.min_year,
             "max_mileage": self.max_mileage,
             "notes": self.notes,

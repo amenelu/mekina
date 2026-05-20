@@ -11,6 +11,7 @@ import {
   TextInput,
   Modal,
   Alert,
+  Image,
 } from "react-native";
 import { router } from "expo-router";
 import { useAuth } from "@/hooks/useAuth";
@@ -67,6 +68,8 @@ interface CustomerRequest {
   lowest_offer?: number;
   has_been_viewed?: boolean;
   detail_score?: number;
+  request_source?: "image_based" | "specific" | "general";
+  image_urls?: string[];
 }
 
 interface RequestQuestion {
@@ -164,6 +167,14 @@ const RequestItem = ({ item }: { item: CustomerRequest }) => {
     if (score >= 50) return COLORS.warning;
     return COLORS.textSecondary;
   };
+  const requestTypeLabel =
+    item.request_source === "image_based"
+      ? "Image Based"
+      : item.request_source === "specific"
+        ? "Specific"
+        : item.request_source === "general"
+          ? "General"
+          : null;
 
   return (
     <Pressable style={styles.itemCard} onPress={handlePress}>
@@ -182,12 +193,41 @@ const RequestItem = ({ item }: { item: CustomerRequest }) => {
             <Text style={styles.scoreText}>{item.detail_score}%</Text>
           </View>
         )}
+        {requestTypeLabel && (
+          <View
+            style={[
+              styles.requestTypeBadge,
+              item.request_source === "image_based" && styles.imageRequestBadge,
+            ]}
+          >
+            <Ionicons
+              name={item.request_source === "image_based" ? "image" : "document-text"}
+              size={12}
+              color="white"
+            />
+            <Text style={styles.requestTypeBadgeText}>{requestTypeLabel}</Text>
+          </View>
+        )}
         {!item.has_been_viewed && (
           <View style={styles.newBadge}>
             <Text style={styles.newBadgeText}>NEW</Text>
           </View>
         )}
       </View>
+
+      {item.request_source === "image_based" && item.image_urls?.length ? (
+        <View style={styles.requestImageStrip}>
+          {item.image_urls.slice(0, 3).map((imageUrl, index) => (
+            <View key={`${imageUrl}-${index}`} style={styles.requestImageThumb}>
+              <Image
+                source={{ uri: imageUrl }}
+                style={styles.requestImage}
+                resizeMode="cover"
+              />
+            </View>
+          ))}
+        </View>
+      ) : null}
 
       <View style={styles.requestCardBody}>
         <View style={styles.requestDetails}>
@@ -722,9 +762,45 @@ const styles = StyleSheet.create({
   },
   requestCardHeader: {
     flexDirection: "row",
-    justifyContent: "space-between",
+    flexWrap: "wrap",
+    gap: 8,
     alignItems: "flex-start",
     marginBottom: 12,
+  },
+  requestTypeBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    backgroundColor: COLORS.textSecondary,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 5,
+  },
+  imageRequestBadge: {
+    backgroundColor: COLORS.accent,
+  },
+  requestTypeBadgeText: {
+    color: "white",
+    fontWeight: "bold",
+    fontSize: 11,
+  },
+  requestImageStrip: {
+    flexDirection: "row",
+    gap: 8,
+    marginBottom: 12,
+  },
+  requestImageThumb: {
+    width: 72,
+    height: 54,
+    borderRadius: 6,
+    overflow: "hidden",
+    backgroundColor: COLORS.background,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+  },
+  requestImage: {
+    width: "100%",
+    height: "100%",
   },
   newBadge: {
     backgroundColor: COLORS.warning,
