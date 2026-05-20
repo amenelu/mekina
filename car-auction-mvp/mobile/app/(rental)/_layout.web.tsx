@@ -57,6 +57,7 @@ export default function RentalTabsLayoutWeb() {
           href: null,
         }}
       />
+      <Tabs.Screen name="points" options={{ href: null }} />
       </Tabs>
     </AuthGate>
   );

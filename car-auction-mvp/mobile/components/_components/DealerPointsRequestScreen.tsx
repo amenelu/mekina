@@ -16,7 +16,7 @@ import { Ionicons } from "@expo/vector-icons";
 
 import { useAuth } from "@/hooks/useAuth";
 import { requestDealerPoints } from "@/lib/api/dealer";
-import { DEALER_ROUTES } from "@/lib/roleRoutes";
+import { DEALER_ROUTES, RENTAL_ROUTES } from "@/lib/roleRoutes";
 import { showNativeFlowAlert } from "@/lib/nativeFlowAlert";
 
 const COLORS = {
@@ -35,12 +35,23 @@ export default function DealerPointsRequestScreen() {
 
   const currentPoints = user?.points ?? 0;
 
-  const goBackToDealerDashboard = () => {
-    router.navigate(DEALER_ROUTES.dashboard as any);
+  const dashboardRoute = user?.is_rental_company
+    ? RENTAL_ROUTES.dashboard
+    : DEALER_ROUTES.dashboard;
+
+  const goBackToDashboard = () => {
+    router.navigate(dashboardRoute as any);
   };
 
   const handleRequestedPointsChange = (value: string) => {
     setRequestedPoints(value.replace(/\D/g, "").slice(0, 4));
+  };
+
+  const requestedPointValue = Number(requestedPoints) || 0;
+
+  const setRequestedPointValue = (value: number) => {
+    const nextValue = Math.max(0, Math.min(9999, Math.round(value)));
+    setRequestedPoints(nextValue > 0 ? String(nextValue) : "");
   };
 
   const handleSubmit = async () => {
@@ -70,7 +81,7 @@ export default function DealerPointsRequestScreen() {
 
       setRequestedPoints("");
       showNativeFlowAlert("Request Sent", "Your point request has been sent.", () => {
-        goBackToDealerDashboard();
+        goBackToDashboard();
       });
     } catch (error: any) {
       const message =
@@ -89,7 +100,7 @@ export default function DealerPointsRequestScreen() {
       behavior={Platform.OS === "ios" ? "padding" : undefined}
     >
       <View style={styles.content}>
-        <Pressable style={styles.backButton} onPress={goBackToDealerDashboard}>
+        <Pressable style={styles.backButton} onPress={goBackToDashboard}>
           <Ionicons
             name="chevron-back"
             size={20}
@@ -112,37 +123,37 @@ export default function DealerPointsRequestScreen() {
         <View style={styles.formCard}>
           <Text style={styles.label}>Points needed</Text>
           {Platform.OS === "web" ? (
-            React.createElement("input", {
-              "aria-autocomplete": "none",
-              "aria-label": "Points needed",
-              "data-1p-ignore": "true",
-              "data-bwignore": "true",
-              "data-form-type": "other",
-              "data-lpignore": "true",
-              "data-protonpass-ignore": "true",
-              autoCapitalize: "none",
-              autoComplete: "off",
-              autoCorrect: "off",
-              disabled: submitting,
-              id: "dealer-points-request-amount",
-              inputMode: "numeric",
-              maxLength: 4,
-              name: "dealer-points-request-amount",
-              onChange: (event: React.ChangeEvent<HTMLInputElement>) =>
-                handleRequestedPointsChange(event.target.value),
-              onKeyDown: (event: React.KeyboardEvent<HTMLInputElement>) => {
-                if (event.key === "Enter") {
-                  event.preventDefault();
-                  void handleSubmit();
-                }
-              },
-              pattern: "[0-9]*",
-              placeholder: "e.g. 10",
-              spellCheck: false,
-              style: styles.webInput,
-              type: "text",
-              value: requestedPoints,
-            })
+            <View
+              style={styles.webStepper}
+              accessibilityRole="adjustable"
+              accessibilityLabel="Points needed"
+              accessibilityValue={{ text: `${requestedPointValue || 0}` }}
+            >
+              <Pressable
+                style={styles.stepperButton}
+                onPress={() => setRequestedPointValue(requestedPointValue - 1)}
+                disabled={submitting || requestedPointValue <= 0}
+              >
+                <Ionicons
+                  name="remove"
+                  size={20}
+                  color={COLORS.textSecondary}
+                />
+              </Pressable>
+              <View style={styles.stepperValueBox}>
+                <Text style={styles.stepperValue}>
+                  {requestedPointValue || "--"}
+                </Text>
+                <Text style={styles.stepperHint}>points</Text>
+              </View>
+              <Pressable
+                style={styles.stepperButton}
+                onPress={() => setRequestedPointValue(requestedPointValue + 1)}
+                disabled={submitting}
+              >
+                <Ionicons name="add" size={20} color={COLORS.accent} />
+              </Pressable>
+            </View>
           ) : (
             <TextInput
               style={styles.input}
@@ -165,6 +176,32 @@ export default function DealerPointsRequestScreen() {
               blurOnSubmit
             />
           )}
+
+          {Platform.OS === "web" ? (
+            <View style={styles.presetRow}>
+              {[5, 10, 20, 50].map((value) => (
+                <Pressable
+                  key={value}
+                  style={[
+                    styles.presetButton,
+                    requestedPointValue === value && styles.activePresetButton,
+                  ]}
+                  onPress={() => setRequestedPointValue(value)}
+                  disabled={submitting}
+                >
+                  <Text
+                    style={[
+                      styles.presetButtonText,
+                      requestedPointValue === value &&
+                        styles.activePresetButtonText,
+                    ]}
+                  >
+                    {value}
+                  </Text>
+                </Pressable>
+              ))}
+            </View>
+          ) : null}
 
           <Pressable
             style={[styles.submitButton, submitting && styles.buttonDisabled]}
@@ -278,6 +315,70 @@ const styles = StyleSheet.create({
     paddingLeft: 14,
     paddingRight: 14,
     width: "100%",
+  },
+  webStepper: {
+    flexDirection: "row",
+    alignItems: "stretch",
+    backgroundColor: COLORS.background,
+    borderColor: COLORS.border,
+    borderRadius: 12,
+    borderWidth: 1,
+    marginBottom: 12,
+    minHeight: 58,
+    overflow: "hidden",
+  },
+  stepperButton: {
+    width: 58,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "rgba(255, 255, 255, 0.03)",
+  },
+  stepperValueBox: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    borderLeftWidth: 1,
+    borderRightWidth: 1,
+    borderColor: COLORS.border,
+  },
+  stepperValue: {
+    color: COLORS.text,
+    fontSize: 22,
+    fontWeight: "700",
+  },
+  stepperHint: {
+    color: COLORS.textSecondary,
+    fontSize: 12,
+    marginTop: 2,
+  },
+  presetRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+    marginBottom: 18,
+  },
+  presetButton: {
+    minWidth: 52,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: COLORS.background,
+    borderColor: COLORS.border,
+    borderRadius: 999,
+    borderWidth: 1,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+  },
+  activePresetButton: {
+    backgroundColor: COLORS.accent,
+    borderColor: COLORS.accent,
+  },
+  presetButtonText: {
+    color: COLORS.textSecondary,
+    fontSize: 14,
+    fontWeight: "700",
+  },
+  activePresetButtonText: {
+    color: COLORS.text,
   },
   submitButton: {
     backgroundColor: COLORS.accent,

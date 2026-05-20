@@ -138,6 +138,14 @@ def serialize_rental_car(car):
     return car_dict
 
 
+def _form_bool(value):
+    if isinstance(value, bool):
+        return value
+    if value is None:
+        return False
+    return str(value).strip().lower() in {"1", "true", "yes", "on"}
+
+
 @seller_bp.route('/dashboard')
 @login_required
 def dashboard():
@@ -401,7 +409,12 @@ def api_manage_rental_car(current_user, car_id):
         db.session.commit()
         return jsonify({'status': 'success', 'message': 'Rental listing deleted successfully.'})
 
-    data = request.get_json()
+    if request.content_type and request.content_type.startswith('multipart/form-data'):
+        data = request.form.to_dict()
+        files = request.files.getlist('images')
+    else:
+        data = request.get_json()
+        files = []
     if not data:
         return jsonify({'status': 'error', 'message': 'Invalid JSON payload.'}), 400
 
@@ -410,6 +423,9 @@ def api_manage_rental_car(current_user, car_id):
             car.year = int(data.get('year'))
         if 'price_per_day' in data and car.rental_listing:
             car.rental_listing.price_per_day = float(data.get('price_per_day'))
+        if 'mileage' in data:
+            mileage_value = data.get('mileage')
+            car.mileage = int(mileage_value) if mileage_value not in (None, '') else None
     except (TypeError, ValueError):
         return jsonify({'status': 'error', 'message': 'Invalid numeric value supplied.'}), 400
 
@@ -421,22 +437,60 @@ def api_manage_rental_car(current_user, car_id):
     car.transmission = data.get('transmission', car.transmission)
     car.drivetrain = data.get('drivetrain', car.drivetrain)
     car.fuel_type = data.get('fuel_type', car.fuel_type)
-    car.mileage = data.get('mileage', car.mileage)
     car.is_bank_loan_available = data.get(
         'is_bank_loan_available',
         car.is_bank_loan_available,
     )
 
     if 'is_active' in data:
-        car.is_active = bool(data.get('is_active'))
+        car.is_active = _form_bool(data.get('is_active'))
     if 'is_available' in data and car.rental_listing:
-        car.rental_listing.is_available = bool(data.get('is_available'))
+        car.rental_listing.is_available = _form_bool(data.get('is_available'))
+
+    if files:
+        next_order = (
+            db.session.query(db.func.max(CarImage.order))
+            .filter_by(car_id=car.id)
+            .scalar()
+        )
+        next_order = (next_order or -1) + 1
+        for image_file in files:
+            image_url = save_seller_document(image_file)
+            if image_url:
+                db.session.add(
+                    CarImage(image_url=image_url, car_id=car.id, order=next_order)
+                )
+                next_order += 1
 
     db.session.commit()
     return jsonify(
         {
             'status': 'success',
             'message': 'Rental listing updated successfully.',
+            'car': serialize_rental_car(car),
+        }
+    )
+
+
+@seller_bp.route('/api/rental-cars/<int:car_id>/images/<int:image_id>', methods=['DELETE'])
+@token_required
+def api_delete_rental_car_image(current_user, car_id, image_id):
+    car = Car.query.get_or_404(car_id)
+
+    if car.owner_id != current_user.id and not current_user.is_admin:
+        return jsonify({'status': 'error', 'message': 'Permission denied.'}), 403
+
+    if car.listing_type != 'rental':
+        return jsonify({'status': 'error', 'message': 'Rental listing not found.'}), 404
+
+    image = CarImage.query.filter_by(id=image_id, car_id=car.id).first_or_404()
+    db.session.delete(image)
+    db.session.commit()
+
+    return jsonify(
+        {
+            'status': 'success',
+            'message': 'Image removed.',
             'car': serialize_rental_car(car),
         }
     )

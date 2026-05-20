@@ -57,7 +57,7 @@ class EditUserForm(FlaskForm):
     submit = SubmitField("Update User")
 
 
-def _pending_point_request_summary_by_dealer():
+def _pending_point_request_summary_by_user():
     summaries = {}
     pending_requests = (
         DealerPointRequest.query.filter_by(status="pending")
@@ -193,9 +193,13 @@ def api_point_requests(current_user):
 @admin_token_required
 def api_resolve_dealer_point_requests(current_user, dealer_id):
     dealer = User.query.get_or_404(dealer_id)
-    if not dealer.is_dealer:
+    if not (dealer.is_dealer or dealer.is_rental_company):
         return (
-            jsonify({"message": "Point requests can only be resolved for dealers."}),
+            jsonify(
+                {
+                    "message": "Point requests can only be resolved for dealers or rental companies."
+                }
+            ),
             400,
         )
 
@@ -492,7 +496,7 @@ def api_admin_list_dealers(current_user):
     """API endpoint for admin to search/filter all dealer users with stats."""
     query = request.args.get("q", "")
     page, per_page = _pagination_args()
-    pending_point_requests = _pending_point_request_summary_by_dealer()
+    pending_point_requests = _pending_point_request_summary_by_user()
 
     # Subquery for active listings count per dealer
     active_listings_sub = (
@@ -580,7 +584,7 @@ def api_admin_list_rentals(current_user):
     """API endpoint for admin to search/filter all rental listings."""
     query = request.args.get("q", "")
     page, per_page = _pagination_args()
-    pending_point_requests = _pending_point_request_summary_by_dealer()
+    pending_point_requests = _pending_point_request_summary_by_user()
 
     # Base query for rental cars
     cars_query = Car.query.filter_by(listing_type="rental").order_by(Car.id.desc())

@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import {
+  ActivityIndicator,
   Platform,
   Pressable,
   ScrollView,
@@ -201,11 +202,181 @@ function WebInputFocusStyles() {
   return null;
 }
 
+function WebGlobalPullToRefresh() {
+  const [pullDistance, setPullDistance] = useState(0);
+  const [refreshing, setRefreshing] = useState(false);
+
+  useEffect(() => {
+    if (Platform.OS !== "web" || typeof window === "undefined") {
+      return;
+    }
+
+    const threshold = 78;
+    let startY = 0;
+    let startX = 0;
+    let pulling = false;
+    let rafId: number | null = null;
+
+    const getScrollableParent = (target: EventTarget | null) => {
+      let element = target instanceof HTMLElement ? target : null;
+      while (element && element !== document.body) {
+        const style = window.getComputedStyle(element);
+        const canScroll =
+          /(auto|scroll)/.test(style.overflowY) &&
+          element.scrollHeight > element.clientHeight;
+        if (canScroll) {
+          return element;
+        }
+        element = element.parentElement;
+      }
+      return document.scrollingElement || document.documentElement;
+    };
+
+    const isAtTop = (target: EventTarget | null) => {
+      const scrollable = getScrollableParent(target);
+      return (scrollable?.scrollTop || 0) <= 0;
+    };
+
+    const isTextEntry = (target: EventTarget | null) => {
+      const element = target instanceof HTMLElement ? target : null;
+      return Boolean(
+        element?.closest("input, textarea, select, [contenteditable='true']")
+      );
+    };
+
+    const isInsideHorizontalScroller = (target: EventTarget | null) => {
+      let element = target instanceof HTMLElement ? target : null;
+      while (element && element !== document.body) {
+        const style = window.getComputedStyle(element);
+        const canScrollHorizontally =
+          /(auto|scroll)/.test(style.overflowX) &&
+          element.scrollWidth > element.clientWidth;
+        if (canScrollHorizontally) {
+          return true;
+        }
+        element = element.parentElement;
+      }
+      return false;
+    };
+
+    const pageHasInAppRefresh = () =>
+      Number((window as any).__mekinaWebPullRefreshHandlers || 0) > 0;
+
+    const updatePullDistance = (distance: number) => {
+      if (rafId !== null) {
+        window.cancelAnimationFrame(rafId);
+      }
+      rafId = window.requestAnimationFrame(() => {
+        setPullDistance(distance);
+        rafId = null;
+      });
+    };
+
+    const onTouchStart = (event: TouchEvent) => {
+      if (
+        refreshing ||
+        pageHasInAppRefresh() ||
+        isTextEntry(event.target) ||
+        isInsideHorizontalScroller(event.target) ||
+        !isAtTop(event.target)
+      ) {
+        pulling = false;
+        return;
+      }
+
+      const touch = event.touches[0];
+      startY = touch.clientY;
+      startX = touch.clientX;
+      pulling = true;
+    };
+
+    const onTouchMove = (event: TouchEvent) => {
+      if (!pulling || refreshing || event.touches.length !== 1) {
+        return;
+      }
+
+      const touch = event.touches[0];
+      const deltaY = touch.clientY - startY;
+      const deltaX = Math.abs(touch.clientX - startX);
+
+      if (deltaY <= 0 || deltaX > Math.abs(deltaY)) {
+        pulling = false;
+        updatePullDistance(0);
+        return;
+      }
+
+      if (!isAtTop(event.target)) {
+        pulling = false;
+        updatePullDistance(0);
+        return;
+      }
+
+      updatePullDistance(Math.min(112, deltaY * 0.55));
+    };
+
+    const onTouchEnd = () => {
+      if (!pulling) {
+        return;
+      }
+
+      pulling = false;
+      setPullDistance((currentDistance) => {
+        if (currentDistance >= threshold && !refreshing) {
+          setRefreshing(true);
+          window.location.reload();
+          return 52;
+        }
+        return 0;
+      });
+    };
+
+    window.addEventListener("touchstart", onTouchStart, { passive: true });
+    window.addEventListener("touchmove", onTouchMove, { passive: true });
+    window.addEventListener("touchend", onTouchEnd, { passive: true });
+    window.addEventListener("touchcancel", onTouchEnd, { passive: true });
+
+    return () => {
+      if (rafId !== null) {
+        window.cancelAnimationFrame(rafId);
+      }
+      window.removeEventListener("touchstart", onTouchStart);
+      window.removeEventListener("touchmove", onTouchMove);
+      window.removeEventListener("touchend", onTouchEnd);
+      window.removeEventListener("touchcancel", onTouchEnd);
+    };
+  }, [refreshing]);
+
+  if (Platform.OS !== "web") {
+    return null;
+  }
+
+  const visibleHeight = refreshing ? 52 : pullDistance;
+  if (visibleHeight <= 8) {
+    return null;
+  }
+
+  return (
+    <View style={[styles.webPullIndicator, { height: visibleHeight }]}>
+      {refreshing ? (
+        <View style={styles.webPullRow}>
+          <ActivityIndicator size="small" color={COLORS.accent} />
+          <Text style={styles.webPullText}>Refreshing...</Text>
+        </View>
+      ) : (
+        <Text style={styles.webPullText}>
+          {pullDistance >= 78 ? "Release to refresh" : "Pull to refresh"}
+        </Text>
+      )}
+    </View>
+  );
+}
+
 export default function RootLayout() {
   return (
     <RootErrorBoundary>
       <WebRuntimeMonitor>
         <WebInputFocusStyles />
+        <WebGlobalPullToRefresh />
         <SocketProvider>
           <ThemeProvider value={MyDarkTheme}>
             <Stack
@@ -327,6 +498,29 @@ const styles = StyleSheet.create({
   },
   errorButtonText: {
     color: COLORS.foreground,
+    fontWeight: "700",
+  },
+  webPullIndicator: {
+    position: "fixed" as any,
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 9999,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: COLORS.card,
+    borderBottomWidth: 1,
+    borderBottomColor: "#313843",
+    overflow: "hidden",
+  },
+  webPullRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  webPullText: {
+    color: COLORS.mutedForeground,
+    fontSize: 12,
     fontWeight: "700",
   },
 });

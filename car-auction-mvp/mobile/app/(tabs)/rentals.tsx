@@ -10,6 +10,9 @@ import {
   ActivityIndicator,
   Alert,
   RefreshControl,
+  Platform,
+  Modal,
+  TouchableOpacity,
 } from "react-native";
 import { Redirect, useNavigation, useRouter } from "expo-router";
 import { useScrollToTop } from "@react-navigation/native";
@@ -35,6 +38,15 @@ function normalizeSearchText(value: string) {
   return value.toLowerCase().replace(/\s+/g, "");
 }
 
+function getRentalDailyPrice(vehicle: RentalVehicle) {
+  if (typeof vehicle.price_per_day === "number") {
+    return vehicle.price_per_day;
+  }
+
+  const parsed = Number(String(vehicle.price_display || "").replace(/[^\d.]/g, ""));
+  return Number.isFinite(parsed) ? parsed : 0;
+}
+
 export type RentalVehicle = {
   id: number; // The API sends the car ID as a number
   year: number;
@@ -42,6 +54,11 @@ export type RentalVehicle = {
   model: string;
   price_display: string;
   image_url: string;
+  price_per_day?: number | null;
+  body_type?: string | null;
+  transmission?: string | null;
+  drivetrain?: string | null;
+  fuel_type?: string | null;
 };
 
 const RentalCard = ({ item }: { item: RentalVehicle }) => {
@@ -76,6 +93,66 @@ const RentalsScreen = () => {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [filters, setFilters] = useState({
+    max_daily_price: "",
+    body_type: "",
+    fuel_type: "",
+    transmission: "",
+    drivetrain: "",
+  });
+  const [isFilterModalVisible, setFilterModalVisible] = useState(false);
+  const [tempFilters, setTempFilters] = useState(filters);
+
+  const filterOptions = {
+    max_daily_price: [
+      { label: "Under 2k/day", value: "2000" },
+      { label: "Under 5k/day", value: "5000" },
+      { label: "Under 10k/day", value: "10000" },
+    ],
+    body_type: ["SUV", "Sedan", "Hatchback", "Pickup", "Coupe", "Minivan"],
+    fuel_type: ["Gasoline", "Diesel", "Electric", "Hybrid"],
+    transmission: ["Automatic", "Manual"],
+    drivetrain: ["FWD", "RWD", "AWD", "4WD"],
+  };
+
+  const filterLabels: Record<keyof typeof filters, string> = {
+    max_daily_price: "Daily Rate",
+    body_type: "Body Type",
+    fuel_type: "Fuel Type",
+    transmission: "Transmission",
+    drivetrain: "Drivetrain",
+  };
+
+  const getFilterDisplayValue = (key: keyof typeof filters, value: string) => {
+    if (key === "max_daily_price") {
+      return filterOptions.max_daily_price.find((option) => option.value === value)
+        ?.label || `Under ${value}/day`;
+    }
+    return value;
+  };
+
+  const activeFilterEntries = (
+    Object.entries(filters) as [keyof typeof filters, string][]
+  ).filter(([, value]) => Boolean(value));
+  const activeFilterCount = activeFilterEntries.length;
+  const hasActiveFilters = activeFilterCount > 0;
+
+  const clearSingleFilter = (key: keyof typeof filters) => {
+    setFilters((prev) => ({ ...prev, [key]: "" }));
+    setTempFilters((prev) => ({ ...prev, [key]: "" }));
+  };
+
+  const clearAllFilters = () => {
+    const clearedFilters = {
+      max_daily_price: "",
+      body_type: "",
+      fuel_type: "",
+      transmission: "",
+      drivetrain: "",
+    };
+    setFilters(clearedFilters);
+    setTempFilters(clearedFilters);
+  };
 
   // This hook handles scrolling to top when the active tab is pressed
   useScrollToTop(ref);
@@ -115,6 +192,15 @@ const RentalsScreen = () => {
         model: item.model,
         price_display: item.price_display || "N/A", // Ensure price_display is mapped
         image_url: item.image_url,
+        price_per_day:
+          item.rental_details?.price_per_day ??
+          item.rental_listing?.price_per_day ??
+          item.price_per_day ??
+          null,
+        body_type: item.body_type ?? null,
+        transmission: item.transmission ?? null,
+        drivetrain: item.drivetrain ?? null,
+        fuel_type: item.fuel_type ?? null,
       }));
       setRentalVehicles(formattedData);
     } catch (error) {
@@ -147,10 +233,58 @@ const RentalsScreen = () => {
   };
 
   const filteredVehicles = rentalVehicles.filter((vehicle) => {
-    const haystack = `${vehicle.year} ${vehicle.make} ${vehicle.model}`;
-    return normalizeSearchText(haystack).includes(
-      normalizeSearchText(searchQuery)
-    );
+    const haystack = `${vehicle.year} ${vehicle.make} ${vehicle.model} ${
+      vehicle.body_type || ""
+    } ${vehicle.transmission || ""} ${vehicle.drivetrain || ""} ${
+      vehicle.fuel_type || ""
+    }`;
+    const normalizedQuery = normalizeSearchText(searchQuery);
+    const matchesSearch =
+      normalizedQuery.length === 0 ||
+      normalizeSearchText(haystack).includes(normalizedQuery);
+
+    if (!matchesSearch) {
+      return false;
+    }
+
+    const dailyPrice = getRentalDailyPrice(vehicle);
+    const bodyType = normalizeSearchText(vehicle.body_type || "");
+    const transmission = normalizeSearchText(vehicle.transmission || "");
+    const drivetrain = normalizeSearchText(vehicle.drivetrain || "");
+    const fuelType = normalizeSearchText(vehicle.fuel_type || "");
+
+    if (
+      filters.max_daily_price &&
+      (dailyPrice <= 0 || dailyPrice > Number(filters.max_daily_price))
+    ) {
+      return false;
+    }
+    if (
+      filters.body_type &&
+      !bodyType.includes(normalizeSearchText(filters.body_type))
+    ) {
+      return false;
+    }
+    if (
+      filters.fuel_type &&
+      !fuelType.includes(normalizeSearchText(filters.fuel_type))
+    ) {
+      return false;
+    }
+    if (
+      filters.transmission &&
+      !transmission.includes(normalizeSearchText(filters.transmission))
+    ) {
+      return false;
+    }
+    if (
+      filters.drivetrain &&
+      !drivetrain.includes(normalizeSearchText(filters.drivetrain))
+    ) {
+      return false;
+    }
+
+    return true;
   });
 
   if (loading && !refreshing) {
@@ -176,52 +310,283 @@ const RentalsScreen = () => {
         />
       }
     >
-      {/* --- Search & Filter Section --- */}
       <View style={styles.filterContainer}>
-        <View style={styles.searchBar}>
-          <Ionicons
-            name="search"
-            size={20}
-            color={COLORS.mutedForeground}
-            style={styles.searchIcon}
-          />
-          <TextInput
-            style={styles.searchInput}
-            placeholder="Search by make, model, or year..."
-            placeholderTextColor={COLORS.mutedForeground}
-            value={searchQuery}
-            onChangeText={setSearchQuery}
-          />
-          {searchQuery.length > 0 && (
-            <Pressable
-              onPress={() => setSearchQuery("")}
-              hitSlop={10}
-              style={{ padding: 4 }}
-            >
-              <Ionicons
-                name="close-circle"
-                size={20}
-                color={COLORS.mutedForeground}
-              />
-            </Pressable>
-          )}
+        <View style={styles.searchRow}>
+          <View style={styles.searchBar}>
+            <Ionicons
+              name="search"
+              size={20}
+              color={COLORS.mutedForeground}
+              style={styles.searchIcon}
+            />
+            <TextInput
+              style={styles.searchInput}
+              placeholder="Search rental make, model, or year..."
+              placeholderTextColor={COLORS.mutedForeground}
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+            />
+            {searchQuery.length > 0 && (
+              <Pressable
+                onPress={() => setSearchQuery("")}
+                hitSlop={10}
+                style={{ padding: 4 }}
+              >
+                <Ionicons
+                  name="close-circle"
+                  size={20}
+                  color={COLORS.mutedForeground}
+                />
+              </Pressable>
+            )}
+          </View>
+          <Pressable
+            style={[
+              styles.filterButtonInline,
+              hasActiveFilters && styles.filterButtonInlineActive,
+            ]}
+            onPress={() => {
+              setTempFilters(filters);
+              setFilterModalVisible(true);
+            }}
+          >
+            <Ionicons
+              name="options-outline"
+              size={20}
+              color={hasActiveFilters ? COLORS.foreground : COLORS.mutedForeground}
+            />
+            {hasActiveFilters && (
+              <View style={styles.filterCountBadge}>
+                <Text style={styles.filterCountBadgeText}>
+                  {activeFilterCount}
+                </Text>
+              </View>
+            )}
+          </Pressable>
         </View>
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          style={styles.quickFiltersContainer}
-        >
-          <Pressable style={styles.filterButton}>
-            <Text style={styles.filterButtonText}>Any Price</Text>
-          </Pressable>
-          <Pressable style={styles.filterButton}>
-            <Text style={styles.filterButtonText}>Any Body Type</Text>
-          </Pressable>
-          <Pressable style={styles.filterButton}>
-            <Text style={styles.filterButtonText}>Any Transmission</Text>
-          </Pressable>
-        </ScrollView>
+        {hasActiveFilters && (
+          <View style={styles.activeFiltersRow}>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              keyboardDismissMode="on-drag"
+              keyboardShouldPersistTaps="handled"
+              contentContainerStyle={styles.activeFiltersContent}
+            >
+              {activeFilterEntries.map(([key, value]) => (
+                <Pressable
+                  key={key}
+                  style={styles.filterChip}
+                  onPress={() => clearSingleFilter(key)}
+                >
+                  <Text style={styles.filterChipText}>
+                    {filterLabels[key]}: {getFilterDisplayValue(key, value)}
+                  </Text>
+                  <Ionicons name="close" size={14} color={COLORS.foreground} />
+                </Pressable>
+              ))}
+            </ScrollView>
+            <Pressable
+              style={styles.clearFiltersInlineButton}
+              onPress={clearAllFilters}
+            >
+              <Text style={styles.clearFiltersInlineText}>Clear all</Text>
+            </Pressable>
+          </View>
+        )}
       </View>
+
+      <Modal
+        animationType="slide"
+        transparent
+        visible={isFilterModalVisible}
+        onRequestClose={() => setFilterModalVisible(false)}
+      >
+        <Pressable
+          style={styles.modalContainer}
+          onPress={() => setFilterModalVisible(false)}
+        >
+          <Pressable style={styles.modalContent} onPress={() => undefined}>
+            <Text style={styles.modalTitle}>Rental Filters</Text>
+            <ScrollView
+              keyboardDismissMode="on-drag"
+              keyboardShouldPersistTaps="handled"
+            >
+              <Text style={styles.modalSectionTitle}>Daily Rate</Text>
+              <View style={styles.modalOptionsGrid}>
+                {filterOptions.max_daily_price.map((option) => (
+                  <TouchableOpacity
+                    key={option.value}
+                    style={[
+                      styles.modalOption,
+                      tempFilters.max_daily_price === option.value &&
+                        styles.modalOptionSelected,
+                    ]}
+                    onPress={() =>
+                      setTempFilters((f) => ({
+                        ...f,
+                        max_daily_price:
+                          f.max_daily_price === option.value ? "" : option.value,
+                      }))
+                    }
+                  >
+                    <Text
+                      style={[
+                        styles.modalOptionText,
+                        tempFilters.max_daily_price === option.value &&
+                          styles.modalOptionTextSelected,
+                      ]}
+                    >
+                      {option.label}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+
+              <Text style={styles.modalSectionTitle}>Body Type</Text>
+              <View style={styles.modalOptionsGrid}>
+                {filterOptions.body_type.map((option) => (
+                  <TouchableOpacity
+                    key={option}
+                    style={[
+                      styles.modalOption,
+                      tempFilters.body_type === option &&
+                        styles.modalOptionSelected,
+                    ]}
+                    onPress={() =>
+                      setTempFilters((f) => ({
+                        ...f,
+                        body_type: f.body_type === option ? "" : option,
+                      }))
+                    }
+                  >
+                    <Text
+                      style={[
+                        styles.modalOptionText,
+                        tempFilters.body_type === option &&
+                          styles.modalOptionTextSelected,
+                      ]}
+                    >
+                      {option}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+
+              <Text style={styles.modalSectionTitle}>Fuel Type</Text>
+              <View style={styles.modalOptionsGrid}>
+                {filterOptions.fuel_type.map((option) => (
+                  <TouchableOpacity
+                    key={option}
+                    style={[
+                      styles.modalOption,
+                      tempFilters.fuel_type === option &&
+                        styles.modalOptionSelected,
+                    ]}
+                    onPress={() =>
+                      setTempFilters((f) => ({
+                        ...f,
+                        fuel_type: f.fuel_type === option ? "" : option,
+                      }))
+                    }
+                  >
+                    <Text
+                      style={[
+                        styles.modalOptionText,
+                        tempFilters.fuel_type === option &&
+                          styles.modalOptionTextSelected,
+                      ]}
+                    >
+                      {option}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+
+              <Text style={styles.modalSectionTitle}>Transmission</Text>
+              <View style={styles.modalOptionsGrid}>
+                {filterOptions.transmission.map((option) => (
+                  <TouchableOpacity
+                    key={option}
+                    style={[
+                      styles.modalOption,
+                      tempFilters.transmission === option &&
+                        styles.modalOptionSelected,
+                    ]}
+                    onPress={() =>
+                      setTempFilters((f) => ({
+                        ...f,
+                        transmission: f.transmission === option ? "" : option,
+                      }))
+                    }
+                  >
+                    <Text
+                      style={[
+                        styles.modalOptionText,
+                        tempFilters.transmission === option &&
+                          styles.modalOptionTextSelected,
+                      ]}
+                    >
+                      {option}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+
+              <Text style={styles.modalSectionTitle}>Drivetrain</Text>
+              <View style={styles.modalOptionsGrid}>
+                {filterOptions.drivetrain.map((option) => (
+                  <TouchableOpacity
+                    key={option}
+                    style={[
+                      styles.modalOption,
+                      tempFilters.drivetrain === option &&
+                        styles.modalOptionSelected,
+                    ]}
+                    onPress={() =>
+                      setTempFilters((f) => ({
+                        ...f,
+                        drivetrain: f.drivetrain === option ? "" : option,
+                      }))
+                    }
+                  >
+                    <Text
+                      style={[
+                        styles.modalOptionText,
+                        tempFilters.drivetrain === option &&
+                          styles.modalOptionTextSelected,
+                      ]}
+                    >
+                      {option}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </ScrollView>
+
+            <View style={styles.modalFooter}>
+              <TouchableOpacity
+                style={styles.modalClearButton}
+                onPress={() => {
+                  clearAllFilters();
+                  setFilterModalVisible(false);
+                }}
+              >
+                <Text style={styles.modalClearButtonText}>Clear All</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.modalApplyButton}
+                onPress={() => {
+                  setFilters(tempFilters);
+                  setFilterModalVisible(false);
+                }}
+              >
+                <Text style={styles.modalApplyButtonText}>Apply Filters</Text>
+              </TouchableOpacity>
+            </View>
+          </Pressable>
+        </Pressable>
+      </Modal>
 
       {/* --- Listings Grid --- */}
       <View style={styles.gridContainer}>
@@ -258,10 +623,41 @@ const styles = StyleSheet.create({
     color: COLORS.foreground,
   },
   filterContainer: {
-    padding: 20,
+    paddingHorizontal: 20,
+    paddingTop: Platform.OS === "web" ? 14 : 20,
+    paddingBottom: Platform.OS === "web" ? 16 : 20,
     backgroundColor: COLORS.card,
     borderBottomWidth: 1,
     borderBottomColor: COLORS.border,
+  },
+  searchRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+  },
+  searchHero: {
+    backgroundColor: COLORS.card,
+    paddingHorizontal: 20,
+    paddingTop: Platform.OS === "web" ? 14 : 20,
+    paddingBottom: Platform.OS === "web" ? 24 : 30,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.border,
+  },
+  heroTitle: {
+    fontSize: Platform.OS === "web" ? 24 : 28,
+    fontWeight: "700",
+    color: COLORS.foreground,
+    textAlign: "center",
+    marginBottom: 8,
+  },
+  heroSubtitle: {
+    fontSize: Platform.OS === "web" ? 15 : 16,
+    color: COLORS.mutedForeground,
+    textAlign: "center",
+    marginBottom: Platform.OS === "web" ? 16 : 20,
+  },
+  searchPanel: {
+    zIndex: 10,
   },
   searchBar: {
     flexDirection: "row",
@@ -271,6 +667,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 15,
     borderWidth: 1,
     borderColor: COLORS.border,
+    flex: 1,
   },
   searchIcon: {
     marginRight: 10,
@@ -282,8 +679,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
   quickFiltersContainer: {
-    marginTop: 15,
-    flexDirection: "row",
+    marginTop: 20,
   },
   filterButton: {
     backgroundColor: COLORS.secondary,
@@ -295,8 +691,164 @@ const styles = StyleSheet.create({
     borderColor: COLORS.border,
   },
   filterButtonText: {
+    color: COLORS.foreground,
+    fontWeight: "500",
+  },
+  activeFilterButton: {
+    backgroundColor: COLORS.accent,
+    borderColor: COLORS.accent,
+  },
+  activeFilterButtonText: {
+    color: "#FFFFFF",
+  },
+  activeFiltersRow: {
+    marginTop: 12,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 10,
+  },
+  activeFiltersContent: {
+    paddingRight: 8,
+    gap: 8,
+  },
+  filterChip: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 999,
+    backgroundColor: COLORS.accent,
+  },
+  filterChipText: {
+    color: COLORS.foreground,
+    fontSize: 13,
+    fontWeight: "600",
+  },
+  clearFiltersInlineButton: {
+    paddingVertical: 6,
+    paddingHorizontal: 4,
+  },
+  clearFiltersInlineText: {
+    color: COLORS.mutedForeground,
+    fontSize: 13,
+    fontWeight: "600",
+  },
+  filterButtonInline: {
+    width: 50,
+    height: 50,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    backgroundColor: COLORS.secondary,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    position: "relative",
+  },
+  filterButtonInlineActive: {
+    backgroundColor: COLORS.accent,
+    borderColor: COLORS.accent,
+  },
+  filterCountBadge: {
+    position: "absolute",
+    top: -5,
+    right: -5,
+    minWidth: 20,
+    height: 20,
+    borderRadius: 10,
+    backgroundColor: "#FFFFFF",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 5,
+  },
+  filterCountBadgeText: {
+    color: COLORS.accent,
+    fontSize: 11,
+    fontWeight: "700",
+  },
+  modalContainer: {
+    flex: 1,
+    justifyContent: "flex-end",
+    backgroundColor: "rgba(0, 0, 0, 0.7)",
+  },
+  modalContent: {
+    backgroundColor: COLORS.card,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    padding: 20,
+    maxHeight: "80%",
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: "bold",
+    color: COLORS.foreground,
+    marginBottom: 10,
+    textAlign: "center",
+  },
+  modalSectionTitle: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: COLORS.mutedForeground,
+    marginTop: 20,
+    marginBottom: 10,
+  },
+  modalOptionsGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 10,
+  },
+  modalOption: {
+    paddingVertical: 10,
+    paddingHorizontal: 15,
+    backgroundColor: COLORS.secondary,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+  },
+  modalOptionSelected: {
+    backgroundColor: COLORS.accent,
+    borderColor: COLORS.accent,
+  },
+  modalOptionText: {
+    fontSize: 14,
     color: COLORS.mutedForeground,
     fontWeight: "500",
+  },
+  modalOptionTextSelected: {
+    color: COLORS.foreground,
+  },
+  modalFooter: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginTop: 30,
+    paddingTop: 15,
+    borderTopWidth: 1,
+    borderTopColor: COLORS.border,
+  },
+  modalClearButton: {
+    padding: 15,
+    borderRadius: 10,
+    alignItems: "center",
+  },
+  modalClearButtonText: {
+    color: COLORS.mutedForeground,
+    fontSize: 16,
+    fontWeight: "bold",
+  },
+  modalApplyButton: {
+    padding: 15,
+    borderRadius: 10,
+    backgroundColor: COLORS.accent,
+    alignItems: "center",
+    flex: 1,
+    marginLeft: 10,
+  },
+  modalApplyButtonText: {
+    color: "#fff",
+    fontSize: 16,
+    fontWeight: "bold",
   },
   gridContainer: {
     padding: 20,

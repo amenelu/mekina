@@ -13,6 +13,26 @@ const COLORS = {
   textSecondary: "#8A94A3",
 };
 
+function isInsideHorizontalScroller(target: unknown) {
+  if (Platform.OS !== "web" || typeof window === "undefined") {
+    return false;
+  }
+
+  let element = target instanceof HTMLElement ? target : null;
+  while (element && element !== document.body) {
+    const style = window.getComputedStyle(element);
+    const canScrollHorizontally =
+      /(auto|scroll)/.test(style.overflowX) &&
+      element.scrollWidth > element.clientWidth;
+    if (canScrollHorizontally) {
+      return true;
+    }
+    element = element.parentElement;
+  }
+
+  return false;
+}
+
 type UseWebPullToRefreshOptions = {
   onRefresh: () => void;
   refreshing: boolean;
@@ -26,10 +46,29 @@ export function useWebPullToRefresh({
 }: UseWebPullToRefreshOptions) {
   const enabled = Platform.OS === "web";
   const scrollOffsetY = useRef(0);
+  const pullDistanceRef = useRef(0);
   const [pullDistance, setPullDistance] = useState(0);
 
   useEffect(() => {
+    if (!enabled || typeof window === "undefined") {
+      return;
+    }
+
+    const win = window as any;
+    win.__mekinaWebPullRefreshHandlers =
+      (win.__mekinaWebPullRefreshHandlers || 0) + 1;
+
+    return () => {
+      win.__mekinaWebPullRefreshHandlers = Math.max(
+        (win.__mekinaWebPullRefreshHandlers || 1) - 1,
+        0
+      );
+    };
+  }, [enabled]);
+
+  useEffect(() => {
     if (!refreshing) {
+      pullDistanceRef.current = 0;
       setPullDistance(0);
     }
   }, [refreshing]);
@@ -37,10 +76,11 @@ export function useWebPullToRefresh({
   const panResponder = useMemo(
     () =>
       PanResponder.create({
-        onMoveShouldSetPanResponderCapture: (_, gestureState) =>
+        onMoveShouldSetPanResponderCapture: (event, gestureState) =>
           enabled &&
           !refreshing &&
           scrollOffsetY.current <= 0 &&
+          !isInsideHorizontalScroller(event?.nativeEvent?.target) &&
           gestureState.dy > 8 &&
           Math.abs(gestureState.dy) > Math.abs(gestureState.dx),
         onPanResponderMove: (_, gestureState) => {
@@ -52,6 +92,7 @@ export function useWebPullToRefresh({
             0,
             Math.min(110, gestureState.dy * 0.55)
           );
+          pullDistanceRef.current = nextDistance;
           setPullDistance(nextDistance);
         },
         onPanResponderRelease: () => {
@@ -59,7 +100,8 @@ export function useWebPullToRefresh({
             return;
           }
 
-          const shouldRefresh = pullDistance >= threshold;
+          const shouldRefresh = pullDistanceRef.current >= threshold;
+          pullDistanceRef.current = 0;
           setPullDistance(0);
 
           if (shouldRefresh && !refreshing) {
@@ -68,11 +110,12 @@ export function useWebPullToRefresh({
         },
         onPanResponderTerminate: () => {
           if (enabled) {
+            pullDistanceRef.current = 0;
             setPullDistance(0);
           }
         },
       }),
-    [enabled, onRefresh, pullDistance, refreshing, threshold]
+    [enabled, onRefresh, refreshing, threshold]
   );
 
   return {

@@ -217,21 +217,21 @@ const RequestCard = ({
                 marginTop: 4,
               }}
             >
-              {isTradeIn && <Text style={styles.tagText}>Trade-in</Text>}
-              {requestDetailLabel && (
+              {isTradeIn ? <Text style={styles.tagText}>Trade-in</Text> : null}
+              {requestDetailLabel ? (
                 <Text style={styles.tagText}>{requestDetailLabel}</Text>
-              )}
-              {isImageBased && (
+              ) : null}
+              {isImageBased ? (
                 <Text style={styles.tagText}>Photo</Text>
-              )}
-              {!isTradeIn && requestSource === "general" && (
+              ) : null}
+              {!isTradeIn && requestSource === "general" ? (
                 <Text style={styles.tagText}>Guided</Text>
-              )}
-              {request.detail_score !== undefined && (
+              ) : null}
+              {request.detail_score !== undefined ? (
                 <Text style={styles.scoreText}>
                   Strength: {request.detail_score}%
                 </Text>
-              )}
+              ) : null}
             </View>
           </View>
           <View style={{ alignItems: "flex-end", gap: 8 }}>
@@ -413,8 +413,11 @@ const MyRequestsScreen = () => {
           Please log in to view your requests.
         </Text>
         <Link href="/(auth)/login" asChild>
-          <Pressable testID="my-requests-login-button" style={styles.viewOffersButton}>
-            <Text style={styles.viewOffersButtonText}>Login</Text>
+          <Pressable
+            testID="my-requests-login-button"
+            style={styles.loginButton}
+          >
+            <Text style={styles.loginButtonText}>Login</Text>
           </Pressable>
         </Link>
       </View>
@@ -556,6 +559,21 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   viewOffersButtonText: { color: COLORS.foreground, fontWeight: "bold" },
+  loginButton: {
+    backgroundColor: COLORS.accent,
+    borderRadius: 10,
+    minWidth: 120,
+    minHeight: 44,
+    paddingHorizontal: 18,
+    paddingVertical: 10,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  loginButtonText: {
+    color: COLORS.foreground,
+    fontSize: 15,
+    fontWeight: "700",
+  },
   noRequestsContainer: {
     flex: 1,
     justifyContent: "center",

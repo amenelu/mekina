@@ -11,15 +11,19 @@ import {
   Text,
   TextInput,
   View,
+  Image,
 } from "react-native";
+import * as ImagePicker from "expo-image-picker";
 import { useLocalSearchParams, router } from "expo-router";
 
 import { useAuth } from "@/hooks/useAuth";
 import {
   deleteRentalCar,
+  deleteRentalCarImage,
   getRentalCar,
   updateRentalCar,
 } from "@/lib/api/rentals";
+import { mediaUrl } from "@/lib/api/client";
 import {
   showNativeFlowAlert,
   showNativeFlowConfirm,
@@ -66,6 +70,10 @@ type RentalCar = {
     price_per_day: number;
     is_available: boolean;
   } | null;
+  images?: {
+    id: number;
+    image_url: string;
+  }[];
 };
 
 export default function RentalEditListingScreen() {
@@ -92,6 +100,8 @@ export default function RentalEditListingScreen() {
     useState<(typeof FUEL_TYPE_OPTIONS)[number]>("Gasoline");
   const [isActive, setIsActive] = useState(false);
   const [isAvailable, setIsAvailable] = useState(false);
+  const [existingImages, setExistingImages] = useState<RentalCar["images"]>([]);
+  const [newImages, setNewImages] = useState<ImagePicker.ImagePickerAsset[]>([]);
 
   useEffect(() => {
     const fetchListing = async () => {
@@ -121,6 +131,7 @@ export default function RentalEditListingScreen() {
         );
         setIsActive(car.is_active);
         setIsAvailable(Boolean(car.rental_listing?.is_available));
+        setExistingImages(car.images || []);
       } catch (error: any) {
         Alert.alert(
           "Load Failed",
@@ -143,23 +154,67 @@ export default function RentalEditListingScreen() {
 
     setSaving(true);
     try {
-      const response = await updateRentalCar(id, {
-        make,
-        model,
-        year: Number(year),
-        price_per_day: Number(pricePerDay),
-        description,
-        condition,
-        body_type: bodyType,
-        mileage: mileage ? Number(mileage) : null,
-        transmission,
-        drivetrain,
-        fuel_type: fuelType,
-        is_active: isActive,
-        is_available: isAvailable,
-      });
+      let payload: unknown;
+      if (newImages.length > 0) {
+        const formData = new FormData();
+        formData.append("make", make);
+        formData.append("model", model);
+        formData.append("year", String(Number(year)));
+        formData.append("price_per_day", String(Number(pricePerDay)));
+        formData.append("description", description);
+        formData.append("condition", condition);
+        formData.append("body_type", bodyType);
+        formData.append("mileage", mileage ? String(Number(mileage)) : "");
+        formData.append("transmission", transmission);
+        formData.append("drivetrain", drivetrain);
+        formData.append("fuel_type", fuelType);
+        formData.append("is_active", String(isActive));
+        formData.append("is_available", String(isAvailable));
+
+        for (const image of newImages) {
+          if (Platform.OS === "web") {
+            const response = await fetch(image.uri);
+            const blob = await response.blob();
+            const webFile = new File(
+              [blob],
+              image.fileName || `rental_${Date.now()}.jpg`,
+              { type: image.mimeType || blob.type || "image/jpeg" }
+            );
+            formData.append("images", webFile, webFile.name);
+          } else {
+            const uriParts = image.uri.split(".");
+            const fileType = uriParts[uriParts.length - 1] || "jpg";
+            formData.append("images", {
+              uri: image.uri,
+              name: image.fileName || `rental_${Date.now()}.${fileType}`,
+              type: image.mimeType || `image/${fileType}`,
+            } as any);
+          }
+        }
+        payload = formData;
+      } else {
+        payload = {
+          make,
+          model,
+          year: Number(year),
+          price_per_day: Number(pricePerDay),
+          description,
+          condition,
+          body_type: bodyType,
+          mileage: mileage ? Number(mileage) : null,
+          transmission,
+          drivetrain,
+          fuel_type: fuelType,
+          is_active: isActive,
+          is_available: isAvailable,
+        };
+      }
+
+      const response = await updateRentalCar(id, payload);
 
       setListing(response.data.car);
+      setExistingImages(response.data.car.images || []);
+      setNewImages([]);
       showNativeFlowAlert("Success", response.data.message, () =>
         router.replace("/(rental)/rental-dashboard")
       );
@@ -171,6 +226,45 @@ export default function RentalEditListingScreen() {
     } finally {
       setSaving(false);
     }
+  };
+
+  const pickImages = async () => {
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== "granted") {
+      Alert.alert("Permission Required", "Please allow photo library access.");
+      return;
+    }
+
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsMultipleSelection: true,
+      quality: 0.8,
+    });
+
+    if (!result.canceled) {
+      setNewImages(result.assets);
+    }
+  };
+
+  const removeExistingImage = (imageId: number) => {
+    if (!id || !token) return;
+    showNativeFlowConfirm({
+      title: "Remove Image",
+      message: "Remove this rental image?",
+      confirmText: "Remove",
+      destructive: true,
+      onConfirm: async () => {
+        try {
+          const response = await deleteRentalCarImage(id, imageId);
+          setExistingImages(response.data.car.images || []);
+        } catch (error: any) {
+          Alert.alert(
+            "Remove Failed",
+            error.response?.data?.message || "Could not remove image."
+          );
+        }
+      },
+    });
   };
 
   const handleDelete = () => {
@@ -253,6 +347,53 @@ export default function RentalEditListingScreen() {
     <SafeAreaView style={styles.container}>
       <ScrollView contentContainerStyle={styles.content}>
         <View style={styles.pageShell}>
+          <Pressable
+            style={styles.backButton}
+            onPress={() => router.replace("/(rental)/rental-dashboard")}
+          >
+            <Text style={styles.backButtonText}>Back to Fleet</Text>
+          </Pressable>
+
+          <View style={styles.card}>
+            <Text style={styles.sectionTitle}>Rental Images</Text>
+            {existingImages && existingImages.length > 0 ? (
+              <View style={styles.imageGrid}>
+                {existingImages.map((image) => (
+                  <View key={image.id} style={styles.imageTile}>
+                    <Image
+                      source={{ uri: mediaUrl(image.image_url) || "" }}
+                      style={styles.thumbnail}
+                    />
+                    <Pressable
+                      style={styles.removeImageButton}
+                      onPress={() => removeExistingImage(image.id)}
+                    >
+                      <Text style={styles.removeImageText}>Remove</Text>
+                    </Pressable>
+                  </View>
+                ))}
+              </View>
+            ) : (
+              <Text style={styles.emptyText}>No images uploaded yet.</Text>
+            )}
+            {newImages.length > 0 ? (
+              <View style={styles.imageGrid}>
+                {newImages.map((image, index) => (
+                  <Image
+                    key={`${image.uri}-${index}`}
+                    source={{ uri: image.uri }}
+                    style={styles.thumbnail}
+                  />
+                ))}
+              </View>
+            ) : null}
+            <Pressable style={styles.secondaryButton} onPress={pickImages}>
+              <Text style={styles.secondaryButtonText}>
+                {newImages.length > 0 ? "Reselect New Images" : "Add Images"}
+              </Text>
+            </Pressable>
+          </View>
+
           <View style={styles.card}>
             <Text style={styles.sectionTitle}>Rental Details</Text>
             <View style={styles.inputGroup}>
@@ -383,6 +524,19 @@ const styles = StyleSheet.create({
     maxWidth: Platform.OS === "web" ? 980 : undefined,
     alignSelf: "center",
   },
+  backButton: {
+    alignSelf: "flex-start",
+    borderColor: COLORS.border,
+    borderRadius: 10,
+    borderWidth: 1,
+    marginBottom: 14,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+  },
+  backButtonText: {
+    color: COLORS.text,
+    fontWeight: "700",
+  },
   card: {
     backgroundColor: COLORS.card,
     borderRadius: 12,
@@ -394,6 +548,45 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: "bold",
     marginBottom: 16,
+  },
+  imageGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 10,
+    marginBottom: 14,
+  },
+  imageTile: {
+    width: 112,
+  },
+  thumbnail: {
+    width: 112,
+    height: 84,
+    borderRadius: 8,
+    backgroundColor: COLORS.input,
+  },
+  removeImageButton: {
+    marginTop: 6,
+    borderColor: COLORS.destructive,
+    borderRadius: 8,
+    borderWidth: 1,
+    paddingVertical: 7,
+    alignItems: "center",
+  },
+  removeImageText: {
+    color: COLORS.destructive,
+    fontWeight: "700",
+    fontSize: 12,
+  },
+  secondaryButton: {
+    borderColor: COLORS.accent,
+    borderRadius: 10,
+    borderWidth: 1,
+    padding: 12,
+    alignItems: "center",
+  },
+  secondaryButtonText: {
+    color: COLORS.accent,
+    fontWeight: "700",
   },
   inputGroup: { marginBottom: 15 },
   label: { color: COLORS.textSecondary, fontSize: 14, marginBottom: 8 },

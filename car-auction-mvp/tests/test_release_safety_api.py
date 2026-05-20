@@ -394,7 +394,7 @@ def test_compare_bids_includes_dealer_submitted_image(client):
     assert compare_bid["image_url"] == compare_bid["image_urls"][0]
 
 
-def test_only_dealers_can_request_more_points(client):
+def test_dealers_and_rentals_can_request_more_points(client):
     admin = create_user("points_admin", "points-admin@example.com", is_admin=True)
     buyer = create_user("points_buyer", "points-buyer@example.com")
     rental = create_user(
@@ -405,14 +405,17 @@ def test_only_dealers_can_request_more_points(client):
     dealer = create_user("points_dealer", "points-dealer@example.com", is_dealer=True)
     db.session.commit()
 
-    for user in (admin, buyer, rental):
+    for user in (admin, buyer):
         response = client.post(
             "/dealer/api/points/request",
             headers=login_headers(client, user.username),
             json={"requested_points": 10},
         )
         assert response.status_code == 403
-        assert response.get_json()["message"] == "Only dealers can request more points."
+        assert (
+            response.get_json()["message"]
+            == "Only dealers and rental companies can request more points."
+        )
 
     response = client.post(
         "/dealer/api/points/request",
@@ -422,7 +425,16 @@ def test_only_dealers_can_request_more_points(client):
 
     assert response.status_code == 200
     assert DealerPointRequest.query.filter_by(dealer_id=dealer.id).count() == 1
-    assert Notification.query.filter_by(user_id=admin.id, is_read=False).count() == 1
+
+    rental_response = client.post(
+        "/dealer/api/points/request",
+        headers=login_headers(client, rental.username),
+        json={"requested_points": 6, "reason": "Need rental listing points"},
+    )
+
+    assert rental_response.status_code == 200
+    assert DealerPointRequest.query.filter_by(dealer_id=rental.id).count() == 1
+    assert Notification.query.filter_by(user_id=admin.id, is_read=False).count() == 2
 
 
 def test_admin_accepting_point_request_grants_points_once(client):
@@ -497,6 +509,32 @@ def test_admin_denying_point_request_does_not_grant_points(client):
     assert PointTransaction.query.filter_by(user_id=dealer.id).count() == 0
 
 
+def test_admin_accepting_rental_point_request_grants_points(client):
+    admin = create_user("accept_rental_admin", "accept-rental-admin@example.com", is_admin=True)
+    rental = create_user(
+        "accept_rental",
+        "accept-rental@example.com",
+        is_rental_company=True,
+        points=3,
+    )
+    db.session.add(DealerPointRequest(dealer_id=rental.id, requested_points=8))
+    db.session.commit()
+
+    response = client.post(
+        f"/admin/api/dealers/{rental.id}/point-requests",
+        headers=login_headers(client, admin.username),
+        json={"action": "accept"},
+    )
+
+    assert response.status_code == 200
+    db.session.refresh(rental)
+    assert rental.points == 11
+    assert DealerPointRequest.query.filter_by(
+        dealer_id=rental.id,
+        status="accepted",
+    ).count() == 1
+
+
 def test_point_request_resolution_validates_action_and_target_role(client):
     admin = create_user("resolve_admin", "resolve-admin@example.com", is_admin=True)
     buyer = create_user("resolve_buyer", "resolve-buyer@example.com")
@@ -521,7 +559,7 @@ def test_point_request_resolution_validates_action_and_target_role(client):
     assert invalid_target.status_code == 400
     assert (
         invalid_target.get_json()["message"]
-        == "Point requests can only be resolved for dealers."
+        == "Point requests can only be resolved for dealers or rental companies."
     )
 
 

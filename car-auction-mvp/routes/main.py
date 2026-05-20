@@ -90,6 +90,13 @@ def _serialize_listing_card(car):
 
     if car.listing_type == "rental" and car.rental_listing:
         car_dict["price_display"] = f"{car.rental_listing.price_per_day:,.0f} ETB/day"
+        car_dict["price_per_day"] = car.rental_listing.price_per_day
+        car_dict["is_available"] = car.rental_listing.is_available
+        car_dict["rental_listing"] = {
+            "id": car.rental_listing.id,
+            "price_per_day": car.rental_listing.price_per_day,
+            "is_available": car.rental_listing.is_available,
+        }
         car_dict["detail_url"] = url_for("rentals.rental_detail", listing_id=car.id)
         car_dict["time_left"] = ""
     elif car.listing_type == "auction" and car.auction:

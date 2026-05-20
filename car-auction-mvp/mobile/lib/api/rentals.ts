@@ -15,11 +15,21 @@ export function createSellerCar(data: FormData) {
 }
 
 export function updateRentalCar(carId: string | number, data: unknown) {
-  return apiClient.put(`/seller/api/rental-cars/${carId}`, data);
+  const isFormData = typeof FormData !== "undefined" && data instanceof FormData;
+  return apiClient.put(`/seller/api/rental-cars/${carId}`, data, {
+    headers: isFormData ? { "Content-Type": "multipart/form-data" } : undefined,
+  });
 }
 
 export function deleteRentalCar(carId: string | number) {
   return apiClient.delete(`/seller/api/rental-cars/${carId}`);
+}
+
+export function deleteRentalCarImage(
+  carId: string | number,
+  imageId: string | number
+) {
+  return apiClient.delete(`/seller/api/rental-cars/${carId}/images/${imageId}`);
 }
 
 export function toggleRentalCarActive(carId: string | number) {

@@ -590,8 +590,11 @@ def api_popular_searches(current_user):
 @dealer_bp.route("/api/points/request", methods=["POST"])
 @token_required
 def api_request_more_points(current_user):
-    if not current_user.is_dealer:
-        return jsonify({"message": "Only dealers can request more points."}), 403
+    if not (current_user.is_dealer or current_user.is_rental_company):
+        return (
+            jsonify({"message": "Only dealers and rental companies can request more points."}),
+            403,
+        )
 
     data = request.get_json() or {}
     requested_points = data.get("requested_points")
@@ -609,9 +612,8 @@ def api_request_more_points(current_user):
     if not admins:
         return jsonify({"message": "No admin accounts are available right now."}), 500
 
-    message = (
-        f"Dealer {current_user.username} requested {requested_points} more points."
-    )
+    requester_label = "Rental company" if current_user.is_rental_company else "Dealer"
+    message = f"{requester_label} {current_user.username} requested {requested_points} more points."
     if reason:
         message += f" Reason: {reason}"
 

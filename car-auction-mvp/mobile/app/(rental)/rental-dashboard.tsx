@@ -306,22 +306,34 @@ export default function RentalDashboardScreen() {
         />
         <View style={styles.pageShell}>
           <View style={styles.header}>
-            <View>
+            <View style={styles.headerTextBlock}>
               <Text style={styles.headerTitle}>Rental Fleet</Text>
               <Text style={styles.headerSubtitle}>
                 Welcome back, {payload?.profile?.username || user?.username || "Rental Company"}!
               </Text>
             </View>
-            <Link href="/(rental)/add-rental" asChild>
-              <Pressable style={styles.headerButton}>
-                <Ionicons
-                  name="add-circle-outline"
-                  size={24}
-                  color={COLORS.accent}
-                />
-                <Text style={styles.headerButtonText}>Add Rental</Text>
-              </Pressable>
-            </Link>
+            <View style={styles.headerActions}>
+              <Link href="/(rental)/add-rental" asChild>
+                <Pressable style={styles.headerButton}>
+                  <Ionicons
+                    name="add-circle-outline"
+                    size={22}
+                    color={COLORS.accent}
+                  />
+                  <Text style={styles.headerButtonText}>Add Rental</Text>
+                </Pressable>
+              </Link>
+              <Link href="/(rental)/points" asChild>
+                <Pressable style={styles.headerButton}>
+                  <Ionicons
+                    name="flash-outline"
+                    size={20}
+                    color={COLORS.accent}
+                  />
+                  <Text style={styles.headerButtonText}>Request Points</Text>
+                </Pressable>
+              </Link>
+            </View>
           </View>
 
           {payload && (
@@ -413,11 +425,24 @@ const styles = StyleSheet.create({
     padding: 20,
     flexDirection: "row",
     justifyContent: "space-between",
-    alignItems: "center",
+    alignItems: "flex-start",
     gap: 16,
+    flexWrap: "wrap",
+  },
+  headerTextBlock: {
+    flex: 1,
+    minWidth: 220,
+    maxWidth: "100%",
   },
   headerTitle: { fontSize: 24, fontWeight: "bold", color: COLORS.text },
   headerSubtitle: { fontSize: 16, color: COLORS.textSecondary, marginTop: 4 },
+  headerActions: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "flex-end",
+    gap: 10,
+    maxWidth: "100%",
+  },
   headerButton: {
     flexDirection: "row",
     alignItems: "center",
@@ -426,10 +451,11 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "rgba(163, 112, 247, 0.28)",
     borderRadius: 999,
-    paddingHorizontal: 14,
+    paddingHorizontal: 12,
     paddingVertical: 10,
+    maxWidth: "100%",
   },
-  headerButtonText: { color: COLORS.accent, fontSize: 16, fontWeight: "600" },
+  headerButtonText: { color: COLORS.accent, fontSize: 14, fontWeight: "600" },
   statsGrid: {
     flexDirection: "row",
     flexWrap: "wrap",

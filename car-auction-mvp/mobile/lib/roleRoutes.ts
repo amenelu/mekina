@@ -46,6 +46,7 @@ export const RENTAL_ROUTES = {
   profile: "/(rental)/rental-profile",
   addRental: "/(rental)/add-rental",
   manageRental: "/(rental)/manage-rental",
+  points: "/(rental)/points",
 } as const;
 
 export function getPostLoginRoute(user: User | null | undefined) {

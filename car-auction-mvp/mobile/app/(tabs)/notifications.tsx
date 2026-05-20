@@ -179,16 +179,8 @@ const NotificationsScreen = () => {
           Please log in to view notifications.
         </Text>
         <Link href="/(auth)/login" asChild>
-          <Pressable
-            style={{
-              backgroundColor: COLORS.accent,
-              padding: 10,
-              borderRadius: 8,
-            }}
-          >
-            <Text style={{ color: COLORS.foreground, fontWeight: "bold" }}>
-              Login
-            </Text>
+          <Pressable style={styles.loginButton}>
+            <Text style={styles.loginButtonText}>Login</Text>
           </Pressable>
         </Link>
       </View>
@@ -229,6 +221,21 @@ const NotificationsScreen = () => {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.background },
   content: { padding: 20 },
+  loginButton: {
+    backgroundColor: COLORS.accent,
+    borderRadius: 10,
+    minWidth: 120,
+    minHeight: 44,
+    paddingHorizontal: 18,
+    paddingVertical: 10,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  loginButtonText: {
+    color: COLORS.foreground,
+    fontSize: 15,
+    fontWeight: "700",
+  },
   notificationList: { gap: 10 },
   notificationItem: {
     backgroundColor: COLORS.card,
