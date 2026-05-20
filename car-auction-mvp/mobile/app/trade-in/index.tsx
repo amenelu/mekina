@@ -9,6 +9,7 @@ import {
   Alert,
   Image,
   ActivityIndicator,
+  Platform,
 } from "react-native";
 import { useRouter } from "expo-router";
 import * as ImagePicker from "expo-image-picker";
@@ -123,98 +124,103 @@ const TradeInScreen = () => {
 
   return (
     <>
-      <ScrollView style={styles.container}>
-        <View style={styles.header}>
-          <Text style={styles.subtitle}>
-            Tell us about your car to get a competitive trade-in offer.
-          </Text>
-        </View>
-
-        <View style={styles.form}>
-          <View style={styles.formGrid}>
-            <TextInput
-              style={styles.input}
-              placeholder="Make (e.g., Toyota)"
-              placeholderTextColor={COLORS.mutedForeground}
-              value={make}
-              onChangeText={setMake}
-            />
-            <TextInput
-              style={styles.input}
-              placeholder="Model (e.g., Vitz)"
-              placeholderTextColor={COLORS.mutedForeground}
-              value={model}
-              onChangeText={setModel}
-            />
-          </View>
-          <View style={styles.formGrid}>
-            <TextInput
-              style={styles.input}
-              placeholder="Year (e.g., 2018)"
-              placeholderTextColor={COLORS.mutedForeground}
-              value={year}
-              onChangeText={setYear}
-              keyboardType="numeric"
-            />
-            <TextInput
-              style={styles.input}
-              placeholder="Mileage (e.g., 55000)"
-              placeholderTextColor={COLORS.mutedForeground}
-              value={mileage}
-              onChangeText={setMileage}
-              keyboardType="numeric"
-            />
+      <ScrollView
+        style={styles.container}
+        contentContainerStyle={styles.scrollContent}
+      >
+        <View style={styles.pageShell}>
+          <View style={styles.header}>
+            <Text style={styles.subtitle}>
+              Tell us about your car to get a competitive trade-in offer.
+            </Text>
           </View>
 
-          <TextInput
-            style={styles.input}
-            placeholder="VIN (17-digit Vehicle Identification Number)"
-            placeholderTextColor={COLORS.mutedForeground}
-            value={vin}
-            onChangeText={setVin}
-            autoCapitalize="characters"
-          />
+          <View style={styles.form}>
+            <View style={styles.formGrid}>
+              <TextInput
+                style={styles.gridInput}
+                placeholder="Make (e.g., Toyota)"
+                placeholderTextColor={COLORS.mutedForeground}
+                value={make}
+                onChangeText={setMake}
+              />
+              <TextInput
+                style={styles.gridInput}
+                placeholder="Model (e.g., Vitz)"
+                placeholderTextColor={COLORS.mutedForeground}
+                value={model}
+                onChangeText={setModel}
+              />
+            </View>
+            <View style={styles.formGrid}>
+              <TextInput
+                style={styles.gridInput}
+                placeholder="Year (e.g., 2018)"
+                placeholderTextColor={COLORS.mutedForeground}
+                value={year}
+                onChangeText={setYear}
+                keyboardType="numeric"
+              />
+              <TextInput
+                style={styles.gridInput}
+                placeholder="Mileage (e.g., 55000)"
+                placeholderTextColor={COLORS.mutedForeground}
+                value={mileage}
+                onChangeText={setMileage}
+                keyboardType="numeric"
+              />
+            </View>
 
-          <TextInput
-            style={styles.input}
-            placeholder="Are you trading for a specific car? (e.g. Toyota RAV4)"
-            placeholderTextColor={COLORS.mutedForeground}
-            value={targetCar}
-            onChangeText={setTargetCar}
-          />
+            <TextInput
+              style={styles.input}
+              placeholder="VIN (17-digit Vehicle Identification Number)"
+              placeholderTextColor={COLORS.mutedForeground}
+              value={vin}
+              onChangeText={setVin}
+              autoCapitalize="characters"
+            />
 
-          <TextInput
-            style={[styles.input, styles.textArea]}
-            placeholder="Mention any upgrades, recent repairs, or known issues..."
-            placeholderTextColor={COLORS.mutedForeground}
-            value={comments}
-            onChangeText={setComments}
-            multiline
-          />
+            <TextInput
+              style={styles.input}
+              placeholder="Are you trading for a specific car? (e.g. Toyota RAV4)"
+              placeholderTextColor={COLORS.mutedForeground}
+              value={targetCar}
+              onChangeText={setTargetCar}
+            />
 
-          <Pressable style={styles.imagePickerButton} onPress={handleImagePick}>
-            <Ionicons name="camera" size={20} color={COLORS.accent} />
-            <Text style={styles.imagePickerText}>Upload Photos</Text>
-          </Pressable>
+            <TextInput
+              style={[styles.input, styles.textArea]}
+              placeholder="Mention any upgrades, recent repairs, or known issues..."
+              placeholderTextColor={COLORS.mutedForeground}
+              value={comments}
+              onChangeText={setComments}
+              multiline
+            />
 
-          <ScrollView horizontal style={styles.imagePreviewContainer}>
-            {images.map((uri, index) => (
-              <Image key={index} source={{ uri }} style={styles.previewImage} />
-            ))}
-          </ScrollView>
+            <Pressable style={styles.imagePickerButton} onPress={handleImagePick}>
+              <Ionicons name="camera" size={20} color={COLORS.accent} />
+              <Text style={styles.imagePickerText}>Upload Photos</Text>
+            </Pressable>
 
-          <Pressable
-            testID="trade-in-submit"
-            style={styles.submitButton}
-            onPress={handleSubmit}
-            disabled={loading}
-          >
-            {loading ? (
-              <ActivityIndicator color={COLORS.foreground} />
-            ) : (
-              <Text style={styles.submitButtonText}>Submit for Offer</Text>
-            )}
-          </Pressable>
+            <ScrollView horizontal style={styles.imagePreviewContainer}>
+              {images.map((uri, index) => (
+                <Image key={index} source={{ uri }} style={styles.previewImage} />
+              ))}
+            </ScrollView>
+
+            <Pressable
+              testID="trade-in-submit"
+              style={styles.submitButton}
+              onPress={handleSubmit}
+              disabled={loading}
+            >
+              {loading ? (
+                <ActivityIndicator color={COLORS.foreground} />
+              ) : (
+                <Text style={styles.submitButtonText}>Submit for Offer</Text>
+              )}
+            </Pressable>
+          </View>
         </View>
       </ScrollView>
     </>
@@ -223,6 +229,14 @@ const TradeInScreen = () => {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.background },
+  scrollContent: {
+    paddingBottom: 24,
+  },
+  pageShell: {
+    width: "100%",
+    maxWidth: Platform.OS === "web" ? 760 : undefined,
+    alignSelf: "center",
+  },
   header: { padding: 20, paddingBottom: 10 },
   title: {
     fontSize: 28,
@@ -236,10 +250,34 @@ const styles = StyleSheet.create({
     textAlign: "center",
     marginTop: 8,
   },
-  form: { padding: 20, gap: 15 },
-  formGrid: { flexDirection: "row", gap: 15 },
+  form: {
+    paddingHorizontal: 20,
+    paddingVertical: 20,
+    gap: 15,
+    width: "100%",
+  },
+  formGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 15,
+    width: "100%",
+  },
   input: {
-    flex: 1,
+    width: "100%",
+    backgroundColor: COLORS.card,
+    color: COLORS.foreground,
+    padding: 15,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    fontSize: 16,
+    minWidth: 0,
+  },
+  gridInput: {
+    flexGrow: 1,
+    flexShrink: 1,
+    flexBasis: Platform.OS === "web" ? 260 : "100%",
+    minWidth: Platform.OS === "web" ? 220 : "100%",
     backgroundColor: COLORS.card,
     color: COLORS.foreground,
     padding: 15,

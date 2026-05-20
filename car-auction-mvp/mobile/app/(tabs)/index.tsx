@@ -30,12 +30,12 @@ import VehicleCard, { Vehicle } from "@/components/_components/VehicleCard";
 import { showNativeFlowAlert } from "@/lib/nativeFlowAlert";
 // --- Mock Data based on home.html ---
 const quickFilters = [
-  { label: "New", value: "New" },
-  { label: "Used", value: "Used" },
-  { label: "EV", value: "EV" },
-  { label: "Hybrid", value: "Hybrid" },
-  { label: "SUV", value: "SUV" },
-  { label: "Sedan", value: "Sedan" },
+  { label: "New", value: "New", group: "condition" },
+  { label: "Used", value: "Used", group: "condition" },
+  { label: "EV", value: "Electric", group: "fuel_type" },
+  { label: "Hybrid", value: "Hybrid", group: "fuel_type" },
+  { label: "SUV", value: "SUV", group: "body_type" },
+  { label: "Sedan", value: "Sedan", group: "body_type" },
 ];
 
 const trustStats = [
@@ -78,6 +78,9 @@ function matchesSearchTerms(searchQuery: string, item: { year?: number; make?: s
   );
 }
 
+type HomeQuickFilterGroup = "condition" | "fuel_type" | "body_type";
+type HomeQuickFilters = Record<HomeQuickFilterGroup, string>;
+
 const HomeScreen = () => {
   const router = useRouter();
   const navigation = useNavigation();
@@ -88,7 +91,11 @@ const HomeScreen = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<Vehicle[]>([]);
   const [isSearching, setIsSearching] = useState(false);
-  const [activeFilter, setActiveFilter] = useState("");
+  const [activeFilters, setActiveFilters] = useState<HomeQuickFilters>({
+    condition: "",
+    fuel_type: "",
+    body_type: "",
+  });
   const [featuredVehicles, setFeaturedVehicles] = useState<Vehicle[]>([]);
   const [recentVehicles, setRecentVehicles] = useState<Vehicle[]>([]);
   const [trendingSearches, setTrendingSearches] = useState<string[]>([]);
@@ -134,21 +141,25 @@ const HomeScreen = () => {
 
   useEffect(() => {
     const delayDebounceFn = setTimeout(async () => {
-      if (searchQuery.trim()) {
+      const hasSearchQuery = Boolean(searchQuery.trim());
+      const hasActiveFilters = Object.values(activeFilters).some(Boolean);
+
+      if (hasSearchQuery || hasActiveFilters) {
         const currentRequestId = ++searchRequestIdRef.current;
         setIsSearching(true);
         try {
-          const searchParams = new URLSearchParams({ q: searchQuery.trim() });
-          if (activeFilter) {
-            if (activeFilter === "New" || activeFilter === "Used") {
-              searchParams.set("condition", activeFilter);
-            } else if (activeFilter === "EV") {
-              searchParams.set("fuel_type", "Electric");
-            } else if (activeFilter === "Hybrid") {
-              searchParams.set("fuel_type", "Hybrid");
-            } else if (activeFilter === "SUV" || activeFilter === "Sedan") {
-              searchParams.set("body_type", activeFilter);
-            }
+          const searchParams = new URLSearchParams();
+          if (hasSearchQuery) {
+            searchParams.set("q", searchQuery.trim());
+          }
+          if (activeFilters.condition) {
+            searchParams.set("condition", activeFilters.condition);
+          }
+          if (activeFilters.fuel_type) {
+            searchParams.set("fuel_type", activeFilters.fuel_type);
+          }
+          if (activeFilters.body_type) {
+            searchParams.set("body_type", activeFilters.body_type);
           }
           const response = await getListings(Object.fromEntries(searchParams));
           const data = response.data;
@@ -156,7 +167,9 @@ const HomeScreen = () => {
             return;
           }
           const formattedData = data
-            .filter((item: any) => matchesSearchTerms(searchQuery, item))
+            .filter((item: any) =>
+              hasSearchQuery ? matchesSearchTerms(searchQuery, item) : true
+            )
             .map((item: any) => ({
               id: item.id.toString(),
               year: item.year,
@@ -185,7 +198,14 @@ const HomeScreen = () => {
     }, 300);
 
     return () => clearTimeout(delayDebounceFn);
-  }, [searchQuery, activeFilter]);
+  }, [searchQuery, activeFilters]);
+
+  const toggleQuickFilter = (group: HomeQuickFilterGroup, value: string) => {
+    setActiveFilters((current) => ({
+      ...current,
+      [group]: current[group] === value ? "" : value,
+    }));
+  };
 
   const fetchHomeData = async () => {
     try {
@@ -386,21 +406,24 @@ const HomeScreen = () => {
           >
             {quickFilters.map((filter) => (
               <Pressable
-                key={filter.value}
+                key={`${filter.group}-${filter.value}`}
                 style={[
                   styles.filterButton,
-                  activeFilter === filter.value && styles.activeFilterButton,
+                  activeFilters[filter.group as HomeQuickFilterGroup] ===
+                    filter.value && styles.activeFilterButton,
                 ]}
                 onPress={() =>
-                  setActiveFilter(
-                    activeFilter === filter.value ? "" : filter.value
+                  toggleQuickFilter(
+                    filter.group as HomeQuickFilterGroup,
+                    filter.value
                   )
                 }
               >
                 <Text
                   style={[
                     styles.filterButtonText,
-                    activeFilter === filter.value &&
+                    activeFilters[filter.group as HomeQuickFilterGroup] ===
+                      filter.value &&
                       styles.activeFilterButtonText,
                   ]}
                 >
