@@ -7,6 +7,7 @@ from models.car_request_image import CarRequestImage
 from models.chat_message import ChatMessage
 from models.conversation import Conversation
 from models.dealer_bid import DealerBid
+from models.dealer_bid_image import DealerBidImage
 from models.dealer_point_request import DealerPointRequest
 from models.notification import Notification
 from models.point_transaction import PointTransaction
@@ -346,6 +347,53 @@ def test_image_based_request_is_visible_to_dealer_with_images(client):
     assert details_request["image_urls"]
 
 
+def test_compare_bids_includes_dealer_submitted_image(client):
+    dealer = create_user("compare_image_dealer", "compare-image-dealer@example.com", is_dealer=True)
+    buyer = create_user("compare_image_buyer", "compare-image-buyer@example.com")
+    car_request = CarRequest(
+        user_id=buyer.id,
+        make="Toyota",
+        model="Corolla",
+        min_year=2021,
+        notes="Need a clean sedan.",
+    )
+    db.session.add(car_request)
+    db.session.flush()
+    bid = DealerBid(
+        price=2_100_000,
+        make="Toyota",
+        model="Corolla",
+        car_year=2022,
+        mileage=22000,
+        condition="Used",
+        availability="In Stock",
+        valid_until=date(2026, 12, 31),
+        dealer_id=dealer.id,
+        request_id=car_request.id,
+        message="Photo attached.",
+    )
+    db.session.add(bid)
+    db.session.flush()
+    db.session.add(
+        DealerBidImage(
+            dealer_bid_id=bid.id,
+            image_url="/static/uploads/dealer-offer-photo.jpg",
+        )
+    )
+    db.session.commit()
+
+    response = client.get(
+        f"/requests/api/bids/compare?ids={bid.id}",
+        headers=login_headers(client, buyer.username),
+    )
+
+    assert response.status_code == 200
+    compare_bid = response.get_json()["bids"][0]
+    assert compare_bid["image_urls"]
+    assert "dealer-offer-photo.jpg" in compare_bid["image_urls"][0]
+    assert compare_bid["image_url"] == compare_bid["image_urls"][0]
+
+
 def test_only_dealers_can_request_more_points(client):
     admin = create_user("points_admin", "points-admin@example.com", is_admin=True)
     buyer = create_user("points_buyer", "points-buyer@example.com")
@@ -668,7 +716,10 @@ def test_buyer_question_can_be_answered_by_dealer_api(client):
     db.session.refresh(question)
     assert question.answer_text == "Yes, full service records are available."
     assert question.answered_at is not None
-    assert Notification.query.filter_by(user_id=buyer.id, is_read=False).count() == 1
+    buyer_notification = Notification.query.filter_by(
+        user_id=buyer.id, is_read=False
+    ).one()
+    assert buyer_notification.link == f"/request/{car_request.id}?bid_id={bid.id}"
 
     unanswered_response = client.get(
         "/dealer/api/request-questions/unanswered",

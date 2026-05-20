@@ -475,7 +475,7 @@ def api_answer_request_question(current_user, question_id):
             "The dealer answered your question about their offer "
             f"for request #{bid.car_request.id}."
         ),
-        link=f"/request/{bid.car_request.id}",
+        link=f"/request/{bid.car_request.id}?bid_id={bid.id}",
     )
     db.session.add(notification)
     db.session.commit()
@@ -1587,6 +1587,7 @@ def answer_request_question(question_id):
         notification.link = url_for(
             "request.request_detail",
             request_id=bid.car_request.id,
+            bid_id=bid.id,
             _anchor=f"qna-for-bid-{bid.id}",
             notification_id=notification.id,
         )

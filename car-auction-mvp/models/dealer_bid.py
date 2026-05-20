@@ -72,6 +72,7 @@ class DealerBid(db.Model):
             "valid_until": self.valid_until.isoformat(),
             "message": self.message,
             "image_urls": image_urls,
+            "image_url": image_urls[0] if image_urls else None,
             "is_newest": is_newest,
             "is_best_deal": is_best_deal,
             "questions": [

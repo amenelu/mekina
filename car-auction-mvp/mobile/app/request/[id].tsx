@@ -31,6 +31,8 @@ import {
 } from "@/lib/nativeFlowAlert";
 
 const SCREEN_WIDTH = Dimensions.get("window").width;
+const getSingleParam = (value: string | string[] | undefined) =>
+  Array.isArray(value) ? value[0] : value;
 const COLORS = {
   background: "#14181F",
   foreground: "#F8F8F8",
@@ -108,6 +110,7 @@ interface ComparisonBid {
   dealer_username?: string;
   dealer?: { username: string; avg_rating: number };
   image_url?: string;
+  image_urls?: string[];
   is_best_price?: boolean;
   is_best_mileage?: boolean;
   is_best_year?: boolean;
@@ -139,7 +142,8 @@ const OfferImage = ({ uri, onPress }: { uri: string; onPress: () => void }) => {
 };
 
 const RequestDetailScreen = () => {
-  const { id } = useLocalSearchParams();
+  const { id, bid_id } = useLocalSearchParams();
+  const highlightedBidId = Number(getSingleParam(bid_id)) || null;
   const { token, logout, isLoading } = useAuth() as any;
   const router = useRouter();
 
@@ -198,6 +202,16 @@ const RequestDetailScreen = () => {
     }
     fetchRequestDetails();
   }, [fetchRequestDetails, isLoading, router, token]);
+
+  useEffect(() => {
+    if (!highlightedBidId || !bids.some((bid) => bid.id === highlightedBidId)) {
+      return;
+    }
+
+    setExpandedQAs((prev) =>
+      prev[highlightedBidId] ? prev : { ...prev, [highlightedBidId]: true }
+    );
+  }, [bids, highlightedBidId]);
 
   const onRefresh = () => {
     setRefreshing(true);
@@ -452,6 +466,9 @@ const RequestDetailScreen = () => {
           {bids.length > 0 ? (
             bids.map((bid, index) => {
               const isSelected = selectedBids.includes(bid.id);
+              const hasDealerAnswer =
+                bid.questions?.some((qna) => Boolean(qna.answer_text)) ?? false;
+              const isNotificationTarget = highlightedBidId === bid.id;
               return (
                 <Pressable
                   key={bid.id}
@@ -472,6 +489,7 @@ const RequestDetailScreen = () => {
                     style={[
                       styles.card,
                       index === 0 && styles.lowestOfferCard,
+                      isNotificationTarget && styles.notificationTargetCard,
                       isSelected && styles.selectedCard,
                     ]}
                   >
@@ -497,12 +515,17 @@ const RequestDetailScreen = () => {
                       </View>
                     )}
                     <View style={styles.bidHeader}>
-                      <View>
+                      <View style={styles.bidDealerInfo}>
                         <Link
                           href={`/(details)/dealers/public/${bid.dealer.id}`}
                           asChild
                         >
-                          <Pressable>
+                          <Pressable
+                            style={styles.dealerProfileLink}
+                            onPress={(event: any) => {
+                              event?.stopPropagation?.();
+                            }}
+                          >
                             <Text style={styles.dealerName}>
                               {bid.dealer.username}
                             </Text>
@@ -518,6 +541,16 @@ const RequestDetailScreen = () => {
                           </Text>
                         </View>
                       </View>
+                      {hasDealerAnswer && (
+                        <View style={styles.answeredOfferBadge}>
+                          <Ionicons
+                            name="chatbubble-ellipses"
+                            size={15}
+                            color={COLORS.success}
+                          />
+                          <Text style={styles.answeredOfferText}>Answered</Text>
+                        </View>
+                      )}
                     </View>
 
                     {bid.image_urls && bid.image_urls.length > 0 && (
@@ -805,6 +838,10 @@ const RequestDetailScreen = () => {
             >
               {comparisonBids.map((bid) => (
                 <View key={bid.id} style={styles.compareCard}>
+                  {(() => {
+                    const imageUrl = bid.image_url || bid.image_urls?.[0];
+                    return (
+                      <>
                   {/* Header / Dealer Info */}
                   <View style={styles.compareCardHeader}>
                     <Text style={styles.compareDealerName}>
@@ -820,9 +857,9 @@ const RequestDetailScreen = () => {
 
                   {/* Car Image */}
                   <View style={styles.compareImageContainer}>
-                    {bid.image_url ? (
+                    {imageUrl ? (
                       <Image
-                        source={{ uri: mediaUrl(bid.image_url) || "" }}
+                        source={{ uri: mediaUrl(imageUrl) || "" }}
                         style={styles.compareImage}
                       />
                     ) : (
@@ -879,6 +916,9 @@ const RequestDetailScreen = () => {
                   >
                     <Text style={styles.compareSelectButtonText}>Close</Text>
                   </Pressable>
+                      </>
+                    );
+                  })()}
                 </View>
               ))}
             </ScrollView>
@@ -999,6 +1039,10 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     backgroundColor: "#2E2245",
   },
+  notificationTargetCard: {
+    borderColor: COLORS.success,
+    borderWidth: 2,
+  },
   selectionOverlay: {
     position: "absolute",
     top: 10,
@@ -1067,7 +1111,33 @@ const styles = StyleSheet.create({
     fontSize: 14,
   },
   bidHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
+    gap: 12,
     marginBottom: 10,
+  },
+  bidDealerInfo: {
+    flex: 1,
+    minWidth: 0,
+  },
+  answeredOfferBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    alignSelf: "flex-start",
+    gap: 5,
+    marginTop: 24,
+    borderWidth: 1,
+    borderColor: COLORS.success,
+    borderRadius: 999,
+    paddingHorizontal: 9,
+    paddingVertical: 4,
+    backgroundColor: "rgba(49, 208, 170, 0.12)",
+  },
+  answeredOfferText: {
+    color: COLORS.success,
+    fontSize: 12,
+    fontWeight: "700",
   },
   dealerRating: {
     flexDirection: "row",
@@ -1234,7 +1304,15 @@ const styles = StyleSheet.create({
   newestOfferTag: {
     backgroundColor: COLORS.success,
   },
-  dealerName: { fontSize: 18, fontWeight: "600", color: COLORS.foreground },
+  dealerProfileLink: {
+    alignSelf: "flex-start",
+  },
+  dealerName: {
+    fontSize: 18,
+    fontWeight: "700",
+    color: COLORS.accent,
+    textDecorationLine: "underline",
+  },
   bidPrice: { fontSize: 18, fontWeight: "bold", color: COLORS.accent },
   bidFooter: {
     flexDirection: "row",
@@ -1322,6 +1400,7 @@ const styles = StyleSheet.create({
   },
   questionInput: {
     minHeight: 120,
+    fontSize: 16,
     color: COLORS.foreground,
     backgroundColor: COLORS.background,
     borderWidth: 1,

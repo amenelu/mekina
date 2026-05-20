@@ -46,6 +46,7 @@ interface ComparisonBid {
   dealer_username?: string; // Depends on backend serialization
   dealer?: { username: string; avg_rating: number };
   image_url?: string;
+  image_urls?: string[];
   // Comparison flags
   is_best_price?: boolean;
   is_best_mileage?: boolean;
@@ -104,6 +105,10 @@ const CompareBidsScreen = () => {
         >
           {bids.map((bid) => (
             <View key={bid.id} style={styles.card}>
+              {(() => {
+                const imageUrl = bid.image_url || bid.image_urls?.[0];
+                return (
+                  <>
               {/* Header / Dealer Info */}
               <View style={styles.cardHeader}>
                 <Text style={styles.dealerName}>
@@ -119,9 +124,9 @@ const CompareBidsScreen = () => {
 
               {/* Car Image */}
               <View style={styles.imageContainer}>
-                {bid.image_url ? (
+                {imageUrl ? (
                   <Image
-                    source={{ uri: mediaUrl(bid.image_url) || "" }}
+                    source={{ uri: mediaUrl(imageUrl) || "" }}
                     style={styles.image}
                   />
                 ) : (
@@ -220,6 +225,9 @@ const CompareBidsScreen = () => {
               >
                 <Text style={styles.selectButtonText}>View Details</Text>
               </Pressable>
+                  </>
+                );
+              })()}
             </View>
           ))}
         </ScrollView>

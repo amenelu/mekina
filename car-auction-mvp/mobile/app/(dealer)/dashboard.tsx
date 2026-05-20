@@ -12,8 +12,9 @@ import {
   Modal,
   Alert,
   Image,
+  Animated,
 } from "react-native";
-import { router } from "expo-router";
+import { router, useLocalSearchParams } from "expo-router";
 import { useAuth } from "@/hooks/useAuth";
 import { Ionicons } from "@expo/vector-icons";
 import { useSocket } from "@/contexts/SocketContext";
@@ -33,6 +34,11 @@ const COLORS = {
   warning: "#ffc107",
   border: "#313843",
 };
+const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
+const DEALER_DASHBOARD_TABS = ["listings", "requests", "pending", "questions"] as const;
+type DealerDashboardTab = (typeof DEALER_DASHBOARD_TABS)[number];
+const getSingleParam = (value: string | string[] | undefined) =>
+  Array.isArray(value) ? value[0] : value;
 
 interface DashboardStats {
   points?: number;
@@ -90,11 +96,54 @@ const StatCard = ({
   label,
   value,
   onPress,
+  pulse = false,
 }: {
   label: string;
   value: number;
   onPress?: () => void;
+  pulse?: boolean;
 }) => {
+  const pulseAnim = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    if (!pulse) {
+      pulseAnim.stopAnimation();
+      pulseAnim.setValue(0);
+      return;
+    }
+
+    const animation = Animated.loop(
+      Animated.sequence([
+        Animated.timing(pulseAnim, {
+          toValue: 1,
+          duration: 850,
+          useNativeDriver: true,
+        }),
+        Animated.timing(pulseAnim, {
+          toValue: 0,
+          duration: 850,
+          useNativeDriver: true,
+        }),
+      ])
+    );
+
+    animation.start();
+    return () => animation.stop();
+  }, [pulse, pulseAnim]);
+
+  const animatedStyle = pulse
+    ? {
+        transform: [
+          {
+            scale: pulseAnim.interpolate({
+              inputRange: [0, 1],
+              outputRange: [1, 1.035],
+            }),
+          },
+        ],
+      }
+    : null;
+
   const CardContent = () => (
     <>
       <Text style={styles.statValue}>{value}</Text>
@@ -103,13 +152,18 @@ const StatCard = ({
   );
 
   return onPress ? (
-    <Pressable style={styles.statCard} onPress={onPress}>
+    <AnimatedPressable
+      style={[styles.statCard, pulse && styles.pulsingStatCard, animatedStyle]}
+      onPress={onPress}
+    >
       <CardContent />
-    </Pressable>
+    </AnimatedPressable>
   ) : (
-    <View style={styles.statCard}>
+    <Animated.View
+      style={[styles.statCard, pulse && styles.pulsingStatCard, animatedStyle]}
+    >
       <CardContent />
-    </View>
+    </Animated.View>
   );
 };
 
@@ -322,6 +376,8 @@ const DashboardSection = <T,>({
 };
 
 const DealerDashboard = () => {
+  const { tab } = useLocalSearchParams();
+  const requestedTab = getSingleParam(tab);
   const { token, user, isLoading } = useAuth() as any;
   const { socket } = useSocket();
   const hasRedirectedRef = useRef(false);
@@ -333,9 +389,7 @@ const DealerDashboard = () => {
   const [pendingListings, setPendingListings] = useState<Listing[]>([]);
   const [requests, setRequests] = useState<CustomerRequest[]>([]);
   const [questions, setQuestions] = useState<RequestQuestion[]>([]);
-  const [activeTab, setActiveTab] = useState<
-    "listings" | "requests" | "pending" | "questions"
-  >("requests");
+  const [activeTab, setActiveTab] = useState<DealerDashboardTab>("requests");
   const [selectedQuestion, setSelectedQuestion] =
     useState<RequestQuestion | null>(null);
   const [answerText, setAnswerText] = useState("");
@@ -347,6 +401,15 @@ const DealerDashboard = () => {
       router.replace(LOGIN_ROUTE);
     }
   }, [isLoading, token]);
+
+  useEffect(() => {
+    if (
+      requestedTab &&
+      DEALER_DASHBOARD_TABS.includes(requestedTab as DealerDashboardTab)
+    ) {
+      setActiveTab(requestedTab as DealerDashboardTab);
+    }
+  }, [requestedTab]);
 
   useEffect(() => {
     if (!socket) return;
@@ -549,6 +612,7 @@ const DealerDashboard = () => {
               label="Unanswered"
               value={stats.unanswered_questions_count ?? 0}
               onPress={() => setActiveTab("questions")}
+              pulse={(stats.unanswered_questions_count ?? 0) > 0}
             />
           </View>
         )}
@@ -698,6 +762,11 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     width: "32%", // Allow 3 cards per row with some space
     marginBottom: 10, // Add space between rows
+  },
+  pulsingStatCard: {
+    borderWidth: 1,
+    borderColor: COLORS.warning,
+    backgroundColor: "#27251C",
   },
   statValue: { fontSize: 20, fontWeight: "bold", color: COLORS.accent },
   statLabel: {
@@ -908,6 +977,7 @@ const styles = StyleSheet.create({
   },
   answerInput: {
     minHeight: 120,
+    fontSize: 16,
     borderWidth: 1,
     borderColor: COLORS.border,
     borderRadius: 8,

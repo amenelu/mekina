@@ -35,16 +35,52 @@ interface Notification {
 const getMobileRoute = (webLink: string | null) => {
   if (!webLink) return null;
 
+  const normalizedLink = webLink.replace(/^https?:\/\/[^/]+/, "");
+
+  // Buyer asked a question about a dealer offer.
+  if (
+    normalizedLink.includes("/dealer/request_question/") ||
+    normalizedLink.includes("/request_question/")
+  ) {
+    return `${DEALER_ROUTES.dashboard}?tab=questions`;
+  }
+
   // Handle Requests: /requests/123 -> /request/123
-  if (webLink.includes("/requests/") && !webLink.includes("/deal/")) {
-    const match = webLink.match(/\/requests\/(\d+)/);
+  if (normalizedLink.includes("/requests/") && !normalizedLink.includes("/deal/")) {
+    const match = normalizedLink.match(/\/requests\/(\d+)/);
     if (match) return `${DEALER_ROUTES.placeOffer}?request_id=${match[1]}`;
   }
 
+  // Handle accepted offers: /requests/deal/123 or /deal/123 -> /deal/123
+  if (normalizedLink.includes("/deal/")) {
+    const match = normalizedLink.match(/\/deal\/(\d+)/);
+    if (match) return `/deal/${match[1]}`;
+  }
+
   // Handle Dealer Messages
-  if (webLink.includes("/dealer/messages/")) {
-    const match = webLink.match(/\/dealer\/messages\/(\d+)/);
+  if (normalizedLink.includes("/dealer/messages/")) {
+    const match = normalizedLink.match(/\/dealer\/messages\/(\d+)/);
     if (match) return `/messages/${match[1]}`;
+  }
+
+  if (normalizedLink.includes("/my-messages/")) {
+    const match = normalizedLink.match(/\/my-messages\/(\d+)/);
+    if (match) return `/messages/${match[1]}`;
+  }
+
+  // Listing approval/rejection links should stay in dealer tools.
+  if (normalizedLink.includes("/car/")) {
+    const match = normalizedLink.match(/\/car\/(\d+)/);
+    if (match) return `${DEALER_ROUTES.editListing}?id=${match[1]}`;
+  }
+
+  if (normalizedLink.includes("/rentals/")) {
+    const match = normalizedLink.match(/\/rentals\/(\d+)/);
+    if (match) return `${DEALER_ROUTES.editListing}?id=${match[1]}`;
+  }
+
+  if (normalizedLink.includes("/auctions/")) {
+    return `${DEALER_ROUTES.dashboard}?tab=listings`;
   }
 
   return null;

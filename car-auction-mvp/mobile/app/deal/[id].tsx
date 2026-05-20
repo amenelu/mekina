@@ -19,6 +19,7 @@ import {
 import { useAuth } from "@/hooks/useAuth";
 import { Ionicons } from "@expo/vector-icons";
 import { getDeal, rateDeal } from "@/lib/api/requests";
+import { DEALER_ROUTES } from "@/lib/roleRoutes";
 
 const COLORS = {
   background: "#14181F",
@@ -49,8 +50,9 @@ interface Deal {
 
 const DealSummaryScreen = () => {
   const { id } = useLocalSearchParams();
-  const { token, isLoading } = useAuth() as any;
+  const { token, isLoading, user } = useAuth() as any;
   const router = useRouter();
+  const isDealer = Boolean(user?.is_dealer);
   const [deal, setDeal] = useState<Deal | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -149,10 +151,13 @@ const DealSummaryScreen = () => {
       >
         <View style={styles.content}>
           <View style={styles.header}>
-            <Text style={styles.headerTitle}>Deal Confirmed!</Text>
+            <Text style={styles.headerTitle}>
+              {isDealer ? "Offer Accepted!" : "Deal Confirmed!"}
+            </Text>
             <Text style={styles.headerSubtitle}>
-              Here are the details of your agreement. Please contact the dealer
-              to finalize the transaction.
+              {isDealer
+                ? "Your offer was accepted. Contact the customer to finalize the transaction."
+                : "Here are the details of your agreement. Please contact the dealer to finalize the transaction."}
             </Text>
           </View>
 
@@ -203,8 +208,7 @@ const DealSummaryScreen = () => {
               </Text>
             </View>
 
-            {/* Rating Section - Only for Customer if not rated yet */}
-            {deal.has_rated === false && (
+            {!isDealer && deal.has_rated === false && (
               <View style={styles.section}>
                 <Text style={styles.sectionTitle}>Rate Your Experience</Text>
                 <View style={styles.ratingContainer}>
@@ -248,7 +252,7 @@ const DealSummaryScreen = () => {
               </View>
             )}
 
-            {deal.has_rated === true && (
+            {!isDealer && deal.has_rated === true && (
               <View style={styles.section}>
                 <Text style={styles.sectionTitle}>Review Submitted</Text>
                 <Text style={{ color: COLORS.mutedForeground }}>
@@ -260,7 +264,11 @@ const DealSummaryScreen = () => {
 
           <Pressable
             style={styles.doneButton}
-            onPress={() => router.replace("/(tabs)/my-requests")}
+            onPress={() =>
+              router.replace(
+                (isDealer ? DEALER_ROUTES.dashboard : "/(tabs)/my-requests") as any
+              )
+            }
           >
             <Text style={styles.doneButtonText}>Done</Text>
           </Pressable>

@@ -34,14 +34,25 @@ interface Notification {
 const getMobileRoute = (webLink: string | null) => {
   if (!webLink) return null;
 
+  const appendBidParam = (route: string) => {
+    const bidMatch = webLink.match(/[?&]bid_id=(\d+)/);
+    return bidMatch ? `${route}?bid_id=${bidMatch[1]}` : route;
+  };
+
   if (webLink.includes("/(admin)/dealers") || webLink.includes("/admin-dealers")) {
     return ADMIN_ROUTES.dealers;
+  }
+
+  // Handle Expo app links already targeting the mobile request screen.
+  if (webLink.includes("/request/") && !webLink.includes("/requests/")) {
+    const match = webLink.match(/\/request\/(\d+)/);
+    if (match) return appendBidParam(`/request/${match[1]}`);
   }
 
   // Handle Requests: /requests/123 -> /request/123
   if (webLink.includes("/requests/") && !webLink.includes("/deal/")) {
     const match = webLink.match(/\/requests\/(\d+)/);
-    if (match) return `/request/${match[1]}`;
+    if (match) return appendBidParam(`/request/${match[1]}`);
   }
 
   // Handle Messages: /my-messages/123 -> /messages/123
