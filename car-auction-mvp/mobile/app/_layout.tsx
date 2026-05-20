@@ -384,6 +384,7 @@ export default function RootLayout() {
                 headerStyle: { backgroundColor: COLORS.card },
                 headerTintColor: COLORS.foreground,
                 headerTitleStyle: { color: COLORS.foreground },
+                headerTitleAlign: "center",
                 contentStyle: { backgroundColor: COLORS.background },
               }}
             >

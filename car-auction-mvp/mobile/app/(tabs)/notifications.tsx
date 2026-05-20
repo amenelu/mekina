@@ -190,7 +190,7 @@ const NotificationsScreen = () => {
   return (
     <>
       <Stack.Screen
-        options={{ title: "Notifications", headerTitleAlign: "left" }}
+        options={{ title: "Notifications", headerTitleAlign: "center" }}
       />
       <ScrollView
         style={styles.container}

@@ -340,6 +340,7 @@ const HomeScreen = () => {
 
   React.useLayoutEffect(() => {
     navigation.setOptions({
+      headerTitleAlign: "center",
       headerTitle: () => (
         <Pressable
           onPress={() => ref.current?.scrollTo({ y: 0, animated: true })}

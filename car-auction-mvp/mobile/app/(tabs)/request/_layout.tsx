@@ -19,6 +19,7 @@ export default function RequestLayout() {
           headerStyle: { backgroundColor: COLORS.card },
           headerTintColor: COLORS.foreground,
           headerTitleStyle: { color: COLORS.foreground },
+          headerTitleAlign: "center",
           contentStyle: { backgroundColor: COLORS.background },
           headerLeft: () => (
             <Pressable

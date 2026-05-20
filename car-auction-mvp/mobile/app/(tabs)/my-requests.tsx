@@ -438,7 +438,7 @@ const MyRequestsScreen = () => {
   return (
     <>
       <Stack.Screen
-        options={{ title: "My Requests", headerTitleAlign: "left" }}
+        options={{ title: "My Requests", headerTitleAlign: "center" }}
       />
       <ScrollView
         style={styles.container}

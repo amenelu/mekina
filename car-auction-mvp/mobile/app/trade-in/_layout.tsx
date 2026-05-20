@@ -16,6 +16,7 @@ export default function TradeInLayout() {
         headerStyle: { backgroundColor: COLORS.card },
         headerTintColor: COLORS.foreground,
         headerTitleStyle: { color: COLORS.foreground },
+        headerTitleAlign: "center",
         headerLeft: () => (
           <Pressable
             onPress={() => router.back()}

@@ -80,6 +80,7 @@ export default function TabsLayout() {
           shadowColor: "transparent",
         },
         headerTitleStyle: { color: COLORS.foreground },
+        headerTitleAlign: "center",
         headerRight: () => <HeaderRight />,
       }}
     >
@@ -88,7 +89,6 @@ export default function TabsLayout() {
         options={{
           title: "Home",
           headerTitle: "Home",
-          headerTitleAlign: "left",
           headerTitleStyle: {
             fontSize: 20,
             fontWeight: "bold",
@@ -104,7 +104,6 @@ export default function TabsLayout() {
         options={{
           title: "Rentals",
           headerTitle: "Rentals",
-          headerTitleAlign: "left",
           tabBarIcon: ({ color }) => (
             <Ionicons name="car-sport" size={24} color={color} />
           ),
@@ -149,7 +148,6 @@ export default function TabsLayout() {
         options={{
           title: "My Requests",
           headerTitle: "My Requests",
-          headerTitleAlign: "left",
           tabBarIcon: ({ color }) => (
             <Ionicons name="person-circle" size={24} color={color} />
           ),
@@ -167,7 +165,6 @@ export default function TabsLayout() {
         options={{
           title: "Notifications",
           headerTitle: "Notifications",
-          headerTitleAlign: "left",
           tabBarIcon: ({ color }) => (
             <Ionicons name="notifications" size={24} color={color} />
           ),

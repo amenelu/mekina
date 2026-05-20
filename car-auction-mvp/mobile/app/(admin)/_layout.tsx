@@ -26,6 +26,7 @@ export default function AdminLayout() {
           shadowColor: "transparent",
         },
         headerTitleStyle: { color: COLORS.foreground },
+        headerTitleAlign: "center",
         headerRight: () => <AdminHeaderRight />,
       }}
     >
