@@ -1,5 +1,5 @@
 import React from "react";
-import { Tabs } from "expo-router";
+import { Tabs, usePathname } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useSocket } from "../../contexts/SocketContext";
 import AuthGate from "@/components/_components/AuthGate";
@@ -14,6 +14,17 @@ const COLORS = {
 
 export default function DealerTabsLayout() {
   const { unreadMessageCount, unreadNotificationCount } = useSocket();
+  const pathname = usePathname();
+  const hideTabBar = [
+    "/place-offer",
+    "/dealer-place-offer",
+    "/edit-listing",
+    "/dealer-edit-listing",
+    "/submit",
+    "/dealer-submit",
+    "/points",
+    "/dealer-points",
+  ].some((route) => pathname.includes(route));
 
   return (
     <AuthGate role="dealer">
@@ -23,6 +34,7 @@ export default function DealerTabsLayout() {
         tabBarActiveTintColor: COLORS.accent,
         tabBarInactiveTintColor: COLORS.textSecondary,
         tabBarStyle: {
+          display: hideTabBar ? "none" : "flex",
           backgroundColor: COLORS.card,
           borderTopColor: COLORS.card,
         },

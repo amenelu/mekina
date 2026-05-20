@@ -13,6 +13,7 @@ import {
 import { useAuth } from "@/hooks/useAuth";
 import { useSocket } from "../../contexts/SocketContext";
 import { getMyMessages } from "@/lib/api/messages";
+import { useFocusEffect } from "expo-router";
 
 const COLORS = {
   background: "#14181F",
@@ -65,6 +66,12 @@ const MessagesScreen = () => {
     fetchMessages();
   }, [fetchMessages]);
 
+  useFocusEffect(
+    useCallback(() => {
+      fetchMessages();
+    }, [fetchMessages])
+  );
+
   useEffect(() => {
     if (socket) {
       const handleConversationUpdate = () => {
@@ -72,9 +79,13 @@ const MessagesScreen = () => {
       };
 
       socket.on("conversation_list_update", handleConversationUpdate);
+      socket.on("message_count_update", handleConversationUpdate);
+      socket.on("new_chat_message", handleConversationUpdate);
 
       return () => {
         socket.off("conversation_list_update", handleConversationUpdate);
+        socket.off("message_count_update", handleConversationUpdate);
+        socket.off("new_chat_message", handleConversationUpdate);
       };
     }
   }, [fetchMessages, socket]);

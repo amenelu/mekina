@@ -56,9 +56,13 @@ const MessagesScreen = () => {
       };
 
       socket.on("conversation_list_update", handleConversationUpdate);
+      socket.on("message_count_update", handleConversationUpdate);
+      socket.on("new_chat_message", handleConversationUpdate);
 
       return () => {
         socket.off("conversation_list_update", handleConversationUpdate);
+        socket.off("message_count_update", handleConversationUpdate);
+        socket.off("new_chat_message", handleConversationUpdate);
       };
     }
   }, [fetchConversations, socket]);
