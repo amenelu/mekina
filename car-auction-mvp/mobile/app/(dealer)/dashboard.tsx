@@ -13,6 +13,8 @@ import {
   Alert,
   Image,
   Animated,
+  Platform,
+  useWindowDimensions,
 } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
 import { useAuth } from "@/hooks/useAuth";
@@ -111,6 +113,8 @@ const StatCard = ({
   onPress?: () => void;
   pulse?: boolean;
 }) => {
+  const { width } = useWindowDimensions();
+  const isWideWeb = Platform.OS === "web" && width >= 1000;
   const pulseAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
@@ -161,14 +165,24 @@ const StatCard = ({
 
   return onPress ? (
     <AnimatedPressable
-      style={[styles.statCard, pulse && styles.pulsingStatCard, animatedStyle]}
+      style={[
+        styles.statCard,
+        isWideWeb && styles.statCardWide,
+        pulse && styles.pulsingStatCard,
+        animatedStyle,
+      ]}
       onPress={onPress}
     >
       <CardContent />
     </AnimatedPressable>
   ) : (
     <Animated.View
-      style={[styles.statCard, pulse && styles.pulsingStatCard, animatedStyle]}
+      style={[
+        styles.statCard,
+        isWideWeb && styles.statCardWide,
+        pulse && styles.pulsingStatCard,
+        animatedStyle,
+      ]}
     >
       <CardContent />
     </Animated.View>
@@ -427,6 +441,7 @@ const DashboardSection = <T,>({
 };
 
 const DealerDashboard = () => {
+  const { width } = useWindowDimensions();
   const { tab } = useLocalSearchParams();
   const requestedTab = getSingleParam(tab);
   const { token, user, isLoading } = useAuth() as any;
@@ -445,6 +460,7 @@ const DealerDashboard = () => {
     useState<RequestQuestion | null>(null);
   const [answerText, setAnswerText] = useState("");
   const [answerSubmitting, setAnswerSubmitting] = useState(false);
+  const isWideWeb = Platform.OS === "web" && width >= 1000;
 
   useEffect(() => {
     if (!isLoading && !token && !hasRedirectedRef.current) {
@@ -649,28 +665,29 @@ const DealerDashboard = () => {
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }
       >
-        <View style={styles.header}>
-          <View>
-            <Text style={styles.headerTitle}>Dealer Dashboard</Text>
-            <Text style={styles.headerSubtitle}>
-              Welcome back, {user?.username}!
-            </Text>
+        <View style={[styles.pageShell, isWideWeb && styles.pageShellWide]}>
+          <View style={[styles.header, isWideWeb && styles.headerWide]}>
+            <View>
+              <Text style={styles.headerTitle}>Dealer Dashboard</Text>
+              <Text style={styles.headerSubtitle}>
+                Welcome back, {user?.username}!
+              </Text>
+            </View>
+            <Pressable
+              style={styles.headerButton}
+              onPress={() => router.push(DEALER_ROUTES.submit as any)}
+            >
+              <Ionicons
+                name="add-circle-outline"
+                size={24}
+                color={COLORS.accent}
+              />
+              <Text style={styles.headerButtonText}>List New Car</Text>
+            </Pressable>
           </View>
-          <Pressable
-            style={styles.headerButton}
-            onPress={() => router.push(DEALER_ROUTES.submit as any)}
-          >
-            <Ionicons
-              name="add-circle-outline"
-              size={24}
-              color={COLORS.accent}
-            />
-            <Text style={styles.headerButtonText}>List New Car</Text>
-          </Pressable>
-        </View>
 
         {stats && (
-          <View style={styles.statsGrid}>
+          <View style={[styles.statsGrid, isWideWeb && styles.statsGridWide]}>
             <StatCard
               label="Your Points"
               value={stats.points ?? 0}
@@ -700,8 +717,11 @@ const DealerDashboard = () => {
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
-          style={styles.tabScrollView}
-          contentContainerStyle={styles.tabContainer}
+          style={[styles.tabScrollView, isWideWeb && styles.tabScrollViewWide]}
+          contentContainerStyle={[
+            styles.tabContainer,
+            isWideWeb && styles.tabContainerWide,
+          ]}
         >
           <Pressable
             style={[styles.tab, activeTab === "requests" && styles.activeTab]}
@@ -769,6 +789,7 @@ const DealerDashboard = () => {
             )}
           />
         )}
+          </View>
       </ScrollView>
 
       <Modal
@@ -822,11 +843,23 @@ const DealerDashboard = () => {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.background },
   centered: { flex: 1, justifyContent: "center", alignItems: "center" },
+  pageShell: { width: "100%" },
+  pageShellWide: {
+    maxWidth: 1280,
+    alignSelf: "center",
+    paddingHorizontal: 28,
+    paddingTop: 28,
+  },
   header: {
     padding: 20,
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
+  },
+  headerWide: {
+    paddingHorizontal: 0,
+    paddingTop: 0,
+    paddingBottom: 24,
   },
   headerTitle: { fontSize: 24, fontWeight: "bold", color: COLORS.text },
   headerSubtitle: { fontSize: 16, color: COLORS.textSecondary, marginTop: 4 },
@@ -839,6 +872,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     marginBottom: 20,
   },
+  statsGridWide: {
+    paddingHorizontal: 0,
+    gap: 14,
+    marginBottom: 28,
+  },
   statCard: {
     alignItems: "center",
     backgroundColor: COLORS.card,
@@ -847,6 +885,12 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     width: "32%", // Allow 3 cards per row with some space
     marginBottom: 10, // Add space between rows
+  },
+  statCardWide: {
+    flex: 1,
+    width: "auto",
+    minHeight: 96,
+    justifyContent: "center",
   },
   pulsingStatCard: {
     borderWidth: 1,
@@ -866,9 +910,15 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: COLORS.card,
   },
+  tabScrollViewWide: {
+    marginHorizontal: 0,
+  },
   tabContainer: {
     flexDirection: "row",
     alignItems: "center",
+  },
+  tabContainerWide: {
+    width: "100%",
   },
   tab: { paddingVertical: 10, paddingHorizontal: 20 },
   activeTab: { borderBottomWidth: 2, borderBottomColor: COLORS.accent },

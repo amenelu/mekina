@@ -9,6 +9,8 @@ import {
   ActivityIndicator,
   SafeAreaView,
   RefreshControl,
+  Platform,
+  useWindowDimensions,
 } from "react-native";
 import { useAuth } from "@/hooks/useAuth";
 import { useSocket } from "../../contexts/SocketContext";
@@ -41,11 +43,13 @@ interface Conversation {
 }
 
 const MessagesScreen = () => {
+  const { width } = useWindowDimensions();
   const { token } = useAuth();
   const { socket, refreshCounts } = useSocket();
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [conversations, setConversations] = useState<Conversation[]>([]);
+  const isWideWeb = Platform.OS === "web" && width >= 1000;
 
   const fetchMessages = useCallback(async (isRefresh = false) => {
     if (!token) return;
@@ -101,7 +105,7 @@ const MessagesScreen = () => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
+      <View style={[styles.header, isWideWeb && styles.headerWide]}>
         <Text style={styles.headerTitle}>My Messages</Text>
       </View>
       <FlatList
@@ -122,7 +126,10 @@ const MessagesScreen = () => {
         ListEmptyComponent={
           <Text style={styles.emptyText}>You have no messages yet.</Text>
         }
-        contentContainerStyle={{ padding: 20 }}
+        contentContainerStyle={[
+          styles.listContent,
+          isWideWeb && styles.listContentWide,
+        ]}
         ItemSeparatorComponent={() => <View style={{ height: 10 }} />}
         refreshControl={
           <RefreshControl
@@ -145,7 +152,20 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.background,
   },
   header: { padding: 20 },
+  headerWide: {
+    maxWidth: 1040,
+    width: "100%",
+    alignSelf: "center",
+    paddingTop: 36,
+  },
   headerTitle: { fontSize: 24, fontWeight: "bold", color: COLORS.text },
+  listContent: { padding: 20 },
+  listContentWide: {
+    maxWidth: 1040,
+    width: "100%",
+    alignSelf: "center",
+    paddingTop: 10,
+  },
   emptyText: {
     color: COLORS.textSecondary,
     textAlign: "center",

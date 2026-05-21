@@ -51,13 +51,24 @@ interface TradeInDetail {
   status: string;
   created_at: string;
   photos: { id: number; image_url: string }[];
+  buyer?: TradeInContact | null;
   viewer_role?: "buyer" | "dealer" | "admin";
   offers?: TradeInOffer[];
 }
 
+interface TradeInContact {
+  id?: number;
+  username?: string | null;
+  email?: string | null;
+  phone_number?: string | null;
+}
+
 interface TradeInOffer {
   id: number;
+  dealer_id?: number;
   dealer_name: string;
+  dealer_email?: string | null;
+  dealer_phone_number?: string | null;
   amount: number;
   notes: string;
   offered_car_make?: string | null;
@@ -106,6 +117,9 @@ const TradeInRequestDetailScreen = () => {
   const [offeredImageUri, setOfferedImageUri] = useState("");
   const [offeredImageBase64, setOfferedImageBase64] = useState("");
   const [submittingOffer, setSubmittingOffer] = useState(false);
+  const acceptedOffer = request?.offers?.find(
+    (offer) => offer.status === "accepted"
+  );
 
   const fetchDetails = useCallback(async () => {
     // Ensure we are hitting the USER endpoint, NOT the ADMIN endpoint
@@ -283,9 +297,13 @@ const TradeInRequestDetailScreen = () => {
 
         {/* Dealer Offers Section */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Dealer Offers</Text>
+          <Text style={styles.sectionTitle}>
+            {request.status === "completed" ? "Trade-in Deal Summary" : "Dealer Offers"}
+          </Text>
           <View style={styles.card}>
-            {request.viewer_role === "dealer" ? (
+            {request.status === "completed" && acceptedOffer ? (
+              <TradeInDealSummary request={request} offer={acceptedOffer} />
+            ) : request.viewer_role === "dealer" ? (
               <View>
                 <Text style={styles.offerPrompt}>
                   Offer a vehicle to trade for this car:
@@ -430,7 +448,7 @@ const TradeInRequestDetailScreen = () => {
                                 : null,
                             ]
                               .filter(Boolean)
-                              .join(" • ")}
+                              .join(" - ")}
                           </Text>
                           {offer.offered_car_specs ? (
                             <Text style={styles.offerNotes}>
@@ -467,12 +485,116 @@ const DetailRow = ({ label, value }: { label: string; value: string }) => (
   </View>
 );
 
+const TradeInDealSummary = ({
+  request,
+  offer,
+}: {
+  request: TradeInDetail;
+  offer: TradeInOffer;
+}) => (
+  <View style={styles.dealSummary}>
+    <View style={styles.dealHeader}>
+      <View>
+        <Text style={styles.dealEyebrow}>Accepted trade-in offer</Text>
+        <Text style={styles.dealTitle}>
+          {offer.offered_car_year || ""} {offer.offered_car_make || ""}{" "}
+          {offer.offered_car_model || ""}
+        </Text>
+      </View>
+      <View style={styles.acceptedBadge}>
+        <Text style={styles.acceptedBadgeText}>Accepted</Text>
+      </View>
+    </View>
+
+    {offer.offered_car_image_url ? (
+      <Image
+        source={{ uri: mediaUrl(offer.offered_car_image_url) || "" }}
+        style={styles.dealImage}
+      />
+    ) : null}
+
+    <View style={styles.dealGrid}>
+      <View style={styles.dealPanel}>
+        <Text style={styles.dealPanelLabel}>Buyer trade-in</Text>
+        <Text style={styles.dealPanelValue}>
+          {request.year} {request.make} {request.model}
+        </Text>
+        <Text style={styles.dealPanelMeta}>
+          {request.mileage.toLocaleString()} km - {request.condition}
+        </Text>
+      </View>
+      <View style={styles.dealPanel}>
+        <Text style={styles.dealPanelLabel}>Dealer vehicle</Text>
+        <Text style={styles.dealPanelValue}>
+          {offer.offered_car_year || "N/A"} {offer.offered_car_make || ""}{" "}
+          {offer.offered_car_model || ""}
+        </Text>
+        <Text style={styles.dealPanelMeta}>
+          {[offer.offered_car_condition, offer.offered_car_mileage
+            ? `${offer.offered_car_mileage.toLocaleString()} km`
+            : null]
+            .filter(Boolean)
+            .join(" - ") || "Details pending"}
+        </Text>
+      </View>
+    </View>
+
+    <View style={styles.cashSummary}>
+      <Text style={styles.dealPanelLabel}>Cash add-on</Text>
+      <Text style={styles.cashSummaryValue}>
+        + {offer.amount.toLocaleString()} ETB
+      </Text>
+    </View>
+
+    {offer.offered_car_specs ? (
+      <Text style={styles.dealNotes}>{offer.offered_car_specs}</Text>
+    ) : null}
+    {offer.notes ? <Text style={styles.dealNotes}>{offer.notes}</Text> : null}
+
+    <View style={styles.contactGrid}>
+      <ContactCard
+        title="Buyer"
+        name={request.buyer?.username || "Buyer"}
+        email={request.buyer?.email}
+        phone={request.buyer?.phone_number}
+      />
+      <ContactCard
+        title="Dealer"
+        name={offer.dealer_name || "Dealer"}
+        email={offer.dealer_email}
+        phone={offer.dealer_phone_number}
+      />
+    </View>
+  </View>
+);
+
+const ContactCard = ({
+  title,
+  name,
+  email,
+  phone,
+}: {
+  title: string;
+  name: string;
+  email?: string | null;
+  phone?: string | null;
+}) => (
+  <View style={styles.contactCard}>
+    <Text style={styles.dealPanelLabel}>{title} details</Text>
+    <Text style={styles.contactName}>{name}</Text>
+    <Text style={styles.contactLine}>{email || "Email not provided"}</Text>
+    <Text style={styles.contactLine}>{phone || "Phone not provided"}</Text>
+  </View>
+);
+
 const getStatusColor = (status: string) => {
   switch (status.toLowerCase()) {
     case "pending":
       return COLORS.warning;
     case "active":
       return COLORS.success;
+    case "completed":
+      return COLORS.accent;
     default:
       return COLORS.mutedForeground;
   }
@@ -667,6 +789,105 @@ const styles = StyleSheet.create({
     color: "#fff",
     fontSize: 12,
     fontWeight: "bold",
+  },
+  dealSummary: {
+    gap: 12,
+  },
+  dealHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    gap: 12,
+    alignItems: "flex-start",
+  },
+  dealEyebrow: {
+    color: COLORS.mutedForeground,
+    fontSize: 12,
+    textTransform: "uppercase",
+    fontWeight: "700",
+    marginBottom: 4,
+  },
+  dealTitle: {
+    color: COLORS.foreground,
+    fontSize: 18,
+    fontWeight: "800",
+  },
+  dealImage: {
+    width: "100%",
+    height: 210,
+    borderRadius: 10,
+    backgroundColor: COLORS.background,
+  },
+  dealGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 10,
+  },
+  dealPanel: {
+    flex: 1,
+    minWidth: 220,
+    backgroundColor: COLORS.background,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    borderRadius: 10,
+    padding: 12,
+  },
+  dealPanelLabel: {
+    color: COLORS.mutedForeground,
+    fontSize: 12,
+    fontWeight: "700",
+    textTransform: "uppercase",
+    marginBottom: 5,
+  },
+  dealPanelValue: {
+    color: COLORS.foreground,
+    fontSize: 16,
+    fontWeight: "800",
+  },
+  dealPanelMeta: {
+    color: COLORS.mutedForeground,
+    fontSize: 13,
+    marginTop: 4,
+  },
+  cashSummary: {
+    backgroundColor: "rgba(40, 167, 69, 0.15)",
+    borderWidth: 1,
+    borderColor: "rgba(40, 167, 69, 0.35)",
+    borderRadius: 10,
+    padding: 12,
+  },
+  cashSummaryValue: {
+    color: COLORS.success,
+    fontSize: 20,
+    fontWeight: "900",
+  },
+  dealNotes: {
+    color: COLORS.foreground,
+    lineHeight: 21,
+  },
+  contactGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 10,
+  },
+  contactCard: {
+    flex: 1,
+    minWidth: 220,
+    backgroundColor: COLORS.background,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    borderRadius: 10,
+    padding: 12,
+  },
+  contactName: {
+    color: COLORS.foreground,
+    fontSize: 16,
+    fontWeight: "800",
+    marginBottom: 6,
+  },
+  contactLine: {
+    color: COLORS.mutedForeground,
+    fontSize: 14,
+    marginTop: 3,
   },
 });
 

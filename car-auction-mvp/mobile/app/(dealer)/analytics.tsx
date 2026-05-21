@@ -6,6 +6,8 @@ import {
   ScrollView,
   ActivityIndicator,
   RefreshControl,
+  Platform,
+  useWindowDimensions,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useAuth } from "@/hooks/useAuth";
@@ -69,6 +71,7 @@ interface AdvancedAnalytics {
 }
 
 const AnalyticsScreen = () => {
+  const { width } = useWindowDimensions();
   const { token } = useAuth();
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -78,6 +81,7 @@ const AnalyticsScreen = () => {
   const [advancedData, setAdvancedData] = useState<AdvancedAnalytics | null>(
     null
   );
+  const isWideWeb = Platform.OS === "web" && width >= 1000;
 
   const fetchData = useCallback(async () => {
     if (!token) return;
@@ -241,6 +245,7 @@ const AnalyticsScreen = () => {
           />
         }
       >
+        <View style={[styles.pageShell, isWideWeb && styles.pageShellWide]}>
         <View style={styles.header}>
           <Text style={styles.headerTitle}>Market Analytics</Text>
           <Text style={styles.headerSubtitle}>
@@ -418,6 +423,7 @@ const AnalyticsScreen = () => {
             <Text style={styles.emptyText}>No search data available.</Text>
           )}
         </AnalyticsCard>
+        </View>
       </ScrollView>
     </SafeAreaView>
   );
@@ -430,6 +436,14 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     backgroundColor: COLORS.background,
+  },
+  pageShell: { width: "100%" },
+  pageShellWide: {
+    maxWidth: 1120,
+    width: "100%",
+    alignSelf: "center",
+    paddingHorizontal: 28,
+    paddingTop: 28,
   },
   header: { padding: 20, paddingBottom: 10 },
   headerTitle: { fontSize: 24, fontWeight: "bold", color: COLORS.text },

@@ -104,6 +104,7 @@ class TradeInOffer(db.Model):
     def to_dict(self):
         return {
             "id": self.id,
+            "dealer_id": self.dealer_id,
             "dealer_name": self.dealer.username,
             "amount": self.amount,
             "notes": self.notes,

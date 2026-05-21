@@ -8,6 +8,8 @@ import {
   ScrollView,
   ActivityIndicator,
   RefreshControl,
+  Platform,
+  useWindowDimensions,
 } from "react-native";
 import { useAuth } from "@/hooks/useAuth";
 import { router } from "expo-router";
@@ -100,9 +102,11 @@ const SectionList = <T,>({
 };
 
 const ProfileScreen = () => {
+  const { width } = useWindowDimensions();
   const { logout, user, token } = useAuth();
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const isWideWeb = Platform.OS === "web" && width >= 1000;
   const [profileData, setProfileData] = useState<{
     dealer: DealerProfile;
     listings: ApiCar[];
@@ -172,7 +176,7 @@ const ProfileScreen = () => {
         }
       >
         {profileData && (
-          <>
+          <View style={[styles.pageShell, isWideWeb && styles.pageShellWide]}>
             <View style={styles.profileHeader}>
               <View style={styles.avatar}>
                 <Text style={styles.avatarText}>
@@ -245,7 +249,7 @@ const ProfileScreen = () => {
                 renderItem={(item) => <ReviewItem key={item.id} item={item} />}
               />
             </View>
-          </>
+          </View>
         )}
       </ScrollView>
     </SafeAreaView>
@@ -255,6 +259,13 @@ const ProfileScreen = () => {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.background },
   centered: { flex: 1, justifyContent: "center", alignItems: "center" },
+  pageShell: { width: "100%" },
+  pageShellWide: {
+    maxWidth: 1120,
+    alignSelf: "center",
+    paddingHorizontal: 28,
+    paddingTop: 24,
+  },
   header: {
     padding: 20,
     flexDirection: "row",

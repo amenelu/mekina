@@ -10,6 +10,7 @@ import {
   Image,
   ActivityIndicator,
   Platform,
+  useWindowDimensions,
 } from "react-native";
 import { useNavigation, useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -83,6 +84,7 @@ const ChoiceGroup = ({
 );
 
 const CarSubmissionForm = () => {
+  const { width } = useWindowDimensions();
   const navigation = useNavigation();
   const router = useRouter();
   const { token } = useAuth();
@@ -107,6 +109,7 @@ const CarSubmissionForm = () => {
   const [electricRangeKm, setElectricRangeKm] = useState("");
   const [images, setImages] = useState<ImagePicker.ImagePickerAsset[]>([]);
   const needsRange = fuelType === "Electric" || fuelType === "Hybrid";
+  const isWideWeb = Platform.OS === "web" && width >= 1000;
 
   const appendImagesToFormData = async (formData: FormData) => {
     for (const image of images) {
@@ -245,6 +248,7 @@ const CarSubmissionForm = () => {
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView>
+        <View style={[styles.pageShell, isWideWeb && styles.pageShellWide]}>
         <View style={styles.header}>
           <Text style={styles.headerTitle}>List a New Car</Text>
           <Text style={styles.headerSubtitle}>
@@ -252,7 +256,7 @@ const CarSubmissionForm = () => {
           </Text>
         </View>
 
-        <View style={styles.formCard}>
+        <View style={[styles.formCard, isWideWeb && styles.formCardWide]}>
           <View style={styles.inputGroup}>
             <Text style={styles.label}>Make</Text>
             <TextInput
@@ -380,7 +384,7 @@ const CarSubmissionForm = () => {
           )}
         </View>
 
-        <View style={styles.formCard}>
+        <View style={[styles.formCard, isWideWeb && styles.formCardWide]}>
           <Text style={styles.label}>Car Photos</Text>
           {images.length > 0 && (
             <ScrollView horizontal style={styles.imageScrollView}>
@@ -402,7 +406,7 @@ const CarSubmissionForm = () => {
         </View>
 
         <Pressable
-          style={styles.submitButton}
+          style={[styles.submitButton, isWideWeb && styles.submitButtonWide]}
           onPress={handleSubmit}
           disabled={isSubmitting}
         >
@@ -412,6 +416,7 @@ const CarSubmissionForm = () => {
             <Text style={styles.submitButtonText}>Submit for Approval</Text>
           )}
         </Pressable>
+        </View>
       </ScrollView>
     </SafeAreaView>
   );
@@ -419,6 +424,14 @@ const CarSubmissionForm = () => {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.background },
+  pageShell: { width: "100%" },
+  pageShellWide: {
+    maxWidth: 1040,
+    width: "100%",
+    alignSelf: "center",
+    paddingTop: 28,
+    paddingHorizontal: 28,
+  },
   header: { padding: 20 },
   headerTitle: { fontSize: 24, fontWeight: "bold", color: COLORS.text },
   headerSubtitle: { fontSize: 16, color: COLORS.textSecondary, marginTop: 4 },
@@ -427,6 +440,11 @@ const styles = StyleSheet.create({
     marginHorizontal: 20,
     padding: 20,
     borderRadius: 12,
+  },
+  formCardWide: {
+    marginHorizontal: 0,
+    marginBottom: 20,
+    padding: 24,
   },
   inputGroup: { marginBottom: 15 },
   label: { fontSize: 14, color: COLORS.textSecondary, marginBottom: 8 },
@@ -470,6 +488,11 @@ const styles = StyleSheet.create({
     padding: 15,
     borderRadius: 10,
     alignItems: "center",
+  },
+  submitButtonWide: {
+    marginHorizontal: 0,
+    marginTop: 4,
+    marginBottom: 36,
   },
   submitButtonText: {
     color: "white",

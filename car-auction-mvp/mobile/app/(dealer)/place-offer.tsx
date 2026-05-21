@@ -13,6 +13,7 @@ import {
   Modal,
   Platform,
   TouchableOpacity,
+  useWindowDimensions,
 } from "react-native";
 import { useLocalSearchParams, useNavigation, router } from "expo-router";
 import { useAuth } from "@/hooks/useAuth";
@@ -179,6 +180,7 @@ const parseGuidedNotes = (notes: string) => {
 };
 
 const PlaceOfferScreen = () => {
+  const { width } = useWindowDimensions();
   const { request_id } = useLocalSearchParams<{ request_id: string }>();
   const navigation = useNavigation();
   const { token, user } = useAuth();
@@ -189,6 +191,7 @@ const PlaceOfferScreen = () => {
   );
   const [existingBids, setExistingBids] = useState<DealerBid[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const isWideWeb = Platform.OS === "web" && width >= 1000;
 
   const [make, setMake] = useState("");
   const [model, setModel] = useState("");
@@ -385,8 +388,8 @@ const PlaceOfferScreen = () => {
       </View>
 
       <ScrollView>
-        <View style={styles.contentGrid}>
-          <View style={styles.formColumn}>
+        <View style={[styles.contentGrid, isWideWeb && styles.contentGridWide]}>
+          <View style={[styles.formColumn, isWideWeb && styles.formColumnWide]}>
             <View style={styles.formCard}>
               <Text style={styles.sectionTitle}>Your Offer Details</Text>
               <View style={styles.inputGroup}>
@@ -579,7 +582,13 @@ const PlaceOfferScreen = () => {
             </TouchableOpacity>
           </View>
 
-          <View style={[styles.sidebarColumn, styles.requestSummaryColumn]}>
+          <View
+            style={[
+              styles.sidebarColumn,
+              styles.requestSummaryColumn,
+              isWideWeb && styles.sidebarColumnWide,
+            ]}
+          >
             {requestDetails && (
               <View style={styles.formCard}>
                 <Text style={styles.sectionTitle}>Customer Request</Text>
@@ -779,8 +788,27 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingBottom: 24,
   },
+  contentGridWide: {
+    maxWidth: 1280,
+    width: "100%",
+    alignSelf: "center",
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 24,
+    paddingHorizontal: 28,
+    paddingTop: 24,
+  },
   formColumn: { width: "100%" },
+  formColumnWide: {
+    flex: 1,
+    width: "auto",
+    maxWidth: 760,
+  },
   sidebarColumn: { width: "100%", marginTop: 20 },
+  sidebarColumnWide: {
+    width: 400,
+    marginTop: 0,
+  },
   requestSummaryColumn: { marginTop: 40 },
   formCard: {
     backgroundColor: COLORS.card,

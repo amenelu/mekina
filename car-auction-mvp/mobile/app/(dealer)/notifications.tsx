@@ -7,6 +7,8 @@ import {
   Pressable,
   ActivityIndicator,
   RefreshControl,
+  Platform,
+  useWindowDimensions,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Link, useFocusEffect } from "expo-router";
@@ -36,6 +38,11 @@ const getMobileRoute = (webLink: string | null) => {
   if (!webLink) return null;
 
   const normalizedLink = webLink.replace(/^https?:\/\/[^/]+/, "");
+
+  if (normalizedLink.includes("/trade-in/")) {
+    const match = normalizedLink.match(/\/trade-in\/(\d+)/);
+    if (match) return `/trade-in/${match[1]}`;
+  }
 
   // Buyer asked a question about a dealer offer.
   if (
@@ -123,11 +130,13 @@ const NotificationItem = ({ notification }: { notification: Notification }) => {
 };
 
 const NotificationsScreen = () => {
+  const { width } = useWindowDimensions();
   const { token } = useAuth();
   const { socket } = useSocket();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const isWideWeb = Platform.OS === "web" && width >= 1000;
 
   const fetchNotifications = useCallback(async () => {
     if (!token) return;
@@ -171,7 +180,7 @@ const NotificationsScreen = () => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
+      <View style={[styles.header, isWideWeb && styles.headerWide]}>
         <Text style={styles.headerTitle}>Notifications</Text>
       </View>
       <ScrollView
@@ -180,7 +189,7 @@ const NotificationsScreen = () => {
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }
       >
-        <View style={styles.content}>
+        <View style={[styles.content, isWideWeb && styles.contentWide]}>
           <View style={styles.notificationList}>
             {loading && !refreshing ? (
               <ActivityIndicator size="large" color={COLORS.accent} />
@@ -203,8 +212,20 @@ const NotificationsScreen = () => {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.background },
   header: { padding: 20, paddingBottom: 10 },
+  headerWide: {
+    maxWidth: 1040,
+    width: "100%",
+    alignSelf: "center",
+    paddingTop: 36,
+  },
   headerTitle: { fontSize: 24, fontWeight: "bold", color: COLORS.foreground },
   content: { padding: 20 },
+  contentWide: {
+    maxWidth: 1040,
+    width: "100%",
+    alignSelf: "center",
+    paddingTop: 10,
+  },
   notificationList: { gap: 10 },
   notificationItem: {
     backgroundColor: COLORS.card,

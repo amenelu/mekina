@@ -12,6 +12,7 @@ import {
   SafeAreaView,
   FlatList,
   useWindowDimensions,
+  Platform,
 } from "react-native";
 import { useLocalSearchParams, router } from "expo-router";
 import { useAuth } from "@/hooks/useAuth";
@@ -79,6 +80,8 @@ const EditListingScreen = () => {
   const [galleryImages, setGalleryImages] = useState<string[]>([]);
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const { width } = useWindowDimensions();
+  const isWideWeb = Platform.OS === "web" && width >= 1000;
+  const galleryWidth = isWideWeb ? Math.min(width - 56, 1120) : width;
   const carouselRef = useRef<FlatList<string>>(null);
   const resolvedReturnTo = Array.isArray(returnTo) ? returnTo[0] : returnTo;
 
@@ -188,18 +191,21 @@ const EditListingScreen = () => {
               keyExtractor={(item, index) => `edit-image-${index}-${item}`}
               initialScrollIndex={Math.max(0, selectedImageIndex)}
               getItemLayout={(_, index) => ({
-                length: width,
-                offset: width * index,
+                length: galleryWidth,
+                offset: galleryWidth * index,
                 index,
               })}
               onMomentumScrollEnd={(event) => {
                 const nextIndex = Math.round(
-                  event.nativeEvent.contentOffset.x / width
+                  event.nativeEvent.contentOffset.x / galleryWidth
                 );
                 setSelectedImageIndex(nextIndex);
               }}
               renderItem={({ item }) => (
-                <Image source={{ uri: item }} style={[styles.headerImage, { width }]} />
+                <Image
+                  source={{ uri: item }}
+                  style={[styles.headerImage, { width: galleryWidth }]}
+                />
               )}
             />
           ) : (
@@ -255,7 +261,12 @@ const EditListingScreen = () => {
           )}
         </View>
 
-        <View style={styles.contentContainer}>
+        <View
+          style={[
+            styles.contentContainer,
+            isWideWeb && styles.contentContainerWide,
+          ]}
+        >
           <View style={styles.formCard}>
             <Text style={styles.sectionTitle}>Core Details</Text>
             <View style={styles.inputGroup}>
@@ -332,6 +343,7 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.background,
     marginBottom: 8,
     position: "relative",
+    alignItems: "center",
   },
   headerImage: {
     height: 250,
@@ -416,6 +428,12 @@ const styles = StyleSheet.create({
     opacity: 1,
   },
   contentContainer: { padding: 20 },
+  contentContainerWide: {
+    maxWidth: 1120,
+    width: "100%",
+    alignSelf: "center",
+    paddingHorizontal: 28,
+  },
   formCard: {
     backgroundColor: COLORS.card,
     padding: 20,

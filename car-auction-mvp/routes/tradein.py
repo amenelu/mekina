@@ -289,8 +289,13 @@ def api_get_my_trade_in_detail(current_user, request_id):
     is_owner = req.user_id == current_user.id
     is_admin = getattr(current_user, "is_admin", False)
     is_dealer = getattr(current_user, "is_dealer", False)
+    dealer_offer = None
+    if is_dealer:
+        dealer_offer = TradeInOffer.query.filter_by(
+            trade_in_request_id=req.id, dealer_id=current_user.id
+        ).first()
 
-    if not (is_owner or is_admin or (is_dealer and req.status == "active")):
+    if not (is_owner or is_admin or (is_dealer and (req.status == "active" or dealer_offer))):
         current_app.logger.warning(
             "Trade-in access denied: request_id=%s user_id=%s owner_id=%s status=%s",
             request_id,
@@ -318,10 +323,27 @@ def api_get_my_trade_in_detail(current_user, request_id):
         viewer_role = "dealer"
 
     response_data["viewer_role"] = viewer_role
+    if req.status == "completed":
+        response_data["buyer"] = {
+            "id": req.user.id,
+            "username": req.user.username,
+            "email": req.user.email,
+            "phone_number": req.user.phone_number,
+        }
 
-    # Include offers if the viewer is the owner or admin
+    def serialize_offer(offer):
+        offer_data = offer.to_dict()
+        if req.status == "completed" and offer.status == "accepted":
+            offer_data["dealer_email"] = offer.dealer.email
+            offer_data["dealer_phone_number"] = offer.dealer.phone_number
+        return offer_data
+
+    # Include offers if the viewer is the owner/admin, or the dealer is viewing
+    # their own submitted trade-in deal summary.
     if is_owner or is_admin:
-        response_data["offers"] = [offer.to_dict() for offer in req.offers]
+        response_data["offers"] = [serialize_offer(offer) for offer in req.offers]
+    elif is_dealer and dealer_offer:
+        response_data["offers"] = [serialize_offer(dealer_offer)]
 
     return jsonify({"request": response_data})
 
@@ -554,8 +576,39 @@ def api_accept_trade_in_offer(current_user, request_id, offer_id):
 
     # Update statuses
     offer.status = "accepted"
+    for other_offer in req.offers:
+        if other_offer.id != offer.id:
+            other_offer.status = "rejected"
     req.status = "completed"
 
+    notification = Notification(
+        user_id=offer.dealer_id,
+        message=(
+            f"{current_user.username} accepted your trade-in offer"
+            f" for their {req.year} {req.make} {req.model}."
+        ),
+        link=f"/trade-in/{req.id}",
+    )
+    db.session.add(notification)
     db.session.commit()
 
-    return jsonify({"status": "success", "message": "Offer accepted successfully."})
+    unread_count = Notification.query.filter_by(
+        user_id=offer.dealer_id, is_read=False
+    ).count()
+    notification_data = {
+        "message": notification.message,
+        "link": notification.link,
+        "timestamp": notification.timestamp.isoformat() + "Z",
+        "count": unread_count,
+    }
+    socketio.emit("new_notification", notification_data, room=str(offer.dealer_id))
+    send_push_notification(offer.dealer_id, notification.message)
+
+    return jsonify(
+        {
+            "status": "success",
+            "message": "Offer accepted successfully.",
+            "request": req.to_dict(),
+            "offer": offer.to_dict(),
+        }
+    )
