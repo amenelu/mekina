@@ -14,7 +14,17 @@ export function deleteTradeInRequest(requestId: string | number) {
 
 export function placeTradeInOffer(
   requestId: string | number,
-  payload: { amount: number; notes?: string }
+  payload: {
+    amount: number;
+    notes?: string;
+    offered_car_make: string;
+    offered_car_model: string;
+    offered_car_year: number;
+    offered_car_condition?: string;
+    offered_car_mileage?: number;
+    offered_car_specs?: string;
+    offered_car_image?: string;
+  }
 ) {
   return apiClient.post(`/trade-in/api/requests/${requestId}/offer`, payload);
 }
@@ -30,6 +40,10 @@ export function acceptTradeInOffer(
 
 export function getAdminTradeInRequest(requestId: string | number) {
   return apiClient.get(`/trade-in/api/admin/requests/${requestId}`);
+}
+
+export function getActiveTradeIns() {
+  return apiClient.get("/trade-in/api/active");
 }
 
 export function updateAdminTradeInStatus(

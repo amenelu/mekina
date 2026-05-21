@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect } from "react";
+import React, { useState, useCallback } from "react";
 import {
   View,
   Text,
@@ -148,19 +148,21 @@ const NotificationsScreen = () => {
     }, [fetchNotifications])
   );
 
-  useEffect(() => {
-    if (socket) {
-      const handleNewNotification = () => {
-        fetchNotifications();
-      };
+  useFocusEffect(
+    useCallback(() => {
+      if (socket) {
+        const handleNewNotification = () => {
+          fetchNotifications();
+        };
 
-      socket.on("new_notification", handleNewNotification);
+        socket.on("new_notification", handleNewNotification);
 
-      return () => {
-        socket.off("new_notification", handleNewNotification);
-      };
-    }
-  }, [fetchNotifications, socket]);
+        return () => {
+          socket.off("new_notification", handleNewNotification);
+        };
+      }
+    }, [fetchNotifications, socket])
+  );
 
   const onRefresh = () => {
     setRefreshing(true);

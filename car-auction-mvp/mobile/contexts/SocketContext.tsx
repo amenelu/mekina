@@ -86,12 +86,20 @@ export const SocketProvider = ({ children }: { children: ReactNode }) => {
       setUnreadMessageCount(data.count);
     });
 
-    newSocket.on("new_notification", (data: { count: number }) => {
-      setUnreadNotificationCount(data.count);
+    newSocket.on("new_notification", (data?: { count?: number }) => {
+      if (typeof data?.count === "number") {
+        setUnreadNotificationCount(data.count);
+      } else {
+        fetchCounts();
+      }
     });
 
-    newSocket.on("notification_count_update", (data: { count: number }) => {
-      setUnreadNotificationCount(data.count);
+    newSocket.on("notification_count_update", (data?: { count?: number }) => {
+      if (typeof data?.count === "number") {
+        setUnreadNotificationCount(data.count);
+      } else {
+        fetchCounts();
+      }
     });
 
     return () => {

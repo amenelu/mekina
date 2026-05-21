@@ -23,6 +23,8 @@ import {
   answerDealerRequestQuestion,
   getDealerDashboard,
 } from "@/lib/api/dealer";
+import { mediaUrl } from "@/lib/api/client";
+import { getActiveTradeIns } from "@/lib/api/tradeIn";
 
 const COLORS = {
   background: "#14181F",
@@ -60,11 +62,16 @@ interface Listing {
 
 interface CustomerRequest {
   id: number;
+  type?: "buy" | "trade-in";
   make: string;
   model: string;
+  year?: number;
+  mileage?: number;
+  target_car?: string | null;
   min_year?: number;
   message?: string;
   notes?: string;
+  comments?: string;
   created_at: string;
   min_price?: number;
   max_price?: number;
@@ -76,6 +83,7 @@ interface CustomerRequest {
   detail_score?: number;
   request_source?: "image_based" | "specific" | "general";
   image_urls?: string[];
+  offer_count?: number;
 }
 
 interface RequestQuestion {
@@ -209,7 +217,13 @@ const ListingItem = ({ item }: { item: Listing }) => {
 };
 
 const RequestItem = ({ item }: { item: CustomerRequest }) => {
+  const isTradeIn = item.type === "trade-in";
   const handlePress = () => {
+    if (isTradeIn) {
+      router.push(`/trade-in/${item.id}` as any);
+      return;
+    }
+
     router.push({
       pathname: DEALER_ROUTES.placeOffer as any,
       params: { request_id: item.id.toString() },
@@ -222,7 +236,9 @@ const RequestItem = ({ item }: { item: CustomerRequest }) => {
     return COLORS.textSecondary;
   };
   const requestTypeLabel =
-    item.request_source === "image_based"
+    isTradeIn
+      ? "Trade-in"
+      : item.request_source === "image_based"
       ? "Image Based"
       : item.request_source === "specific"
         ? "Specific"
@@ -234,10 +250,15 @@ const RequestItem = ({ item }: { item: CustomerRequest }) => {
     <Pressable style={styles.itemCard} onPress={handlePress}>
       <View style={styles.requestCardHeader}>
         <Text style={styles.itemTitle}>
-          {item.make || "Any Make"} {item.model || ""} ({item.min_year || "Any"}
-          +)
+          {isTradeIn
+            ? `Trade-in: ${item.year || ""} ${item.make || "Any Make"} ${
+                item.model || ""
+              }`.trim()
+            : `${item.make || "Any Make"} ${item.model || ""} (${
+                item.min_year || "Any"
+              }+)`}
         </Text>
-        {item.detail_score !== undefined && (
+        {!isTradeIn && item.detail_score !== undefined && (
           <View
             style={[
               styles.scoreBadge,
@@ -252,10 +273,17 @@ const RequestItem = ({ item }: { item: CustomerRequest }) => {
             style={[
               styles.requestTypeBadge,
               item.request_source === "image_based" && styles.imageRequestBadge,
+              isTradeIn && styles.tradeInRequestBadge,
             ]}
           >
             <Ionicons
-              name={item.request_source === "image_based" ? "image" : "document-text"}
+              name={
+                isTradeIn
+                  ? "swap-horizontal"
+                  : item.request_source === "image_based"
+                    ? "image"
+                    : "document-text"
+              }
               size={12}
               color="white"
             />
@@ -269,7 +297,7 @@ const RequestItem = ({ item }: { item: CustomerRequest }) => {
         )}
       </View>
 
-      {item.request_source === "image_based" && item.image_urls?.length ? (
+      {item.image_urls?.length ? (
         <View style={styles.requestImageStrip}>
           {item.image_urls.slice(0, 3).map((imageUrl, index) => (
             <View key={`${imageUrl}-${index}`} style={styles.requestImageThumb}>
@@ -285,38 +313,61 @@ const RequestItem = ({ item }: { item: CustomerRequest }) => {
 
       <View style={styles.requestCardBody}>
         <View style={styles.requestDetails}>
-          {item.min_price && item.max_price && (
-            <Text style={styles.detailText}>
-              <Text style={styles.detailLabel}>Budget: </Text>
-              {item.min_price.toLocaleString()} -{" "}
-              {item.max_price.toLocaleString()} ETB
-            </Text>
+          {isTradeIn ? (
+            <>
+              <Text style={styles.detailText}>
+                <Text style={styles.detailLabel}>Mileage: </Text>
+                {item.mileage ? `${item.mileage.toLocaleString()} km` : "N/A"}
+              </Text>
+              <Text style={styles.detailText}>
+                <Text style={styles.detailLabel}>Condition: </Text>
+                {item.condition || "N/A"}
+              </Text>
+              <Text style={styles.detailText}>
+                <Text style={styles.detailLabel}>Target car: </Text>
+                {item.target_car || "None specified"}
+              </Text>
+            </>
+          ) : (
+            <>
+              {item.min_price && item.max_price && (
+                <Text style={styles.detailText}>
+                  <Text style={styles.detailLabel}>Budget: </Text>
+                  {item.min_price.toLocaleString()} -{" "}
+                  {item.max_price.toLocaleString()} ETB
+                </Text>
+              )}
+              <Text style={styles.detailText}>
+                <Text style={styles.detailLabel}>Condition: </Text>
+                {item.condition || "Any"}
+              </Text>
+              <Text style={styles.detailText}>
+                <Text style={styles.detailLabel}>Transmission: </Text>
+                {item.transmission || "Any"}
+              </Text>
+            </>
           )}
-          <Text style={styles.detailText}>
-            <Text style={styles.detailLabel}>Condition: </Text>
-            {item.condition || "Any"}
-          </Text>
-          <Text style={styles.detailText}>
-            <Text style={styles.detailLabel}>Transmission: </Text>
-            {item.transmission || "Any"}
-          </Text>
         </View>
         <View style={styles.requestStats}>
           <View style={styles.requestStatItem}>
-            <Text style={styles.requestStatValue}>{item.bid_count || 0}</Text>
+            <Text style={styles.requestStatValue}>
+              {isTradeIn ? item.offer_count || 0 : item.bid_count || 0}
+            </Text>
             <Text style={styles.requestStatLabel}>Offers</Text>
           </View>
-          <View style={styles.requestStatItem}>
-            <Text style={styles.requestStatValue}>
-              {item.lowest_offer ? item.lowest_offer.toLocaleString() : "N/A"}
-            </Text>
-            <Text style={styles.requestStatLabel}>Lowest</Text>
-          </View>
+          {!isTradeIn && (
+            <View style={styles.requestStatItem}>
+              <Text style={styles.requestStatValue}>
+                {item.lowest_offer ? item.lowest_offer.toLocaleString() : "N/A"}
+              </Text>
+              <Text style={styles.requestStatLabel}>Lowest</Text>
+            </View>
+          )}
         </View>
       </View>
 
       <Text style={styles.itemNotes} numberOfLines={2}>
-        {item.notes || item.message}
+        {isTradeIn ? item.comments || "No trade-in notes." : item.notes || item.message}
       </Text>
     </Pressable>
   );
@@ -421,11 +472,12 @@ const DealerDashboard = () => {
     }) => {
       setRequests((prevRequests) =>
         prevRequests.map((req) =>
-          req.id === data.request_id
+          req.type !== "trade-in"
+            && req.id === data.request_id
             && req.bid_count === data.bid_count
             && req.lowest_offer === data.lowest_offer
             ? req
-            : req.id === data.request_id
+            : req.type !== "trade-in" && req.id === data.request_id
             ? {
                 ...req,
                 bid_count: data.bid_count,
@@ -439,7 +491,11 @@ const DealerDashboard = () => {
     // Listen for entirely new customer requests
     const handleNewCustomerRequest = (newRequest: CustomerRequest) => {
       setRequests((prevRequests) => {
-        if (prevRequests.some((req) => req.id === newRequest.id)) {
+        if (
+          prevRequests.some(
+            (req) => req.type !== "trade-in" && req.id === newRequest.id
+          )
+        ) {
           return prevRequests;
         }
 
@@ -464,8 +520,32 @@ const DealerDashboard = () => {
     }
 
     try {
-      const response = await getDealerDashboard();
+      const [response, activeTradeInsResponse] = await Promise.all([
+        getDealerDashboard(),
+        getActiveTradeIns().catch(() => ({ data: { requests: [] } })),
+      ]);
       const data = response.data;
+      const activeTradeIns: CustomerRequest[] = (
+        activeTradeInsResponse.data.requests || []
+      ).map((req: any) => ({
+        id: req.id,
+        type: "trade-in",
+        make: req.make,
+        model: req.model,
+        year: req.year,
+        mileage: req.mileage,
+        condition: req.condition,
+        target_car: req.target_car,
+        comments: req.comments,
+        created_at: req.created_at,
+        offer_count: req.offer_count || 0,
+        has_been_viewed: true,
+        image_urls: (req.photos || [])
+          .map((photo: { image_url?: string }) =>
+            photo.image_url ? mediaUrl(photo.image_url) : ""
+          )
+          .filter(Boolean),
+      }));
 
       // Construct stats from the lengths of the returned arrays
       const newStats: DashboardStats = {
@@ -473,7 +553,7 @@ const DealerDashboard = () => {
         active_listings_count: (data.my_cars || []).filter(
           (c: Listing) => c.is_active && c.is_approved
         ).length,
-        new_requests_count: (data.requests || []).length,
+        new_requests_count: (data.requests || []).length + activeTradeIns.length,
         unanswered_questions_count: (data.unanswered_request_questions || [])
           .length,
         pending_approval_count: data.pending_approval_count ?? 0,
@@ -484,7 +564,7 @@ const DealerDashboard = () => {
       setListings(allCars.filter((c: Listing) => c.is_approved));
       setPendingListings(allCars.filter((c: Listing) => !c.is_approved));
       // Sort requests by creation date, newest first
-      const sortedRequests = (data.requests || []).sort(
+      const sortedRequests = [...(data.requests || []), ...activeTradeIns].sort(
         (a: CustomerRequest, b: CustomerRequest) =>
           new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
       );
@@ -663,7 +743,12 @@ const DealerDashboard = () => {
           <DashboardSection
             data={requests}
             emptyText="No customer requests found."
-            renderItem={(item) => <RequestItem key={item.id} item={item} />}
+            renderItem={(item) => (
+              <RequestItem
+                key={`${item.type || "buy"}-${item.id}`}
+                item={item}
+              />
+            )}
           />
         )}
 
@@ -847,6 +932,9 @@ const styles = StyleSheet.create({
   },
   imageRequestBadge: {
     backgroundColor: COLORS.accent,
+  },
+  tradeInRequestBadge: {
+    backgroundColor: COLORS.success,
   },
   requestTypeBadgeText: {
     color: "white",

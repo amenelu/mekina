@@ -9,10 +9,13 @@ import {
   Alert,
   TextInput,
   Pressable,
+  Platform,
 } from "react-native";
-import { useLocalSearchParams, Stack } from "expo-router";
+import { useLocalSearchParams, Stack, useRouter } from "expo-router";
+import * as ImagePicker from "expo-image-picker";
 import { useAuth } from "@/hooks/useAuth";
 import { mediaUrl } from "@/lib/api/client";
+import { DEALER_ROUTES } from "@/lib/roleRoutes";
 import {
   acceptTradeInOffer,
   getTradeInRequest,
@@ -57,6 +60,13 @@ interface TradeInOffer {
   dealer_name: string;
   amount: number;
   notes: string;
+  offered_car_make?: string | null;
+  offered_car_model?: string | null;
+  offered_car_year?: number | null;
+  offered_car_condition?: string | null;
+  offered_car_mileage?: number | null;
+  offered_car_specs?: string | null;
+  offered_car_image_url?: string | null;
   created_at: string;
   status: string;
 }
@@ -81,11 +91,20 @@ const ImageWithLoader = ({ uri }: { uri: string }) => {
 
 const TradeInRequestDetailScreen = () => {
   const { id } = useLocalSearchParams();
+  const router = useRouter();
   const { token } = useAuth();
   const [request, setRequest] = useState<TradeInDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [offerAmount, setOfferAmount] = useState("");
   const [offerNotes, setOfferNotes] = useState("");
+  const [offeredMake, setOfferedMake] = useState("");
+  const [offeredModel, setOfferedModel] = useState("");
+  const [offeredYear, setOfferedYear] = useState("");
+  const [offeredCondition, setOfferedCondition] = useState("");
+  const [offeredMileage, setOfferedMileage] = useState("");
+  const [offeredSpecs, setOfferedSpecs] = useState("");
+  const [offeredImageUri, setOfferedImageUri] = useState("");
+  const [offeredImageBase64, setOfferedImageBase64] = useState("");
   const [submittingOffer, setSubmittingOffer] = useState(false);
 
   const fetchDetails = useCallback(async () => {
@@ -109,9 +128,29 @@ const TradeInRequestDetailScreen = () => {
     fetchDetails();
   }, [fetchDetails]);
 
+  const pickOfferedCarImage = async () => {
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      quality: 0.7,
+      base64: true,
+    });
+
+    if (!result.canceled && result.assets[0]) {
+      const asset = result.assets[0];
+      setOfferedImageUri(asset.uri);
+      setOfferedImageBase64(
+        asset.base64 ? `data:image/jpeg;base64,${asset.base64}` : ""
+      );
+    }
+  };
+
   const submitOffer = async () => {
     if (!offerAmount) {
-      Alert.alert("Error", "Please enter an offer amount.");
+      Alert.alert("Error", "Please enter the cash add-on amount.");
+      return;
+    }
+    if (!offeredMake.trim() || !offeredModel.trim() || !offeredYear.trim()) {
+      Alert.alert("Error", "Please enter the trade car make, model, and year.");
       return;
     }
     setSubmittingOffer(true);
@@ -119,10 +158,29 @@ const TradeInRequestDetailScreen = () => {
       await placeTradeInOffer(String(id), {
         amount: parseInt(offerAmount),
         notes: offerNotes,
+        offered_car_make: offeredMake.trim(),
+        offered_car_model: offeredModel.trim(),
+        offered_car_year: parseInt(offeredYear),
+        offered_car_condition: offeredCondition.trim(),
+        offered_car_mileage: offeredMileage ? parseInt(offeredMileage) : undefined,
+        offered_car_specs: offeredSpecs.trim(),
+        offered_car_image: offeredImageBase64,
       });
-      showNativeFlowAlert("Success", "Offer placed successfully.");
+      showNativeFlowAlert(
+        "Success",
+        "Offer placed successfully.",
+        () => router.replace(DEALER_ROUTES.dashboard as any)
+      );
       setOfferAmount("");
       setOfferNotes("");
+      setOfferedMake("");
+      setOfferedModel("");
+      setOfferedYear("");
+      setOfferedCondition("");
+      setOfferedMileage("");
+      setOfferedSpecs("");
+      setOfferedImageUri("");
+      setOfferedImageBase64("");
       fetchDetails(); // Refresh to show updated state if needed
     } catch (error: any) {
       const msg = error.response?.data?.message || "Failed to place offer.";
@@ -230,19 +288,79 @@ const TradeInRequestDetailScreen = () => {
             {request.viewer_role === "dealer" ? (
               <View>
                 <Text style={styles.offerPrompt}>
-                  Place an offer on this vehicle:
+                  Offer a vehicle to trade for this car:
                 </Text>
                 <TextInput
                   style={styles.input}
-                  placeholder="Offer Amount (ETB)"
+                  placeholder="Cash add-on amount (ETB)"
                   placeholderTextColor={COLORS.mutedForeground}
                   keyboardType="numeric"
                   value={offerAmount}
                   onChangeText={setOfferAmount}
                 />
+                <View style={styles.formGrid}>
+                  <TextInput
+                    style={[styles.input, styles.gridInput]}
+                    placeholder="Trade car make"
+                    placeholderTextColor={COLORS.mutedForeground}
+                    value={offeredMake}
+                    onChangeText={setOfferedMake}
+                  />
+                  <TextInput
+                    style={[styles.input, styles.gridInput]}
+                    placeholder="Trade car model"
+                    placeholderTextColor={COLORS.mutedForeground}
+                    value={offeredModel}
+                    onChangeText={setOfferedModel}
+                  />
+                </View>
+                <View style={styles.formGrid}>
+                  <TextInput
+                    style={[styles.input, styles.gridInput]}
+                    placeholder="Year"
+                    placeholderTextColor={COLORS.mutedForeground}
+                    keyboardType="numeric"
+                    value={offeredYear}
+                    onChangeText={setOfferedYear}
+                  />
+                  <TextInput
+                    style={[styles.input, styles.gridInput]}
+                    placeholder="Mileage"
+                    placeholderTextColor={COLORS.mutedForeground}
+                    keyboardType="numeric"
+                    value={offeredMileage}
+                    onChangeText={setOfferedMileage}
+                  />
+                </View>
+                <TextInput
+                  style={styles.input}
+                  placeholder="Condition (e.g., New, Used, Excellent)"
+                  placeholderTextColor={COLORS.mutedForeground}
+                  value={offeredCondition}
+                  onChangeText={setOfferedCondition}
+                />
                 <TextInput
                   style={[styles.input, styles.textArea]}
-                  placeholder="Notes (Optional)"
+                  placeholder="Trade car specs (trim, fuel type, drivetrain, features...)"
+                  placeholderTextColor={COLORS.mutedForeground}
+                  multiline
+                  value={offeredSpecs}
+                  onChangeText={setOfferedSpecs}
+                />
+                <Pressable
+                  style={styles.imagePickerButton}
+                  onPress={pickOfferedCarImage}
+                >
+                  <Text style={styles.imagePickerText}>
+                    {offeredImageUri ? "Change Trade Car Photo" : "Add Trade Car Photo"}
+                  </Text>
+                </Pressable>
+                {offeredImageUri ? (
+                  <Image source={{ uri: offeredImageUri }} style={styles.offerPreviewImage} />
+                ) : null}
+                <TextInput
+                  style={[styles.input, styles.textArea]}
+                  placeholder="Notes for the buyer (optional)"
                   placeholderTextColor={COLORS.mutedForeground}
                   multiline
                   value={offerNotes}
@@ -265,9 +383,15 @@ const TradeInRequestDetailScreen = () => {
                 {request.offers && request.offers.length > 0 ? (
                   request.offers.map((offer) => (
                     <View key={offer.id} style={styles.offerItem}>
+                      {offer.offered_car_image_url ? (
+                        <Image
+                          source={{ uri: mediaUrl(offer.offered_car_image_url) || "" }}
+                          style={styles.offerVehicleImage}
+                        />
+                      ) : null}
                       <View style={styles.offerHeader}>
                         <Text style={styles.offerAmount}>
-                          {offer.amount.toLocaleString()} ETB
+                          + {offer.amount.toLocaleString()} ETB cash
                         </Text>
                         {request.status === "active" &&
                           request.viewer_role === "buyer" && (
@@ -291,6 +415,30 @@ const TradeInRequestDetailScreen = () => {
                       <Text style={styles.offerDealer}>
                         by {offer.dealer_name}
                       </Text>
+                      {offer.offered_car_make || offer.offered_car_model ? (
+                        <View style={styles.offerVehicleCard}>
+                          <Text style={styles.offerVehicleTitle}>
+                            {offer.offered_car_year || ""}{" "}
+                            {offer.offered_car_make || ""}{" "}
+                            {offer.offered_car_model || ""}
+                          </Text>
+                          <Text style={styles.offerVehicleMeta}>
+                            {[
+                              offer.offered_car_condition,
+                              offer.offered_car_mileage
+                                ? `${offer.offered_car_mileage.toLocaleString()} km`
+                                : null,
+                            ]
+                              .filter(Boolean)
+                              .join(" • ")}
+                          </Text>
+                          {offer.offered_car_specs ? (
+                            <Text style={styles.offerNotes}>
+                              {offer.offered_car_specs}
+                            </Text>
+                          ) : null}
+                        </View>
+                      ) : null}
                       {offer.notes ? (
                         <Text style={styles.offerNotes}>{offer.notes}</Text>
                       ) : null}
@@ -404,8 +552,38 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: COLORS.border,
     marginBottom: 10,
+    fontSize: Platform.OS === "web" ? 16 : undefined,
   },
   textArea: { height: 80, textAlignVertical: "top" },
+  formGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 10,
+  },
+  gridInput: {
+    flex: 1,
+    minWidth: 150,
+  },
+  imagePickerButton: {
+    borderWidth: 1,
+    borderStyle: "dashed",
+    borderColor: COLORS.accent,
+    borderRadius: 8,
+    padding: 12,
+    alignItems: "center",
+    marginBottom: 10,
+  },
+  imagePickerText: {
+    color: COLORS.accent,
+    fontWeight: "700",
+  },
+  offerPreviewImage: {
+    width: "100%",
+    height: 180,
+    borderRadius: 8,
+    marginBottom: 10,
+    backgroundColor: COLORS.background,
+  },
   submitButton: {
     backgroundColor: COLORS.accent,
     padding: 12,
@@ -422,6 +600,32 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: COLORS.border,
     paddingVertical: 10,
+  },
+  offerVehicleImage: {
+    width: "100%",
+    height: 180,
+    borderRadius: 8,
+    marginBottom: 10,
+    backgroundColor: COLORS.background,
+  },
+  offerVehicleCard: {
+    backgroundColor: COLORS.background,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    padding: 10,
+    marginTop: 8,
+    marginBottom: 8,
+  },
+  offerVehicleTitle: {
+    color: COLORS.foreground,
+    fontWeight: "700",
+    fontSize: 16,
+  },
+  offerVehicleMeta: {
+    color: COLORS.mutedForeground,
+    fontSize: 13,
+    marginTop: 3,
   },
   offerHeader: {
     flexDirection: "row",

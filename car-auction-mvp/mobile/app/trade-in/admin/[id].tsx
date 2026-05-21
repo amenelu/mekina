@@ -9,13 +9,15 @@ import {
   Pressable,
   Alert,
 } from "react-native";
-import { useLocalSearchParams, Stack } from "expo-router";
+import { useLocalSearchParams, Stack, useRouter } from "expo-router";
 import { useAuth } from "@/hooks/useAuth";
 import { mediaUrl } from "@/lib/api/client";
 import {
   getAdminTradeInRequest,
   updateAdminTradeInStatus,
 } from "@/lib/api/tradeIn";
+import { ADMIN_ROUTES } from "@/lib/roleRoutes";
+import { showNativeFlowAlert } from "@/lib/nativeFlowAlert";
 
 const COLORS = {
   background: "#14181F",
@@ -52,6 +54,7 @@ interface TradeInDetail {
 
 const TradeInAdminDetailScreen = () => {
   const { id } = useLocalSearchParams();
+  const router = useRouter();
   const { token } = useAuth();
   const [request, setRequest] = useState<TradeInDetail | null>(null);
   const [loading, setLoading] = useState(true);
@@ -77,7 +80,15 @@ const TradeInAdminDetailScreen = () => {
     setUpdating(true);
     try {
       await updateAdminTradeInStatus(String(id), newStatus);
-      Alert.alert("Success", `Status updated to ${newStatus}`);
+      if (newStatus === "active") {
+        showNativeFlowAlert(
+          "Success",
+          "Trade-in request approved.",
+          () => router.replace(ADMIN_ROUTES.dashboard as any)
+        );
+      } else {
+        Alert.alert("Success", `Status updated to ${newStatus}`);
+      }
       fetchDetails(); // Refresh data
     } catch (error) {
       console.error("Error updating status:", error);

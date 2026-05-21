@@ -27,9 +27,11 @@ from datetime import datetime, timedelta
 import base64
 import uuid
 
-from extensions import db
+from extensions import db, socketio
+from models.notification import Notification
 from models.trade_in import TradeInRequest, TradeInPhoto, TradeInOffer
 from routes.auth import token_required
+from routes.main import send_push_notification
 
 tradein_bp = Blueprint("tradein", __name__, url_prefix="/trade-in")
 
@@ -341,21 +343,96 @@ def api_place_trade_in_offer(current_user, request_id):
             400,
         )
 
-    data = request.get_json()
+    data = request.get_json(silent=True) or {}
     amount = data.get("amount")
     notes = data.get("notes")
+    offered_car_make = (data.get("offered_car_make") or "").strip()
+    offered_car_model = (data.get("offered_car_model") or "").strip()
+    offered_car_year = data.get("offered_car_year")
+    offered_car_condition = (data.get("offered_car_condition") or "").strip()
+    offered_car_mileage = data.get("offered_car_mileage")
+    offered_car_specs = (data.get("offered_car_specs") or "").strip()
+    offered_car_image = data.get("offered_car_image")
 
-    if not amount:
-        return jsonify({"status": "error", "message": "Offer amount is required."}), 400
+    if amount in (None, ""):
+        return jsonify({"status": "error", "message": "Cash add-on is required."}), 400
+
+    try:
+        amount = int(amount)
+    except (TypeError, ValueError):
+        return jsonify({"status": "error", "message": "Cash add-on must be a number."}), 400
+    if amount < 0:
+        return jsonify({"status": "error", "message": "Cash add-on cannot be negative."}), 400
+
+    if not offered_car_make or not offered_car_model or not offered_car_year:
+        return (
+            jsonify(
+                {
+                    "status": "error",
+                    "message": "Offered car make, model, and year are required.",
+                }
+            ),
+            400,
+        )
+
+    try:
+        offered_car_year = int(offered_car_year)
+    except (TypeError, ValueError):
+        return jsonify({"status": "error", "message": "Offered car year must be a number."}), 400
+
+    if offered_car_mileage not in (None, ""):
+        try:
+            offered_car_mileage = int(offered_car_mileage)
+        except (TypeError, ValueError):
+            return jsonify({"status": "error", "message": "Offered car mileage must be a number."}), 400
+    else:
+        offered_car_mileage = None
+
+    offered_car_image_url = None
+    if offered_car_image:
+        offered_car_image_url = save_base64_image(
+            offered_car_image, filename_prefix="trade_in_offer"
+        )
 
     offer = TradeInOffer(
         trade_in_request_id=req.id,
         dealer_id=current_user.id,
         amount=amount,
         notes=notes,
+        offered_car_make=offered_car_make,
+        offered_car_model=offered_car_model,
+        offered_car_year=offered_car_year,
+        offered_car_condition=offered_car_condition or None,
+        offered_car_mileage=offered_car_mileage,
+        offered_car_specs=offered_car_specs or None,
+        offered_car_image_url=offered_car_image_url,
     )
     db.session.add(offer)
+    db.session.flush()
+
+    vehicle_name = f"{req.year} {req.make} {req.model}".strip()
+    notification = Notification(
+        user_id=req.user_id,
+        message=(
+            f"{current_user.username} sent a trade-in offer"
+            f" for your {vehicle_name}."
+        ),
+        link=f"/trade-in/{req.id}",
+    )
+    db.session.add(notification)
     db.session.commit()
+
+    unread_count = Notification.query.filter_by(
+        user_id=req.user_id, is_read=False
+    ).count()
+    notification_data = {
+        "message": notification.message,
+        "link": notification.link,
+        "timestamp": notification.timestamp.isoformat() + "Z",
+        "count": unread_count,
+    }
+    socketio.emit("new_notification", notification_data, room=str(req.user_id))
+    send_push_notification(req.user_id, notification.message)
 
     return (
         jsonify(

@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect } from "react";
+import React, { useState, useCallback } from "react";
 import {
   View,
   Text,
@@ -43,6 +43,11 @@ const getMobileRoute = (webLink: string | null) => {
 
   if (webLink.includes("/(admin)/dealers") || webLink.includes("/admin-dealers")) {
     return ADMIN_ROUTES.dealers;
+  }
+
+  if (webLink.includes("/trade-in/")) {
+    const match = webLink.match(/\/trade-in\/(\d+)/);
+    if (match) return `/trade-in/${match[1]}`;
   }
 
   // Handle Expo app links already targeting the mobile request screen.
@@ -144,20 +149,22 @@ const NotificationsScreen = () => {
     }, [fetchNotifications, token])
   );
 
-  // Listen for real-time notifications
-  useEffect(() => {
-    if (socket) {
-      const handleNewNotification = () => {
-        fetchNotifications();
-      };
+  // Refresh visible notifications in real time only while this screen is focused.
+  useFocusEffect(
+    useCallback(() => {
+      if (socket) {
+        const handleNewNotification = () => {
+          fetchNotifications();
+        };
 
-      socket.on("new_notification", handleNewNotification);
+        socket.on("new_notification", handleNewNotification);
 
-      return () => {
-        socket.off("new_notification", handleNewNotification);
-      };
-    }
-  }, [fetchNotifications, socket]);
+        return () => {
+          socket.off("new_notification", handleNewNotification);
+        };
+      }
+    }, [fetchNotifications, socket])
+  );
 
   const onRefresh = () => {
     setRefreshing(true);

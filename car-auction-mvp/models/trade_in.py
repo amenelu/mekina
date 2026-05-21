@@ -89,6 +89,13 @@ class TradeInOffer(db.Model):
     dealer_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False)
     amount = db.Column(db.Integer, nullable=False)
     notes = db.Column(db.Text, nullable=True)
+    offered_car_make = db.Column(db.String(50), nullable=True)
+    offered_car_model = db.Column(db.String(50), nullable=True)
+    offered_car_year = db.Column(db.Integer, nullable=True)
+    offered_car_condition = db.Column(db.String(50), nullable=True)
+    offered_car_mileage = db.Column(db.Integer, nullable=True)
+    offered_car_specs = db.Column(db.Text, nullable=True)
+    offered_car_image_url = db.Column(db.String(255), nullable=True)
     status = db.Column(db.String(20), default="pending")  # pending, accepted, rejected
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
@@ -100,6 +107,13 @@ class TradeInOffer(db.Model):
             "dealer_name": self.dealer.username,
             "amount": self.amount,
             "notes": self.notes,
+            "offered_car_make": self.offered_car_make,
+            "offered_car_model": self.offered_car_model,
+            "offered_car_year": self.offered_car_year,
+            "offered_car_condition": self.offered_car_condition,
+            "offered_car_mileage": self.offered_car_mileage,
+            "offered_car_specs": self.offered_car_specs,
+            "offered_car_image_url": self.offered_car_image_url,
             "status": self.status,
             "created_at": self.created_at.isoformat() + "Z",
         }
