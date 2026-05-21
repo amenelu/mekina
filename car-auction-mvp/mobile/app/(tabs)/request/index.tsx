@@ -5,6 +5,8 @@ import {
   Text,
   StyleSheet,
   TouchableOpacity,
+  Platform,
+  useWindowDimensions,
 } from "react-native";
 import { Stack, useFocusEffect, useNavigation, useRouter } from "expo-router";
 import {
@@ -47,11 +49,13 @@ const choiceOptions = [
 const RequestChoiceScreen = () => {
   const router = useRouter();
   const navigation = useNavigation();
+  const { width } = useWindowDimensions();
   const userId = useAuth((state) => state.user?.id);
   const [savedDraft, setSavedDraft] = useState<RequestDraft | null>(null);
   const [checkingLimit, setCheckingLimit] = useState(true);
   const [canCreateRequest, setCanCreateRequest] = useState(true);
   const [limitMessage, setLimitMessage] = useState("");
+  const isWideWeb = Platform.OS === "web" && width >= 1000;
 
   useFocusEffect(
     useCallback(() => {
@@ -130,9 +134,12 @@ const RequestChoiceScreen = () => {
   };
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, isWideWeb && styles.containerWide]}>
       <Stack.Screen options={{ title: "Let's Find Your Next Car" }} />
-      <Text style={styles.title}>Do you know which car you want?</Text>
+      <View style={[styles.pageShell, isWideWeb && styles.pageShellWide]}>
+      <Text style={[styles.title, isWideWeb && styles.titleWide]}>
+        Do you know which car you want?
+      </Text>
       {checkingLimit && (
         <View style={styles.limitCard}>
           <ActivityIndicator color={COLORS.accent} />
@@ -181,7 +188,12 @@ const RequestChoiceScreen = () => {
           </View>
         </View>
       )}
-      <View style={styles.optionsContainer}>
+      <View
+        style={[
+          styles.optionsContainer,
+          isWideWeb && styles.optionsContainerWide,
+        ]}
+      >
         {choiceOptions.map((option) => (
           <TouchableOpacity
             key={option.href}
@@ -204,6 +216,7 @@ const RequestChoiceScreen = () => {
           </TouchableOpacity>
         ))}
       </View>
+      </View>
     </View>
   );
 };
@@ -214,6 +227,17 @@ const styles = StyleSheet.create({
     padding: 20,
     backgroundColor: COLORS.background,
   },
+  containerWide: {
+    paddingTop: 52,
+    backgroundColor: "#202733",
+  },
+  pageShell: {
+    width: "100%",
+  },
+  pageShellWide: {
+    maxWidth: 960,
+    alignSelf: "center",
+  },
   title: {
     fontSize: 24,
     fontWeight: "bold",
@@ -221,8 +245,19 @@ const styles = StyleSheet.create({
     marginBottom: 30,
     textAlign: "center",
   },
+  titleWide: {
+    fontSize: 40,
+    fontWeight: "800",
+    marginBottom: 38,
+  },
   optionsContainer: {
     gap: 15,
+  },
+  optionsContainerWide: {
+    flexDirection: "row",
+    alignItems: "stretch",
+    justifyContent: "center",
+    gap: 20,
   },
   limitCard: {
     backgroundColor: "rgba(163, 112, 247, 0.12)",
@@ -299,6 +334,8 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     borderWidth: 2,
     borderColor: COLORS.border,
+    flex: Platform.OS === "web" ? 1 : undefined,
+    maxWidth: Platform.OS === "web" ? 300 : undefined,
   },
   disabledButton: {
     opacity: 0.55,

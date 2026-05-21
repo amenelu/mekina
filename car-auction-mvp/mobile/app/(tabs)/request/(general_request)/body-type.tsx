@@ -6,6 +6,7 @@ import {
   TouchableOpacity,
   Image,
   ScrollView,
+  Platform,
 } from "react-native";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -85,6 +86,9 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: 20,
     backgroundColor: COLORS.background,
+    width: "100%",
+    maxWidth: Platform.OS === "web" ? 780 : undefined,
+    alignSelf: "center",
   },
   counter: {
     fontSize: 16,

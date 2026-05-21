@@ -10,6 +10,7 @@ import {
   Alert,
   KeyboardAvoidingView,
   Platform,
+  useWindowDimensions,
 } from "react-native";
 import { Stack, useLocalSearchParams } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
@@ -31,6 +32,7 @@ const ConversationDetailScreen = () => {
   const { id } = useLocalSearchParams();
   const { token, user, login } = useAuth() as any;
   const { socket, refreshCounts } = useSocket();
+  const { width } = useWindowDimensions();
   const [conversation, setConversation] = useState<any>(null);
   const [messages, setMessages] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -38,6 +40,7 @@ const ConversationDetailScreen = () => {
   const [sending, setSending] = useState(false);
   const [unlocking, setUnlocking] = useState(false);
   const scrollViewRef = useRef<ScrollView>(null);
+  const isWideWeb = Platform.OS === "web" && width >= 1000;
 
   const fetchConversation = useCallback(async () => {
     if (!token || !id) return;
@@ -199,7 +202,7 @@ const ConversationDetailScreen = () => {
         keyboardVerticalOffset={Platform.OS === "ios" ? 100 : 0}
       >
         <ScrollView
-          style={styles.chatHistory}
+          style={[styles.chatHistory, isWideWeb && styles.chatHistoryWide]}
           ref={scrollViewRef}
           onContentSizeChange={() =>
             scrollViewRef.current?.scrollToEnd({ animated: true })
@@ -291,7 +294,7 @@ const ConversationDetailScreen = () => {
             );
           })}
         </ScrollView>
-        <View style={styles.inputArea}>
+        <View style={[styles.inputArea, isWideWeb && styles.inputAreaWide]}>
           <TextInput
             style={styles.textInput}
             placeholder="Type your reply..."
@@ -336,6 +339,12 @@ const styles = StyleSheet.create({
   chatHistory: {
     flex: 1,
     padding: 10,
+  },
+  chatHistoryWide: {
+    maxWidth: 980,
+    width: "100%",
+    alignSelf: "center",
+    paddingTop: 24,
   },
   limitNotice: {
     flexDirection: "row",
@@ -432,6 +441,15 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: COLORS.border,
     backgroundColor: COLORS.card,
+  },
+  inputAreaWide: {
+    maxWidth: 980,
+    width: "100%",
+    alignSelf: "center",
+    borderRadius: 16,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: COLORS.border,
   },
   textInput: {
     flex: 1,

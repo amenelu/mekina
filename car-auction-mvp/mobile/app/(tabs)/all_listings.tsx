@@ -14,9 +14,10 @@ import {
   TouchableOpacity,
   RefreshControl,
   Platform,
+  useWindowDimensions,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { useRouter, useLocalSearchParams } from "expo-router";
+import { Stack, useRouter, useLocalSearchParams } from "expo-router";
 
 import Footer from "@/components/_components/Footer";
 import VehicleCard, { Vehicle } from "@/components/_components/VehicleCard";
@@ -85,6 +86,7 @@ function matchesSearchTerms(
 const AllListingsScreen = () => {
   const router = useRouter();
   const { q } = useLocalSearchParams<{ q?: string }>();
+  const { width } = useWindowDimensions();
   const [allVehicles, setAllVehicles] = useState<Vehicle[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState(q || "");
@@ -111,6 +113,11 @@ const AllListingsScreen = () => {
   ).filter(([, value]) => Boolean(value));
   const activeFilterCount = activeFilterEntries.length;
   const hasActiveFilters = activeFilterCount > 0;
+  const isWideWeb = Platform.OS === "web" && width >= 1000;
+  const gridColumns = isWideWeb ? (width >= 1500 ? 4 : 3) : 2;
+  const cardWidth = isWideWeb
+    ? `${100 / gridColumns - 1.6}%`
+    : "48%";
 
   React.useEffect(() => {
     if (q) {
@@ -260,8 +267,26 @@ const AllListingsScreen = () => {
 
   return (
     <View style={styles.container}>
-      <View style={styles.filterContainer}>
-        <View style={styles.searchRow}>
+      <Stack.Screen
+        options={{ title: "All Listings", headerTitleAlign: "center" }}
+      />
+      <View
+        style={[
+          styles.filterContainer,
+          isWideWeb && styles.filterContainerWide,
+        ]}
+      >
+        <View style={[styles.filterInner, isWideWeb && styles.filterInnerWide]}>
+          {isWideWeb && (
+            <View style={styles.pageIntro}>
+              <Text style={styles.pageTitle}>All Vehicles for Sale</Text>
+              <Text style={styles.pageSubtitle}>
+                Search verified listings with the same filters buyers use to
+                narrow offers.
+              </Text>
+            </View>
+          )}
+        <View style={[styles.searchRow, isWideWeb && styles.searchRowWide]}>
           <View style={styles.searchBar}>
             <Ionicons
               name="search"
@@ -348,6 +373,7 @@ const AllListingsScreen = () => {
             </Pressable>
           </View>
         )}
+        </View>
       </View>
       {loading && !refreshing && (
         <View style={styles.loadingContainer}>
@@ -361,16 +387,15 @@ const AllListingsScreen = () => {
         style={styles.list}
         data={!loading ? allVehicles : []}
         keyExtractor={(item, index) => `${item.id}-${index}`}
-        numColumns={2}
+        numColumns={gridColumns}
+        key={`listings-${gridColumns}`}
         keyboardDismissMode="on-drag"
         keyboardShouldPersistTaps="handled"
-        columnWrapperStyle={{
-          justifyContent: "space-between",
-          paddingHorizontal: 20,
-        }}
+        columnWrapperStyle={styles.gridRow}
         contentContainerStyle={{
           paddingBottom: Platform.OS === "web" ? 8 : 20,
-          paddingTop: 20,
+          paddingTop: isWideWeb ? 28 : 20,
+          paddingHorizontal: isWideWeb ? 28 : 20,
         }}
         refreshControl={
           <RefreshControl
@@ -380,7 +405,7 @@ const AllListingsScreen = () => {
           />
         }
         renderItem={({ item }) => (
-          <View style={{ width: "48%", marginBottom: 15 }}>
+          <View style={[styles.cardShell, { width: cardWidth as any }]}>
             <VehicleCard
               item={item}
               isCompared={compareItems.some((c) => c.id === item.id)}
@@ -635,10 +660,45 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: COLORS.border,
   },
+  filterContainerWide: {
+    paddingHorizontal: 28,
+    paddingTop: 42,
+    paddingBottom: 34,
+    backgroundColor: "#202733",
+  },
+  filterInner: {
+    width: "100%",
+  },
+  filterInnerWide: {
+    maxWidth: 1220,
+    width: "100%",
+    alignSelf: "center",
+  },
+  pageIntro: {
+    alignItems: "center",
+    marginBottom: 28,
+  },
+  pageTitle: {
+    color: COLORS.foreground,
+    fontSize: 36,
+    fontWeight: "800",
+    textAlign: "center",
+  },
+  pageSubtitle: {
+    color: COLORS.mutedForeground,
+    fontSize: 18,
+    marginTop: 10,
+    textAlign: "center",
+  },
   searchRow: {
     flexDirection: "row",
     alignItems: "center",
     gap: 10,
+  },
+  searchRowWide: {
+    maxWidth: 860,
+    width: "100%",
+    alignSelf: "center",
   },
   searchBar: {
     flexDirection: "row",
@@ -731,6 +791,12 @@ const styles = StyleSheet.create({
     flexWrap: "wrap",
     justifyContent: "space-between",
     padding: 20,
+  },
+  gridRow: {
+    justifyContent: "space-between",
+  },
+  cardShell: {
+    marginBottom: 20,
   },
   noResultsText: {
     color: COLORS.mutedForeground,

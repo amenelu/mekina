@@ -9,6 +9,10 @@ import {
   RefreshControl,
   Alert,
   Image,
+  Platform,
+  useWindowDimensions,
+  StyleProp,
+  ViewStyle,
 } from "react-native";
 import { Link, useFocusEffect, useRouter, Stack } from "expo-router";
 import { useAuth } from "@/hooks/useAuth";
@@ -156,9 +160,11 @@ const getRequestDetailLabel = (request: CarRequest) => {
 const RequestCard = ({
   request,
   onDelete,
+  style,
 }: {
   request: CarRequest;
   onDelete: (req: CarRequest) => void;
+  style?: StyleProp<ViewStyle>;
 }) => {
   const router = useRouter();
   const statusColor =
@@ -197,7 +203,7 @@ const RequestCard = ({
   };
 
   return (
-    <View style={styles.requestCard}>
+    <View style={[styles.requestCard, style]}>
       <Pressable onPress={handlePress}>
         {isImageBased && (
           <Image
@@ -295,10 +301,12 @@ const MyRequestsScreen = () => {
   const { token, logout, isLoading, user } = useAuth() as any;
   const router = useRouter();
   const { socket } = useSocket();
+  const { width } = useWindowDimensions();
   const [requests, setRequests] = useState<CarRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const isWideWeb = Platform.OS === "web" && width >= 1000;
 
   // This function will fetch the requests from the API
   const fetchRequests = useCallback(async () => {
@@ -446,14 +454,17 @@ const MyRequestsScreen = () => {
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }
       >
-        <View style={styles.header}>
+        <View style={[styles.header, isWideWeb && styles.headerWide]}>
+          {isWideWeb && (
+            <Text style={styles.headerTitle}>My Requests</Text>
+          )}
           <Text style={styles.headerSubtitle}>
             {
               'Here are the requests you\'ve submitted. Click "View Offers" to see bids from our dealer network.'
             }
           </Text>
         </View>
-        <View style={styles.content}>
+        <View style={[styles.content, isWideWeb && styles.contentWide]}>
           {error && !loading && (
             <View style={styles.noRequestsContainer}>
               <Text style={styles.noRequestsText}>{error}</Text>
@@ -465,6 +476,7 @@ const MyRequestsScreen = () => {
                   key={`${req.type}-${req.id}`}
                   request={req}
                   onDelete={handleDeleteRequest}
+                  style={isWideWeb ? styles.requestCardWide : undefined}
                 />
               ))
             : !error &&
@@ -497,13 +509,42 @@ const styles = StyleSheet.create({
   header: {
     padding: 20,
   },
-  headerTitle: { fontSize: 24, fontWeight: "bold", color: COLORS.foreground },
-  headerSubtitle: { fontSize: 16, color: COLORS.mutedForeground, marginTop: 8 },
+  headerWide: {
+    alignItems: "center",
+    paddingTop: 42,
+    paddingBottom: 12,
+    backgroundColor: "#202733",
+  },
+  headerTitle: {
+    fontSize: 36,
+    fontWeight: "800",
+    color: COLORS.foreground,
+    textAlign: "center",
+  },
+  headerSubtitle: {
+    fontSize: 16,
+    color: COLORS.mutedForeground,
+    marginTop: 8,
+    textAlign: "center",
+  },
   content: { padding: 20, gap: 20 },
+  contentWide: {
+    maxWidth: 1220,
+    width: "100%",
+    alignSelf: "center",
+    flexDirection: "row",
+    flexWrap: "wrap",
+    alignItems: "flex-start",
+    justifyContent: "space-between",
+    paddingTop: 28,
+  },
   requestCard: {
     backgroundColor: COLORS.card,
     borderRadius: 12,
     overflow: "hidden",
+  },
+  requestCardWide: {
+    width: "49%",
   },
   cardImage: {
     width: "100%",

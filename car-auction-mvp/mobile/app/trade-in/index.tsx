@@ -10,6 +10,7 @@ import {
   Image,
   ActivityIndicator,
   Platform,
+  useWindowDimensions,
 } from "react-native";
 import { useRouter } from "expo-router";
 import * as ImagePicker from "expo-image-picker";
@@ -30,6 +31,7 @@ const COLORS = {
 const TradeInScreen = () => {
   const router = useRouter();
   const { token } = useAuth();
+  const { width } = useWindowDimensions();
   const [loading, setLoading] = useState(false);
   const [make, setMake] = useState("");
   const [model, setModel] = useState("");
@@ -41,6 +43,7 @@ const TradeInScreen = () => {
   const [condition] = useState("Good");
   const [images, setImages] = useState<string[]>([]);
   const [base64Images, setBase64Images] = useState<string[]>([]);
+  const isWideWeb = Platform.OS === "web" && width >= 1000;
 
   const handleImagePick = async () => {
     if (images.length >= 6) {
@@ -128,8 +131,11 @@ const TradeInScreen = () => {
         style={styles.container}
         contentContainerStyle={styles.scrollContent}
       >
-        <View style={styles.pageShell}>
-          <View style={styles.header}>
+        <View style={[styles.pageShell, isWideWeb && styles.pageShellWide]}>
+          <View style={[styles.header, isWideWeb && styles.headerWide]}>
+            {isWideWeb && (
+              <Text style={styles.title}>Trade-in Offer</Text>
+            )}
             <Text style={styles.subtitle}>
               Tell us about your car to get a competitive trade-in offer.
             </Text>
@@ -237,10 +243,17 @@ const styles = StyleSheet.create({
     maxWidth: Platform.OS === "web" ? 760 : undefined,
     alignSelf: "center",
   },
+  pageShellWide: {
+    maxWidth: 720,
+    paddingTop: 34,
+  },
   header: { padding: 20, paddingBottom: 10 },
+  headerWide: {
+    paddingBottom: 22,
+  },
   title: {
-    fontSize: 28,
-    fontWeight: "bold",
+    fontSize: 36,
+    fontWeight: "800",
     color: COLORS.foreground,
     textAlign: "center",
   },
@@ -255,6 +268,10 @@ const styles = StyleSheet.create({
     paddingVertical: 20,
     gap: 15,
     width: "100%",
+    backgroundColor: Platform.OS === "web" ? COLORS.card : "transparent",
+    borderRadius: Platform.OS === "web" ? 16 : 0,
+    borderWidth: Platform.OS === "web" ? 1 : 0,
+    borderColor: COLORS.border,
   },
   formGrid: {
     flexDirection: "row",
@@ -264,7 +281,7 @@ const styles = StyleSheet.create({
   },
   input: {
     width: "100%",
-    backgroundColor: COLORS.card,
+    backgroundColor: Platform.OS === "web" ? COLORS.background : COLORS.card,
     color: COLORS.foreground,
     padding: 15,
     borderRadius: 12,
@@ -276,9 +293,9 @@ const styles = StyleSheet.create({
   gridInput: {
     flexGrow: 1,
     flexShrink: 1,
-    flexBasis: Platform.OS === "web" ? 260 : "100%",
+    flexBasis: Platform.OS === "web" ? 240 : "100%",
     minWidth: Platform.OS === "web" ? 220 : "100%",
-    backgroundColor: COLORS.card,
+    backgroundColor: Platform.OS === "web" ? COLORS.background : COLORS.card,
     color: COLORS.foreground,
     padding: 15,
     borderRadius: 12,

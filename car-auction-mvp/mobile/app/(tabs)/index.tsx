@@ -11,6 +11,7 @@ import {
   ActivityIndicator,
   RefreshControl,
   Platform,
+  useWindowDimensions,
 } from "react-native";
 import { useRouter, useNavigation } from "expo-router";
 import { useScrollToTop } from "@react-navigation/native";
@@ -36,6 +37,7 @@ const quickFilters = [
   { label: "Hybrid", value: "Hybrid", group: "fuel_type" },
   { label: "SUV", value: "SUV", group: "body_type" },
   { label: "Sedan", value: "Sedan", group: "body_type" },
+  { label: "< 5M ETB", value: "5000000", group: "max_price" },
 ];
 
 const trustStats = [
@@ -78,12 +80,17 @@ function matchesSearchTerms(searchQuery: string, item: { year?: number; make?: s
   );
 }
 
-type HomeQuickFilterGroup = "condition" | "fuel_type" | "body_type";
+type HomeQuickFilterGroup =
+  | "condition"
+  | "fuel_type"
+  | "body_type"
+  | "max_price";
 type HomeQuickFilters = Record<HomeQuickFilterGroup, string>;
 
 const HomeScreen = () => {
   const router = useRouter();
   const navigation = useNavigation();
+  const { width } = useWindowDimensions();
   const { user, token } = useAuth();
   const ref = useRef<ScrollView>(null);
   const searchRequestIdRef = useRef(0);
@@ -95,6 +102,7 @@ const HomeScreen = () => {
     condition: "",
     fuel_type: "",
     body_type: "",
+    max_price: "",
   });
   const [featuredVehicles, setFeaturedVehicles] = useState<Vehicle[]>([]);
   const [recentVehicles, setRecentVehicles] = useState<Vehicle[]>([]);
@@ -161,6 +169,9 @@ const HomeScreen = () => {
           if (activeFilters.body_type) {
             searchParams.set("body_type", activeFilters.body_type);
           }
+          if (activeFilters.max_price) {
+            searchParams.set("max_price", activeFilters.max_price);
+          }
           const response = await getListings(Object.fromEntries(searchParams));
           const data = response.data;
           if (currentRequestId !== searchRequestIdRef.current) {
@@ -206,6 +217,8 @@ const HomeScreen = () => {
       [group]: current[group] === value ? "" : value,
     }));
   };
+
+  const isWideWeb = Platform.OS === "web" && width >= 1000;
 
   const fetchHomeData = async () => {
     try {
@@ -364,186 +377,237 @@ const HomeScreen = () => {
         />
       }
     >
-      <View style={styles.searchHero}>
-        <Text style={styles.heroTitle}>Find Your Next Car</Text>
-        <Text style={styles.heroSubtitle}>
-          {"Search Ethiopia's best selection of modern cars for sale."}
-        </Text>
-        <View style={{ zIndex: 10 }}>
-          <View style={styles.searchBar}>
-            <Ionicons
-              name="search"
-              size={20}
-              color={COLORS.mutedForeground}
-              style={styles.searchIcon}
-            />
-            <TextInput
-              style={styles.searchInput}
-              placeholder="Make, model, year..."
-              placeholderTextColor={COLORS.mutedForeground}
-              value={searchQuery}
-              onChangeText={setSearchQuery}
-              onSubmitEditing={handleSearch}
-              returnKeyType="search"
-            />
+      <View style={[styles.searchHero, isWideWeb && styles.searchHeroWide]}>
+        <View style={[styles.heroInner, isWideWeb && styles.heroInnerWide]}>
+          <Text style={[styles.heroTitle, isWideWeb && styles.heroTitleWide]}>
+            Find Your Next Car
+          </Text>
+          <Text
+            style={[styles.heroSubtitle, isWideWeb && styles.heroSubtitleWide]}
+          >
+            {"Search Ethiopia's best selection of modern cars for sale."}
+          </Text>
+          <View
+            style={[
+              styles.heroSearchCluster,
+              isWideWeb && styles.heroSearchClusterWide,
+            ]}
+          >
+            <View style={[styles.searchBar, isWideWeb && styles.searchBarWide]}>
+              <Ionicons
+                name="search"
+                size={20}
+                color={COLORS.mutedForeground}
+                style={styles.searchIcon}
+              />
+              <TextInput
+                style={styles.searchInput}
+                placeholder={
+                  isWideWeb
+                    ? "Start typing to search by make, model, year..."
+                    : "Make, model, year..."
+                }
+                placeholderTextColor={COLORS.mutedForeground}
+                value={searchQuery}
+                onChangeText={setSearchQuery}
+                onSubmitEditing={handleSearch}
+                returnKeyType="search"
+              />
+              {searchQuery.length > 0 && (
+                <Pressable
+                  onPress={() => setSearchQuery("")}
+                  hitSlop={10}
+                  style={{ padding: 4 }}
+                >
+                  <Ionicons
+                    name="close-circle"
+                    size={20}
+                    color={COLORS.mutedForeground}
+                  />
+                </Pressable>
+              )}
+            </View>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              style={styles.quickFiltersContainer}
+              contentContainerStyle={
+                isWideWeb ? styles.quickFiltersWideContent : undefined
+              }
+            >
+              {quickFilters.map((filter) => (
+                <Pressable
+                  key={`${filter.group}-${filter.value}`}
+                  style={[
+                    styles.filterButton,
+                    activeFilters[filter.group as HomeQuickFilterGroup] ===
+                      filter.value && styles.activeFilterButton,
+                  ]}
+                  onPress={() =>
+                    toggleQuickFilter(
+                      filter.group as HomeQuickFilterGroup,
+                      filter.value
+                    )
+                  }
+                >
+                  <Text
+                    style={[
+                      styles.filterButtonText,
+                      activeFilters[filter.group as HomeQuickFilterGroup] ===
+                        filter.value &&
+                        styles.activeFilterButtonText,
+                    ]}
+                  >
+                    {filter.label}
+                  </Text>
+                </Pressable>
+              ))}
+            </ScrollView>
+
+            {/* Trending Searches Section */}
+            {trendingSearches.length > 0 && !searchQuery && (
+              <View style={styles.trendingContainer}>
+                <Text style={styles.trendingLabel}>Trending:</Text>
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                >
+                  {trendingSearches.map((term, index) => (
+                    <Pressable
+                      key={index}
+                      style={styles.trendingChip}
+                      onPress={() => setSearchQuery(term)}
+                    >
+                      <Text style={styles.trendingChipText}>{term}</Text>
+                    </Pressable>
+                  ))}
+                </ScrollView>
+              </View>
+            )}
+
             {searchQuery.length > 0 && (
-              <Pressable
-                onPress={() => setSearchQuery("")}
-                hitSlop={10}
-                style={{ padding: 4 }}
-              >
-                <Ionicons
-                  name="close-circle"
-                  size={20}
-                  color={COLORS.mutedForeground}
-                />
-              </Pressable>
+              <View style={styles.searchDropdown}>
+                {isSearching ? (
+                  <ActivityIndicator
+                    size="small"
+                    color={COLORS.accent}
+                    style={{ padding: 20 }}
+                  />
+                ) : searchResults.length > 0 ? (
+                  searchResults.slice(0, 5).map((car) => (
+                    <Pressable
+                      key={car.id}
+                      style={styles.searchResultItem}
+                      onPress={() => {
+                        logSearch(searchQuery);
+                        router.push(`/${car.id}`);
+                      }}
+                    >
+                      <Image
+                        source={{ uri: car.image }}
+                        style={styles.searchResultImage}
+                      />
+                      <View style={styles.searchResultTextContainer}>
+                        <Text style={styles.searchResultTitle}>
+                          {car.year} {car.make} {car.model}
+                        </Text>
+                        <Text style={styles.searchResultPrice}>{car.price}</Text>
+                      </View>
+                    </Pressable>
+                  ))
+                ) : (
+                  <Text style={styles.noResultsText}>No cars found</Text>
+                )}
+              </View>
             )}
           </View>
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            style={styles.quickFiltersContainer}
-          >
-            {quickFilters.map((filter) => (
+          {isWideWeb ? (
+            <View style={styles.heroDesktopLinks}>
+              <Text style={styles.heroDesktopPrompt}>
+                Can't find what you're looking for?
+              </Text>
               <Pressable
-                key={`${filter.group}-${filter.value}`}
-                style={[
-                  styles.filterButton,
-                  activeFilters[filter.group as HomeQuickFilterGroup] ===
-                    filter.value && styles.activeFilterButton,
-                ]}
-                onPress={() =>
-                  toggleQuickFilter(
-                    filter.group as HomeQuickFilterGroup,
-                    filter.value
-                  )
-                }
+                testID="home-find-request-button"
+                style={[styles.heroButton, styles.primaryButton, styles.heroDesktopButton]}
+                onPress={startFindCarFlow}
+                disabled={checkingRequestLimit}
               >
-                <Text
-                  style={[
-                    styles.filterButtonText,
-                    activeFilters[filter.group as HomeQuickFilterGroup] ===
-                      filter.value &&
-                      styles.activeFilterButtonText,
-                  ]}
-                >
-                  {filter.label}
+                <Text style={[styles.heroButtonText, styles.primaryButtonText]}>
+                  {checkingRequestLimit ? "Checking..." : "Let us find it for you ->"}
                 </Text>
               </Pressable>
-            ))}
-          </ScrollView>
-
-          {/* Trending Searches Section */}
-          {trendingSearches.length > 0 && !searchQuery && (
-            <View style={styles.trendingContainer}>
-              <Text style={styles.trendingLabel}>Trending:</Text>
-              <ScrollView
-                horizontal
-                showsHorizontalScrollIndicator={false}
+              <Pressable
+                testID="home-trade-in-button"
+                style={[styles.heroButton, styles.secondaryButton, styles.heroDesktopButton]}
+                onPress={() => {
+                  if (!user) {
+                    requireLogin("Please log in to get a trade-in offer.");
+                  } else {
+                    router.push("/trade-in");
+                  }
+                }}
               >
-                {trendingSearches.map((term, index) => (
-                  <Pressable
-                    key={index}
-                    style={styles.trendingChip}
-                    onPress={() => setSearchQuery(term)}
-                  >
-                    <Text style={styles.trendingChipText}>{term}</Text>
-                  </Pressable>
-                ))}
-              </ScrollView>
-            </View>
-          )}
-
-          {searchQuery.length > 0 && (
-            <View style={styles.searchDropdown}>
-              {isSearching ? (
-                <ActivityIndicator
-                  size="small"
-                  color={COLORS.accent}
-                  style={{ padding: 20 }}
-                />
-              ) : searchResults.length > 0 ? (
-                searchResults.slice(0, 5).map((car) => (
-                  <Pressable
-                    key={car.id}
-                    style={styles.searchResultItem}
-                    onPress={() => {
-                      logSearch(searchQuery);
-                      router.push(`/${car.id}`);
-                    }}
-                  >
-                    <Image
-                      source={{ uri: car.image }}
-                      style={styles.searchResultImage}
-                    />
-                    <View style={styles.searchResultTextContainer}>
-                      <Text style={styles.searchResultTitle}>
-                        {car.year} {car.make} {car.model}
-                      </Text>
-                      <Text style={styles.searchResultPrice}>{car.price}</Text>
-                    </View>
-                  </Pressable>
-                ))
-              ) : (
-                <Text style={styles.noResultsText}>No cars found</Text>
-              )}
-            </View>
-          )}
-        </View>
-        <View style={styles.heroActions}>
-          <View style={{ flex: 1, marginRight: 8 }}>
-            <Pressable
-              testID="home-find-request-button"
-              style={[styles.heroButton, styles.primaryButton]}
-              onPress={startFindCarFlow}
-              disabled={checkingRequestLimit}
-            >
-              {checkingRequestLimit ? (
-                <ActivityIndicator color={COLORS.foreground} />
-              ) : (
-                <Text style={[styles.heroButtonText, styles.primaryButtonText]}>
-                  Let Us Find It For You
+                <Text style={[styles.heroButtonText, styles.secondaryButtonText]}>
+                  Get a Trade-in Offer
                 </Text>
-              )}
-            </Pressable>
-          </View>
-          <View style={{ flex: 1, marginLeft: 8 }}>
-            <Pressable
-              testID="home-trade-in-button"
-              style={[styles.heroButton, styles.secondaryButton]}
-              onPress={() => {
-                if (!user) {
-                  requireLogin("Please log in to get a trade-in offer.");
-                } else {
-                  router.push("/trade-in");
-                }
-              }}
-            >
-              <Text style={[styles.heroButtonText, styles.secondaryButtonText]}>
-                Get a Trade-in Offer
+              </Pressable>
+            </View>
+          ) : (
+            <View style={styles.heroActions}>
+              <View style={{ flex: 1, marginRight: 8 }}>
+                <Pressable
+                  testID="home-find-request-button"
+                  style={[styles.heroButton, styles.primaryButton]}
+                  onPress={startFindCarFlow}
+                  disabled={checkingRequestLimit}
+                >
+                  {checkingRequestLimit ? (
+                    <ActivityIndicator color={COLORS.foreground} />
+                  ) : (
+                    <Text style={[styles.heroButtonText, styles.primaryButtonText]}>
+                      Let Us Find It For You
+                    </Text>
+                  )}
+                </Pressable>
+              </View>
+              <View style={{ flex: 1, marginLeft: 8 }}>
+                <Pressable
+                  testID="home-trade-in-button"
+                  style={[styles.heroButton, styles.secondaryButton]}
+                  onPress={() => {
+                    if (!user) {
+                      requireLogin("Please log in to get a trade-in offer.");
+                    } else {
+                      router.push("/trade-in");
+                    }
+                  }}
+                >
+                  <Text style={[styles.heroButtonText, styles.secondaryButtonText]}>
+                    Get a Trade-in Offer
+                  </Text>
+                </Pressable>
+              </View>
+            </View>
+          )}
+          {user && showInfo && (
+            <View style={styles.infoContainer}>
+              <Ionicons
+                name="information-circle-outline"
+                size={20}
+                color={COLORS.accent}
+                style={{ marginRight: 8 }}
+              />
+              <Text style={styles.infoText}>
+                Your request is sent to our verified dealer network. Dealers will
+                review your needs and send you competitive offers or trade-in
+                valuations directly in the app.
               </Text>
-            </Pressable>
-          </View>
+              <Pressable onPress={handleDismissInfo} hitSlop={10}>
+                <Ionicons name="close" size={20} color={COLORS.mutedForeground} />
+              </Pressable>
+            </View>
+          )}
         </View>
-        {user && showInfo && (
-          <View style={styles.infoContainer}>
-            <Ionicons
-              name="information-circle-outline"
-              size={20}
-              color={COLORS.accent}
-              style={{ marginRight: 8 }}
-            />
-            <Text style={styles.infoText}>
-              Your request is sent to our verified dealer network. Dealers will
-              review your needs and send you competitive offers or trade-in
-              valuations directly in the app.
-            </Text>
-            <Pressable onPress={handleDismissInfo} hitSlop={10}>
-              <Ionicons name="close" size={20} color={COLORS.mutedForeground} />
-            </Pressable>
-          </View>
-        )}
       </View>
 
       {/* --- Featured Cars Section --- */}
@@ -574,7 +638,7 @@ const HomeScreen = () => {
           )}
           keyExtractor={(item) => item.id}
           showsHorizontalScrollIndicator={false}
-          contentContainerStyle={{ paddingHorizontal: 20 }}
+          contentContainerStyle={styles.featuredListContent}
         />
       </View>
 
@@ -631,6 +695,20 @@ const styles = StyleSheet.create({
     paddingTop: Platform.OS === "web" ? 14 : 20,
     paddingBottom: Platform.OS === "web" ? 24 : 30,
   },
+  searchHeroWide: {
+    minHeight: 610,
+    justifyContent: "center",
+    backgroundColor: "#202733",
+    paddingTop: 88,
+    paddingBottom: 96,
+  },
+  heroInner: {
+    width: "100%",
+    alignSelf: "center",
+  },
+  heroInnerWide: {
+    alignItems: "center",
+  },
   heroTitle: {
     fontSize: Platform.OS === "web" ? 24 : 28,
     fontWeight: "700",
@@ -638,11 +716,28 @@ const styles = StyleSheet.create({
     textAlign: "center",
     marginBottom: 8,
   },
+  heroTitleWide: {
+    fontSize: 52,
+    fontWeight: "800",
+    marginBottom: 28,
+  },
   heroSubtitle: {
     fontSize: Platform.OS === "web" ? 15 : 16,
     color: COLORS.mutedForeground,
     textAlign: "center",
     marginBottom: Platform.OS === "web" ? 16 : 20,
+  },
+  heroSubtitleWide: {
+    fontSize: 23,
+    marginBottom: 44,
+  },
+  heroSearchCluster: {
+    zIndex: 10,
+    width: "100%",
+  },
+  heroSearchClusterWide: {
+    width: 760,
+    maxWidth: "100%",
   },
   searchBar: {
     flexDirection: "row",
@@ -652,6 +747,15 @@ const styles = StyleSheet.create({
     paddingHorizontal: 15,
     borderWidth: 1,
     borderColor: COLORS.border,
+  },
+  searchBarWide: {
+    minHeight: 54,
+    borderRadius: 14,
+    borderColor: "#566274",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.22,
+    shadowRadius: 18,
   },
   searchDropdown: {
     position: "absolute",
@@ -712,6 +816,11 @@ const styles = StyleSheet.create({
   quickFiltersContainer: {
     marginTop: 20,
   },
+  quickFiltersWideContent: {
+    flexGrow: 1,
+    justifyContent: "center",
+    paddingTop: 30,
+  },
   filterButton: {
     backgroundColor: COLORS.secondary,
     paddingVertical: 8,
@@ -755,6 +864,26 @@ const styles = StyleSheet.create({
   secondaryButtonText: {
     color: COLORS.primary,
   },
+  heroDesktopLinks: {
+    marginTop: 38,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    flexWrap: "wrap",
+    gap: 14,
+  },
+  heroDesktopPrompt: {
+    color: "#AEB8CA",
+    fontSize: 20,
+    width: "100%",
+    textAlign: "center",
+    marginBottom: 2,
+  },
+  heroDesktopButton: {
+    minWidth: 220,
+    paddingHorizontal: 22,
+    paddingVertical: 14,
+  },
   infoContainer: {
     marginTop: 20,
     flexDirection: "row",
@@ -778,6 +907,9 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     color: COLORS.foreground,
     marginBottom: 20,
+    paddingHorizontal: 20,
+  },
+  featuredListContent: {
     paddingHorizontal: 20,
   },
   // Featured Section

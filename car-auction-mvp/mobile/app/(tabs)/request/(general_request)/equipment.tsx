@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { View, Text, StyleSheet, Pressable } from "react-native";
+import { View, Text, StyleSheet, Pressable, Platform } from "react-native";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -99,7 +99,14 @@ const RequestEquipmentScreen = () => {
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 20, backgroundColor: COLORS.background },
+  container: {
+    flex: 1,
+    padding: 20,
+    backgroundColor: COLORS.background,
+    width: "100%",
+    maxWidth: Platform.OS === "web" ? 720 : undefined,
+    alignSelf: "center",
+  },
   title: {
     fontSize: 24,
     fontWeight: "bold",

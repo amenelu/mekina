@@ -7,6 +7,8 @@ import {
   Image,
   ActivityIndicator,
   Pressable,
+  Platform,
+  useWindowDimensions,
 } from "react-native";
 import { useLocalSearchParams, Stack, useRouter } from "expo-router";
 import { Vehicle } from "@/components/_components/VehicleCard";
@@ -78,9 +80,11 @@ const ComparisonCard = ({
 const CompareScreen = () => {
   const params = useLocalSearchParams();
   const { car_ids } = params as { car_ids: string | string[] };
+  const { width } = useWindowDimensions();
   const [carsToCompare, setCarsToCompare] = useState<Vehicle[]>([]);
   const [bestValues, setBestValues] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const isWideWeb = Platform.OS === "web" && width >= 1000;
 
   useEffect(() => {
     const fetchComparisonData = async () => {
@@ -143,11 +147,23 @@ const CompareScreen = () => {
     <>
       <Stack.Screen options={{ title: "Compare Vehicles" }} />
       <ScrollView
-        horizontal
-        pagingEnabled
+        horizontal={!isWideWeb}
+        pagingEnabled={!isWideWeb}
         showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.container}
+        contentContainerStyle={[
+          styles.container,
+          isWideWeb && styles.containerWide,
+        ]}
       >
+        {isWideWeb && (
+          <View style={styles.pageIntro}>
+            <Text style={styles.pageTitle}>Compare Vehicles</Text>
+            <Text style={styles.pageSubtitle}>
+              Review selected listings side by side before opening the full
+              details.
+            </Text>
+          </View>
+        )}
         {carsToCompare.map((car) => (
           <ComparisonCard key={car.id} car={car} bestValues={bestValues} />
         ))}
@@ -160,6 +176,33 @@ const styles = StyleSheet.create({
   container: {
     backgroundColor: COLORS.background,
     paddingVertical: 20,
+  },
+  containerWide: {
+    minHeight: "100%",
+    width: "100%",
+    paddingHorizontal: 28,
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "center",
+    alignItems: "flex-start",
+    gap: 20,
+  },
+  pageIntro: {
+    width: "100%",
+    alignItems: "center",
+    marginBottom: 8,
+  },
+  pageTitle: {
+    color: COLORS.foreground,
+    fontSize: 36,
+    fontWeight: "800",
+    textAlign: "center",
+  },
+  pageSubtitle: {
+    color: COLORS.mutedForeground,
+    fontSize: 18,
+    marginTop: 10,
+    textAlign: "center",
   },
   centered: {
     flex: 1,

@@ -1,5 +1,5 @@
-import React, { useEffect } from "react";
-import { View, Text, StyleSheet, Pressable } from "react-native";
+import React from "react";
+import { View, Text, StyleSheet, Pressable, Platform } from "react-native";
 import { useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { bodyTypeOptions } from "./body-type";
@@ -26,14 +26,6 @@ const RequestBudgetScreen = () => {
   const router = useRouter();
 
   useRequestDraftPersistence("/request/budget", {});
-
-  // Prefetch the next screen to make the transition feel faster.
-  useEffect(() => {
-    router.prefetch("./body-type");
-
-    // Static images are bundled by Expo; avoid Image.resolveAssetSource here
-    // because it is not available in the current web runtime bundle.
-  }, [router]);
 
   const handleSelect = (value: string) => {
     router.push({ pathname: "./body-type", params: { price: value } });
@@ -63,6 +55,9 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: 20,
     backgroundColor: COLORS.background,
+    width: "100%",
+    maxWidth: Platform.OS === "web" ? 720 : undefined,
+    alignSelf: "center",
   },
   counter: {
     fontSize: 16,

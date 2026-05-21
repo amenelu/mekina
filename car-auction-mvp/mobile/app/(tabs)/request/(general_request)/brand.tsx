@@ -6,6 +6,7 @@ import {
   Pressable,
   Alert,
   ActivityIndicator,
+  Platform,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useAuth } from "@/hooks/useAuth";
@@ -153,6 +154,9 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: 20,
     backgroundColor: COLORS.background,
+    width: "100%",
+    maxWidth: Platform.OS === "web" ? 720 : undefined,
+    alignSelf: "center",
   },
   counter: {
     fontSize: 16,

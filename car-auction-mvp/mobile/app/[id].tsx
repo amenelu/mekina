@@ -54,6 +54,7 @@ const CarDetailScreen = () => {
   const [refreshing, setRefreshing] = useState(false);
   const navigation = useNavigation();
   const { width } = useWindowDimensions();
+  const isWideWeb = Platform.OS === "web" && width >= 1000;
   const { token, user } = useAuth() as any;
   const [isFavorite, setIsFavorite] = useState(false);
   const router = useRouter();
@@ -64,7 +65,9 @@ const CarDetailScreen = () => {
   const imageViewerTranslateY = React.useRef(new Animated.Value(0)).current;
   const carouselRef = useRef<FlatList<string>>(null);
   const thumbnailScrollRef = useRef<ScrollView>(null);
-  const mainImageWidth = Math.max(width, 1);
+  const mainImageWidth = isWideWeb
+    ? Math.min(Math.max(width - 56, 1), 1220)
+    : Math.max(width, 1);
 
   const [contactModalVisible, setContactModalVisible] = useState(false);
   const [message, setMessage] = useState("");
@@ -447,7 +450,7 @@ const CarDetailScreen = () => {
         }
       >
         {/* Image Gallery */}
-        <View style={styles.imageGallery}>
+        <View style={[styles.imageGallery, isWideWeb && styles.imageGalleryWide]}>
           <View>
             <FlatList
               ref={carouselRef}
@@ -470,7 +473,11 @@ const CarDetailScreen = () => {
                 <Pressable onPress={() => openImageViewer(index)}>
                   <Image
                     source={{ uri: item }}
-                    style={[styles.mainImage, { width: mainImageWidth }]}
+                    style={[
+                      styles.mainImage,
+                      isWideWeb && styles.mainImageWide,
+                      { width: mainImageWidth },
+                    ]}
                   />
                 </Pressable>
               )}
@@ -497,7 +504,10 @@ const CarDetailScreen = () => {
             ref={thumbnailScrollRef}
             horizontal
             showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.thumbnailRow}
+            contentContainerStyle={[
+              styles.thumbnailRow,
+              isWideWeb && styles.thumbnailRowWide,
+            ]}
           >
             {thumbnails.map((thumbUri, index) => (
               <Pressable
@@ -518,7 +528,12 @@ const CarDetailScreen = () => {
         </View>
 
         {/* Main Content */}
-        <View style={styles.contentContainer}>
+        <View
+          style={[
+            styles.contentContainer,
+            isWideWeb && styles.contentContainerWide,
+          ]}
+        >
           <View style={styles.titleContainer}>
             <Text
               style={styles.title}
@@ -654,7 +669,9 @@ const CarDetailScreen = () => {
                   <VehicleCard
                     key={item.id}
                     item={item}
-                    style={{ width: width / 2 - 30 }}
+                    style={{
+                      width: isWideWeb ? "23.5%" : width / 2 - 30,
+                    }}
                   />
                 ))}
               </View>
@@ -664,7 +681,7 @@ const CarDetailScreen = () => {
       </ScrollView>
       {/* Floating Action Button */}
       {showBuyerActions && (
-        <View style={styles.footer}>
+        <View style={[styles.footer, isWideWeb && styles.footerWide]}>
           <Pressable style={styles.requestButton} onPress={handleRequestCar}>
             <Text style={styles.requestButtonText}>Request This Car</Text>
           </Pressable>
@@ -834,15 +851,31 @@ const styles = StyleSheet.create({
   imageGallery: {
     marginBottom: 8,
   },
+  imageGalleryWide: {
+    width: "100%",
+    maxWidth: 1220,
+    alignSelf: "center",
+    marginTop: 28,
+    borderRadius: 14,
+    overflow: "hidden",
+  },
   mainImage: {
     height: 250,
     resizeMode: "cover",
     backgroundColor: COLORS.card,
   },
+  mainImageWide: {
+    height: 560,
+    borderRadius: 14,
+  },
   thumbnailRow: {
     paddingHorizontal: 10,
     paddingTop: 10,
     paddingBottom: 4,
+  },
+  thumbnailRowWide: {
+    justifyContent: "center",
+    width: "100%",
   },
   thumbnailButton: {
     width: 88,
@@ -926,6 +959,13 @@ const styles = StyleSheet.create({
   },
   contentContainer: {
     padding: 20,
+  },
+  contentContainerWide: {
+    width: "100%",
+    maxWidth: 1220,
+    alignSelf: "center",
+    paddingHorizontal: 28,
+    paddingTop: 28,
   },
   titleContainer: {
     flexDirection: "row",
@@ -1039,6 +1079,10 @@ const styles = StyleSheet.create({
     borderTopColor: COLORS.border,
     flexDirection: "row",
     gap: 10,
+  },
+  footerWide: {
+    justifyContent: "center",
+    paddingHorizontal: 28,
   },
   contactButton: {
     backgroundColor: COLORS.accent,

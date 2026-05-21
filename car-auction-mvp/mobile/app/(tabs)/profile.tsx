@@ -9,6 +9,8 @@ import {
   Pressable,
   Alert,
   RefreshControl,
+  Platform,
+  useWindowDimensions,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useAuth } from "@/hooks/useAuth";
@@ -30,12 +32,14 @@ const COLORS = {
 const ProfileScreen = () => {
   const { user, logout, token, isLoading } = useAuth() as any;
   const router = useRouter();
+  const { width } = useWindowDimensions();
   const [activeTab, setActiveTab] = useState<"favorites" | "settings">(
     "favorites"
   );
   const [favorites, setFavorites] = useState<Vehicle[]>([]);
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  const isWideWeb = Platform.OS === "web" && width >= 1000;
 
   const fetchFavorites = useCallback(async (isRefresh = false) => {
     if (!token) return;
@@ -136,7 +140,10 @@ const ProfileScreen = () => {
     if (activeTab === "settings") {
       return (
         <ScrollView
-          contentContainerStyle={styles.settingsContent}
+          contentContainerStyle={[
+            styles.settingsContent,
+            isWideWeb && styles.settingsContentWide,
+          ]}
           showsVerticalScrollIndicator={false}
         >
           <View style={styles.settingsContainer}>
@@ -159,7 +166,10 @@ const ProfileScreen = () => {
     if (favorites.length === 0) {
       return (
         <ScrollView
-          contentContainerStyle={styles.listContent}
+          contentContainerStyle={[
+            styles.listContent,
+            isWideWeb && styles.listContentWide,
+          ]}
           showsVerticalScrollIndicator={false}
           refreshControl={
             <RefreshControl
@@ -191,7 +201,10 @@ const ProfileScreen = () => {
 
     return (
       <ScrollView
-        contentContainerStyle={styles.listContent}
+        contentContainerStyle={[
+          styles.listContent,
+          isWideWeb && styles.listContentWide,
+        ]}
         showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl
@@ -202,7 +215,13 @@ const ProfileScreen = () => {
         }
       >
         {favorites.map((item) => (
-          <View key={item.id} style={styles.favoriteCardWrapper}>
+          <View
+            key={item.id}
+            style={[
+              styles.favoriteCardWrapper,
+              isWideWeb && styles.favoriteCardWrapperWide,
+            ]}
+          >
             <VehicleCard item={item} style={styles.card} />
             <TouchableOpacity
               style={styles.removeButton}
@@ -222,7 +241,7 @@ const ProfileScreen = () => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
+      <View style={[styles.header, isWideWeb && styles.headerWide]}>
         <Text style={styles.title}>Hi, {user?.username || "User"}!</Text>
       </View>
 
@@ -303,9 +322,20 @@ const styles = StyleSheet.create({
     padding: 20,
     alignItems: "center",
   },
+  headerWide: {
+    maxWidth: 1220,
+    width: "100%",
+    alignSelf: "center",
+    paddingTop: 34,
+  },
   settingsContent: {
     flexGrow: 1,
     paddingBottom: 100,
+  },
+  settingsContentWide: {
+    maxWidth: 760,
+    width: "100%",
+    alignSelf: "center",
   },
   logoutButton: {
     backgroundColor: COLORS.destructive,
@@ -320,6 +350,14 @@ const styles = StyleSheet.create({
     padding: 20,
     paddingBottom: 100,
   },
+  listContentWide: {
+    maxWidth: 1220,
+    width: "100%",
+    alignSelf: "center",
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "space-between",
+  },
   card: {
     marginBottom: 0,
     width: "100%",
@@ -327,6 +365,9 @@ const styles = StyleSheet.create({
   favoriteCardWrapper: {
     position: "relative",
     marginBottom: 20,
+  },
+  favoriteCardWrapperWide: {
+    width: "32%",
   },
   removeButton: {
     position: "absolute",

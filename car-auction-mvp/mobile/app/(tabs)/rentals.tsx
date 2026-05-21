@@ -13,6 +13,9 @@ import {
   Platform,
   Modal,
   TouchableOpacity,
+  useWindowDimensions,
+  StyleProp,
+  ViewStyle,
 } from "react-native";
 import { Redirect, useNavigation, useRouter } from "expo-router";
 import { useScrollToTop } from "@react-navigation/native";
@@ -61,11 +64,17 @@ export type RentalVehicle = {
   fuel_type?: string | null;
 };
 
-const RentalCard = ({ item }: { item: RentalVehicle }) => {
+const RentalCard = ({
+  item,
+  style,
+}: {
+  item: RentalVehicle;
+  style?: StyleProp<ViewStyle>;
+}) => {
   const router = useRouter();
   return (
     <Pressable
-      style={styles.rentalCard}
+      style={[styles.rentalCard, style]}
       onPress={() => router.push(`/${item.id}`)}
     >
       <ImageBackground
@@ -88,6 +97,7 @@ const RentalCard = ({ item }: { item: RentalVehicle }) => {
 const RentalsScreen = () => {
   const navigation = useNavigation();
   const ref = useRef<ScrollView>(null);
+  const { width } = useWindowDimensions();
   const { hasHydrated, user } = useAuth();
   const [rentalVehicles, setRentalVehicles] = useState<RentalVehicle[]>([]);
   const [loading, setLoading] = useState(true);
@@ -136,6 +146,11 @@ const RentalsScreen = () => {
   ).filter(([, value]) => Boolean(value));
   const activeFilterCount = activeFilterEntries.length;
   const hasActiveFilters = activeFilterCount > 0;
+  const isWideWeb = Platform.OS === "web" && width >= 1000;
+  const rentalColumns = isWideWeb ? (width >= 1500 ? 3 : 2) : 1;
+  const rentalCardWidth = isWideWeb
+    ? `${100 / rentalColumns - 1.4}%`
+    : "100%";
 
   const clearSingleFilter = (key: keyof typeof filters) => {
     setFilters((prev) => ({ ...prev, [key]: "" }));
@@ -311,8 +326,23 @@ const RentalsScreen = () => {
         />
       }
     >
-      <View style={styles.filterContainer}>
-        <View style={styles.searchRow}>
+      <View
+        style={[
+          styles.filterContainer,
+          isWideWeb && styles.filterContainerWide,
+        ]}
+      >
+        <View style={[styles.filterInner, isWideWeb && styles.filterInnerWide]}>
+          {isWideWeb && (
+            <View style={styles.pageIntro}>
+              <Text style={styles.pageTitle}>Rental Vehicles</Text>
+              <Text style={styles.pageSubtitle}>
+                Browse rental listings with daily-rate and vehicle-specific
+                filters.
+              </Text>
+            </View>
+          )}
+        <View style={[styles.searchRow, isWideWeb && styles.searchRowWide]}>
           <View style={styles.searchBar}>
             <Ionicons
               name="search"
@@ -395,6 +425,7 @@ const RentalsScreen = () => {
             </Pressable>
           </View>
         )}
+        </View>
       </View>
 
       <Modal
@@ -590,10 +621,19 @@ const RentalsScreen = () => {
       </Modal>
 
       {/* --- Listings Grid --- */}
-      <View style={styles.gridContainer}>
+      <View
+        style={[
+          styles.gridContainer,
+          isWideWeb && styles.gridContainerWide,
+        ]}
+      >
         {filteredVehicles.length > 0 ? (
           filteredVehicles.map((item) => (
-            <RentalCard key={item.id} item={item} />
+            <RentalCard
+              key={item.id}
+              item={item}
+              style={{ width: rentalCardWidth as any }}
+            />
           ))
         ) : (
           <Text style={styles.noResultsText}>
@@ -631,10 +671,45 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: COLORS.border,
   },
+  filterContainerWide: {
+    paddingHorizontal: 28,
+    paddingTop: 42,
+    paddingBottom: 34,
+    backgroundColor: "#202733",
+  },
+  filterInner: {
+    width: "100%",
+  },
+  filterInnerWide: {
+    maxWidth: 1220,
+    width: "100%",
+    alignSelf: "center",
+  },
+  pageIntro: {
+    alignItems: "center",
+    marginBottom: 28,
+  },
+  pageTitle: {
+    color: COLORS.foreground,
+    fontSize: 36,
+    fontWeight: "800",
+    textAlign: "center",
+  },
+  pageSubtitle: {
+    color: COLORS.mutedForeground,
+    fontSize: 18,
+    marginTop: 10,
+    textAlign: "center",
+  },
   searchRow: {
     flexDirection: "row",
     alignItems: "center",
     gap: 10,
+  },
+  searchRowWide: {
+    maxWidth: 860,
+    width: "100%",
+    alignSelf: "center",
   },
   searchHero: {
     backgroundColor: COLORS.card,
@@ -854,6 +929,12 @@ const styles = StyleSheet.create({
   gridContainer: {
     padding: 20,
   },
+  gridContainerWide: {
+    padding: 28,
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "space-between",
+  },
   noResultsText: {
     color: COLORS.mutedForeground,
     textAlign: "center",
@@ -864,7 +945,7 @@ const styles = StyleSheet.create({
   // Rental Card Styles
   rentalCard: {
     width: "100%",
-    height: 200,
+    height: Platform.OS === "web" ? 260 : 200,
     borderRadius: 12,
     marginBottom: 20,
     overflow: "hidden",

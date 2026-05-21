@@ -9,6 +9,8 @@ import {
   Pressable,
   TextInput,
   RefreshControl,
+  Platform,
+  useWindowDimensions,
 } from "react-native";
 import {
   useLocalSearchParams,
@@ -52,6 +54,7 @@ const DealSummaryScreen = () => {
   const { id } = useLocalSearchParams();
   const { token, isLoading, user } = useAuth() as any;
   const router = useRouter();
+  const { width } = useWindowDimensions();
   const isDealer = Boolean(user?.is_dealer);
   const [deal, setDeal] = useState<Deal | null>(null);
   const [loading, setLoading] = useState(true);
@@ -59,6 +62,7 @@ const DealSummaryScreen = () => {
   const [rating, setRating] = useState(0);
   const [reviewText, setReviewText] = useState("");
   const [submittingReview, setSubmittingReview] = useState(false);
+  const isWideWeb = Platform.OS === "web" && width >= 1000;
 
   const fetchDeal = useCallback(
     async (isRefresh = false) => {
@@ -149,7 +153,7 @@ const DealSummaryScreen = () => {
           />
         }
       >
-        <View style={styles.content}>
+        <View style={[styles.content, isWideWeb && styles.contentWide]}>
           <View style={styles.header}>
             <Text style={styles.headerTitle}>
               {isDealer ? "Offer Accepted!" : "Deal Confirmed!"}
@@ -287,6 +291,12 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.background,
   },
   content: { padding: 20 },
+  contentWide: {
+    maxWidth: 920,
+    width: "100%",
+    alignSelf: "center",
+    paddingTop: 42,
+  },
   header: { marginBottom: 20, alignItems: "center" },
   headerTitle: {
     fontSize: 24,

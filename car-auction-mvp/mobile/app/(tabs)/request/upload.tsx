@@ -181,7 +181,7 @@ const RequestUploadScreen = () => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <ScrollView>
+      <ScrollView contentContainerStyle={styles.scrollContent}>
         <Text style={styles.title}>Upload a Picture</Text>
         <Text style={styles.subtitle}>
           {
@@ -270,6 +270,11 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: COLORS.background,
+  },
+  scrollContent: {
+    width: "100%",
+    maxWidth: Platform.OS === "web" ? 720 : undefined,
+    alignSelf: "center",
   },
   counter: {
     fontSize: 16,
