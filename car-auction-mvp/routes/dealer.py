@@ -14,6 +14,7 @@ from models.car_request import CarRequest
 from werkzeug.utils import secure_filename
 from models.dealer_bid import DealerBid
 from models.car import Car
+from models.car_image import CarImage
 from models.dealer_bid_image import DealerBidImage
 from models.user import User
 from models.request_question import RequestQuestion
@@ -1475,6 +1476,29 @@ def api_update_car(current_user, car_id):
         changed_fields.append("fixed_price")
     if data.get("description") and data.get("description") != car.description:
         changed_fields.append("description")
+    primary_image_id = data.get("primary_image_id")
+    if primary_image_id:
+        try:
+            primary_image_id = int(primary_image_id)
+        except (TypeError, ValueError):
+            return (
+                jsonify(
+                    {"status": "error", "message": "Invalid primary image selected."}
+                ),
+                400,
+            )
+        selected_image = CarImage.query.filter_by(
+            id=primary_image_id, car_id=car.id
+        ).first()
+        if not selected_image:
+            return (
+                jsonify(
+                    {"status": "error", "message": "Selected image was not found."}
+                ),
+                400,
+            )
+        if selected_image.order != 0:
+            changed_fields.append("display_picture")
 
     # Save changes as comma-separated string if any changes occurred
     if changed_fields:
@@ -1486,6 +1510,19 @@ def api_update_car(current_user, car_id):
     car.year = int(data.get("year", car.year))
     car.fixed_price = float(data.get("price", car.fixed_price))
     car.description = data.get("description", car.description)
+    if primary_image_id:
+        images = sorted(car.images, key=lambda image: image.order)
+        selected_image = next(
+            (image for image in images if image.id == primary_image_id), None
+        )
+        if selected_image:
+            selected_image.order = 0
+            next_order = 1
+            for image in images:
+                if image.id == selected_image.id:
+                    continue
+                image.order = next_order
+                next_order += 1
 
     # Set for re-approval
     car.is_approved = False

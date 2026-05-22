@@ -123,6 +123,21 @@ class Car(db.Model):
                 for img in self.images
                 if img.image_url and "/static/" in img.image_url
             ],
+            "images": [
+                {
+                    "id": img.id,
+                    "image_url": url_for(
+                        "static",
+                        filename=img.image_url.split("/static/")[1],
+                        _external=True,
+                    )
+                    if img.image_url and "/static/" in img.image_url
+                    else img.image_url,
+                    "order": img.order,
+                    "is_primary": img.order == 0,
+                }
+                for img in self.images
+            ],
             "equipment": [eq.name for eq in self.equipment],
         }
 

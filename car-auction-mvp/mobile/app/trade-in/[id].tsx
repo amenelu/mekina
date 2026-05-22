@@ -115,7 +115,7 @@ const TradeInRequestDetailScreen = () => {
   const [offeredMake, setOfferedMake] = useState("");
   const [offeredModel, setOfferedModel] = useState("");
   const [offeredYear, setOfferedYear] = useState("");
-  const [offeredCondition, setOfferedCondition] = useState("");
+  const [offeredCondition, setOfferedCondition] = useState("New");
   const [offeredMileage, setOfferedMileage] = useState("");
   const [offeredSpecs, setOfferedSpecs] = useState("");
   const [offeredImageUri, setOfferedImageUri] = useState("");
@@ -224,7 +224,7 @@ const TradeInRequestDetailScreen = () => {
       setOfferedMake("");
       setOfferedModel("");
       setOfferedYear("");
-      setOfferedCondition("");
+      setOfferedCondition("New");
       setOfferedMileage("");
       setOfferedSpecs("");
       setOfferedImageUri("");

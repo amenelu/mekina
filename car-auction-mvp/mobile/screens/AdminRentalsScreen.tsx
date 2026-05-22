@@ -21,7 +21,6 @@ import {
 import {
   deleteAdminListing,
   getAdminRentals,
-  resolveDealerPointRequests,
 } from "@/lib/api/admin";
 import type { AdminRental } from "@/lib/api/types";
 
@@ -130,47 +129,6 @@ const AdminRentalsScreen = () => {
     ]);
   };
 
-  const handlePointRequestAction = async (
-    rental: AdminRental,
-    action: "accept" | "deny"
-  ) => {
-    const verb = action === "accept" ? "approve" : "deny";
-    const message = `Are you sure you want to ${verb} ${rental.owner_username}'s request for ${rental.owner_pending_point_request?.requested_points ?? 0} points?`;
-
-    const performAction = async () => {
-      try {
-        await resolveDealerPointRequests(rental.owner_id, action);
-        setRentals((prevRentals) =>
-          prevRentals.map((item) =>
-            item.owner_id === rental.owner_id
-              ? { ...item, owner_pending_point_request: null }
-              : item
-          )
-        );
-        setStatusMessage(
-          action === "accept"
-            ? "Point request approved."
-            : "Point request denied."
-        );
-      } catch (error) {
-        console.error("Failed to update point request:", error);
-        setStatusMessage("Failed to update point request.");
-      }
-    };
-
-    if (Platform.OS === "web") {
-      if (typeof window !== "undefined" && window.confirm(message)) {
-        void performAction();
-      }
-      return;
-    }
-
-    Alert.alert("Point Request", message, [
-      { text: "Cancel", style: "cancel" },
-      { text: action === "accept" ? "Approve" : "Deny", onPress: performAction },
-    ]);
-  };
-
   const renderItem = ({ item }: { item: AdminRental }) => (
     <View style={styles.card}>
       <View>
@@ -178,14 +136,6 @@ const AdminRentalsScreen = () => {
           <Text style={styles.title}>
             {item.year} {item.make} {item.model}
           </Text>
-          {item.owner_pending_point_request ? (
-            <View style={styles.pointRequestBadge}>
-              <Ionicons name="flash" size={13} color={COLORS.foreground} />
-              <Text style={styles.pointRequestBadgeText}>
-                {item.owner_pending_point_request.requested_points}
-              </Text>
-            </View>
-          ) : null}
         </View>
         <Text style={styles.subtitle}>
           by {item.owner_username} - {item.price_per_day} ETB/day
@@ -204,22 +154,6 @@ const AdminRentalsScreen = () => {
             {item.is_approved ? "Approved" : "Pending"}
           </Text>
         </View>
-        {item.owner_pending_point_request ? (
-          <View style={styles.pointRequestActions}>
-            <Pressable
-              style={[styles.pointActionButton, styles.acceptButton]}
-              onPress={() => handlePointRequestAction(item, "accept")}
-            >
-              <Text style={styles.pointActionText}>Accept</Text>
-            </Pressable>
-            <Pressable
-              style={[styles.pointActionButton, styles.denyButton]}
-              onPress={() => handlePointRequestAction(item, "deny")}
-            >
-              <Text style={styles.pointActionText}>Deny</Text>
-            </Pressable>
-          </View>
-        ) : null}
       </View>
       <View style={styles.buttonContainer}>
         <Pressable
@@ -336,41 +270,6 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   title: { fontSize: 16, fontWeight: "bold", color: COLORS.foreground },
-  pointRequestBadge: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 4,
-    backgroundColor: COLORS.accent,
-    borderRadius: 999,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-  },
-  pointRequestBadgeText: {
-    color: COLORS.foreground,
-    fontSize: 12,
-    fontWeight: "700",
-  },
-  pointRequestActions: {
-    flexDirection: "row",
-    gap: 8,
-    marginTop: 12,
-  },
-  pointActionButton: {
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 7,
-  },
-  acceptButton: {
-    backgroundColor: COLORS.success,
-  },
-  denyButton: {
-    backgroundColor: COLORS.destructive,
-  },
-  pointActionText: {
-    color: COLORS.foreground,
-    fontSize: 12,
-    fontWeight: "700",
-  },
   subtitle: { fontSize: 14, color: COLORS.mutedForeground, marginTop: 4 },
   statusContainer: { flexDirection: "row", marginTop: 8 },
   statusTag: {

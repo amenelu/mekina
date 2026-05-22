@@ -175,14 +175,27 @@ const AdminDealersScreen = () => {
       <View style={styles.userInfo}>
         <View style={styles.titleRow}>
           <Text style={styles.username}>{item.username}</Text>
-          {item.pending_point_request ? (
-            <View style={styles.pointRequestBadge}>
-              <Ionicons name="flash" size={13} color={COLORS.foreground} />
-              <Text style={styles.pointRequestBadgeText}>
-                {item.pending_point_request.requested_points}
+          <View style={styles.badgeRow}>
+            <View
+              style={[
+                styles.roleBadge,
+                item.is_rental_company ? styles.rentalBadge : styles.dealerBadge,
+              ]}
+            >
+              <Text style={styles.roleBadgeText}>
+                {item.account_type ??
+                  (item.is_rental_company ? "Rental Company" : "Dealer")}
               </Text>
             </View>
-          ) : null}
+            {item.pending_point_request ? (
+              <View style={styles.pointRequestBadge}>
+                <Ionicons name="flash" size={13} color={COLORS.foreground} />
+                <Text style={styles.pointRequestBadgeText}>
+                  {item.pending_point_request.requested_points}
+                </Text>
+              </View>
+            ) : null}
+          </View>
         </View>
         <Text style={styles.email}>{item.email}</Text>
         <Text style={styles.stats}>
@@ -239,7 +252,7 @@ const AdminDealersScreen = () => {
         />
         <TextInput
           style={styles.searchInput}
-          placeholder="Search dealers by name or email..."
+          placeholder="Search dealers or rental companies..."
           placeholderTextColor={COLORS.mutedForeground}
           value={search}
           onChangeText={setSearch}
@@ -288,7 +301,7 @@ const AdminDealersScreen = () => {
             )
           }
           ListEmptyComponent={
-            <Text style={styles.emptyText}>No dealers found.</Text>
+            <Text style={styles.emptyText}>No dealers or rental companies found.</Text>
           }
         />
       )}
@@ -323,7 +336,37 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     gap: 10,
   },
-  username: { fontSize: 16, fontWeight: "bold", color: COLORS.foreground },
+  username: {
+    flex: 1,
+    fontSize: 16,
+    fontWeight: "bold",
+    color: COLORS.foreground,
+  },
+  badgeRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    flexShrink: 0,
+  },
+  roleBadge: {
+    borderRadius: 999,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderWidth: 1,
+  },
+  dealerBadge: {
+    borderColor: "rgba(163, 112, 247, 0.45)",
+    backgroundColor: "rgba(163, 112, 247, 0.16)",
+  },
+  rentalBadge: {
+    borderColor: "rgba(122, 229, 130, 0.45)",
+    backgroundColor: "rgba(122, 229, 130, 0.14)",
+  },
+  roleBadgeText: {
+    color: COLORS.foreground,
+    fontSize: 11,
+    fontWeight: "700",
+  },
   pointRequestBadge: {
     flexDirection: "row",
     alignItems: "center",

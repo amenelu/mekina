@@ -38,6 +38,7 @@ interface CarImage {
   id: number;
   image_url: string;
   is_primary: boolean;
+  order?: number;
 }
 
 interface CarResponse {
@@ -49,6 +50,12 @@ interface CarResponse {
   primary_image_url?: string;
   image_urls?: string[];
   images?: CarImage[];
+}
+
+interface GalleryImage {
+  id?: number;
+  uri: string;
+  isPrimary?: boolean;
 }
 
 function resolveImageUrl(imageUrl?: string) {
@@ -77,12 +84,12 @@ const EditListingScreen = () => {
   const [year, setYear] = useState("");
   const [price, setPrice] = useState("");
   const [description, setDescription] = useState("");
-  const [galleryImages, setGalleryImages] = useState<string[]>([]);
+  const [galleryImages, setGalleryImages] = useState<GalleryImage[]>([]);
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const { width } = useWindowDimensions();
   const isWideWeb = Platform.OS === "web" && width >= 1000;
   const galleryWidth = isWideWeb ? Math.min(width - 56, 1120) : width;
-  const carouselRef = useRef<FlatList<string>>(null);
+  const carouselRef = useRef<FlatList<GalleryImage>>(null);
   const resolvedReturnTo = Array.isArray(returnTo) ? returnTo[0] : returnTo;
 
   const handleExit = () => {
@@ -107,19 +114,35 @@ const EditListingScreen = () => {
         setPrice(car.fixed_price?.toString() || "");
         setDescription(car.description || "");
 
-        const resolvedGallery = [
-          resolveImageUrl(car.primary_image_url),
-          ...((car.image_urls || []).map((uri) => resolveImageUrl(uri))),
-          ...((car.images || []).map((img) => resolveImageUrl(img.image_url))),
-        ].filter(
-          (uri, index, self): uri is string =>
-            Boolean(uri) && self.indexOf(uri) === index
-        );
+        let resolvedGallery: GalleryImage[] = [];
+        if (car.images && car.images.length > 0) {
+          resolvedGallery = car.images.reduce<GalleryImage[]>((acc, img) => {
+            const uri = resolveImageUrl(img.image_url);
+            if (uri) {
+              acc.push({
+                id: img.id,
+                uri,
+                isPrimary: img.is_primary,
+              });
+            }
+            return acc;
+          }, []);
+        } else {
+          resolvedGallery = [
+            resolveImageUrl(car.primary_image_url),
+            ...((car.image_urls || []).map((uri) => resolveImageUrl(uri))),
+          ]
+            .filter(
+              (uri, index, self): uri is string =>
+                Boolean(uri) && self.indexOf(uri) === index
+            )
+            .map((uri, index) => ({ uri, isPrimary: index === 0 }));
+        }
 
         setGalleryImages(resolvedGallery);
 
-        const primaryIndexFromImages = (car.images || []).findIndex(
-          (img: CarImage) => img.is_primary
+        const primaryIndexFromImages = resolvedGallery.findIndex(
+          (img) => img.isPrimary
         );
         const initialIndex =
           primaryIndexFromImages >= 0
@@ -149,6 +172,7 @@ const EditListingScreen = () => {
         year,
         price,
         description,
+        primary_image_id: galleryImages[selectedImageIndex]?.id,
       });
 
       showNativeFlowAlert(
@@ -188,7 +212,7 @@ const EditListingScreen = () => {
               horizontal
               pagingEnabled
               showsHorizontalScrollIndicator={false}
-              keyExtractor={(item, index) => `edit-image-${index}-${item}`}
+              keyExtractor={(item, index) => `edit-image-${index}-${item.uri}`}
               initialScrollIndex={Math.max(0, selectedImageIndex)}
               getItemLayout={(_, index) => ({
                 length: galleryWidth,
@@ -203,7 +227,7 @@ const EditListingScreen = () => {
               }}
               renderItem={({ item }) => (
                 <Image
-                  source={{ uri: item }}
+                  source={{ uri: item.uri }}
                   style={[styles.headerImage, { width: galleryWidth }]}
                 />
               )}
@@ -240,21 +264,27 @@ const EditListingScreen = () => {
               showsHorizontalScrollIndicator={false}
               contentContainerStyle={styles.thumbnailRow}
             >
-              {galleryImages.map((uri, index) => (
+              {galleryImages.map((image, index) => (
                 <Pressable
-                  key={`${uri}-${index}`}
+                  key={`${image.uri}-${index}`}
+                  style={styles.thumbnailButton}
                   onPress={() => {
                     setSelectedImageIndex(index);
                     carouselRef.current?.scrollToIndex({ index, animated: true });
                   }}
                 >
                   <Image
-                    source={{ uri }}
+                    source={{ uri: image.uri }}
                     style={[
                       styles.thumbnail,
                       index === selectedImageIndex && styles.thumbnailActive,
                     ]}
                   />
+                  {index === selectedImageIndex ? (
+                    <View style={styles.displayBadge}>
+                      <Text style={styles.displayBadgeText}>Display</Text>
+                    </View>
+                  ) : null}
                 </Pressable>
               ))}
             </ScrollView>
@@ -413,6 +443,9 @@ const styles = StyleSheet.create({
     paddingTop: 10,
     paddingBottom: 4,
   },
+  thumbnailButton: {
+    position: "relative",
+  },
   thumbnail: {
     width: 72,
     height: 72,
@@ -426,6 +459,20 @@ const styles = StyleSheet.create({
   thumbnailActive: {
     borderColor: COLORS.accent,
     opacity: 1,
+  },
+  displayBadge: {
+    position: "absolute",
+    left: 8,
+    bottom: 6,
+    backgroundColor: COLORS.accent,
+    borderRadius: 6,
+    paddingHorizontal: 6,
+    paddingVertical: 3,
+  },
+  displayBadgeText: {
+    color: COLORS.text,
+    fontSize: 10,
+    fontWeight: "800",
   },
   contentContainer: { padding: 20 },
   contentContainerWide: {

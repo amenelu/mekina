@@ -517,7 +517,7 @@ def api_admin_list_dealers(current_user):
         .subquery()
     )
 
-    # Base query for dealers
+    # Base query for businesses that can spend/request points.
     dealers_query = (
         db.session.query(
             User,
@@ -529,7 +529,7 @@ def api_admin_list_dealers(current_user):
         )
         .outerjoin(active_listings_sub, User.id == active_listings_sub.c.owner_id)
         .outerjoin(review_stats_sub, User.id == review_stats_sub.c.dealer_id)
-        .filter(User.is_dealer == True)
+        .filter(or_(User.is_dealer == True, User.is_rental_company == True))
     )
 
     if query:
@@ -547,6 +547,11 @@ def api_admin_list_dealers(current_user):
             "id": dealer.id,
             "username": dealer.username,
             "email": dealer.email,
+            "is_dealer": dealer.is_dealer,
+            "is_rental_company": dealer.is_rental_company,
+            "account_type": (
+                "Rental Company" if dealer.is_rental_company else "Dealer"
+            ),
             "active_listings": active_listings,
             "avg_rating": float(avg_rating) if avg_rating else 0,
             "review_count": review_count,

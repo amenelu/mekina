@@ -108,6 +108,7 @@ const CarSubmissionForm = () => {
     useState<(typeof FUEL_TYPE_OPTIONS)[number]>("Gasoline");
   const [electricRangeKm, setElectricRangeKm] = useState("");
   const [images, setImages] = useState<ImagePicker.ImagePickerAsset[]>([]);
+  const [primaryImageIndex, setPrimaryImageIndex] = useState(0);
   const needsRange = fuelType === "Electric" || fuelType === "Hybrid";
   const isWideWeb = Platform.OS === "web" && width >= 1000;
 
@@ -183,6 +184,7 @@ const CarSubmissionForm = () => {
     formData.append("transmission", transmission);
     formData.append("drivetrain", drivetrain);
     formData.append("fuel_type", fuelType);
+    formData.append("primary_image_index", String(primaryImageIndex));
     if (condition === "Used" && mileage.trim()) {
       formData.append("mileage", mileage);
     }
@@ -242,6 +244,7 @@ const CarSubmissionForm = () => {
     });
     if (!result.canceled) {
       setImages(result.assets);
+      setPrimaryImageIndex(0);
     }
   };
 
@@ -389,14 +392,32 @@ const CarSubmissionForm = () => {
           {images.length > 0 && (
             <ScrollView horizontal style={styles.imageScrollView}>
               {images.map((img, index) => (
-                <Image
+                <Pressable
                   key={index}
-                  source={{ uri: img.uri }}
-                  style={styles.thumbnail}
-                />
+                  style={styles.thumbnailButton}
+                  onPress={() => setPrimaryImageIndex(index)}
+                >
+                  <Image
+                    source={{ uri: img.uri }}
+                    style={[
+                      styles.thumbnail,
+                      index === primaryImageIndex && styles.thumbnailSelected,
+                    ]}
+                  />
+                  {index === primaryImageIndex ? (
+                    <View style={styles.displayBadge}>
+                      <Text style={styles.displayBadgeText}>Display</Text>
+                    </View>
+                  ) : null}
+                </Pressable>
               ))}
             </ScrollView>
           )}
+          {images.length > 0 ? (
+            <Text style={styles.imageHint}>
+              Tap a photo to choose the display picture.
+            </Text>
+          ) : null}
           <Pressable style={styles.imagePickerButton} onPress={handleImagePick}>
             <Ionicons name="camera" size={20} color={COLORS.accent} />
             <Text style={styles.imagePickerText}>
@@ -502,12 +523,39 @@ const styles = StyleSheet.create({
   imageScrollView: {
     marginBottom: 15,
   },
+  thumbnailButton: {
+    marginRight: 10,
+    position: "relative",
+  },
   thumbnail: {
     width: 100,
     height: 100,
     borderRadius: 8,
-    marginRight: 10,
     backgroundColor: "#14181F",
+    borderWidth: 2,
+    borderColor: "transparent",
+  },
+  thumbnailSelected: {
+    borderColor: COLORS.accent,
+  },
+  displayBadge: {
+    position: "absolute",
+    left: 6,
+    bottom: 6,
+    backgroundColor: COLORS.accent,
+    borderRadius: 6,
+    paddingHorizontal: 7,
+    paddingVertical: 3,
+  },
+  displayBadgeText: {
+    color: COLORS.text,
+    fontSize: 11,
+    fontWeight: "800",
+  },
+  imageHint: {
+    color: COLORS.textSecondary,
+    fontSize: 12,
+    marginBottom: 12,
   },
   imagePickerButton: {
     flexDirection: "row",

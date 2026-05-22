@@ -365,10 +365,22 @@ def api_submit_car(current_user):
     if not files:
         return jsonify({'status': 'error', 'message': 'At least one image is required.'}), 400
 
-    for image_file in files:
+    try:
+        primary_image_index = int(data.get('primary_image_index', 0))
+    except (TypeError, ValueError):
+        primary_image_index = 0
+    if primary_image_index < 0 or primary_image_index >= len(files):
+        primary_image_index = 0
+
+    ordered_files = [files[primary_image_index]] + [
+        image_file for index, image_file in enumerate(files)
+        if index != primary_image_index
+    ]
+
+    for order, image_file in enumerate(ordered_files):
         image_url = save_seller_document(image_file)
         if image_url:
-            new_image = CarImage(image_url=image_url, car_id=new_car.id)
+            new_image = CarImage(image_url=image_url, car_id=new_car.id, order=order)
             db.session.add(new_image)
 
     # Handle listing-type specific objects

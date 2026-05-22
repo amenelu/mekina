@@ -942,6 +942,10 @@ def test_admin_list_apis_return_paginated_results(client):
         "page_rental_owner",
         "page-rental-owner@example.com",
         is_rental_company=True,
+        points=2,
+    )
+    db.session.add(
+        DealerPointRequest(dealer_id=rental_owner.id, requested_points=5)
     )
     for index in range(3):
         rental_car = create_car(
@@ -970,6 +974,17 @@ def test_admin_list_apis_return_paginated_results(client):
     ).get_json()
     assert len(dealers["dealers"]) == 2
     assert dealers["pagination"]["total"] == 3
+
+    rental_companies = client.get(
+        "/admin/api/dealers?q=page_rental_owner&page=1&per_page=2",
+        headers=headers,
+    ).get_json()
+    assert len(rental_companies["dealers"]) == 1
+    assert rental_companies["pagination"]["total"] == 1
+    assert rental_companies["dealers"][0]["account_type"] == "Rental Company"
+    assert rental_companies["dealers"][0]["pending_point_request"][
+        "requested_points"
+    ] == 5
 
     rentals = client.get(
         "/admin/api/rentals?q=PageRental&page=1&per_page=2",

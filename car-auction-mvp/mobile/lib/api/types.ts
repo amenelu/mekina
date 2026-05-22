@@ -52,6 +52,9 @@ export interface AdminDealer {
   id: number;
   username: string;
   email: string;
+  is_dealer?: boolean;
+  is_rental_company?: boolean;
+  account_type?: string;
   active_listings: number;
   avg_rating: number;
   review_count: number;

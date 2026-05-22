@@ -232,6 +232,7 @@ const ListingItem = ({ item }: { item: Listing }) => {
 
 const RequestItem = ({ item }: { item: CustomerRequest }) => {
   const isTradeIn = item.type === "trade-in";
+  const submittedDate = formatSubmittedDate(item.created_at);
   const handlePress = () => {
     if (isTradeIn) {
       router.push(`/trade-in/${item.id}` as any);
@@ -310,6 +311,9 @@ const RequestItem = ({ item }: { item: CustomerRequest }) => {
           </View>
         )}
       </View>
+      {submittedDate ? (
+        <Text style={styles.submittedDateText}>Submitted {submittedDate}</Text>
+      ) : null}
 
       {item.image_urls?.length ? (
         <View style={styles.requestImageStrip}>
@@ -385,6 +389,46 @@ const RequestItem = ({ item }: { item: CustomerRequest }) => {
       </Text>
     </Pressable>
   );
+};
+
+const formatSubmittedDate = (value?: string) => {
+  if (!value) return "";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+
+  const now = new Date();
+  const startOfToday = new Date(
+    now.getFullYear(),
+    now.getMonth(),
+    now.getDate()
+  );
+  const startOfSubmittedDay = new Date(
+    date.getFullYear(),
+    date.getMonth(),
+    date.getDate()
+  );
+  const dayDifference = Math.round(
+    (startOfToday.getTime() - startOfSubmittedDay.getTime()) /
+      (24 * 60 * 60 * 1000)
+  );
+  const time = date.toLocaleTimeString(undefined, {
+    hour: "numeric",
+    minute: "2-digit",
+  });
+
+  if (dayDifference === 0) {
+    return `Today, ${time}`;
+  }
+
+  if (dayDifference === 1) {
+    return `Yesterday, ${time}`;
+  }
+
+  return date.toLocaleDateString(undefined, {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
 };
 
 const QuestionItem = ({
@@ -932,6 +976,11 @@ const styles = StyleSheet.create({
   },
   itemTitle: { fontSize: 16, fontWeight: "bold", color: COLORS.text },
   itemSubtitle: { color: COLORS.textSecondary, fontSize: 12, marginTop: 4 },
+  submittedDateText: {
+    color: COLORS.textSecondary,
+    fontSize: 12,
+    marginBottom: 10,
+  },
   itemNotes: { color: COLORS.textSecondary, marginTop: 8 },
   statusContainer: { flexDirection: "row", gap: 8, marginTop: 10 },
   statusTag: {
