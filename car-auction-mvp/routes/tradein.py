@@ -28,6 +28,7 @@ import base64
 import uuid
 
 from extensions import db, socketio
+from models.dealer_rating import DealerRating
 from models.notification import Notification
 from models.trade_in import TradeInRequest, TradeInPhoto, TradeInOffer
 from routes.auth import token_required
@@ -333,6 +334,9 @@ def api_get_my_trade_in_detail(current_user, request_id):
 
     def serialize_offer(offer):
         offer_data = offer.to_dict()
+        rating = DealerRating.query.filter_by(trade_in_offer_id=offer.id).first()
+        offer_data["has_rated"] = bool(rating)
+        offer_data["rating"] = rating.to_dict() if rating else None
         if req.status == "completed" and offer.status == "accepted":
             offer_data["dealer_email"] = offer.dealer.email
             offer_data["dealer_phone_number"] = offer.dealer.phone_number
@@ -576,6 +580,7 @@ def api_accept_trade_in_offer(current_user, request_id, offer_id):
 
     # Update statuses
     offer.status = "accepted"
+    offer.accepted_at = datetime.utcnow()
     for other_offer in req.offers:
         if other_offer.id != offer.id:
             other_offer.status = "rejected"
@@ -611,4 +616,62 @@ def api_accept_trade_in_offer(current_user, request_id, offer_id):
             "request": req.to_dict(),
             "offer": offer.to_dict(),
         }
+    )
+
+
+@tradein_bp.route(
+    "/api/requests/<int:request_id>/offers/<int:offer_id>/rate", methods=["POST"]
+)
+@token_required
+def api_rate_trade_in_dealer(current_user, request_id, offer_id):
+    """API endpoint for a buyer to rate a dealer after a trade-in deal."""
+    req = TradeInRequest.query.get_or_404(request_id)
+    offer = TradeInOffer.query.get_or_404(offer_id)
+
+    if req.user_id != current_user.id:
+        return jsonify({"status": "error", "message": "Permission denied."}), 403
+    if offer.trade_in_request_id != req.id or offer.status != "accepted":
+        return jsonify({"status": "error", "message": "Invalid trade-in deal."}), 400
+    if req.status != "completed":
+        return jsonify({"status": "error", "message": "Deal is not completed."}), 400
+    if DealerRating.query.filter_by(trade_in_offer_id=offer.id).first():
+        return (
+            jsonify(
+                {
+                    "status": "error",
+                    "message": "You have already submitted a review for this deal.",
+                }
+            ),
+            400,
+        )
+
+    data = request.get_json(silent=True) or {}
+    rating = data.get("rating")
+    if not isinstance(rating, int) or not (1 <= rating <= 5):
+        return (
+            jsonify(
+                {"status": "error", "message": "A valid rating (1-5) is required."}
+            ),
+            400,
+        )
+
+    new_rating = DealerRating(
+        rating=rating,
+        review_text=data.get("review_text") or data.get("comment") or None,
+        dealer_id=offer.dealer_id,
+        buyer_id=req.user_id,
+        trade_in_offer_id=offer.id,
+    )
+    db.session.add(new_rating)
+    db.session.commit()
+
+    return (
+        jsonify(
+            {
+                "status": "success",
+                "message": "Thank you for your review!",
+                "rating": new_rating.to_dict(),
+            }
+        ),
+        201,
     )

@@ -257,6 +257,43 @@ def _get_featured_cars():
     return Car.query.filter_by(is_featured=True, is_approved=True, is_active=True).all()
 
 
+def _create_trade_in_rating_reminders(user):
+    """Create one reminder when a buyer leaves an accepted trade-in unrated."""
+    from models.dealer_rating import DealerRating
+    from models.trade_in import TradeInOffer, TradeInRequest
+
+    cutoff = datetime.utcnow() - timedelta(days=2)
+    unrated_offers = (
+        TradeInOffer.query.join(TradeInRequest)
+        .outerjoin(DealerRating, DealerRating.trade_in_offer_id == TradeInOffer.id)
+        .filter(
+            TradeInRequest.user_id == user.id,
+            TradeInRequest.status == "completed",
+            TradeInOffer.status == "accepted",
+            TradeInOffer.accepted_at.isnot(None),
+            TradeInOffer.accepted_at <= cutoff,
+            TradeInOffer.rating_reminder_sent_at.is_(None),
+            DealerRating.id.is_(None),
+        )
+        .all()
+    )
+
+    for offer in unrated_offers:
+        notification = Notification(
+            user_id=user.id,
+            message=(
+                f"Please rate your trade-in experience with "
+                f"{offer.dealer.username}."
+            ),
+            link=f"/trade-in/{offer.trade_in_request_id}",
+        )
+        offer.rating_reminder_sent_at = datetime.utcnow()
+        db.session.add(notification)
+
+    if unrated_offers:
+        db.session.commit()
+
+
 @socketio.on("connect")
 def handle_connect():
     token = request.args.get("token")
@@ -327,6 +364,7 @@ def notifications():
 @token_required
 def api_notifications(user):
     """API endpoint to get user notifications and mark them as read."""
+    _create_trade_in_rating_reminders(user)
     # This endpoint both fetches and marks as read, simplifying client logic.
     unread_notifications = Notification.query.filter_by(
         user_id=user.id, is_read=False
@@ -351,6 +389,7 @@ def api_notifications(user):
 @token_required
 def api_unread_counts(user):
     """Returns the number of unread messages and notifications."""
+    _create_trade_in_rating_reminders(user)
     unread_notifications = Notification.query.filter_by(
         user_id=user.id, is_read=False
     ).count()

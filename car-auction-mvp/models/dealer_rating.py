@@ -12,8 +12,9 @@ class DealerRating(db.Model):
     # Foreign Keys
     dealer_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False)
     buyer_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False)
-    deal_id = db.Column(
-        db.Integer, db.ForeignKey("deal.id"), nullable=False, unique=True
+    deal_id = db.Column(db.Integer, db.ForeignKey("deal.id"), nullable=True, unique=True)
+    trade_in_offer_id = db.Column(
+        db.Integer, db.ForeignKey("trade_in_offers.id"), nullable=True, unique=True
     )
 
     # Relationships
@@ -24,6 +25,9 @@ class DealerRating(db.Model):
         "User", foreign_keys=[buyer_id], back_populates="ratings_given"
     )
     deal = db.relationship("Deal", backref=db.backref("rating", uselist=False))
+    trade_in_offer = db.relationship(
+        "TradeInOffer", backref=db.backref("rating", uselist=False)
+    )
 
     def to_dict(self):
         """Serializes the DealerRating object to a dictionary."""
@@ -36,6 +40,7 @@ class DealerRating(db.Model):
             "dealer_id": self.dealer_id,
             "buyer_id": self.buyer_id,
             "deal_id": self.deal_id,
+            "trade_in_offer_id": self.trade_in_offer_id,
             "buyer_username": self.buyer.username if self.buyer else None,
         }
 

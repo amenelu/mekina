@@ -97,6 +97,8 @@ class TradeInOffer(db.Model):
     offered_car_specs = db.Column(db.Text, nullable=True)
     offered_car_image_url = db.Column(db.String(255), nullable=True)
     status = db.Column(db.String(20), default="pending")  # pending, accepted, rejected
+    accepted_at = db.Column(db.DateTime, nullable=True)
+    rating_reminder_sent_at = db.Column(db.DateTime, nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     dealer = db.relationship("User", backref="trade_in_offers")
@@ -116,5 +118,8 @@ class TradeInOffer(db.Model):
             "offered_car_specs": self.offered_car_specs,
             "offered_car_image_url": self.offered_car_image_url,
             "status": self.status,
+            "accepted_at": self.accepted_at.isoformat() + "Z"
+            if self.accepted_at
+            else None,
             "created_at": self.created_at.isoformat() + "Z",
         }

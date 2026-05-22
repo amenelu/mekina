@@ -38,6 +38,17 @@ export function acceptTradeInOffer(
   );
 }
 
+export function rateTradeInOffer(
+  requestId: string | number,
+  offerId: string | number,
+  payload: { rating: number; comment?: string }
+) {
+  return apiClient.post(
+    `/trade-in/api/requests/${requestId}/offers/${offerId}/rate`,
+    payload
+  );
+}
+
 export function getAdminTradeInRequest(requestId: string | number) {
   return apiClient.get(`/trade-in/api/admin/requests/${requestId}`);
 }

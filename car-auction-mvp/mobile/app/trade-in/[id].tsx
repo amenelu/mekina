@@ -12,6 +12,7 @@ import {
   Platform,
 } from "react-native";
 import { useLocalSearchParams, Stack, useRouter } from "expo-router";
+import { Ionicons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
 import { useAuth } from "@/hooks/useAuth";
 import { mediaUrl } from "@/lib/api/client";
@@ -20,6 +21,7 @@ import {
   acceptTradeInOffer,
   getTradeInRequest,
   placeTradeInOffer,
+  rateTradeInOffer,
 } from "@/lib/api/tradeIn";
 import {
   showNativeFlowAlert,
@@ -71,6 +73,8 @@ interface TradeInOffer {
   dealer_phone_number?: string | null;
   amount: number;
   notes: string;
+  has_rated?: boolean;
+  rating?: { rating: number; review_text?: string | null } | null;
   offered_car_make?: string | null;
   offered_car_model?: string | null;
   offered_car_year?: number | null;
@@ -117,6 +121,9 @@ const TradeInRequestDetailScreen = () => {
   const [offeredImageUri, setOfferedImageUri] = useState("");
   const [offeredImageBase64, setOfferedImageBase64] = useState("");
   const [submittingOffer, setSubmittingOffer] = useState(false);
+  const [rating, setRating] = useState(0);
+  const [reviewText, setReviewText] = useState("");
+  const [submittingReview, setSubmittingReview] = useState(false);
   const acceptedOffer = request?.offers?.find(
     (offer) => offer.status === "accepted"
   );
@@ -155,6 +162,33 @@ const TradeInRequestDetailScreen = () => {
       setOfferedImageBase64(
         asset.base64 ? `data:image/jpeg;base64,${asset.base64}` : ""
       );
+    }
+  };
+
+  const handleSubmitReview = async () => {
+    if (!acceptedOffer) return;
+    if (rating === 0) {
+      Alert.alert("Rating Required", "Please select a star rating.");
+      return;
+    }
+
+    setSubmittingReview(true);
+    try {
+      await rateTradeInOffer(String(id), acceptedOffer.id, {
+        rating,
+        comment: reviewText,
+      });
+      Alert.alert("Success", "Thank you for your review!");
+      setRating(0);
+      setReviewText("");
+      await fetchDetails();
+    } catch (error: any) {
+      Alert.alert(
+        "Error",
+        error.response?.data?.message || "Failed to submit review."
+      );
+    } finally {
+      setSubmittingReview(false);
     }
   };
 
@@ -302,7 +336,22 @@ const TradeInRequestDetailScreen = () => {
           </Text>
           <View style={styles.card}>
             {request.status === "completed" && acceptedOffer ? (
-              <TradeInDealSummary request={request} offer={acceptedOffer} />
+              <>
+                <TradeInDealSummary request={request} offer={acceptedOffer} />
+                {request.viewer_role === "buyer" && (
+                  <TradeInRatingSection
+                    dealerName={acceptedOffer.dealer_name}
+                    hasRated={Boolean(acceptedOffer.has_rated)}
+                    existingRating={acceptedOffer.rating?.rating}
+                    rating={rating}
+                    reviewText={reviewText}
+                    submitting={submittingReview}
+                    onRatingChange={setRating}
+                    onReviewTextChange={setReviewText}
+                    onSubmit={handleSubmitReview}
+                  />
+                )}
+              </>
             ) : request.viewer_role === "dealer" ? (
               <View>
                 <Text style={styles.offerPrompt}>
@@ -584,6 +633,77 @@ const ContactCard = ({
     <Text style={styles.contactName}>{name}</Text>
     <Text style={styles.contactLine}>{email || "Email not provided"}</Text>
     <Text style={styles.contactLine}>{phone || "Phone not provided"}</Text>
+  </View>
+);
+
+const TradeInRatingSection = ({
+  dealerName,
+  hasRated,
+  existingRating,
+  rating,
+  reviewText,
+  submitting,
+  onRatingChange,
+  onReviewTextChange,
+  onSubmit,
+}: {
+  dealerName: string;
+  hasRated: boolean;
+  existingRating?: number;
+  rating: number;
+  reviewText: string;
+  submitting: boolean;
+  onRatingChange: (rating: number) => void;
+  onReviewTextChange: (text: string) => void;
+  onSubmit: () => void;
+}) => (
+  <View style={styles.ratingContainer}>
+    <Text style={styles.ratingTitle}>Rate Your Dealer</Text>
+    {hasRated ? (
+      <View>
+        <Text style={styles.ratingHelp}>
+          You rated {dealerName} {existingRating || ""}/5. Thank you for your
+          feedback.
+        </Text>
+      </View>
+    ) : (
+      <>
+        <Text style={styles.ratingHelp}>
+          How was your trade-in experience with {dealerName}?
+        </Text>
+        <View style={styles.starsRow}>
+          {[1, 2, 3, 4, 5].map((star) => (
+            <Pressable key={star} onPress={() => onRatingChange(star)}>
+              <Ionicons
+                name={star <= rating ? "star" : "star-outline"}
+                size={32}
+                color="#FFD700"
+                style={styles.starIcon}
+              />
+            </Pressable>
+          ))}
+        </View>
+        <TextInput
+          style={[styles.input, styles.reviewInput]}
+          placeholder="Write a review (optional)..."
+          placeholderTextColor={COLORS.mutedForeground}
+          multiline
+          value={reviewText}
+          onChangeText={onReviewTextChange}
+        />
+        <Pressable
+          style={styles.submitButton}
+          onPress={onSubmit}
+          disabled={submitting}
+        >
+          {submitting ? (
+            <ActivityIndicator color="#fff" size="small" />
+          ) : (
+            <Text style={styles.submitButtonText}>Submit Review</Text>
+          )}
+        </Pressable>
+      </>
+    )}
   </View>
 );
 
@@ -888,6 +1008,35 @@ const styles = StyleSheet.create({
     color: COLORS.mutedForeground,
     fontSize: 14,
     marginTop: 3,
+  },
+  ratingContainer: {
+    marginTop: 16,
+    backgroundColor: COLORS.background,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    borderRadius: 10,
+    padding: 12,
+  },
+  ratingTitle: {
+    color: COLORS.foreground,
+    fontSize: 18,
+    fontWeight: "800",
+    marginBottom: 6,
+  },
+  ratingHelp: {
+    color: COLORS.mutedForeground,
+    lineHeight: 20,
+  },
+  starsRow: {
+    flexDirection: "row",
+    marginVertical: 12,
+  },
+  starIcon: {
+    marginRight: 8,
+  },
+  reviewInput: {
+    minHeight: 90,
+    textAlignVertical: "top",
   },
 });
 
