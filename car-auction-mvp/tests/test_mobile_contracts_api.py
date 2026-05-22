@@ -5,6 +5,7 @@ from models.auction import Auction
 from models.car import Car
 from models.car_image import CarImage
 from models.rental_listing import RentalListing
+from models.user_favorite import UserFavorite
 from models.user import User
 
 
@@ -188,6 +189,37 @@ def test_api_compare_returns_mobile_friendly_fields(client):
     assert best_values["year"]["ids"] == [auction_car.id]
     assert best_values["mileage"]["value"] == 18000
     assert best_values["mileage"]["ids"] == [auction_car.id]
+
+
+def test_favorite_toggle_and_favorites_list_for_buyer(client):
+    buyer = create_user("favbuyer", "favbuyer@example.com")
+    dealer = create_user("favdealer", "favdealer@example.com", is_dealer=True)
+    car = create_car(dealer, make="Mazda", model="CX-5", fixed_price=2_300_000)
+    db.session.commit()
+    headers = login_headers(client, buyer.username)
+
+    add_response = client.post(
+        f"/api/cars/{car.id}/toggle-favorite",
+        headers=headers,
+    )
+    assert add_response.status_code == 200
+    assert add_response.get_json()["action"] == "added"
+    assert UserFavorite.query.filter_by(user_id=buyer.id, car_id=car.id).count() == 1
+
+    favorites_response = client.get("/api/users/favorites", headers=headers)
+    assert favorites_response.status_code == 200
+    favorites = favorites_response.get_json()["favorites"]
+    assert len(favorites) == 1
+    assert favorites[0]["id"] == car.id
+    assert favorites[0]["price_display"] == "2,300,000 ETB"
+
+    remove_response = client.post(
+        f"/api/cars/{car.id}/toggle-favorite",
+        headers=headers,
+    )
+    assert remove_response.status_code == 200
+    assert remove_response.get_json()["action"] == "removed"
+    assert UserFavorite.query.filter_by(user_id=buyer.id, car_id=car.id).count() == 0
 
 
 def test_trade_in_api_requires_token(client):

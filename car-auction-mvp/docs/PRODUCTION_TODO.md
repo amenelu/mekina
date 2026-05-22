@@ -25,14 +25,65 @@ Work through this section first. It is ordered so each item can be implemented a
 
 ### 1. Lock The Release Target
 
-- [ ] Confirm the first production release is the Expo webapp, not the Flask/Jinja web UI.
-- [ ] List the exact buyer screens included in the first Expo web release.
-- [ ] List the exact dealer screens included in the first Expo web release.
-- [ ] List the exact rental-company screens included in the first Expo web release.
-- [ ] List the exact admin screens included in the first Expo web release.
-- [ ] Hide any Expo routes that are not part of the first release.
-- [ ] Remove or hide duplicate route aliases that can send users to the wrong role area.
-- [ ] Verify role-based start routes after login for buyer, dealer, rental company, and admin.
+- [x] Confirm the first production release is the Expo webapp, not the Flask/Jinja web UI.
+- [x] List the exact buyer screens included in the first Expo web release.
+- [x] List the exact dealer screens included in the first Expo web release.
+- [x] List the exact rental-company screens included in the first Expo web release.
+- [x] List the exact admin screens included in the first Expo web release.
+- [x] Hide any Expo routes that are not part of the first release.
+- [x] Remove or hide duplicate route aliases that can send users to the wrong role area.
+- [x] Verify role-based start routes after login for buyer, dealer, rental company, and admin.
+
+First release target: Expo web. The Flask/Jinja web UI is legacy/supporting UI for this release and should not be used as the public launch webapp.
+
+Buyer screens in scope:
+- Home: `mobile/app/(tabs)/index.tsx`
+- All listings: `mobile/app/(tabs)/all_listings.tsx`
+- Rental listings: `mobile/app/(tabs)/rentals.tsx`
+- Find a car: `mobile/app/(tabs)/request/**`
+- My requests: `mobile/app/(tabs)/my-requests.tsx`
+- Notifications: `mobile/app/(tabs)/notifications.tsx`
+- Listing details: `mobile/app/(details)/listings/[id].tsx`
+- Rental details: `mobile/app/(details)/rentals/[id].tsx`
+- Request details and offers: `mobile/app/request/[id].tsx`
+- Offer comparison: `mobile/app/compare-bids.tsx`
+- Deal summary: `mobile/app/deal/[id].tsx`
+- Messages: `mobile/app/messages/**`
+- Trade-in: `mobile/app/trade-in/**`
+- How it works: `mobile/app/how-it-works.tsx`
+- Login and registration: `mobile/app/(auth)/login.tsx`, `mobile/app/(auth)/register.tsx`
+
+Dealer screens in scope:
+- Dashboard: `mobile/app/(dealer)/dealer-dashboard.tsx`
+- Analytics: `mobile/app/(dealer)/dealer-analytics.tsx`
+- Messages: `mobile/app/(dealer)/dealer-messages.tsx`
+- Notifications: `mobile/app/(dealer)/dealer-notifications.tsx`
+- Profile: `mobile/app/(dealer)/dealer-profile.tsx`
+- Submit listing: `mobile/app/(dealer)/dealer-submit.tsx`
+- Edit listing: `mobile/app/(dealer)/dealer-edit-listing.tsx`
+- Place offer: `mobile/app/(dealer)/dealer-place-offer.tsx`
+- Points: `mobile/app/(dealer)/dealer-points.tsx`
+
+Rental-company screens in scope:
+- Dashboard/fleet: `mobile/app/(rental)/rental-dashboard.tsx`
+- Profile: `mobile/app/(rental)/rental-profile.tsx`
+- Add rental: `mobile/app/(rental)/add-rental.tsx`
+- Manage rental: `mobile/app/(rental)/manage-rental.tsx`
+- Points: `mobile/app/(rental)/points.tsx`
+
+Admin screens in scope:
+- Dashboard: `mobile/app/(admin)/admin-dashboard.tsx`
+- Users: `mobile/app/(admin)/admin-users.tsx`
+- Listings: `mobile/app/(admin)/admin-listings.tsx`
+- Dealers and rental companies: `mobile/app/(admin)/admin-dealers.tsx`
+- Rental listings: `mobile/app/(admin)/admin-rentals.tsx`
+- Point requests: `mobile/app/(admin)/admin-point-requests.tsx`
+- Notifications: `mobile/app/(admin)/admin-notifications.tsx`
+
+Route hygiene notes:
+- Native route aliases remain hidden from Expo web tab bars through `href: null`.
+- Web role start routes are centralized in `mobile/lib/roleRoutes.ts`.
+- Protected role layouts are guarded by `mobile/components/_components/AuthGate.tsx`; admins, dealers, and rental companies now stay in their own role areas after auth hydration.
 
 ### 2. Centralize API Calling Code
 
@@ -53,69 +104,87 @@ Work through this section first. It is ordered so each item can be implemented a
 - [x] Normalize auth token attachment in the shared client.
 - [x] Normalize image URL handling in one shared helper.
 
+Audit note: the remaining `fetch(...)` calls in Expo screens are local file URI to `Blob` conversions for image uploads, not backend API calls. The remaining direct Axios imports are `isAxiosError` type/error helpers.
+
 ### 3. Stabilize Auth And Role Routing
 
-- [ ] Verify persisted auth loads before protected Expo routes redirect.
-- [ ] Verify buyer reload behavior on home, listings, requests, messages, notifications, and profile.
-- [ ] Verify dealer reload behavior on dashboard, analytics, messages, notifications, profile, submit, edit listing, offer, and points.
-- [ ] Verify rental-company reload behavior on dashboard, add rental, manage rental, and profile.
-- [ ] Verify admin reload behavior on dashboard, users, listings, dealers, rentals, notifications, and point requests.
-- [ ] Verify admin users cannot land in buyer rental tabs.
-- [ ] Verify buyer users cannot enter admin, dealer, or rental-company tabs.
-- [ ] Verify dealer users cannot enter admin or rental-company tabs.
-- [ ] Verify rental-company users cannot enter admin or dealer tabs.
+- [x] Verify persisted auth loads before protected Expo routes redirect.
+- [x] Verify buyer reload behavior on home, listings, requests, messages, notifications, and profile.
+- [x] Verify dealer reload behavior on dashboard, analytics, messages, notifications, profile, submit, edit listing, offer, and points.
+- [x] Verify rental-company reload behavior on dashboard, add rental, manage rental, and profile.
+- [x] Verify admin reload behavior on dashboard, users, listings, dealers, rentals, notifications, and point requests.
+- [x] Verify admin users cannot land in buyer rental tabs.
+- [x] Verify buyer users cannot enter admin, dealer, or rental-company tabs.
+- [x] Verify dealer users cannot enter admin or rental-company tabs.
+- [x] Verify rental-company users cannot enter admin or dealer tabs.
+
+Code check: protected layouts wait for auth hydration in `AuthGate` before redirecting. Buyer tabs now redirect logged-in admin, dealer, and rental-company users back to their role start route after hydration.
+
+Reload pass: Playwright reload-smoked local Expo web with QA accounts for buyer home/listings/request/messages/notifications/profile/my requests; dealer dashboard/analytics/messages/notifications/profile/submit/edit listing/place offer/points; rental dashboard/add rental/manage rental/profile; and admin dashboard/users/listings/dealers/rentals/notifications/point requests. Role-isolation checks also passed after adding a legacy `/rentals` redirect for admins and non-buyer roles.
 
 ### 4. Stabilize Release-Critical Flows
 
-- [ ] Verify buyer browse/search/filter listing flow.
-- [ ] Verify buyer listing detail flow.
-- [ ] Verify buyer favorite/unfavorite flow.
-- [ ] Verify buyer compare flow.
-- [ ] Verify buyer vehicle request creation flow.
-- [ ] Verify buyer uploaded request creation flow.
-- [ ] Verify buyer request detail and offer comparison flow.
-- [ ] Verify buyer offer acceptance and deal summary flow.
-- [ ] Verify buyer trade-in request flow.
-- [ ] Verify buyer messages and notifications flow.
-- [ ] Verify dealer dashboard data loading.
-- [ ] Verify dealer offer creation flow.
-- [ ] Verify dealer listing submit/edit flow.
-- [ ] Verify dealer points request flow without browser password/autofill prompts.
-- [ ] Verify dealer analytics flow and locked/unlocked states.
-- [ ] Verify rental-company dashboard data loading.
-- [ ] Verify rental-company add/edit/toggle rental listing flow.
-- [ ] Verify admin dashboard counters.
-- [ ] Verify admin listing approve/edit/delete flow.
-- [ ] Verify admin user/dealer/rental management flow.
-- [ ] Verify admin point request accept/deny flow from dealer and rental cards.
-- [ ] Verify admin notifications flow.
+- [x] Verify buyer browse/search/filter listing flow.
+- [x] Verify buyer listing detail flow.
+- [x] Verify buyer favorite/unfavorite flow.
+- [x] Verify buyer compare flow.
+- [x] Verify buyer vehicle request creation flow.
+- [x] Verify buyer uploaded request creation flow.
+- [x] Verify buyer request detail and offer comparison flow.
+- [x] Verify buyer offer acceptance and deal summary flow.
+- [x] Verify buyer trade-in request flow.
+- [x] Verify buyer messages and notifications flow.
+- [x] Verify dealer dashboard data loading.
+- [x] Verify dealer offer creation flow.
+- [x] Verify dealer listing submit/edit flow.
+- [x] Verify dealer points request flow without browser password/autofill prompts.
+- [x] Verify dealer analytics flow and locked/unlocked states.
+- [x] Verify rental-company dashboard data loading.
+- [x] Verify rental-company add/edit/toggle rental listing flow.
+- [x] Verify admin dashboard counters.
+- [x] Verify admin listing approve/edit/delete flow.
+- [x] Verify admin user/dealer/rental management flow.
+- [x] Verify admin point request accept/deny flow from dealer and rental cards.
+- [x] Verify admin notifications flow.
+
+Verification note: release-critical flows are covered by backend contract/release-safety tests, mobile unit tests, TypeScript checks, and local Expo web Playwright reload/role-routing smoke. Added coverage in this pass for buyer favorite/unfavorite and dealer analytics locked/unlocked states.
 
 ### 5. Fix Known Expo Web Release Issues
 
 - [x] Fix Expo Router warnings caused by component files inside `mobile/app`.
 - [x] Remove or hide unused Expo route files from the release build.
-- [ ] Verify pinned header/tab/footer behavior on desktop browser.
-- [ ] Verify pinned header/tab/footer behavior on mobile browser.
-- [ ] Verify pull-to-refresh still works where expected.
-- [ ] Verify all visible forms have correct autocomplete behavior.
-- [ ] Add missing empty states to release-critical screens.
-- [ ] Add missing loading states to release-critical screens.
-- [ ] Add missing error and retry states to release-critical screens.
-- [ ] Remove debug logs and noisy console output.
-- [ ] Run responsive checks at 360px, 390px, 430px, 768px, 1024px, and desktop widths.
+- [x] Verify pinned header/tab/footer behavior on desktop browser.
+- [x] Verify pinned header/tab/footer behavior on mobile browser.
+- [x] Verify pull-to-refresh still works where expected.
+- [x] Verify all visible forms have correct autocomplete behavior.
+- [x] Add missing empty states to release-critical screens.
+- [x] Add missing loading states to release-critical screens.
+- [x] Add missing error and retry states to release-critical screens.
+- [x] Remove debug logs and noisy console output.
+- [x] Run responsive checks at 360px, 390px, 430px, 768px, 1024px, and desktop widths.
+
+Verification note: browser checks passed for pinned tab/header visibility after scroll on 390px and desktop widths; pull-to-refresh indicator appears on mobile-width touch pull; home, all listings, rentals, dealer dashboard, rental dashboard, and admin dashboard had no horizontal overflow at 360px, 390px, 430px, 768px, 1024px, and 1366px. Code audit confirmed release-critical screens have loading/empty/error states. Removed noisy debug logging and fixed the rental-company web points route collision by adding `/rental-points`.
 
 ### 6. Prepare Staging
 
 - [ ] Choose staging backend host.
 - [ ] Choose staging Expo web host.
+- [x] Add first-class backend `APP_ENV=staging` config.
+- [x] Document staging environment variables and deployment runbook.
+- [x] Document no-card Cloudflare Pages + PythonAnywhere deploy path.
+- [x] Remove tracked root `node_modules` files from Git.
 - [x] Configure staging API base URL for Expo web.
 - [x] Configure staging CORS origins.
+- [x] Choose SQLite on persistent disk as the current staging database path.
+- [x] Keep PostgreSQL integration easy through `DATABASE_URL` and the Postgres driver.
 - [ ] Configure staging database.
 - [ ] Run all database migrations on staging.
 - [ ] Configure staging upload/media storage.
 - [x] Configure staging secret values outside git.
 - [ ] Verify staging HTTPS.
 - [ ] Verify Socket.IO works on staging if notifications/chat require it.
+
+Staging prep note: repo-level staging support is implemented in `config.py`, `app.py`, `.env.example`, and `docs/STAGING_SETUP.md`. The remaining unchecked items require an actual staging provider, domain, database, and persistent upload storage.
 
 ### 7. Run Web Release Verification
 

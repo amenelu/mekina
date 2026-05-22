@@ -33,7 +33,13 @@ jest.mock("@/lib/requestDraft", () => ({
 
 jest.mock("@/constants/Api", () => "http://example.test");
 jest.mock("axios", () => ({
-  post: jest.fn(),
+  create: () => ({
+    interceptors: {
+      request: { use: jest.fn() },
+      response: { use: jest.fn() },
+    },
+    post: jest.fn(),
+  }),
 }));
 
 describe("protected submit screens", () => {
@@ -54,8 +60,11 @@ describe("protected submit screens", () => {
 
     expect(Alert.alert).toHaveBeenCalledWith(
       "Login Required",
-      "Please log in before submitting a request."
+      "Please log in before submitting a request.",
+      expect.any(Array)
     );
+    const buttons = (Alert.alert as jest.Mock).mock.calls[0][2];
+    buttons[0].onPress();
     expect(mockReplace).toHaveBeenCalledWith("/(auth)/login");
   });
 
@@ -66,8 +75,11 @@ describe("protected submit screens", () => {
 
     expect(Alert.alert).toHaveBeenCalledWith(
       "Login Required",
-      "Please log in before submitting a trade-in request."
+      "Please log in before submitting a trade-in request.",
+      expect.any(Array)
     );
+    const buttons = (Alert.alert as jest.Mock).mock.calls[0][2];
+    buttons[0].onPress();
     expect(mockReplace).toHaveBeenCalledWith("/(auth)/login");
   });
 });

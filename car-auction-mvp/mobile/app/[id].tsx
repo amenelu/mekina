@@ -321,7 +321,7 @@ const CarDetailScreen = () => {
         setContactModalVisible(true);
       }
     } catch (error) {
-      console.error(error);
+      console.error("Failed to check chat history:", error);
       Alert.alert("Error", "Failed to check chat history.");
     } finally {
       setLoading(false);
@@ -370,7 +370,7 @@ const CarDetailScreen = () => {
         "Close"
       );
     } catch (error: any) {
-      console.error(error);
+      console.error("Failed to submit specific car request:", error);
       const errorMessage =
         error.response?.data?.message ||
         error.userMessage ||
@@ -402,7 +402,7 @@ const CarDetailScreen = () => {
         Alert.alert("Success", "Message sent!");
       }
     } catch (error) {
-      console.error(error);
+      console.error("Failed to send listing message:", error);
       Alert.alert("Error", "Failed to send message.");
     } finally {
       setSendingMessage(false);

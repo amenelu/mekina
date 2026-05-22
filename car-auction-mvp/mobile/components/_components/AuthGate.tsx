@@ -15,8 +15,8 @@ type Role = "admin" | "dealer" | "rental";
 function hasRole(user: User | null, role: Role) {
   if (!user) return false;
   if (role === "admin") return user.is_admin;
-  if (role === "dealer") return user.is_dealer || user.is_admin;
-  return user.is_rental_company || user.is_admin;
+  if (role === "dealer") return user.is_dealer;
+  return user.is_rental_company;
 }
 
 export default function AuthGate({

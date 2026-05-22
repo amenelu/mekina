@@ -59,9 +59,14 @@ class ProductionConfig(Config):
     SESSION_COOKIE_SECURE = True
 
 
+class StagingConfig(ProductionConfig):
+    """Staging should behave like production while using staging services."""
+
+
 config_by_name = {
     "development": DevelopmentConfig,
     "testing": TestingConfig,
+    "staging": StagingConfig,
     "production": ProductionConfig,
     "default": Config,
 }

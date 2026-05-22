@@ -29,15 +29,20 @@ def create_app(config_class=None):
     app.config.from_object(config_class)
     if os.environ.get("SECRET_KEY"):
         app.config["SECRET_KEY"] = os.environ["SECRET_KEY"]
+    deployed_config_classes = (
+        config_by_name["staging"],
+        config_by_name["production"],
+    )
+    is_deployed_config = config_class in deployed_config_classes
     if os.environ.get("DATABASE_URL") and (
-        not config_was_explicit or config_class is config_by_name["production"]
+        not config_was_explicit or is_deployed_config
     ):
         app.config["SQLALCHEMY_DATABASE_URI"] = _database_uri()
-    if config_class is config_by_name["production"]:
+    if is_deployed_config:
         missing = [name for name in REQUIRED_PRODUCTION_ENV if not os.environ.get(name)]
         if missing:
             raise RuntimeError(
-                "Missing required production environment variables: "
+                "Missing required deployment environment variables: "
                 + ", ".join(missing)
             )
 

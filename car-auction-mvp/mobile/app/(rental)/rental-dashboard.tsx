@@ -16,7 +16,7 @@ import { Ionicons } from "@expo/vector-icons";
 
 import { useAuth } from "@/hooks/useAuth";
 import VehicleCard from "@/components/_components/VehicleCard";
-import { PUBLIC_HOME_ROUTE } from "@/lib/roleRoutes";
+import { PUBLIC_HOME_ROUTE, RENTAL_ROUTES } from "@/lib/roleRoutes";
 import {
   useWebPullToRefresh,
   WebPullToRefreshIndicator,
@@ -323,7 +323,7 @@ export default function RentalDashboardScreen() {
                   <Text style={styles.headerButtonText}>Add Rental</Text>
                 </Pressable>
               </Link>
-              <Link href="/(rental)/points" asChild>
+              <Link href={RENTAL_ROUTES.points as any} asChild>
                 <Pressable style={styles.headerButton}>
                   <Ionicons
                     name="flash-outline"

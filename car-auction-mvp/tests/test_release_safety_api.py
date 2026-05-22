@@ -644,6 +644,47 @@ def test_dealer_dashboard_returns_release_payload_for_dealers(client):
     assert payload["requests"][0]["make"] == "Toyota"
 
 
+def test_dealer_advanced_analytics_locked_and_unlocked_states(client):
+    locked_dealer = create_user(
+        "analytics_locked",
+        "analytics-locked@example.com",
+        is_dealer=True,
+    )
+    unlocked_dealer = create_user(
+        "analytics_unlocked",
+        "analytics-unlocked@example.com",
+        is_dealer=True,
+    )
+    db.session.add(
+        PointTransaction(
+            user_id=unlocked_dealer.id,
+            amount=-5,
+            transaction_type="bid_fee",
+            description="Spent enough this week to unlock analytics.",
+        )
+    )
+    db.session.commit()
+
+    locked_response = client.get(
+        "/dealer/api/analytics/advanced",
+        headers=login_headers(client, locked_dealer.username),
+    )
+    assert locked_response.status_code == 200
+    locked_payload = locked_response.get_json()
+    assert locked_payload["is_locked"] is True
+    assert locked_payload["threshold_week"] == 5
+
+    unlocked_response = client.get(
+        "/dealer/api/analytics/advanced",
+        headers=login_headers(client, unlocked_dealer.username),
+    )
+    assert unlocked_response.status_code == 200
+    unlocked_payload = unlocked_response.get_json()
+    assert unlocked_payload["is_locked"] is False
+    assert "market_demand" in unlocked_payload
+    assert "inventory_performance" in unlocked_payload
+
+
 def test_buyer_request_limit_endpoint_blocks_when_daily_limit_reached(client):
     buyer = create_user("limit_buyer", "limit-buyer@example.com")
     for index in range(3):

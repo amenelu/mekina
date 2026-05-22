@@ -148,7 +148,7 @@ const AdminDashboardScreen = () => {
       setPendingTradeIns(response.data.pending_trade_ins);
     } catch (err) {
       setError("Failed to fetch dashboard data.");
-      console.error(err);
+      console.error("Failed to fetch admin dashboard data:", err);
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -173,7 +173,7 @@ const AdminDashboardScreen = () => {
       fetchData();
     } catch (err) {
       Alert.alert("Error", "Failed to approve listing.");
-      console.error(err);
+      console.error("Failed to approve listing:", err);
     }
   };
 

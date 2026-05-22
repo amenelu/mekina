@@ -11,6 +11,7 @@ import {
 } from "react-native";
 import { useSocket } from "../../contexts/SocketContext";
 import { useAuth } from "@/hooks/useAuth";
+import { getPostLoginRoute } from "@/lib/roleRoutes";
 
 const COLORS = {
   background: "#14181F",
@@ -61,9 +62,18 @@ export default function TabsLayout() {
   const pathname = usePathname();
   const router = useRouter();
   const { unreadNotificationCount } = useSocket();
-  const { user } = useAuth();
+  const { user, hasHydrated } = useAuth();
 
   const isTabBarVisible = !pathname.startsWith("/request/");
+
+  useEffect(() => {
+    if (
+      hasHydrated &&
+      (user?.is_admin || user?.is_dealer || user?.is_rental_company)
+    ) {
+      router.replace(getPostLoginRoute(user) as any);
+    }
+  }, [hasHydrated, router, user]);
 
   return (
     <Tabs

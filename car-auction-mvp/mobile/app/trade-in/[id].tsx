@@ -138,7 +138,6 @@ const TradeInRequestDetailScreen = () => {
       console.error("Error fetching trade-in details:", error);
       const msg =
         error.response?.data?.message || "Failed to load trade-in details.";
-      console.log("Server Error Message:", msg);
       Alert.alert("Error", msg);
     } finally {
       setLoading(false);

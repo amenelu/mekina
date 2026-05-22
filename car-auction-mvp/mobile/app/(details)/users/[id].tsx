@@ -49,7 +49,6 @@ const fetchUser = async (id: string, token: string | null): Promise<User> => {
   if (!token) {
     throw new Error("Authentication token not found.");
   }
-  console.log(`Fetching user with id: ${id}`);
   const response = await getAdminUser(id);
   return response.data.user;
 };
