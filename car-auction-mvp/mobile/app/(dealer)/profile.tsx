@@ -107,6 +107,7 @@ const ProfileScreen = () => {
   const { logout, user, token } = useAuth();
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [showPasswordForm, setShowPasswordForm] = useState(false);
   const isWideWeb = Platform.OS === "web" && width >= 1000;
   const [profileData, setProfileData] = useState<{
     dealer: DealerProfile;
@@ -116,19 +117,22 @@ const ProfileScreen = () => {
     review_count: number;
   } | null>(null);
 
-  const fetchProfile = useCallback(async (isRefresh = false) => {
-    if (!user?.id || !token) return;
-    if (!isRefresh) setLoading(true);
-    try {
-      const response = await getDealerProfile(user.id);
-      setProfileData(response.data);
-    } catch (error) {
-      console.error("Failed to fetch dealer profile:", error);
-    } finally {
-      setLoading(false);
-      if (isRefresh) setRefreshing(false);
-    }
-  }, [token, user?.id]);
+  const fetchProfile = useCallback(
+    async (isRefresh = false) => {
+      if (!user?.id || !token) return;
+      if (!isRefresh) setLoading(true);
+      try {
+        const response = await getDealerProfile(user.id);
+        setProfileData(response.data);
+      } catch (error) {
+        console.error("Failed to fetch dealer profile:", error);
+      } finally {
+        setLoading(false);
+        if (isRefresh) setRefreshing(false);
+      }
+    },
+    [token, user?.id],
+  );
 
   useEffect(() => {
     fetchProfile();
@@ -207,10 +211,6 @@ const ProfileScreen = () => {
             </View>
 
             <View style={styles.section}>
-              <ChangePasswordCard />
-            </View>
-
-            <View style={styles.section}>
               <Text style={styles.sectionTitle}>Your Active Listings</Text>
               <SectionList
                 data={profileData.listings}
@@ -254,6 +254,47 @@ const ProfileScreen = () => {
                 renderItem={(item) => <ReviewItem key={item.id} item={item} />}
               />
             </View>
+
+            {showPasswordForm ? (
+              <View style={styles.section}>
+                <View
+                  style={{
+                    flexDirection: "row",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                    marginBottom: 15,
+                  }}
+                >
+                  <Text style={styles.sectionTitle}>Update Password</Text>
+                  <Pressable onPress={() => setShowPasswordForm(false)}>
+                    <Text
+                      style={{ color: COLORS.destructive, fontWeight: "600" }}
+                    >
+                      Cancel
+                    </Text>
+                  </Pressable>
+                </View>
+                <ChangePasswordCard />
+              </View>
+            ) : (
+              <View style={styles.section}>
+                <Pressable
+                  style={{
+                    padding: 15,
+                    backgroundColor: COLORS.card,
+                    borderRadius: 12,
+                    alignItems: "center",
+                    borderWidth: 1,
+                    borderColor: COLORS.border,
+                  }}
+                  onPress={() => setShowPasswordForm(true)}
+                >
+                  <Text style={{ color: COLORS.accent, fontWeight: "600" }}>
+                    Change Password
+                  </Text>
+                </Pressable>
+              </View>
+            )}
           </View>
         )}
       </ScrollView>

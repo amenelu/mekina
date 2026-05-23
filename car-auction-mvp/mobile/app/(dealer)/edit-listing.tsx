@@ -89,7 +89,6 @@ const EditListingScreen = () => {
   const { width } = useWindowDimensions();
   const isWideWeb = Platform.OS === "web" && width >= 1000;
   const galleryWidth = isWideWeb ? Math.min(width - 56, 1120) : width;
-  const carouselRef = useRef<FlatList<GalleryImage>>(null);
   const resolvedReturnTo = Array.isArray(returnTo) ? returnTo[0] : returnTo;
 
   const handleExit = () => {
@@ -130,11 +129,11 @@ const EditListingScreen = () => {
         } else {
           resolvedGallery = [
             resolveImageUrl(car.primary_image_url),
-            ...((car.image_urls || []).map((uri) => resolveImageUrl(uri))),
+            ...(car.image_urls || []).map((uri) => resolveImageUrl(uri)),
           ]
             .filter(
               (uri, index, self): uri is string =>
-                Boolean(uri) && self.indexOf(uri) === index
+                Boolean(uri) && self.indexOf(uri) === index,
             )
             .map((uri, index) => ({ uri, isPrimary: index === 0 }));
         }
@@ -142,11 +141,14 @@ const EditListingScreen = () => {
         setGalleryImages(resolvedGallery);
 
         const primaryIndexFromImages = resolvedGallery.findIndex(
-          (img) => img.isPrimary
+          (img) => img.isPrimary,
         );
         const initialIndex =
           primaryIndexFromImages >= 0
-            ? Math.min(primaryIndexFromImages, Math.max(0, resolvedGallery.length - 1))
+            ? Math.min(
+                primaryIndexFromImages,
+                Math.max(0, resolvedGallery.length - 1),
+              )
             : 0;
         setSelectedImageIndex(initialIndex);
       } catch (error) {
@@ -178,7 +180,7 @@ const EditListingScreen = () => {
       showNativeFlowAlert(
         "Success",
         response.data.message || "Listing updated successfully.",
-        handleExit
+        handleExit,
       );
     } catch (error: any) {
       const message =
@@ -206,35 +208,17 @@ const EditListingScreen = () => {
       <ScrollView>
         <View style={styles.gallerySection}>
           {activeImage ? (
-            <FlatList
-              ref={carouselRef}
-              data={galleryImages}
-              horizontal
-              pagingEnabled
-              showsHorizontalScrollIndicator={false}
-              keyExtractor={(item, index) => `edit-image-${index}-${item.uri}`}
-              initialScrollIndex={Math.max(0, selectedImageIndex)}
-              getItemLayout={(_, index) => ({
-                length: galleryWidth,
-                offset: galleryWidth * index,
-                index,
-              })}
-              onMomentumScrollEnd={(event) => {
-                const nextIndex = Math.round(
-                  event.nativeEvent.contentOffset.x / galleryWidth
-                );
-                setSelectedImageIndex(nextIndex);
-              }}
-              renderItem={({ item }) => (
-                <Image
-                  source={{ uri: item.uri }}
-                  style={[styles.headerImage, { width: galleryWidth }]}
-                />
-              )}
+            <Image
+              source={{ uri: activeImage.uri }}
+              style={[styles.headerImage, { width: galleryWidth }]}
             />
           ) : (
             <View style={[styles.headerImage, styles.headerImageFallback]}>
-              <Ionicons name="image-outline" size={36} color={COLORS.textSecondary} />
+              <Ionicons
+                name="image-outline"
+                size={36}
+                color={COLORS.textSecondary}
+              />
             </View>
           )}
 
@@ -270,7 +254,6 @@ const EditListingScreen = () => {
                   style={styles.thumbnailButton}
                   onPress={() => {
                     setSelectedImageIndex(index);
-                    carouselRef.current?.scrollToIndex({ index, animated: true });
                   }}
                 >
                   <Image

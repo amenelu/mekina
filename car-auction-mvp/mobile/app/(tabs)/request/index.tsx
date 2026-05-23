@@ -260,8 +260,10 @@ const styles = StyleSheet.create({
     marginBottom: 38,
   },
   optionsContainer: {
+    width: "100%",
     gap: 15,
     alignItems: "center",
+    justifyContent: "center",
   },
   optionsContainerWide: {
     flexDirection: "row",
@@ -344,13 +346,12 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     borderWidth: 2,
     borderColor: COLORS.border,
-    flex: 0,
-    width: "100%",
+    flex: Platform.OS === "web" ? 0 : 0,
+    width: Platform.OS === "web" ? 300 : "100%",
     maxWidth: 340,
     alignItems: "center",
     justifyContent: "center",
     minHeight: 110,
-    alignSelf: "center",
   },
   disabledButton: {
     opacity: 0.55,
