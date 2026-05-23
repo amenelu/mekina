@@ -63,6 +63,7 @@ export default function RentalProfileScreen() {
   const { token, logout, isLoading } = useAuth() as any;
   const [payload, setPayload] = useState<ProfilePayload | null>(null);
   const [loading, setLoading] = useState(true);
+  const [showPasswordForm, setShowPasswordForm] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
 
   useEffect(() => {
@@ -71,17 +72,20 @@ export default function RentalProfileScreen() {
     }
   }, [isLoading, token]);
 
-  const fetchProfile = useCallback(async (isRefresh = false) => {
-    if (!token) return;
-    if (!isRefresh) setLoading(true);
-    try {
-      const response = await getRentalDashboard();
-      setPayload(response.data);
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-    }
-  }, [token]);
+  const fetchProfile = useCallback(
+    async (isRefresh = false) => {
+      if (!token) return;
+      if (!isRefresh) setLoading(true);
+      try {
+        const response = await getRentalDashboard();
+        setPayload(response.data);
+      } finally {
+        setLoading(false);
+        setRefreshing(false);
+      }
+    },
+    [token],
+  );
 
   useEffect(() => {
     fetchProfile();
@@ -126,116 +130,161 @@ export default function RentalProfileScreen() {
             )
           }
         >
-        <WebPullToRefreshIndicator
-          pullDistance={pullToRefresh.pullDistance}
-          readyToRefresh={pullToRefresh.readyToRefresh}
-          refreshing={refreshing}
-        />
-        <View style={styles.pageShell}>
-          <View style={styles.header}>
-            <Text style={styles.headerTitle}>Rental Company</Text>
-            <Pressable
-              onPress={() => {
-                logout();
-                router.replace("/" as any);
-              }}
-            >
-              <Ionicons
-                name="log-out-outline"
-                size={28}
-                color={COLORS.destructive}
-              />
-            </Pressable>
-          </View>
+          <WebPullToRefreshIndicator
+            pullDistance={pullToRefresh.pullDistance}
+            readyToRefresh={pullToRefresh.readyToRefresh}
+            refreshing={refreshing}
+          />
+          <View style={styles.pageShell}>
+            <View style={styles.header}>
+              <Text style={styles.headerTitle}>Rental Company</Text>
+              <Pressable
+                onPress={() => {
+                  logout();
+                  router.replace("/" as any);
+                }}
+              >
+                <Ionicons
+                  name="log-out-outline"
+                  size={28}
+                  color={COLORS.destructive}
+                />
+              </Pressable>
+            </View>
 
-          {profile && (
-            <View style={styles.profileCard}>
-              <View style={styles.avatar}>
-                <Text style={styles.avatarText}>
-                  {profile.username[0].toUpperCase()}
+            {profile && (
+              <View style={styles.profileCard}>
+                <View style={styles.avatar}>
+                  <Text style={styles.avatarText}>
+                    {profile.username[0].toUpperCase()}
+                  </Text>
+                </View>
+                <Text style={styles.name}>
+                  {profile.username}{" "}
+                  {profile.is_verified ? (
+                    <Ionicons
+                      name="checkmark-circle"
+                      size={20}
+                      color={COLORS.accent}
+                    />
+                  ) : null}
                 </Text>
-              </View>
-              <Text style={styles.name}>
-                {profile.username}{" "}
-                {profile.is_verified ? (
-                  <Ionicons
-                    name="checkmark-circle"
-                    size={20}
-                    color={COLORS.accent}
-                  />
+                <Text style={styles.contact}>{profile.email}</Text>
+                {profile.phone_number ? (
+                  <Text style={styles.contact}>{profile.phone_number}</Text>
                 ) : null}
-              </Text>
-              <Text style={styles.contact}>{profile.email}</Text>
-              {profile.phone_number ? (
-                <Text style={styles.contact}>{profile.phone_number}</Text>
+              </View>
+            )}
+
+            {showPasswordForm ? (
+              <View style={styles.passwordCardShell}>
+                <View
+                  style={{
+                    flexDirection: "row",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                    marginBottom: 10,
+                  }}
+                >
+                  <Text
+                    style={{
+                      color: COLORS.text,
+                      fontSize: 18,
+                      fontWeight: "bold",
+                    }}
+                  >
+                    Update Password
+                  </Text>
+                  <Pressable onPress={() => setShowPasswordForm(false)}>
+                    <Text
+                      style={{ color: COLORS.destructive, fontWeight: "600" }}
+                    >
+                      Cancel
+                    </Text>
+                  </Pressable>
+                </View>
+                <ChangePasswordCard />
+              </View>
+            ) : (
+              <Pressable
+                style={{
+                  marginHorizontal: 20,
+                  marginBottom: 20,
+                  padding: 15,
+                  backgroundColor: COLORS.card,
+                  borderRadius: 12,
+                  alignItems: "center",
+                  borderWidth: 1,
+                  borderColor: COLORS.border,
+                }}
+                onPress={() => setShowPasswordForm(true)}
+              >
+                <Text style={{ color: COLORS.accent, fontWeight: "600" }}>
+                  Change Password
+                </Text>
+              </Pressable>
+            )}
+
+            <View style={styles.statsRow}>
+              <View style={styles.statPill}>
+                <Text style={styles.statPillValue}>
+                  {payload?.stats?.total_fleet_count ?? 0}
+                </Text>
+                <Text style={styles.statPillLabel}>Total</Text>
+              </View>
+              <View style={styles.statPill}>
+                <Text style={styles.statPillValue}>
+                  {payload?.stats?.active_fleet_count ?? 0}
+                </Text>
+                <Text style={styles.statPillLabel}>Active</Text>
+              </View>
+              <View style={styles.statPill}>
+                <Text style={styles.statPillValue}>
+                  {payload?.stats?.pending_approval_count ?? 0}
+                </Text>
+                <Text style={styles.statPillLabel}>Pending</Text>
+              </View>
+            </View>
+
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>Fleet Overview</Text>
+              <Link href={RENTAL_ROUTES.addRental as any} asChild>
+                <Pressable>
+                  <Text style={styles.sectionLink}>Add Rental</Text>
+                </Pressable>
+              </Link>
+            </View>
+
+            <View style={styles.listSection}>
+              {(payload?.my_cars ?? []).map((car) => (
+                <VehicleCard
+                  key={car.id}
+                  item={{
+                    id: car.id.toString(),
+                    year: car.year,
+                    make: car.make,
+                    model: car.model,
+                    mileage: car.mileage ?? 0,
+                    price: car.price_display || "N/A",
+                    image: car.primary_image_url || "",
+                    listingType: "Rental",
+                  }}
+                  onPress={() =>
+                    router.push({
+                      pathname: RENTAL_ROUTES.manageRental as any,
+                      params: { id: car.id.toString() },
+                    })
+                  }
+                  style={{ width: "100%" }}
+                />
+              ))}
+              {(payload?.my_cars ?? []).length === 0 ? (
+                <View style={styles.emptyCard}>
+                  <Text style={styles.emptyText}>No rentals added yet.</Text>
+                </View>
               ) : null}
             </View>
-          )}
-
-          <View style={styles.passwordCardShell}>
-            <ChangePasswordCard />
           </View>
-
-          <View style={styles.statsRow}>
-            <View style={styles.statPill}>
-              <Text style={styles.statPillValue}>
-                {payload?.stats?.total_fleet_count ?? 0}
-              </Text>
-              <Text style={styles.statPillLabel}>Total</Text>
-            </View>
-            <View style={styles.statPill}>
-              <Text style={styles.statPillValue}>
-                {payload?.stats?.active_fleet_count ?? 0}
-              </Text>
-              <Text style={styles.statPillLabel}>Active</Text>
-            </View>
-            <View style={styles.statPill}>
-              <Text style={styles.statPillValue}>
-                {payload?.stats?.pending_approval_count ?? 0}
-              </Text>
-              <Text style={styles.statPillLabel}>Pending</Text>
-            </View>
-          </View>
-
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Fleet Overview</Text>
-            <Link href={RENTAL_ROUTES.addRental as any} asChild>
-              <Pressable>
-                <Text style={styles.sectionLink}>Add Rental</Text>
-              </Pressable>
-            </Link>
-          </View>
-
-          <View style={styles.listSection}>
-            {(payload?.my_cars ?? []).map((car) => (
-              <VehicleCard
-                key={car.id}
-                item={{
-                  id: car.id.toString(),
-                  year: car.year,
-                  make: car.make,
-                  model: car.model,
-                  mileage: car.mileage ?? 0,
-                  price: car.price_display || "N/A",
-                  image: car.primary_image_url || "",
-                  listingType: "Rental",
-                }}
-                onPress={() =>
-                  router.push({
-                    pathname: RENTAL_ROUTES.manageRental as any,
-                    params: { id: car.id.toString() },
-                  })
-                }
-                style={{ width: "100%" }}
-              />
-            ))}
-            {(payload?.my_cars ?? []).length === 0 ? (
-              <View style={styles.emptyCard}>
-                <Text style={styles.emptyText}>No rentals added yet.</Text>
-              </View>
-            ) : null}
-          </View>
-        </View>
         </ScrollView>
       </View>
     </SafeAreaView>
@@ -324,5 +373,9 @@ const styles = StyleSheet.create({
     paddingVertical: 28,
     paddingHorizontal: 18,
   },
-  emptyText: { color: COLORS.textSecondary, textAlign: "center", marginTop: 20 },
+  emptyText: {
+    color: COLORS.textSecondary,
+    textAlign: "center",
+    marginTop: 20,
+  },
 });

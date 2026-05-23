@@ -35,50 +35,54 @@ const ProfileScreen = () => {
   const router = useRouter();
   const { width } = useWindowDimensions();
   const [activeTab, setActiveTab] = useState<"favorites" | "settings">(
-    "favorites"
+    "favorites",
   );
+  const [showPasswordForm, setShowPasswordForm] = useState(false);
   const [favorites, setFavorites] = useState<Vehicle[]>([]);
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const isWideWeb = Platform.OS === "web" && width >= 1000;
 
-  const fetchFavorites = useCallback(async (isRefresh = false) => {
-    if (!token) return;
-    if (!isRefresh) setLoading(true);
-    try {
-      const response = await getUserFavorites();
+  const fetchFavorites = useCallback(
+    async (isRefresh = false) => {
+      if (!token) return;
+      if (!isRefresh) setLoading(true);
+      try {
+        const response = await getUserFavorites();
 
-      const data = response.data.favorites || response.data;
-      const list = Array.isArray(data) ? data : [];
+        const data = response.data.favorites || response.data;
+        const list = Array.isArray(data) ? data : [];
 
-      const formattedCars: Vehicle[] = list.map((item: any) => ({
-        id: item.id.toString(),
-        year: item.year,
-        make: item.make,
-        model: item.model,
-        price: item.price_display || "N/A",
-        image: item.primary_image_url || item.image_url || "",
-        mileage: item.mileage || 0,
-        listingType: item.listing_type
-          ? item.listing_type.charAt(0).toUpperCase() +
-            item.listing_type.slice(1)
-          : "Sale",
-      }));
-      setFavorites(formattedCars);
-    } catch (error) {
-      console.error("Failed to fetch favorites:", error);
-    } finally {
-      setLoading(false);
-      if (isRefresh) setRefreshing(false);
-    }
-  }, [token]);
+        const formattedCars: Vehicle[] = list.map((item: any) => ({
+          id: item.id.toString(),
+          year: item.year,
+          make: item.make,
+          model: item.model,
+          price: item.price_display || "N/A",
+          image: item.primary_image_url || item.image_url || "",
+          mileage: item.mileage || 0,
+          listingType: item.listing_type
+            ? item.listing_type.charAt(0).toUpperCase() +
+              item.listing_type.slice(1)
+            : "Sale",
+        }));
+        setFavorites(formattedCars);
+      } catch (error) {
+        console.error("Failed to fetch favorites:", error);
+      } finally {
+        setLoading(false);
+        if (isRefresh) setRefreshing(false);
+      }
+    },
+    [token],
+  );
 
   useFocusEffect(
     useCallback(() => {
       if (token && activeTab === "favorites") {
         fetchFavorites();
       }
-    }, [activeTab, fetchFavorites, token])
+    }, [activeTab, fetchFavorites, token]),
   );
 
   const onRefresh = () => {
@@ -105,7 +109,7 @@ const ProfileScreen = () => {
             }
           },
         },
-      ]
+      ],
     );
   };
 
@@ -148,8 +152,59 @@ const ProfileScreen = () => {
           showsVerticalScrollIndicator={false}
         >
           <View style={styles.settingsContainer}>
-            <ChangePasswordCard />
-            <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
+            {showPasswordForm ? (
+              <View style={{ width: "100%", marginBottom: 20 }}>
+                <View
+                  style={{
+                    flexDirection: "row",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                    marginBottom: 15,
+                  }}
+                >
+                  <Text
+                    style={{
+                      color: COLORS.foreground,
+                      fontSize: 18,
+                      fontWeight: "bold",
+                    }}
+                  >
+                    Update Password
+                  </Text>
+                  <TouchableOpacity onPress={() => setShowPasswordForm(false)}>
+                    <Text
+                      style={{ color: COLORS.destructive, fontWeight: "600" }}
+                    >
+                      Cancel
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+                <ChangePasswordCard />
+              </View>
+            ) : (
+              <TouchableOpacity
+                style={[
+                  styles.logoutButton,
+                  {
+                    backgroundColor: COLORS.card,
+                    borderWidth: 1,
+                    borderColor: COLORS.border,
+                    marginBottom: 15,
+                  },
+                ]}
+                onPress={() => setShowPasswordForm(true)}
+              >
+                <Text
+                  style={[styles.logoutButtonText, { color: COLORS.accent }]}
+                >
+                  Change Password
+                </Text>
+              </TouchableOpacity>
+            )}
+            <TouchableOpacity
+              style={styles.logoutButton}
+              onPress={handleLogout}
+            >
               <Text style={styles.logoutButtonText}>Logout</Text>
             </TouchableOpacity>
           </View>

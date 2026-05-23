@@ -86,6 +86,7 @@ const UserDetailsPage: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [isResettingPassword, setIsResettingPassword] = useState(false);
+  const [showPasswordSection, setShowPasswordSection] = useState(false);
   const [temporaryPassword, setTemporaryPassword] = useState("");
   const [editedUser, setEditedUser] = useState<User | null>(null);
 
@@ -305,35 +306,71 @@ const UserDetailsPage: React.FC = () => {
         </Text>
       </Pressable>
 
-      <View style={styles.card}>
-        <Text style={styles.cardTitle}>Password Help</Text>
-        <Text style={styles.helpText}>
-          Generate a temporary password if this user cannot receive reset
-          emails. Share it through a trusted channel.
-        </Text>
-        {temporaryPassword ? (
-          <View style={styles.temporaryPasswordBox}>
-            <Text style={styles.temporaryPasswordLabel}>
-              Temporary Password
-            </Text>
-            <Text selectable style={styles.temporaryPassword}>
-              {temporaryPassword}
-            </Text>
+      {!showPasswordSection ? (
+        <Pressable
+          style={[styles.button, styles.resetPasswordButton]}
+          onPress={() => setShowPasswordSection(true)}
+        >
+          <Text style={styles.buttonText}>Reset User Password</Text>
+        </Pressable>
+      ) : (
+        <View style={styles.card}>
+          <View
+            style={{
+              flexDirection: "row",
+              justifyContent: "space-between",
+              alignItems: "center",
+              marginBottom: 10,
+            }}
+          >
+            <Text style={styles.cardTitle}>Password Reset Tool</Text>
+            <Pressable
+              onPress={() => {
+                setShowPasswordSection(false);
+                setTemporaryPassword("");
+              }}
+            >
+              <Text style={{ color: "#FF4444", fontWeight: "600" }}>
+                Cancel
+              </Text>
+            </Pressable>
           </View>
-        ) : null}
-      </View>
 
-      <Pressable
-        style={[styles.button, styles.resetPasswordButton]}
-        onPress={handleResetPassword}
-        disabled={isResettingPassword}
-      >
-        <Text style={styles.buttonText}>
-          {isResettingPassword
-            ? "Generating..."
-            : "Generate Temporary Password"}
-        </Text>
-      </Pressable>
+          <View>
+            <Text style={styles.helpText}>
+              Generate a temporary password if this user cannot receive reset
+              emails. The current password will stop working immediately.
+            </Text>
+
+            {temporaryPassword ? (
+              <View style={styles.temporaryPasswordBox}>
+                <Text style={styles.temporaryPasswordLabel}>
+                  Temporary Password
+                </Text>
+                <Text selectable style={styles.temporaryPassword}>
+                  {temporaryPassword}
+                </Text>
+              </View>
+            ) : (
+              <Pressable
+                style={[
+                  styles.button,
+                  styles.resetPasswordButton,
+                  { marginHorizontal: 0, marginTop: 15 },
+                ]}
+                onPress={handleResetPassword}
+                disabled={isResettingPassword}
+              >
+                <Text style={styles.buttonText}>
+                  {isResettingPassword
+                    ? "Generating..."
+                    : "Generate Temporary Password"}
+                </Text>
+              </Pressable>
+            )}
+          </View>
+        </View>
+      )}
 
       <Pressable
         style={[styles.button, styles.deleteButton]}
