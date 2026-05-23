@@ -15,6 +15,7 @@ import { useAuth } from "@/hooks/useAuth";
 import {
   deleteAdminUser,
   getAdminUser,
+  resetAdminUserPassword,
   updateAdminUser,
 } from "@/lib/api/admin";
 import {
@@ -62,7 +63,7 @@ const fetchUser = async (id: string, token: string | null): Promise<User> => {
 const updateUser = async (
   id: string,
   data: Partial<User>,
-  token: string | null
+  token: string | null,
 ) => {
   if (!token) throw new Error("Authentication token not found.");
   await updateAdminUser(id, data);
@@ -84,6 +85,8 @@ const UserDetailsPage: React.FC = () => {
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
+  const [isResettingPassword, setIsResettingPassword] = useState(false);
+  const [temporaryPassword, setTemporaryPassword] = useState("");
   const [editedUser, setEditedUser] = useState<User | null>(null);
 
   const goBackToUsers = () => {
@@ -127,7 +130,7 @@ const UserDetailsPage: React.FC = () => {
 
   const handleValueChange = (
     field: keyof User,
-    value: string | boolean | number
+    value: string | boolean | number,
   ) => {
     if (editedUser) {
       const newUserState = { ...editedUser, [field]: value };
@@ -155,7 +158,11 @@ const UserDetailsPage: React.FC = () => {
     try {
       await updateUser(id, editedUser, token);
       setUser(editedUser); // Update the main user state
-      showNativeFlowAlert("Success", "User updated successfully.", goBackToUsers);
+      showNativeFlowAlert(
+        "Success",
+        "User updated successfully.",
+        goBackToUsers,
+      );
     } catch (err: any) {
       const message = err.response?.data?.message || "Failed to update user.";
       Alert.alert("Error", message);
@@ -174,6 +181,36 @@ const UserDetailsPage: React.FC = () => {
       onConfirm: async () => {
         await deleteUser(id, token);
         showNativeFlowAlert("Success", "User has been deleted.", goBackToUsers);
+      },
+    });
+  };
+
+  const handleResetPassword = () => {
+    if (!id) return;
+    showNativeFlowConfirm({
+      title: "Reset Password",
+      message: `Generate a temporary password for ${user?.username}? The current password will stop working immediately.`,
+      confirmText: "Reset",
+      destructive: true,
+      onConfirm: async () => {
+        setIsResettingPassword(true);
+        try {
+          const response = await resetAdminUserPassword(id);
+          const nextPassword = response.data?.temporary_password || "";
+          setTemporaryPassword(nextPassword);
+          showNativeFlowAlert(
+            "Temporary Password",
+            nextPassword
+              ? `Temporary password: ${nextPassword}`
+              : "Temporary password generated.",
+          );
+        } catch (err: any) {
+          const message =
+            err.response?.data?.message || "Failed to reset user password.";
+          Alert.alert("Error", message);
+        } finally {
+          setIsResettingPassword(false);
+        }
       },
     });
   };
@@ -268,6 +305,36 @@ const UserDetailsPage: React.FC = () => {
         </Text>
       </Pressable>
 
+      <View style={styles.card}>
+        <Text style={styles.cardTitle}>Password Help</Text>
+        <Text style={styles.helpText}>
+          Generate a temporary password if this user cannot receive reset
+          emails. Share it through a trusted channel.
+        </Text>
+        {temporaryPassword ? (
+          <View style={styles.temporaryPasswordBox}>
+            <Text style={styles.temporaryPasswordLabel}>
+              Temporary Password
+            </Text>
+            <Text selectable style={styles.temporaryPassword}>
+              {temporaryPassword}
+            </Text>
+          </View>
+        ) : null}
+      </View>
+
+      <Pressable
+        style={[styles.button, styles.resetPasswordButton]}
+        onPress={handleResetPassword}
+        disabled={isResettingPassword}
+      >
+        <Text style={styles.buttonText}>
+          {isResettingPassword
+            ? "Generating..."
+            : "Generate Temporary Password"}
+        </Text>
+      </Pressable>
+
       <Pressable
         style={[styles.button, styles.deleteButton]}
         onPress={handleDeleteUser}
@@ -327,8 +394,30 @@ const styles = StyleSheet.create({
     marginTop: 16,
   },
   saveButton: { backgroundColor: "#A370F7" },
+  resetPasswordButton: { backgroundColor: "#0d6efd" },
   deleteButton: { backgroundColor: "#dc3545", marginBottom: 32 },
   buttonText: { color: "#fff", fontWeight: "bold", fontSize: 16 },
+  helpText: { color: "#8A94A3", fontSize: 14, lineHeight: 20 },
+  temporaryPasswordBox: {
+    backgroundColor: "#14181F",
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "#313843",
+    marginTop: 12,
+    padding: 12,
+  },
+  temporaryPasswordLabel: {
+    color: "#8A94A3",
+    fontSize: 12,
+    marginBottom: 6,
+    textTransform: "uppercase",
+  },
+  temporaryPassword: {
+    color: "#F8F8F8",
+    fontSize: 18,
+    fontWeight: "700",
+    letterSpacing: 1,
+  },
 });
 
 export default UserDetailsPage;

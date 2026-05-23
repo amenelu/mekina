@@ -18,6 +18,7 @@ import { useRouter, useFocusEffect } from "expo-router";
 import VehicleCard, { Vehicle } from "@/components/_components/VehicleCard";
 import { Ionicons } from "@expo/vector-icons";
 import { getUserFavorites, toggleFavorite } from "@/lib/api/listings";
+import ChangePasswordCard from "@/components/_components/ChangePasswordCard";
 
 const COLORS = {
   background: "#14181F",
@@ -147,6 +148,7 @@ const ProfileScreen = () => {
           showsVerticalScrollIndicator={false}
         >
           <View style={styles.settingsContainer}>
+            <ChangePasswordCard />
             <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
               <Text style={styles.logoutButtonText}>Logout</Text>
             </TouchableOpacity>

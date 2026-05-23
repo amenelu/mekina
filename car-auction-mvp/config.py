@@ -39,6 +39,17 @@ class Config:
 
     MAX_CONTENT_LENGTH = int(os.environ.get("MAX_CONTENT_LENGTH", 16 * 1024 * 1024))
     JWT_EXPIRATION_DAYS = int(os.environ.get("JWT_EXPIRATION_DAYS", 30))
+    PASSWORD_RESET_EXPIRATION_MINUTES = int(
+        os.environ.get("PASSWORD_RESET_EXPIRATION_MINUTES", 30)
+    )
+    PASSWORD_RESET_BASE_URL = os.environ.get("PASSWORD_RESET_BASE_URL")
+
+    SMTP_HOST = os.environ.get("SMTP_HOST")
+    SMTP_PORT = int(os.environ.get("SMTP_PORT", 587))
+    SMTP_USERNAME = os.environ.get("SMTP_USERNAME")
+    SMTP_PASSWORD = os.environ.get("SMTP_PASSWORD")
+    SMTP_FROM_EMAIL = os.environ.get("SMTP_FROM_EMAIL")
+    SMTP_USE_TLS = _env_bool("SMTP_USE_TLS", True)
 
     SESSION_COOKIE_HTTPONLY = True
     SESSION_COOKIE_SAMESITE = os.environ.get("SESSION_COOKIE_SAMESITE", "Lax")

@@ -32,6 +32,8 @@ from functools import wraps
 from flask_wtf import FlaskForm
 from wtforms import StringField, BooleanField, SubmitField, IntegerField
 from wtforms.validators import DataRequired, Email, Optional, NumberRange
+import secrets
+import string
 
 admin_bp = Blueprint("admin", __name__, url_prefix="/admin")
 
@@ -431,6 +433,51 @@ def api_manage_user(current_user, user_id):
         db.session.delete(user)
         db.session.commit()
         return jsonify({"status": "success", "message": "User deleted successfully."})
+
+
+def _generate_temporary_password(length=14):
+    alphabet = string.ascii_letters + string.digits
+    while True:
+        password = "".join(secrets.choice(alphabet) for _ in range(length))
+        if (
+            any(char.islower() for char in password)
+            and any(char.isupper() for char in password)
+            and any(char.isdigit() for char in password)
+        ):
+            return password
+
+
+@admin_bp.route("/api/users/<int:user_id>/password-reset", methods=["POST"])
+@admin_token_required
+def api_admin_reset_user_password(current_user, user_id):
+    """Admin-assisted password reset for users who cannot receive email."""
+    user = User.query.get_or_404(user_id)
+
+    if user.id == current_user.id:
+        return (
+            jsonify(
+                {
+                    "status": "error",
+                    "message": "You cannot reset your own password from this page.",
+                }
+            ),
+            403,
+        )
+
+    temporary_password = _generate_temporary_password()
+    user.set_password(temporary_password)
+    db.session.commit()
+
+    return jsonify(
+        {
+            "status": "success",
+            "message": (
+                "Temporary password generated. Share it with the user through a "
+                "trusted channel and ask them to change it after logging in."
+            ),
+            "temporary_password": temporary_password,
+        }
+    )
 
 
 # --- Dummy routes from your templates that need to exist ---

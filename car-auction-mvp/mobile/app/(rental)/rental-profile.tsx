@@ -15,6 +15,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 import { useAuth } from "@/hooks/useAuth";
 import VehicleCard from "@/components/_components/VehicleCard";
+import ChangePasswordCard from "@/components/_components/ChangePasswordCard";
 import { RENTAL_ROUTES } from "@/lib/roleRoutes";
 import {
   useWebPullToRefresh,
@@ -171,6 +172,10 @@ export default function RentalProfileScreen() {
             </View>
           )}
 
+          <View style={styles.passwordCardShell}>
+            <ChangePasswordCard />
+          </View>
+
           <View style={styles.statsRow}>
             <View style={styles.statPill}>
               <Text style={styles.statPillValue}>
@@ -277,6 +282,9 @@ const styles = StyleSheet.create({
     color: COLORS.textSecondary,
     fontSize: 15,
     marginTop: 6,
+  },
+  passwordCardShell: {
+    marginHorizontal: 20,
   },
   statsRow: {
     flexDirection: "row",

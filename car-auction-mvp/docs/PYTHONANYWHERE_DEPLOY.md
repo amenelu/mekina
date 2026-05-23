@@ -30,10 +30,26 @@ FLASK_DEBUG=false
 SECRET_KEY=<long-random-secret>
 DATABASE_URL=sqlite:////home/YOUR_PYTHONANYWHERE_USERNAME/mekina-data/database.db
 CORS_ALLOWED_ORIGINS=https://YOUR_CLOUDFLARE_PROJECT.pages.dev
+PASSWORD_RESET_BASE_URL=https://YOUR_CLOUDFLARE_PROJECT.pages.dev
+PASSWORD_RESET_EXPIRATION_MINUTES=30
 SESSION_COOKIE_SECURE=true
 SESSION_COOKIE_SAMESITE=Lax
 JWT_EXPIRATION_DAYS=30
 MAX_CONTENT_LENGTH=16777216
+```
+
+Password reset emails require SMTP settings. If SMTP is not configured, the
+backend logs the reset link, which is acceptable for staging but not for public
+production. In non-production, the API also reports that email delivery is not
+configured instead of pretending an email was sent.
+
+```env
+SMTP_HOST=
+SMTP_PORT=587
+SMTP_USERNAME=
+SMTP_PASSWORD=
+SMTP_FROM_EMAIL=
+SMTP_USE_TLS=true
 ```
 
 Create the persistent data folder:

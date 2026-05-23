@@ -174,6 +174,14 @@ export default function LoginScreen() {
               )}
             </TouchableOpacity>
 
+            <View style={styles.forgotPasswordContainer}>
+              <Link href="/forgot-password" asChild>
+                <TouchableOpacity>
+                  <Text style={styles.forgotPasswordText}>Forgot password?</Text>
+                </TouchableOpacity>
+              </Link>
+            </View>
+
             <View style={styles.registerContainer}>
               <Text style={styles.registerText}>
                 {"Don't have an account? "}
@@ -259,6 +267,15 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "center",
     marginTop: 24,
+  },
+  forgotPasswordContainer: {
+    alignItems: "center",
+    marginTop: 16,
+  },
+  forgotPasswordText: {
+    fontSize: 15,
+    color: "#0d6efd",
+    fontWeight: "600",
   },
   registerText: {
     fontSize: 16,

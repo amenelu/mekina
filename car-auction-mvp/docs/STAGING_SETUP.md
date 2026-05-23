@@ -27,6 +27,8 @@ FLASK_DEBUG=false
 SECRET_KEY=<strong-staging-secret>
 DATABASE_URL=sqlite:////persistent/mekina/database.db
 CORS_ALLOWED_ORIGINS=https://web-staging.example.com
+PASSWORD_RESET_BASE_URL=https://web-staging.example.com
+PASSWORD_RESET_EXPIRATION_MINUTES=30
 SESSION_COOKIE_SECURE=true
 SESSION_COOKIE_SAMESITE=Lax
 JWT_EXPIRATION_DAYS=30
@@ -36,6 +38,12 @@ MAX_CONTENT_LENGTH=16777216
 `APP_ENV=staging` uses the same deployment safety checks as production. The app
 will refuse to boot without `SECRET_KEY`, `DATABASE_URL`, and
 `CORS_ALLOWED_ORIGINS`.
+
+Password reset links are generated from `PASSWORD_RESET_BASE_URL`. Configure
+SMTP before public launch; without SMTP, reset links are written to backend logs
+for staging/debugging only. In non-production, the API reports that email
+delivery is not configured so the reset button does not silently pretend an
+email was sent.
 
 The SQLite path must point to a persistent backend disk. Do not keep the staging
 database only inside an ephemeral deploy directory.

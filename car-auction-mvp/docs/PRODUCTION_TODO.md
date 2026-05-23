@@ -183,6 +183,9 @@ Verification note: browser checks passed for pinned tab/header visibility after 
 - [x] Configure staging secret values outside git.
 - [ ] Verify staging HTTPS.
 - [ ] Verify Socket.IO works on staging if notifications/chat require it.
+- [ ] Configure SMTP for public password reset emails before production.
+- [x] Add admin-assisted password reset fallback for no-SMTP launch.
+- [x] Add user change-password flow in buyer, dealer, and rental profiles.
 
 Staging prep note: repo-level staging support is implemented in `config.py`, `app.py`, `.env.example`, and `docs/STAGING_SETUP.md`. The remaining unchecked items require an actual staging provider, domain, database, and persistent upload storage.
 

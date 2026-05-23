@@ -62,6 +62,10 @@ export function deleteAdminUser(userId: string | number) {
   return apiClient.delete(`/admin/api/users/${userId}`);
 }
 
+export function resetAdminUserPassword(userId: string | number) {
+  return apiClient.post(`/admin/api/users/${userId}/password-reset`);
+}
+
 export function getAdminListing(carId: string | number) {
   return apiClient.get(`/admin/api/listings/${carId}`);
 }

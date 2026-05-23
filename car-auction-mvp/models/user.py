@@ -35,6 +35,12 @@ class User(UserMixin, db.Model):
         back_populates="dealer",
         lazy="dynamic",
     )
+    password_reset_tokens = db.relationship(
+        "PasswordResetToken",
+        back_populates="user",
+        lazy="dynamic",
+        cascade="all, delete-orphan",
+    )
 
     def set_password(self, password):
         self.password_hash = generate_password_hash(password)

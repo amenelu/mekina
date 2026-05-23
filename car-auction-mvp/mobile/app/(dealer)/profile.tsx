@@ -17,6 +17,7 @@ import { Ionicons } from "@expo/vector-icons";
 import VehicleCard from "@/components/_components/VehicleCard";
 import { DEALER_ROUTES, PUBLIC_HOME_ROUTE } from "@/lib/roleRoutes";
 import { getDealerProfile } from "@/lib/api/dealer";
+import ChangePasswordCard from "@/components/_components/ChangePasswordCard";
 
 const COLORS = {
   background: "#14181F",
@@ -203,6 +204,10 @@ const ProfileScreen = () => {
                   {profileData.review_count} reviews)
                 </Text>
               </View>
+            </View>
+
+            <View style={styles.section}>
+              <ChangePasswordCard />
             </View>
 
             <View style={styles.section}>
