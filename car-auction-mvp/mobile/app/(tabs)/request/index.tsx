@@ -93,7 +93,7 @@ const RequestChoiceScreen = () => {
             showNativeFlowAlert(
               "Daily Limit Reached",
               response.data.message ||
-                "You have reached the daily limit of 3 requests. Please try again later."
+                "You have reached the daily limit of 3 requests. Please try again later.",
             );
           }
         })
@@ -116,106 +116,115 @@ const RequestChoiceScreen = () => {
       return () => {
         isActive = false;
       };
-    }, [navigation, userId])
+    }, [navigation, userId]),
   );
 
-  const navigateIfAllowed = (href: string, params?: Record<string, unknown>) => {
+  const navigateIfAllowed = (
+    href: string,
+    params?: Record<string, unknown>,
+  ) => {
     if (checkingLimit) return;
     if (!canCreateRequest) {
       showNativeFlowAlert(
         "Daily Limit Reached",
         limitMessage ||
-          "You have reached the daily limit of 3 requests. Please try again later."
+          "You have reached the daily limit of 3 requests. Please try again later.",
       );
       return;
     }
 
-    router.push(params ? ({ pathname: href as any, params } as any) : (href as any));
+    router.push(
+      params ? ({ pathname: href as any, params } as any) : (href as any),
+    );
   };
 
   return (
     <View style={[styles.container, isWideWeb && styles.containerWide]}>
       <Stack.Screen options={{ title: "Let's Find Your Next Car" }} />
       <View style={[styles.pageShell, isWideWeb && styles.pageShellWide]}>
-      <Text style={[styles.title, isWideWeb && styles.titleWide]}>
-        Do you know which car you want?
-      </Text>
-      {checkingLimit && (
-        <View style={styles.limitCard}>
-          <ActivityIndicator color={COLORS.accent} />
-          <Text style={styles.limitText}>Checking your daily request limit...</Text>
-        </View>
-      )}
-      {!checkingLimit && !canCreateRequest && (
-        <View style={styles.limitCard}>
-          <Text style={styles.limitTitle}>Daily Limit Reached</Text>
-          <Text style={styles.limitText}>
-            {limitMessage ||
-              "You have reached the daily limit of 3 requests. Please try again later."}
-          </Text>
-        </View>
-      )}
-      {savedDraft && (
-        <View style={styles.savedDraftCard}>
-          <Text style={styles.savedDraftTitle}>Continue your saved request</Text>
-          <Text style={styles.savedDraftSubtitle}>
-            Pick up where you left off in the find-a-car flow.
-          </Text>
-          <View style={styles.savedDraftActions}>
-            <TouchableOpacity
-              testID="saved-request-continue"
-              style={[
-                styles.resumeButton,
-                (!canCreateRequest || checkingLimit) && styles.disabledButton,
-              ]}
-              disabled={!canCreateRequest || checkingLimit}
-              onPress={() =>
-                navigateIfAllowed(savedDraft.pathname, savedDraft.params)
-              }
-            >
-              <Text style={styles.resumeButtonText}>Continue</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              testID="saved-request-discard"
-              style={styles.discardButton}
-              onPress={async () => {
-                await clearRequestDraft(userId);
-                setSavedDraft(null);
-              }}
-            >
-              <Text style={styles.discardButtonText}>Discard</Text>
-            </TouchableOpacity>
+        <Text style={[styles.title, isWideWeb && styles.titleWide]}>
+          Do you know which car you want?
+        </Text>
+        {checkingLimit && (
+          <View style={styles.limitCard}>
+            <ActivityIndicator color={COLORS.accent} />
+            <Text style={styles.limitText}>
+              Checking your daily request limit...
+            </Text>
           </View>
+        )}
+        {!checkingLimit && !canCreateRequest && (
+          <View style={styles.limitCard}>
+            <Text style={styles.limitTitle}>Daily Limit Reached</Text>
+            <Text style={styles.limitText}>
+              {limitMessage ||
+                "You have reached the daily limit of 3 requests. Please try again later."}
+            </Text>
+          </View>
+        )}
+        {savedDraft && (
+          <View style={styles.savedDraftCard}>
+            <Text style={styles.savedDraftTitle}>
+              Continue your saved request
+            </Text>
+            <Text style={styles.savedDraftSubtitle}>
+              Pick up where you left off in the find-a-car flow.
+            </Text>
+            <View style={styles.savedDraftActions}>
+              <TouchableOpacity
+                testID="saved-request-continue"
+                style={[
+                  styles.resumeButton,
+                  (!canCreateRequest || checkingLimit) && styles.disabledButton,
+                ]}
+                disabled={!canCreateRequest || checkingLimit}
+                onPress={() =>
+                  navigateIfAllowed(savedDraft.pathname, savedDraft.params)
+                }
+              >
+                <Text style={styles.resumeButtonText}>Continue</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                testID="saved-request-discard"
+                style={styles.discardButton}
+                onPress={async () => {
+                  await clearRequestDraft(userId);
+                  setSavedDraft(null);
+                }}
+              >
+                <Text style={styles.discardButtonText}>Discard</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        )}
+        <View
+          style={[
+            styles.optionsContainer,
+            isWideWeb && styles.optionsContainerWide,
+          ]}
+        >
+          {choiceOptions.map((option) => (
+            <TouchableOpacity
+              key={option.href}
+              testID={
+                option.href === "/request/make"
+                  ? "request-choice-specific"
+                  : option.href === "/request/budget"
+                    ? "request-choice-guided"
+                    : "request-choice-upload"
+              }
+              style={[
+                styles.optionButton,
+                (!canCreateRequest || checkingLimit) && styles.disabledOption,
+              ]}
+              disabled={checkingLimit}
+              onPress={() => navigateIfAllowed(option.href)}
+            >
+              <Text style={styles.optionText}>{option.label}</Text>
+              <Text style={styles.optionDescription}>{option.description}</Text>
+            </TouchableOpacity>
+          ))}
         </View>
-      )}
-      <View
-        style={[
-          styles.optionsContainer,
-          isWideWeb && styles.optionsContainerWide,
-        ]}
-      >
-        {choiceOptions.map((option) => (
-          <TouchableOpacity
-            key={option.href}
-            testID={
-              option.href === "/request/make"
-                ? "request-choice-specific"
-                : option.href === "/request/budget"
-                ? "request-choice-guided"
-                : "request-choice-upload"
-            }
-            style={[
-              styles.optionButton,
-              (!canCreateRequest || checkingLimit) && styles.disabledOption,
-            ]}
-            disabled={checkingLimit}
-            onPress={() => navigateIfAllowed(option.href)}
-          >
-            <Text style={styles.optionText}>{option.label}</Text>
-            <Text style={styles.optionDescription}>{option.description}</Text>
-          </TouchableOpacity>
-        ))}
-      </View>
       </View>
     </View>
   );
@@ -252,6 +261,7 @@ const styles = StyleSheet.create({
   },
   optionsContainer: {
     gap: 15,
+    alignItems: "center",
   },
   optionsContainerWide: {
     flexDirection: "row",
@@ -334,8 +344,12 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     borderWidth: 2,
     borderColor: COLORS.border,
-    flex: Platform.OS === "web" ? 1 : undefined,
-    maxWidth: Platform.OS === "web" ? 300 : undefined,
+    flex: Platform.OS === "web" ? 1 : 0,
+    width: "100%",
+    maxWidth: 340,
+    alignItems: "center",
+    justifyContent: "center",
+    minHeight: 110,
   },
   disabledButton: {
     opacity: 0.55,
