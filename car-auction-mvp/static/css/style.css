@@ -26,10 +26,20 @@
   --success: 142 76% 36%;
   --warning: 38 92% 50%; /* This is our new accent color */
   --info: 220 20% 18%; /* A neutral dark gray for info buttons */
-  --gradient-primary: linear-gradient(135deg, hsl(220 20% 12%), hsl(220 20% 18%));
-  --gradient-accent: linear-gradient(135deg, hsl(260 80% 70%), hsl(260 70% 60%));
-  --shadow-card: 0 4px 6px -1px hsl(0 0% 0% / 0.3), 0 2px 4px -1px hsl(0 0% 0% / 0.2);
-  --shadow-elevated: 0 10px 15px -3px hsl(0 0% 0% / 0.3), 0 4px 6px -2px hsl(0 0% 0% / 0.2);
+  --gradient-primary: linear-gradient(
+    135deg,
+    hsl(220 20% 12%),
+    hsl(220 20% 18%)
+  );
+  --gradient-accent: linear-gradient(
+    135deg,
+    hsl(260 80% 70%),
+    hsl(260 70% 60%)
+  );
+  --shadow-card:
+    0 4px 6px -1px hsl(0 0% 0% / 0.3), 0 2px 4px -1px hsl(0 0% 0% / 0.2);
+  --shadow-elevated:
+    0 10px 15px -3px hsl(0 0% 0% / 0.3), 0 4px 6px -2px hsl(0 0% 0% / 0.2);
 }
 
 body {
@@ -59,7 +69,12 @@ hr {
   overflow: hidden;
 }
 
-h1, h2, h3, h4, h5, h6 {
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
   font-weight: 600;
 }
 
@@ -74,16 +89,21 @@ a:hover {
 
 /* Bell shake animation */
 @keyframes shake {
-  10%, 90% {
+  10%,
+  90% {
     transform: translate3d(-1px, 0, 0);
   }
-  20%, 80% {
+  20%,
+  80% {
     transform: translate3d(2px, 0, 0);
   }
-  30%, 50%, 70% {
+  30%,
+  50%,
+  70% {
     transform: translate3d(-3px, 0, 0);
   }
-  40%, 60% {
+  40%,
+  60% {
     transform: translate3d(3px, 0, 0);
   }
 }
@@ -96,7 +116,9 @@ a:hover {
     transform: translate(-50%, -50%) rotate(360deg);
   }
 }
-.btn, .button-group button, .button-group a {
+.btn,
+.button-group button,
+.button-group a {
   border: none;
   padding: 8px 12px;
   border-radius: var(--radius);
@@ -108,22 +130,27 @@ a:hover {
   transition: all 0.2s ease-in-out;
 }
 
-.btn.approve, .button-group .approve {
+.btn.approve,
+.button-group .approve {
   background-color: hsl(var(--accent));
   color: hsl(var(--accent-foreground));
 }
 
-.btn.edit, .button-group .edit {
+.btn.edit,
+.button-group .edit {
   background-color: hsl(var(--info));
   color: hsl(var(--foreground));
 }
 
-.btn.delete, .button-group .delete {
+.btn.delete,
+.button-group .delete {
   background-color: hsl(var(--destructive));
   color: hsl(var(--destructive-foreground));
 }
 
-.btn:hover, .button-group button:hover, .button-group a:hover {
+.btn:hover,
+.button-group button:hover,
+.button-group a:hover {
   transform: translateY(-1px);
 }
 
@@ -136,12 +163,12 @@ a:hover {
 }
 
 .nav-button:hover {
-  background-color: hsl(var(--info)/0.9);
+  background-color: hsl(var(--info) / 0.9);
   text-decoration: none;
 }
 
 .filter-btn {
-  background-color: hsl(var(--secondary)/0.2);
+  background-color: hsl(var(--secondary) / 0.2);
   color: hsl(var(--secondary-foreground));
   border: 1px solid hsl(var(--border));
   padding: 8px 15px;
@@ -151,7 +178,7 @@ a:hover {
 }
 
 .filter-btn:hover {
-  background-color: hsl(var(--secondary)/0.4);
+  background-color: hsl(var(--secondary) / 0.4);
 }
 
 .filter-btn.active {
@@ -165,7 +192,9 @@ a:hover {
   border-radius: var(--radius);
   overflow: hidden; /* Ensures image corners are rounded */
   box-shadow: var(--shadow-card);
-  transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+  transition:
+    transform 0.2s ease-in-out,
+    box-shadow 0.2s ease-in-out;
   position: relative;
   background-color: hsl(var(--card));
   display: flex;
@@ -285,7 +314,8 @@ a:hover {
   padding: 1.5rem;
 }
 
-.request-card, .question-card {
+.request-card,
+.question-card {
   background-color: hsl(var(--card));
   border: 1px solid hsl(var(--border));
   border-radius: var(--radius);
@@ -329,7 +359,8 @@ a:hover {
   flex-grow: 1;
 }
 
-.request-card .card-footer, .question-card .card-footer {
+.request-card .card-footer,
+.question-card .card-footer {
   padding: 1rem 1.25rem;
   border-top: 1px solid hsl(var(--border));
   background-color: hsl(var(--secondary));
@@ -339,17 +370,20 @@ a:hover {
   gap: 1rem;
 }
 
-.request-card .footer-stat, .question-card .footer-stat {
+.request-card .footer-stat,
+.question-card .footer-stat {
   text-align: left;
 }
 
-.request-card .footer-stat span, .question-card .footer-stat span {
+.request-card .footer-stat span,
+.question-card .footer-stat span {
   font-size: 0.8em;
   color: hsl(var(--muted-foreground));
   display: block;
 }
 
-.request-card .footer-stat strong, .question-card .footer-stat strong {
+.request-card .footer-stat strong,
+.question-card .footer-stat strong {
   font-weight: 600;
 }
 
@@ -405,7 +439,7 @@ a:hover {
 }
 
 .search-bar button:hover {
-  background-color: hsl(var(--accent)/0.9);
+  background-color: hsl(var(--accent) / 0.9);
 }
 
 /* --- Search Suggestions --- */
@@ -443,7 +477,7 @@ a:hover {
 }
 
 .suggestion-item:hover {
-  background-color: hsl(var(--accent)/0.1);
+  background-color: hsl(var(--accent) / 0.1);
   text-decoration: none;
 }
 
@@ -471,7 +505,9 @@ a:hover {
   margin-bottom: 0.5rem;
 }
 
-.form-group input, .form-group select, .form-group textarea {
+.form-group input,
+.form-group select,
+.form-group textarea {
   width: 100%;
   box-sizing: border-box; /* Ensures padding doesn't affect width */
 }
@@ -482,36 +518,38 @@ a:hover {
   margin-top: 0.25rem;
 }
 
-input[type=text],
-input[type=number],
-input[type=password],
-input[type=email],
-input[type=date],
-input[type=datetime-local],
+input[type="text"],
+input[type="number"],
+input[type="password"],
+input[type="email"],
+input[type="date"],
+input[type="datetime-local"],
 select,
 textarea {
   padding: 10px;
   margin: 0;
-  border: 1px solid hsl(var(--muted-foreground)/0.5);
+  border: 1px solid hsl(var(--muted-foreground) / 0.5);
   border-radius: var(--radius);
   font-family: "Inter", sans-serif;
   font-size: 1rem;
   background-color: hsl(var(--input));
   color: hsl(var(--foreground));
-  transition: box-shadow 0.2s, border-color 0.2s;
+  transition:
+    box-shadow 0.2s,
+    border-color 0.2s;
 }
 
-input[type=text]:focus,
-input[type=number]:focus,
-input[type=password]:focus,
-input[type=email]:focus,
-input[type=date]:focus,
-input[type=datetime-local]:focus,
+input[type="text"]:focus,
+input[type="number"]:focus,
+input[type="password"]:focus,
+input[type="email"]:focus,
+input[type="date"]:focus,
+input[type="datetime-local"]:focus,
 select:focus,
 textarea:focus {
   outline: none;
   border-color: hsl(var(--ring));
-  box-shadow: 0 0 0 2px hsl(var(--ring)/0.5);
+  box-shadow: 0 0 0 2px hsl(var(--ring) / 0.5);
 }
 
 /* --- Custom Radio/Checkbox Buttons --- */
@@ -529,17 +567,20 @@ textarea:focus {
   margin-bottom: 0;
 }
 
-.radio-button-group, .checkbox-group {
+.radio-button-group,
+.checkbox-group {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 1rem;
 }
 
-.radio-button-input, .checkbox-input {
+.radio-button-input,
+.checkbox-input {
   display: none; /* Hide the actual radio/checkbox input */
 }
 
-.radio-button-label, .checkbox-label {
+.radio-button-label,
+.checkbox-label {
   display: block;
   padding: 1rem;
   border: 2px solid hsl(var(--border));
@@ -550,9 +591,10 @@ textarea:focus {
   font-weight: 500;
 }
 
-.radio-button-label:hover, .checkbox-label:hover {
+.radio-button-label:hover,
+.checkbox-label:hover {
   border-color: hsl(var(--accent));
-  background-color: hsl(var(--accent)/0.1);
+  background-color: hsl(var(--accent) / 0.1);
 }
 
 .radio-button-label.with-icon {
@@ -580,7 +622,8 @@ textarea:focus {
 }
 
 @media (max-width: 768px) {
-  .radio-button-group, .checkbox-group {
+  .radio-button-group,
+  .checkbox-group {
     grid-template-columns: 1fr;
   }
 }
@@ -656,7 +699,7 @@ textarea:focus {
   width: 100%;
   height: 100%;
   overflow: auto; /* Enable scroll if needed */
-  background-color: hsl(var(--background)/0.95); /* Dark overlay */
+  background-color: hsl(var(--background) / 0.95); /* Dark overlay */
   cursor: pointer;
 }
 
@@ -777,7 +820,7 @@ textarea:focus {
   border-top: 1px solid hsl(var(--border));
   padding: 0.5rem 0;
   z-index: 999;
-  box-shadow: 0 -4px 15px hsl(var(--background)/0.5);
+  box-shadow: 0 -4px 15px hsl(var(--background) / 0.5);
   transition: bottom 0.3s ease-in-out; /* Animate the 'bottom' property */
 }
 
@@ -863,7 +906,11 @@ textarea:focus {
   bottom: 0;
   left: 0;
   right: 0;
-  background: linear-gradient(to top, hsl(var(--background)/0.9), transparent);
+  background: linear-gradient(
+    to top,
+    hsl(var(--background) / 0.9),
+    transparent
+  );
   color: hsl(var(--foreground));
   padding: 2rem 1.5rem 1.5rem; /* Reduced top padding */
 }
@@ -883,7 +930,7 @@ textarea:focus {
   position: absolute;
   top: 50%;
   transform: translateY(-50%);
-  background-color: hsl(var(--background)/0.5);
+  background-color: hsl(var(--background) / 0.5);
   color: hsl(var(--foreground));
   border: 1px solid hsl(var(--border));
   font-size: 1.5rem;
@@ -891,11 +938,13 @@ textarea:focus {
   padding: 8px 12px;
   border-radius: 50%;
   z-index: 10;
-  transition: background-color 0.2s, transform 0.2s;
+  transition:
+    background-color 0.2s,
+    transform 0.2s;
 }
 
 .slider-nav:hover {
-  background-color: hsl(var(--background)/0.8);
+  background-color: hsl(var(--background) / 0.8);
   transform: translateY(-50%) scale(1.1);
 }
 
@@ -1369,13 +1418,17 @@ nav a.active {
     opacity: 0;
     visibility: hidden;
     pointer-events: none;
-    transition: opacity 0.3s ease, visibility 0.3s ease;
+    transition:
+      opacity 0.3s ease,
+      visibility 0.3s ease;
     position: fixed;
     top: 0; /* Force to the very top of the viewport */
     left: 0;
     width: 100%;
     height: 100vh; /* Use viewport height for an exact fit */
-    background-color: hsl(var(--background)/0.95); /* Slightly transparent background */
+    background-color: hsl(
+      var(--background) / 0.95
+    ); /* Slightly transparent background */
     backdrop-filter: blur(5px); /* Frosted glass effect */
     flex-direction: column;
     justify-content: flex-start; /* Align items to the top */
@@ -1435,7 +1488,9 @@ nav a.active {
 .page-wrapper {
   display: flex;
   flex-direction: column;
-  min-height: calc(100vh - 53px); /* Full viewport height minus the nav padding */
+  min-height: calc(
+    100vh - 53px
+  ); /* Full viewport height minus the nav padding */
 }
 
 .site-footer {
@@ -1669,10 +1724,12 @@ nav a.active {
   font-size: 1.1rem; /* Slightly larger font */
   font-weight: 700; /* Bolder text */
   text-decoration: none;
-  transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+  transition:
+    transform 0.2s ease-in-out,
+    box-shadow 0.2s ease-in-out;
   box-shadow: var(--shadow-elevated);
   margin-top: 0.5rem;
-  border: 1px solid hsl(var(--accent)/0.5); /* Add a subtle border */
+  border: 1px solid hsl(var(--accent) / 0.5); /* Add a subtle border */
 }
 
 .find-car-link .find-car-cta:hover {
@@ -1757,7 +1814,8 @@ nav a.active {
   font-weight: 500;
 }
 
-.request-grid, .question-grid {
+.request-grid,
+.question-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
   gap: 1.5rem;
@@ -1813,7 +1871,8 @@ nav a.active {
   .dashboard-stat-grid .stat-card h3 {
     font-size: 1.8rem; /* Smaller font for stats */
   }
-  .request-grid, .question-grid {
+  .request-grid,
+  .question-grid {
     grid-template-columns: 1fr; /* 1 column for cards on mobile */
   }
   /* Transform "Pending Listings" table into cards on mobile */
@@ -1933,7 +1992,8 @@ nav a.active {
 }
 
 /* Admin & Seller Actions */
-.admin-actions, .question-context {
+.admin-actions,
+.question-context {
   background-color: hsl(var(--secondary));
   border: 1px solid hsl(var(--border));
   padding: 20px;
@@ -1941,12 +2001,13 @@ nav a.active {
   border-radius: var(--radius);
 }
 
-.admin-actions h3, .question-context h3 {
+.admin-actions h3,
+.question-context h3 {
   margin-top: 0;
 }
 
 .admin-actions.pending {
-  background-color: hsl(var(--warning)/0.1);
+  background-color: hsl(var(--warning) / 0.1);
   border-color: hsl(var(--warning));
 }
 
@@ -1989,7 +2050,7 @@ nav a.active {
   border-left: 3px solid hsl(var(--success));
   margin-top: 10px;
   padding-left: 15px;
-  background-color: hsl(var(--success)/0.05);
+  background-color: hsl(var(--success) / 0.05);
 }
 
 .qna-section .awaiting-answer {
@@ -2057,19 +2118,20 @@ nav a.active {
   align-items: center;
 }
 
-.offer-price.cash, .offer-price.loan {
+.offer-price.cash,
+.offer-price.loan {
   padding: 0.5rem 1rem;
   border-radius: var(--radius);
   text-align: center;
 }
 
 .offer-price.cash {
-  background-color: hsl(var(--success)/0.1);
+  background-color: hsl(var(--success) / 0.1);
   border: 1px solid hsl(var(--success));
 }
 
 .offer-price.loan {
-  background-color: hsl(var(--info)/0.1);
+  background-color: hsl(var(--info) / 0.1);
   border: 1px solid hsl(var(--info));
 }
 
@@ -2108,8 +2170,8 @@ nav a.active {
 
 .offer-card.lowest-bid-highlight {
   border: 2px solid hsl(var(--accent));
-  background-color: hsl(var(--accent)/0.1);
-  box-shadow: 0 0 15px hsl(var(--accent)/0.2);
+  background-color: hsl(var(--accent) / 0.1);
+  box-shadow: 0 0 15px hsl(var(--accent) / 0.2);
   transform: scale(1.01);
 }
 
@@ -2264,7 +2326,7 @@ nav a.active {
   gap: 0.25rem;
 }
 
-.star-rating-input input[type=radio] {
+.star-rating-input input[type="radio"] {
   display: none;
 }
 
@@ -2277,7 +2339,7 @@ nav a.active {
 
 .star-rating-input label:hover,
 .star-rating-input label:hover ~ label,
-.star-rating-input input[type=radio]:checked ~ label {
+.star-rating-input input[type="radio"]:checked ~ label {
   color: hsl(var(--warning));
 }
 
@@ -2394,7 +2456,9 @@ nav a.active {
 }
 
 .compare-container:hover {
-  background-color: hsl(var(--secondary)); /* Subtle background change on hover */
+  background-color: hsl(
+    var(--secondary)
+  ); /* Subtle background change on hover */
 }
 
 /* --- Comparison Page --- */
@@ -2455,7 +2519,7 @@ nav a.active {
 }
 
 .best-value {
-  background-color: hsl(var(--success)/0.1);
+  background-color: hsl(var(--success) / 0.1);
   color: hsl(var(--success));
   font-weight: 700;
 }
@@ -2533,3 +2597,7 @@ nav a.active {
 }
 
 /*# sourceMappingURL=style.css.map */
+
+.hidden {
+  display: none !important;
+}
