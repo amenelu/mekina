@@ -108,3 +108,13 @@ export function resolveDealerPointRequests(
 export function getAdminPointRequests() {
   return apiClient.get("/admin/api/point-requests");
 }
+
+export function getAdminMessages(search?: string) {
+  return apiClient.get("/admin/api/messages", {
+    params: search ? { q: search } : undefined,
+  });
+}
+
+export function getAdminMessageDetail(conversationId: string | number) {
+  return apiClient.get(`/admin/api/messages/${conversationId}`);
+}

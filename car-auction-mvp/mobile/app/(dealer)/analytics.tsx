@@ -14,6 +14,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { Ionicons } from "@expo/vector-icons";
 import {
   getDealerAdvancedAnalytics,
+  getDealerMostLikedCars,
   getDealerPopularRequests,
   getDealerPopularSearches,
 } from "@/lib/api/dealer";
@@ -43,6 +44,17 @@ interface PopularModel {
 interface PopularSearch {
   term: string;
   count: number;
+}
+
+interface MostLikedCar {
+  id: number;
+  make: string;
+  model: string;
+  year: number;
+  listing_type: string;
+  price_display: string;
+  primary_image_url?: string;
+  favorite_count: number;
 }
 
 interface AdvancedAnalytics {
@@ -78,6 +90,7 @@ const AnalyticsScreen = () => {
   const [popularMakes, setPopularMakes] = useState<PopularMake[]>([]);
   const [popularModels, setPopularModels] = useState<PopularModel[]>([]);
   const [popularSearches, setPopularSearches] = useState<PopularSearch[]>([]);
+  const [mostLikedCars, setMostLikedCars] = useState<MostLikedCar[]>([]);
   const [advancedData, setAdvancedData] = useState<AdvancedAnalytics | null>(
     null
   );
@@ -86,14 +99,16 @@ const AnalyticsScreen = () => {
   const fetchData = useCallback(async () => {
     if (!token) return;
     try {
-      const [requestsRes, searchesRes, advancedRes] = await Promise.all([
+      const [requestsRes, searchesRes, likedCarsRes, advancedRes] = await Promise.all([
         getDealerPopularRequests(),
         getDealerPopularSearches(),
+        getDealerMostLikedCars(),
         getDealerAdvancedAnalytics(),
       ]);
       setPopularMakes(requestsRes.data.popular_makes);
       setPopularModels(requestsRes.data.popular_models);
       setPopularSearches(searchesRes.data.popular_searches);
+      setMostLikedCars(likedCarsRes.data.most_liked_cars);
       setAdvancedData(advancedRes.data);
     } catch (error) {
       console.error("Failed to fetch analytics data:", error);
@@ -379,6 +394,35 @@ const AnalyticsScreen = () => {
           </>
         )}
 
+        <AnalyticsCard title="Most Liked Cars">
+          {mostLikedCars.length > 0 ? (
+            mostLikedCars.map((item, index) => (
+              <View key={item.id} style={styles.likedCarItem}>
+                <View style={styles.likedCarRank}>
+                  <Text style={styles.rank}>#{index + 1}</Text>
+                </View>
+                <View style={styles.likedCarDetails}>
+                  <Text style={styles.likedCarTitle}>
+                    {item.year} {item.make} {item.model}
+                  </Text>
+                  <Text style={styles.likedCarMeta}>
+                    {item.price_display} · {item.listing_type}
+                  </Text>
+                </View>
+                <View style={styles.likeCountBadge}>
+                  <Ionicons name="heart" size={16} color={COLORS.warning} />
+                  <Text style={styles.likeCountText}>{item.favorite_count}</Text>
+                </View>
+              </View>
+            ))
+          ) : (
+            <Text style={styles.emptyText}>
+              No liked listings yet. Favorites will appear here when buyers save
+              your cars.
+            </Text>
+          )}
+        </AnalyticsCard>
+
         <AnalyticsCard title="Most Requested Makes">
           {popularMakes.length > 0 ? (
             popularMakes.map((item, index) => (
@@ -484,6 +528,49 @@ const styles = StyleSheet.create({
     textTransform: "capitalize",
   },
   count: { color: COLORS.accent, fontSize: 16, fontWeight: "bold" },
+  likedCarItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.border,
+    gap: 12,
+  },
+  likedCarRank: {
+    width: 40,
+  },
+  likedCarDetails: {
+    flex: 1,
+    minWidth: 0,
+  },
+  likedCarTitle: {
+    color: COLORS.text,
+    fontSize: 16,
+    fontWeight: "700",
+    textTransform: "capitalize",
+  },
+  likedCarMeta: {
+    color: COLORS.textSecondary,
+    fontSize: 13,
+    marginTop: 4,
+    textTransform: "capitalize",
+  },
+  likeCountBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+    backgroundColor: COLORS.background,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    borderRadius: 999,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+  },
+  likeCountText: {
+    color: COLORS.text,
+    fontSize: 14,
+    fontWeight: "800",
+  },
   emptyText: {
     color: COLORS.textSecondary,
     textAlign: "center",

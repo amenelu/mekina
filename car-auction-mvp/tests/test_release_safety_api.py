@@ -15,6 +15,7 @@ from models.request_question import RequestQuestion
 from models.rental_listing import RentalListing
 from models.trade_in import TradeInRequest
 from models.user import User
+from models.user_favorite import UserFavorite
 
 
 def create_user(username, email, **kwargs):
@@ -683,6 +684,116 @@ def test_dealer_advanced_analytics_locked_and_unlocked_states(client):
     assert unlocked_payload["is_locked"] is False
     assert "market_demand" in unlocked_payload
     assert "inventory_performance" in unlocked_payload
+
+
+def test_dealer_analytics_shows_most_liked_own_cars(client):
+    dealer = create_user("liked_dealer", "liked-dealer@example.com", is_dealer=True)
+    other_dealer = create_user(
+        "other_liked_dealer",
+        "other-liked-dealer@example.com",
+        is_dealer=True,
+    )
+    buyer_one = create_user("liked_buyer_one", "liked-buyer-one@example.com")
+    buyer_two = create_user("liked_buyer_two", "liked-buyer-two@example.com")
+
+    most_liked = create_car(
+        dealer,
+        make="Toyota",
+        model="RAV4",
+        fixed_price=2_200_000,
+        listing_type="sale",
+    )
+    less_liked = create_car(
+        dealer,
+        make="Honda",
+        model="Civic",
+        fixed_price=1_400_000,
+        listing_type="sale",
+    )
+    other_dealer_car = create_car(
+        other_dealer,
+        make="Nissan",
+        model="Patrol",
+        fixed_price=3_000_000,
+        listing_type="sale",
+    )
+
+    db.session.add_all(
+        [
+            UserFavorite(user_id=buyer_one.id, car_id=most_liked.id),
+            UserFavorite(user_id=buyer_two.id, car_id=most_liked.id),
+            UserFavorite(user_id=buyer_one.id, car_id=less_liked.id),
+            UserFavorite(user_id=buyer_one.id, car_id=other_dealer_car.id),
+        ]
+    )
+    db.session.commit()
+
+    response = client.get(
+        "/dealer/api/analytics/most-liked-cars",
+        headers=login_headers(client, dealer.username),
+    )
+
+    assert response.status_code == 200
+    cars = response.get_json()["most_liked_cars"]
+    assert [car["id"] for car in cars] == [most_liked.id, less_liked.id]
+    assert cars[0]["favorite_count"] == 2
+    assert cars[1]["favorite_count"] == 1
+    assert cars[0]["price_display"] == "2,200,000 ETB"
+
+
+def test_admin_can_review_buyer_dealer_messages_with_original_text(client):
+    admin = create_user("message_admin", "message-admin@example.com", is_admin=True)
+    buyer = create_user("message_buyer", "message-buyer@example.com")
+    dealer = create_user("message_dealer", "message-dealer@example.com", is_dealer=True)
+    car = create_car(dealer, make="Toyota", model="Vitz", listing_type="sale")
+    conversation = Conversation(car_id=car.id, buyer_id=buyer.id, dealer_id=dealer.id)
+    db.session.add(conversation)
+    db.session.flush()
+    db.session.add_all(
+        [
+            ChatMessage(
+                conversation_id=conversation.id,
+                sender_id=buyer.id,
+                body="Call me at [contact hidden]",
+                original_body="Call me at 0911223344",
+            ),
+            ChatMessage(
+                conversation_id=conversation.id,
+                sender_id=dealer.id,
+                body="I can help with this car.",
+                original_body="I can help with this car.",
+            ),
+        ]
+    )
+    db.session.commit()
+
+    headers = login_headers(client, admin.username)
+    list_response = client.get("/admin/api/messages", headers=headers)
+    assert list_response.status_code == 200
+    conversations = list_response.get_json()["conversations"]
+    assert conversations[0]["id"] == conversation.id
+    assert conversations[0]["flagged_message_count"] == 1
+
+    detail_response = client.get(
+        f"/admin/api/messages/{conversation.id}", headers=headers
+    )
+    assert detail_response.status_code == 200
+    messages = detail_response.get_json()["messages"]
+    assert messages[0]["was_masked"] is True
+    assert messages[0]["original_body"] == "Call me at 0911223344"
+    assert messages[1]["was_masked"] is False
+
+
+def test_non_admin_cannot_review_messages(client):
+    buyer = create_user("message_regular", "message-regular@example.com")
+    db.session.commit()
+
+    response = client.get(
+        "/admin/api/messages",
+        headers=login_headers(client, buyer.username),
+    )
+
+    assert response.status_code == 403
 
 
 def test_buyer_request_limit_endpoint_blocks_when_daily_limit_reached(client):

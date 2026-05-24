@@ -13,6 +13,7 @@ from flask import (
 from flask_login import login_required, current_user
 from extensions import db, socketio
 from sqlalchemy import func, or_
+from sqlalchemy.orm import aliased
 from models.rental_listing import RentalListing
 from models.user import User
 from models.car import Car
@@ -24,6 +25,8 @@ from models.equipment import Equipment
 from models.dealer_rating import DealerRating
 from models.car_image import CarImage
 from models.trade_in import TradeInRequest
+from models.conversation import Conversation
+from models.chat_message import ChatMessage
 from routes.seller import CarSubmissionForm, save_seller_document
 from routes.auth import admin_token_required
 from routes.main import send_push_notification
@@ -320,6 +323,112 @@ def api_admin_list_users(current_user):
         {
             "users": users_data,
             "pagination": _pagination_meta(paginated_users),
+        }
+    )
+
+
+def _admin_conversation_summary(conversation):
+    last_message = conversation.messages.order_by(ChatMessage.timestamp.desc()).first()
+    message_count = conversation.messages.count()
+    flagged_count = conversation.messages.filter(
+        ChatMessage.original_body.isnot(None),
+        ChatMessage.original_body != ChatMessage.body,
+    ).count()
+
+    return {
+        "id": conversation.id,
+        "car": conversation.car.to_dict() if conversation.car else None,
+        "buyer": conversation.buyer.to_dict(detail_level="owner")
+        if conversation.buyer
+        else None,
+        "dealer": conversation.dealer.to_dict(detail_level="owner")
+        if conversation.dealer
+        else None,
+        "is_unlocked": conversation.is_unlocked,
+        "message_count": message_count,
+        "flagged_message_count": flagged_count,
+        "lead_score": conversation.lead_score.score if conversation.lead_score else 0,
+        "last_message_body": last_message.body if last_message else "No messages yet.",
+        "last_message_original_body": last_message.original_body
+        if last_message
+        else None,
+        "last_message_timestamp": last_message.timestamp.isoformat() + "Z"
+        if last_message
+        else conversation.created_at.isoformat() + "Z",
+    }
+
+
+def _admin_message_payload(message):
+    original_body = message.original_body or message.body
+    return {
+        "id": message.id,
+        "body": message.body,
+        "original_body": original_body,
+        "was_masked": original_body != message.body,
+        "timestamp": message.timestamp.isoformat() + "Z",
+        "is_read": message.is_read,
+        "sender": message.sender.to_dict(detail_level="owner")
+        if message.sender
+        else None,
+    }
+
+
+@admin_bp.route("/api/messages")
+@admin_token_required
+def api_admin_messages(current_user):
+    """Read-only admin oversight of buyer/dealer conversations."""
+    query = (request.args.get("q") or "").strip()
+    page, per_page = _pagination_args()
+
+    conversations_query = Conversation.query.join(
+        Car, Conversation.car_id == Car.id
+    ).order_by(Conversation.created_at.desc())
+
+    if query:
+        search_term = f"%{query}%"
+        Buyer = aliased(User)
+        Dealer = aliased(User)
+        conversations_query = (
+            conversations_query.join(Buyer, Conversation.buyer_id == Buyer.id)
+            .join(Dealer, Conversation.dealer_id == Dealer.id)
+            .filter(
+                or_(
+                    Car.make.ilike(search_term),
+                    Car.model.ilike(search_term),
+                    Buyer.username.ilike(search_term),
+                    Buyer.email.ilike(search_term),
+                    Dealer.username.ilike(search_term),
+                    Dealer.email.ilike(search_term),
+                )
+            )
+        )
+
+    paginated_conversations = conversations_query.paginate(
+        page=page, per_page=per_page, error_out=False
+    )
+
+    return jsonify(
+        {
+            "conversations": [
+                _admin_conversation_summary(conversation)
+                for conversation in paginated_conversations.items
+            ],
+            "pagination": _pagination_meta(paginated_conversations),
+        }
+    )
+
+
+@admin_bp.route("/api/messages/<int:conversation_id>")
+@admin_token_required
+def api_admin_message_detail(current_user, conversation_id):
+    """Read-only admin detail view for one buyer/dealer conversation."""
+    conversation = Conversation.query.get_or_404(conversation_id)
+    messages = conversation.messages.order_by(ChatMessage.timestamp.asc()).all()
+
+    return jsonify(
+        {
+            "conversation": _admin_conversation_summary(conversation),
+            "messages": [_admin_message_payload(message) for message in messages],
         }
     )
 

@@ -29,6 +29,7 @@ from models.dealer_rating import DealerRating
 from models.dealer_request_view import DealerRequestView
 from models.search_query import SearchQuery
 from models.point_transaction import PointTransaction
+from models.user_favorite import UserFavorite
 from extensions import db, socketio
 from sqlalchemy import func, or_
 from functools import wraps
@@ -596,6 +597,49 @@ def api_popular_searches(current_user):
         {
             "popular_searches": [
                 {"term": term, "count": count} for term, count in popular_searches
+            ]
+        }
+    )
+
+
+@dealer_bp.route("/api/analytics/most-liked-cars")
+@token_required
+def api_most_liked_cars(current_user):
+    """Shows which of this dealer's listings buyers have favorited most."""
+    if not (current_user.is_dealer or current_user.is_admin):
+        abort(403)
+
+    favorites_count = func.count(UserFavorite.id).label("favorite_count")
+    query = (
+        db.session.query(Car, favorites_count)
+        .join(UserFavorite, UserFavorite.car_id == Car.id)
+        .filter(Car.is_active == True, Car.is_approved == True)
+    )
+
+    if current_user.is_dealer and not current_user.is_admin:
+        query = query.filter(Car.owner_id == current_user.id)
+
+    rows = (
+        query.group_by(Car.id)
+        .order_by(favorites_count.desc(), Car.id.asc())
+        .limit(10)
+        .all()
+    )
+
+    return jsonify(
+        {
+            "most_liked_cars": [
+                {
+                    "id": car.id,
+                    "make": car.make,
+                    "model": car.model,
+                    "year": car.year,
+                    "listing_type": car.listing_type,
+                    "price_display": car.get_price_display(),
+                    "primary_image_url": car.primary_image_url,
+                    "favorite_count": int(favorite_count or 0),
+                }
+                for car, favorite_count in rows
             ]
         }
     )

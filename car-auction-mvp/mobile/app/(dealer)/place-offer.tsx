@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useRef, useState, useEffect } from "react";
 import {
   SafeAreaView,
   View,
@@ -205,6 +205,7 @@ const PlaceOfferScreen = () => {
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [message, setMessage] = useState("");
   const [image, setImage] = useState<ImagePicker.ImagePickerAsset | null>(null);
+  const seededRequestIdRef = useRef<number | null>(null);
 
   useEffect(() => {
     const fetchRequestDetails = async () => {
@@ -226,20 +227,26 @@ const PlaceOfferScreen = () => {
 
   useEffect(() => {
     if (!requestDetails) return;
+    if (seededRequestIdRef.current === requestDetails.id) return;
+    seededRequestIdRef.current = requestDetails.id;
 
     const targetCar = requestDetails.target_car;
-    setMake((current) => current || targetCar?.make || requestDetails.make || "");
-    setModel((current) => current || targetCar?.model || requestDetails.model || "");
-    setCarYear((current) =>
-      current ||
+    const requestedCondition =
+      targetCar?.condition || requestDetails.condition || condition;
+    const requestedMileage = targetCar?.mileage || requestDetails.max_mileage;
+    const requestedPrice = targetCar?.fixed_price || requestDetails.max_price;
+
+    setMake(targetCar?.make || requestDetails.make || "");
+    setModel(targetCar?.model || requestDetails.model || "");
+    setCarYear(
       String(targetCar?.year || requestDetails.min_year || requestDetails.year || "")
     );
-    setMileage((current) =>
-      current || (targetCar?.mileage ? String(targetCar.mileage) : "")
+    setCondition(
+      requestedCondition ||
+        (requestedMileage && Number(requestedMileage) > 0 ? "Used" : "New")
     );
-    setPrice((current) =>
-      current || (targetCar?.fixed_price ? String(Math.round(targetCar.fixed_price)) : "")
-    );
+    setMileage(requestedMileage ? String(requestedMileage) : "");
+    setPrice(requestedPrice ? String(Math.round(requestedPrice)) : "");
   }, [requestDetails]);
 
   const validUntilValue = validUntil.toISOString().split("T")[0];

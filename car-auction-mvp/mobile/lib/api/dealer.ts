@@ -12,6 +12,10 @@ export function getDealerPopularSearches() {
   return apiClient.get("/dealer/api/analytics/popular-searches");
 }
 
+export function getDealerMostLikedCars() {
+  return apiClient.get("/dealer/api/analytics/most-liked-cars");
+}
+
 export function getDealerAdvancedAnalytics() {
   return apiClient.get("/dealer/api/analytics/advanced");
 }

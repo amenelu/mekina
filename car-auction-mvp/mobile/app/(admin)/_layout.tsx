@@ -75,11 +75,21 @@ export default function AdminLayout() {
           ),
         }}
       />
+      <Tabs.Screen
+        name="messages"
+        options={{
+          title: "Messages",
+          tabBarIcon: ({ color }) => (
+            <Ionicons name="chatbubbles" size={24} color={color} />
+          ),
+        }}
+      />
       <Tabs.Screen name="admin-dashboard" options={{ href: null }} />
       <Tabs.Screen name="admin-users" options={{ href: null }} />
       <Tabs.Screen name="admin-listings" options={{ href: null }} />
       <Tabs.Screen name="admin-dealers" options={{ href: null }} />
       <Tabs.Screen name="admin-rentals" options={{ href: null }} />
+      <Tabs.Screen name="admin-messages" options={{ href: null }} />
       <Tabs.Screen name="point-requests" options={{ href: null }} />
       <Tabs.Screen name="admin-point-requests" options={{ href: null }} />
       <Tabs.Screen name="admin-notifications" options={{ href: null }} />

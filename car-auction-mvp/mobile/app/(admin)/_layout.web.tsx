@@ -81,11 +81,22 @@ export default function AdminLayoutWeb() {
           ),
         }}
       />
+      <Tabs.Screen
+        name="admin-messages"
+        options={{
+          href: ADMIN_ROUTES.messages,
+          title: "Messages",
+          tabBarIcon: ({ color }) => (
+            <Ionicons name="chatbubbles" size={24} color={color} />
+          ),
+        }}
+      />
       <Tabs.Screen name="dashboard" options={{ href: null }} />
       <Tabs.Screen name="users" options={{ href: null }} />
       <Tabs.Screen name="listings" options={{ href: null }} />
       <Tabs.Screen name="dealers" options={{ href: null }} />
       <Tabs.Screen name="rentals" options={{ href: null }} />
+      <Tabs.Screen name="messages" options={{ href: null }} />
       <Tabs.Screen name="point-requests" options={{ href: null }} />
       <Tabs.Screen name="admin-point-requests" options={{ href: null }} />
       <Tabs.Screen name="admin-notifications" options={{ href: null }} />
