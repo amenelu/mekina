@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -6,6 +6,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   Pressable,
+  ScrollView,
   StyleSheet,
   Text,
   TextInput,
@@ -32,6 +33,36 @@ export default function DealerPointsRequestScreen() {
   const { token, user } = useAuth() as any;
   const [requestedPoints, setRequestedPoints] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [transactions, setTransactions] = useState<any[]>([]);
+  const [loadingHistory, setLoadingHistory] = useState(true);
+
+  const fetchHistory = useCallback(async () => {
+    if (!token) return;
+    try {
+      // Using the endpoint defined in routes/dealer.py
+      const response = await fetch(
+        `${process.env.EXPO_PUBLIC_API_URL}/dealer/api/points/history`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        },
+      );
+      const data = await response.json();
+      if (data.transactions) {
+        setTransactions(data.transactions);
+      }
+    } catch (error) {
+      console.error("Failed to fetch point history:", error);
+    } finally {
+      setLoadingHistory(false);
+    }
+  }, [token]);
+
+  useEffect(() => {
+    fetchHistory();
+  }, [fetchHistory]);
 
   const currentPoints = user?.points ?? 0;
 
@@ -61,7 +92,7 @@ export default function DealerPointsRequestScreen() {
       showNativeFlowAlert(
         "Login Required",
         "Please log in again to request points.",
-        () => router.replace("/(auth)/login" as any)
+        () => router.replace("/(auth)/login" as any),
       );
       return;
     }
@@ -70,7 +101,7 @@ export default function DealerPointsRequestScreen() {
     if (!Number.isInteger(parsedPoints) || parsedPoints <= 0) {
       Alert.alert(
         "Invalid Amount",
-        "Please enter a whole number of points to request."
+        "Please enter a whole number of points to request.",
       );
       return;
     }
@@ -80,9 +111,13 @@ export default function DealerPointsRequestScreen() {
       await requestDealerPoints(parsedPoints);
 
       setRequestedPoints("");
-      showNativeFlowAlert("Request Sent", "Your point request has been sent.", () => {
-        goBackToDashboard();
-      });
+      showNativeFlowAlert(
+        "Request Sent",
+        "Your point request has been sent.",
+        () => {
+          goBackToDashboard();
+        },
+      );
     } catch (error: any) {
       const message =
         error.response?.data?.message ||
@@ -94,12 +129,30 @@ export default function DealerPointsRequestScreen() {
     }
   };
 
+  const getTransactionIcon = (type: string) => {
+    switch (type) {
+      case "bid":
+        return "send-outline";
+      case "unlock_chat":
+        return "chatbubble-ellipses-outline";
+      case "edit_listing":
+        return "create-outline";
+      case "admin_point_request":
+        return "add-circle-outline";
+      default:
+        return "flash-outline";
+    }
+  };
+
   return (
     <KeyboardAvoidingView
       style={styles.container}
       behavior={Platform.OS === "ios" ? "padding" : undefined}
     >
-      <View style={styles.content}>
+      <ScrollView
+        contentContainerStyle={styles.content}
+        showsVerticalScrollIndicator={false}
+      >
         <Pressable style={styles.backButton} onPress={goBackToDashboard}>
           <Ionicons
             name="chevron-back"
@@ -215,7 +268,48 @@ export default function DealerPointsRequestScreen() {
             )}
           </Pressable>
         </View>
-      </View>
+
+        <View style={styles.historySection}>
+          <Text style={styles.historyTitle}>Points History</Text>
+          {loadingHistory ? (
+            <ActivityIndicator
+              color={COLORS.accent}
+              style={{ marginTop: 10 }}
+            />
+          ) : transactions.length === 0 ? (
+            <Text style={styles.emptyHistoryText}>
+              No transactions found yet.
+            </Text>
+          ) : (
+            transactions.map((item) => (
+              <View key={item.id} style={styles.transactionItem}>
+                <View style={styles.transactionIcon}>
+                  <Ionicons
+                    name={getTransactionIcon(item.transaction_type) as any}
+                    size={18}
+                    color={item.amount > 0 ? "#31D0AA" : COLORS.textSecondary}
+                  />
+                </View>
+                <View style={styles.transactionInfo}>
+                  <Text style={styles.transactionDesc}>{item.description}</Text>
+                  <Text style={styles.transactionDate}>
+                    {new Date(item.timestamp).toLocaleDateString()}
+                  </Text>
+                </View>
+                <Text
+                  style={[
+                    styles.transactionAmount,
+                    { color: item.amount > 0 ? "#31D0AA" : COLORS.text },
+                  ]}
+                >
+                  {item.amount > 0 ? "+" : ""}
+                  {item.amount}
+                </Text>
+              </View>
+            ))
+          )}
+        </View>
+      </ScrollView>
     </KeyboardAvoidingView>
   );
 }
@@ -226,7 +320,6 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.background,
   },
   content: {
-    flex: 1,
     padding: 20,
     paddingTop: 56,
     gap: 18,
@@ -394,5 +487,56 @@ const styles = StyleSheet.create({
     color: COLORS.text,
     fontSize: 16,
     fontWeight: "700",
+  },
+  historySection: {
+    marginTop: 10,
+    paddingBottom: 40,
+  },
+  historyTitle: {
+    color: COLORS.text,
+    fontSize: 18,
+    fontWeight: "700",
+    marginBottom: 15,
+  },
+  transactionItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: COLORS.card,
+    padding: 14,
+    borderRadius: 12,
+    marginBottom: 10,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+  },
+  transactionIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: COLORS.background,
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 12,
+  },
+  transactionInfo: {
+    flex: 1,
+  },
+  transactionDesc: {
+    color: COLORS.text,
+    fontSize: 13,
+    fontWeight: "600",
+  },
+  transactionDate: {
+    color: COLORS.textSecondary,
+    fontSize: 11,
+    marginTop: 2,
+  },
+  transactionAmount: {
+    fontSize: 15,
+    fontWeight: "800",
+  },
+  emptyHistoryText: {
+    color: COLORS.textSecondary,
+    textAlign: "center",
+    paddingVertical: 20,
   },
 });

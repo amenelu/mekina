@@ -148,6 +148,19 @@ class RequestAnswerForm(FlaskForm):
     submit = SubmitField("Post Answer")
 
 
+def _pagination_meta(pagination):
+    return {
+        "page": pagination.page,
+        "per_page": pagination.per_page,
+        "total": pagination.total,
+        "pages": pagination.pages,
+        "has_prev": pagination.has_prev,
+        "prev_num": pagination.prev_num,
+        "has_next": pagination.has_next,
+        "next_num": pagination.next_num,
+    }
+
+
 def calculate_request_score(req):
     """Calculates a score (0-100) representing the detail level of a request."""
     score = 10
@@ -593,7 +606,11 @@ def api_popular_searches(current_user):
 def api_request_more_points(current_user):
     if not (current_user.is_dealer or current_user.is_rental_company):
         return (
-            jsonify({"message": "Only dealers and rental companies can request more points."}),
+            jsonify(
+                {
+                    "message": "Only dealers and rental companies can request more points."
+                }
+            ),
             403,
         )
 
@@ -653,6 +670,47 @@ def api_request_more_points(current_user):
         {
             "status": "success",
             "message": "Your request has been sent to the admin.",
+        }
+    )
+
+
+@dealer_bp.route("/api/points/history")
+@token_required
+def api_points_history(current_user):
+    """API endpoint to get point transaction history for the authenticated dealer/rental company."""
+    if not (current_user.is_dealer or current_user.is_rental_company):
+        return (
+            jsonify(
+                {
+                    "status": "error",
+                    "message": "Only dealers and rental companies can access point history.",
+                }
+            ),
+            403,
+        )
+
+    page = request.args.get("page", 1, type=int)
+    per_page = min(request.args.get("per_page", 20, type=int), 100)
+
+    pagination = (
+        PointTransaction.query.filter_by(user_id=current_user.id)
+        .order_by(PointTransaction.created_at.desc())
+        .paginate(page=page, per_page=per_page, error_out=False)
+    )
+
+    return jsonify(
+        {
+            "transactions": [
+                {
+                    "id": t.id,
+                    "amount": t.amount,
+                    "transaction_type": t.transaction_type,
+                    "description": t.description,
+                    "timestamp": t.created_at.isoformat() + "Z",
+                }
+                for t in pagination.items
+            ],
+            "pagination": _pagination_meta(pagination),
         }
     )
 
@@ -1430,40 +1488,6 @@ def api_update_car(current_user, car_id):
     if not data:
         return jsonify({"status": "error", "message": "Invalid JSON payload."}), 400
 
-    # --- Point Deduction Logic ---
-    # Check if the edit is happening more than 1 hour after the last update
-    # Use getattr to safely access updated_at, fallback to created_at or now
-    last_update = getattr(car, "updated_at", None) or getattr(
-        car, "created_at", datetime.utcnow()
-    )
-    time_since_last_update = datetime.utcnow() - last_update
-
-    if time_since_last_update > timedelta(hours=1):
-        if current_user.points <= 0:
-            return (
-                jsonify(
-                    {
-                        "status": "error",
-                        "message": "You do not have enough points to edit this listing after one hour.",
-                    }
-                ),
-                402,
-            )  # 402 Payment Required
-        current_user.points -= 1
-        # Log Transaction
-        txn = PointTransaction(
-            user_id=current_user.id,
-            amount=-1,
-            transaction_type="edit_listing",
-            description=f"Updated listing #{car.id}",
-        )
-        db.session.add(txn)
-        success_message = (
-            "Listing updated and sent for re-approval. 1 point was deducted."
-        )
-    else:
-        success_message = "Listing updated and sent for re-approval."
-
     # --- Track Changes for Admin Highlighting ---
     changed_fields = []
     if data.get("make") and data.get("make") != car.make:
@@ -1500,8 +1524,53 @@ def api_update_car(current_user, car_id):
         if selected_image.order != 0:
             changed_fields.append("display_picture")
 
-    # Save changes as comma-separated string if any changes occurred
-    if changed_fields:
+    if not changed_fields:
+        return jsonify(
+            {
+                "status": "success",
+                "message": "No changes detected.",
+                "car": car.to_dict(),
+            }
+        )
+
+    # Determine if re-approval is needed. Only major fields trigger re-approval.
+    # Swapping the display image among existing photos is a minor preference change.
+    requires_reapproval = any(f != "display_picture" for f in changed_fields)
+    success_message = "Listing updated successfully."
+
+    if requires_reapproval:
+        # --- Point Deduction Logic for Major Edits ---
+        last_update = getattr(car, "updated_at", None) or getattr(
+            car, "created_at", datetime.utcnow()
+        )
+        time_since_last_update = datetime.utcnow() - last_update
+
+        if time_since_last_update > timedelta(hours=1):
+            if current_user.points <= 0:
+                return (
+                    jsonify(
+                        {
+                            "status": "error",
+                            "message": "You do not have enough points to edit core details after one hour.",
+                        }
+                    ),
+                    402,
+                )
+            current_user.points -= 1
+            txn = PointTransaction(
+                user_id=current_user.id,
+                amount=-1,
+                transaction_type="edit_listing",
+                description=f"Updated listing #{car.id}",
+            )
+            db.session.add(txn)
+            success_message = (
+                "Listing updated and sent for re-approval. 1 point was deducted."
+            )
+        else:
+            success_message = "Listing updated and sent for re-approval."
+
+        car.is_approved = False
         car.last_changes = ",".join(changed_fields)
 
     # --- Update Car Details & Require Re-approval ---
@@ -1524,10 +1593,7 @@ def api_update_car(current_user, car_id):
                 image.order = next_order
                 next_order += 1
 
-    # Set for re-approval
-    car.is_approved = False
     car.updated_at = datetime.utcnow()  # Manually update the timestamp
-
     db.session.commit()
 
     return jsonify(
