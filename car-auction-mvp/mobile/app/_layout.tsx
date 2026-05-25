@@ -8,7 +8,7 @@ import {
   Text,
   View,
 } from "react-native";
-import { Stack, router } from "expo-router";
+import { Stack, router, usePathname } from "expo-router";
 import {
   getFocusedRouteNameFromRoute,
   ThemeProvider,
@@ -418,12 +418,51 @@ function AppStackHeader({ navigation, options, route, back }: any) {
   );
 }
 
+function WebFallbackBackButton() {
+  const pathname = usePathname();
+
+  if (Platform.OS !== "web") {
+    return null;
+  }
+
+  const shouldShow =
+    /^\/\d+/.test(pathname) ||
+    pathname.startsWith("/request/") ||
+    pathname.startsWith("/deal/") ||
+    pathname.startsWith("/trade-in/") ||
+    pathname.startsWith("/messages/") ||
+    pathname.startsWith("/compare") ||
+    pathname.includes("/details/");
+
+  if (!shouldShow) {
+    return null;
+  }
+
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel="Go back"
+      onPress={() => {
+        if (typeof window !== "undefined" && window.history.length > 1) {
+          window.history.back();
+          return;
+        }
+        router.replace("/(tabs)" as any);
+      }}
+      style={styles.webFallbackBackButton}
+    >
+      <Text style={styles.webFallbackBackText}>Back</Text>
+    </Pressable>
+  );
+}
+
 export default function RootLayout() {
   return (
     <RootErrorBoundary>
       <WebRuntimeMonitor>
         <WebInputFocusStyles />
         <WebGlobalPullToRefresh />
+        <WebFallbackBackButton />
         <SocketProvider>
           <ThemeProvider value={MyDarkTheme}>
             <Stack
@@ -533,6 +572,26 @@ const styles = StyleSheet.create({
     fontSize: 17,
     fontWeight: "800",
     textAlign: "center",
+  },
+  webFallbackBackButton: {
+    position: "fixed" as any,
+    top: 10,
+    left: 12,
+    zIndex: 2147483647,
+    minWidth: 78,
+    minHeight: 40,
+    borderRadius: 10,
+    backgroundColor: "#FFFFFF",
+    borderWidth: 2,
+    borderColor: "#A370F7",
+    alignItems: "center",
+    justifyContent: "center",
+    boxShadow: "0 10px 24px rgba(0,0,0,0.35)" as any,
+  },
+  webFallbackBackText: {
+    color: COLORS.background,
+    fontSize: 15,
+    fontWeight: "900",
   },
   errorShell: {
     flex: 1,
