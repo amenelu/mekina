@@ -137,6 +137,7 @@ const CarDetailScreen = () => {
       documentElement.style.overscrollBehavior;
 
     if (isImageViewerVisible) {
+      (window as any).__mekinaImageViewerOpen = true;
       body.style.overflow = "hidden";
       body.style.overscrollBehavior = "none";
       documentElement.style.overflow = "hidden";
@@ -144,6 +145,7 @@ const CarDetailScreen = () => {
     }
 
     return () => {
+      (window as any).__mekinaImageViewerOpen = false;
       body.style.overflow = previousBodyOverflow;
       body.style.overscrollBehavior = previousBodyOverscrollBehavior;
       documentElement.style.overflow = previousHtmlOverflow;
@@ -189,16 +191,47 @@ const CarDetailScreen = () => {
     });
   }, [imageViewerTranslateY, thumbnails.length, viewerImageIndex, width]);
 
+  const showViewerImage = useCallback(
+    (index: number) => {
+      if (!thumbnails.length) return;
+      const safeIndex = Math.min(Math.max(index, 0), thumbnails.length - 1);
+      setViewerImageIndex(safeIndex);
+      setSelectedImageIndex(safeIndex);
+    },
+    [thumbnails.length]
+  );
+
   const imageViewerPanResponder = React.useMemo(
     () =>
       PanResponder.create({
         onMoveShouldSetPanResponder: (_, gestureState) =>
-          Math.abs(gestureState.dy) > Math.abs(gestureState.dx) &&
-          gestureState.dy > 8,
+          (Math.abs(gestureState.dy) > Math.abs(gestureState.dx) &&
+            gestureState.dy > 8) ||
+          (Math.abs(gestureState.dx) > Math.abs(gestureState.dy) &&
+            Math.abs(gestureState.dx) > 12),
         onPanResponderMove: (_, gestureState) => {
-          imageViewerTranslateY.setValue(Math.max(0, gestureState.dy));
+          if (Math.abs(gestureState.dy) >= Math.abs(gestureState.dx)) {
+            imageViewerTranslateY.setValue(Math.max(0, gestureState.dy));
+          }
         },
         onPanResponderRelease: (_, gestureState) => {
+          if (
+            Math.abs(gestureState.dx) > Math.abs(gestureState.dy) &&
+            Math.abs(gestureState.dx) > 55
+          ) {
+            if (gestureState.dx < 0) {
+              showViewerImage(viewerImageIndex + 1);
+            } else {
+              showViewerImage(viewerImageIndex - 1);
+            }
+            Animated.spring(imageViewerTranslateY, {
+              toValue: 0,
+              useNativeDriver: true,
+              bounciness: 6,
+            }).start();
+            return;
+          }
+
           if (gestureState.dy > 140) {
             Animated.timing(imageViewerTranslateY, {
               toValue: Dimensions.get("window").height,
@@ -224,7 +257,7 @@ const CarDetailScreen = () => {
           }).start();
         },
       }),
-    [closeImageViewer, imageViewerTranslateY]
+    [closeImageViewer, imageViewerTranslateY, showViewerImage, viewerImageIndex]
   );
 
   const isViewingOwnListing = car?.owner?.id === user?.id;
@@ -265,16 +298,6 @@ const CarDetailScreen = () => {
       });
     },
     [thumbnails, width]
-  );
-
-  const showViewerImage = useCallback(
-    (index: number) => {
-      if (!thumbnails.length) return;
-      const safeIndex = Math.min(Math.max(index, 0), thumbnails.length - 1);
-      setViewerImageIndex(safeIndex);
-      setSelectedImageIndex(safeIndex);
-    },
-    [thumbnails.length]
   );
 
   const handleCarouselMomentumEnd = useCallback(
@@ -997,30 +1020,6 @@ const CarDetailScreen = () => {
                   style={styles.fullscreenImage}
                 />
               ) : null}
-              {thumbnails.length > 1 && viewerImageIndex > 0 && (
-                <Pressable
-                  accessibilityRole="button"
-                  accessibilityLabel="Previous image"
-                  style={[styles.imageViewerArrow, styles.imageViewerArrowLeft]}
-                  onPress={() => showViewerImage(viewerImageIndex - 1)}
-                >
-                  <Text style={styles.imageViewerArrowText}>‹</Text>
-                </Pressable>
-              )}
-              {thumbnails.length > 1 &&
-                viewerImageIndex < thumbnails.length - 1 && (
-                  <Pressable
-                    accessibilityRole="button"
-                    accessibilityLabel="Next image"
-                    style={[
-                      styles.imageViewerArrow,
-                      styles.imageViewerArrowRight,
-                    ]}
-                    onPress={() => showViewerImage(viewerImageIndex + 1)}
-                  >
-                    <Text style={styles.imageViewerArrowText}>›</Text>
-                  </Pressable>
-                )}
             </View>
           </Animated.View>
           </Animated.View>
@@ -1148,31 +1147,6 @@ const styles = StyleSheet.create({
     width: Dimensions.get("window").width,
     height: Dimensions.get("window").height,
     resizeMode: "contain",
-  },
-  imageViewerArrow: {
-    position: "absolute",
-    top: "50%",
-    width: 46,
-    height: 46,
-    marginTop: -23,
-    borderRadius: 23,
-    backgroundColor: "rgba(0,0,0,0.55)",
-    alignItems: "center",
-    justifyContent: "center",
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.18)",
-  },
-  imageViewerArrowLeft: {
-    left: 18,
-  },
-  imageViewerArrowRight: {
-    right: 18,
-  },
-  imageViewerArrowText: {
-    color: COLORS.foreground,
-    fontSize: 34,
-    fontWeight: "500",
-    lineHeight: 38,
   },
   closeButton: {
     position: "absolute",

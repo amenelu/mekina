@@ -261,6 +261,8 @@ function WebGlobalPullToRefresh() {
 
     const pageHasInAppRefresh = () =>
       Number((window as any).__mekinaWebPullRefreshHandlers || 0) > 0;
+    const isImageViewerOpen = () =>
+      Boolean((window as any).__mekinaImageViewerOpen);
 
     const updatePullDistance = (distance: number) => {
       if (rafId !== null) {
@@ -275,6 +277,7 @@ function WebGlobalPullToRefresh() {
     const onTouchStart = (event: TouchEvent) => {
       if (
         refreshing ||
+        isImageViewerOpen() ||
         pageHasInAppRefresh() ||
         isTextEntry(event.target) ||
         isInsideHorizontalScroller(event.target) ||
@@ -291,7 +294,7 @@ function WebGlobalPullToRefresh() {
     };
 
     const onTouchMove = (event: TouchEvent) => {
-      if (!pulling || refreshing || event.touches.length !== 1) {
+      if (!pulling || refreshing || isImageViewerOpen() || event.touches.length !== 1) {
         return;
       }
 
