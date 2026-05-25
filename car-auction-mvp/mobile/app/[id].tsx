@@ -73,6 +73,15 @@ const CarDetailScreen = () => {
   const [message, setMessage] = useState("");
   const [sendingMessage, setSendingMessage] = useState(false);
 
+  const handleBackPress = useCallback(() => {
+    if (router.canGoBack()) {
+      router.back();
+      return;
+    }
+
+    router.replace("/(tabs)" as any);
+  }, [router]);
+
   const fetchCarDetails = useCallback(async (isRefresh = false) => {
     if (!id) return;
     if (!isRefresh) setLoading(true);
@@ -142,19 +151,10 @@ const CarDetailScreen = () => {
     fetchCarDetails(true);
   };
 
-  // Use a layout effect to set the title. This runs before the paint,
-  // preventing the `[id]` from ever showing.
+  // Hide the platform header and render a consistent in-screen header instead.
   React.useLayoutEffect(() => {
-    const title = car
-      ? `${car.year} ${car.make} ${car.model}`
-      : id
-      ? "Loading..."
-      : "Not Found";
-    navigation.setOptions({
-      title,
-      headerTitleAlign: "center",
-    });
-  }, [navigation, car, id]);
+    navigation.setOptions({ headerShown: false });
+  }, [navigation]);
 
   const closeImageViewer = () => {
     setImageViewerVisible(false);
@@ -213,15 +213,11 @@ const CarDetailScreen = () => {
       : [];
   const isViewingOwnListing = car?.owner?.id === user?.id;
   const showBuyerActions = !isViewingOwnListing;
-
-  const handleBackPress = () => {
-    if (router.canGoBack()) {
-      router.back();
-      return;
-    }
-
-    router.replace("/(tabs)" as any);
-  };
+  const detailsTitle = car
+    ? `${car.year} ${car.make} ${car.model}`
+    : id
+    ? "Loading..."
+    : "Car Details";
 
   const openImageViewer = (index: number) => {
     setSelectedImageIndex(index);
@@ -444,7 +440,22 @@ const CarDetailScreen = () => {
 
   return (
     <>
-      <Stack.Screen />
+      <Stack.Screen options={{ headerShown: false }} />
+      <View style={styles.detailsHeader}>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Go back"
+          onPress={handleBackPress}
+          style={styles.detailsHeaderBackButton}
+        >
+          <Ionicons name="chevron-back" size={20} color={COLORS.foreground} />
+          <Text style={styles.detailsHeaderBackText}>Back</Text>
+        </Pressable>
+        <Text style={styles.detailsHeaderTitle} numberOfLines={1}>
+          {detailsTitle}
+        </Text>
+        <View style={styles.detailsHeaderSpacer} />
+      </View>
       <ScrollView
         style={styles.container}
         scrollEnabled={!isImageViewerVisible}
@@ -469,9 +480,10 @@ const CarDetailScreen = () => {
             >
               <Ionicons
                 name="chevron-back"
-                size={26}
+                size={20}
                 color={COLORS.foreground}
               />
+              <Text style={styles.galleryBackText}>Back</Text>
             </Pressable>
             <FlatList
               ref={carouselRef}
@@ -869,6 +881,39 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: COLORS.background,
   },
+  detailsHeader: {
+    height: 58,
+    backgroundColor: COLORS.card,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.border,
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 12,
+    zIndex: 10,
+  },
+  detailsHeaderBackButton: {
+    minWidth: 76,
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 8,
+    paddingRight: 10,
+  },
+  detailsHeaderBackText: {
+    color: COLORS.foreground,
+    fontSize: 15,
+    fontWeight: "700",
+    marginLeft: 2,
+  },
+  detailsHeaderTitle: {
+    flex: 1,
+    color: COLORS.foreground,
+    fontSize: 17,
+    fontWeight: "800",
+    textAlign: "center",
+  },
+  detailsHeaderSpacer: {
+    width: 76,
+  },
   imageGallery: {
     marginBottom: 8,
   },
@@ -983,14 +1028,22 @@ const styles = StyleSheet.create({
     top: 15,
     left: 15,
     zIndex: 2,
-    width: 42,
+    minWidth: 78,
     height: 42,
     borderRadius: 21,
     backgroundColor: "rgba(0,0,0,0.55)",
     alignItems: "center",
     justifyContent: "center",
+    flexDirection: "row",
+    paddingHorizontal: 12,
     borderWidth: 1,
     borderColor: "rgba(255,255,255,0.18)",
+  },
+  galleryBackText: {
+    color: COLORS.foreground,
+    fontSize: 14,
+    fontWeight: "700",
+    marginLeft: 2,
   },
   contentContainer: {
     padding: 20,

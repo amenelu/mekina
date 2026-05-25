@@ -13,19 +13,20 @@ export default function RentalTabsLayout() {
   return (
     <AuthGate role="rental">
       <Tabs
-      screenOptions={{
-        headerShown: false,
-        tabBarActiveTintColor: COLORS.accent,
-        tabBarInactiveTintColor: COLORS.textSecondary,
-        tabBarStyle: {
-          backgroundColor: COLORS.card,
-          borderTopColor: COLORS.card,
-          height: 60,
-          paddingTop: 6,
-          paddingBottom: 6,
-        },
-      }}
-    >
+        screenOptions={{
+          headerShown: false,
+          tabBarHideOnKeyboard: true,
+          tabBarActiveTintColor: COLORS.accent,
+          tabBarInactiveTintColor: COLORS.textSecondary,
+          tabBarStyle: {
+            backgroundColor: COLORS.card,
+            borderTopColor: COLORS.card,
+            height: 60,
+            paddingTop: 6,
+            paddingBottom: 6,
+          },
+        }}
+      >
       <Tabs.Screen
         name="rental-dashboard"
         options={{
