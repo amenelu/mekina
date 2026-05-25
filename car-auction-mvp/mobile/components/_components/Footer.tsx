@@ -120,13 +120,22 @@ const Footer = () => {
           ]}
         >
           <Text style={styles.footerLinkTitle}>Support</Text>
-          <Pressable style={styles.footerLinkButton}>
+          <Pressable
+            style={styles.footerLinkButton}
+            onPress={() => goTo("/contact-us")}
+          >
             <Text style={styles.footerLinkText}>Contact Us</Text>
           </Pressable>
-          <Pressable style={styles.footerLinkButton}>
+          <Pressable
+            style={styles.footerLinkButton}
+            onPress={() => goTo("/terms")}
+          >
             <Text style={styles.footerLinkText}>Terms & Conditions</Text>
           </Pressable>
-          <Pressable style={styles.footerLinkButton}>
+          <Pressable
+            style={styles.footerLinkButton}
+            onPress={() => goTo("/privacy")}
+          >
             <Text style={styles.footerLinkText}>Privacy Policy</Text>
           </Pressable>
         </View>
