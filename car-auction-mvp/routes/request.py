@@ -91,15 +91,18 @@ class RequestStep4_Notes(FlaskForm):
 
 
 # --- "Help me decide" Path ---
+GUIDED_PRICE_CHOICES = [
+    ("1_3m_to_3m", "1.3M - 3M ETB"),
+    ("3m_to_12m", "3M - 12M ETB"),
+    ("over_12m", "12M+ ETB"),
+]
+GUIDED_PRICE_LABELS = dict(GUIDED_PRICE_CHOICES)
+
+
 class RequestGuided_Price(FlaskForm):
     price = RadioField(
         "What is your approximate budget?",
-        choices=[
-            ("under_1m", "Under 1,000,000 ETB"),
-            ("1m_to_3m", "1M - 3M ETB"),
-            ("3m_to_5m", "3M - 5M ETB"),
-            ("over_5m", "Over 5,000,000 ETB"),
-        ],
+        choices=GUIDED_PRICE_CHOICES,
         validators=[DataRequired()],
     )
     submit = SubmitField("Next")
@@ -472,9 +475,12 @@ def step_guided_brand():
             return redirect(url_for("main.home"))
 
         data = session.get("car_request_data", {})
+        budget_label = GUIDED_PRICE_LABELS.get(
+            data.get("price"), data.get("price", "Not specified")
+        )
         notes = (
             f"Customer is looking for a car with the following preferences:\n"
-            f"- Budget: {data.get('price', 'Not specified')}\n"
+            f"- Budget: {budget_label}\n"
             f"- Body Type: {data.get('body_type', 'Not specified')}\n"
             f"- Fuel Type: {data.get('fuel_type', 'Not specified')}\n"
             f"- Important Features: {', '.join(data.get('equipment', [])) or 'None'}\n"
@@ -1234,11 +1240,14 @@ def api_create_request(current_user):
 
         # Map the values to their labels, defaulting to the value itself if not found
         equipment_labels = [equipment_map.get(val, val) for val in equipment_values]
+        budget_label = GUIDED_PRICE_LABELS.get(
+            data.get("price"), data.get("price", "Not specified")
+        )
 
         # Construct notes from guided path data, similar to the web route
         notes = (
             f"Customer is looking for a car with the following preferences:\n"
-            f"- Budget: {data.get('price', 'Not specified')}\n"
+            f"- Budget: {budget_label}\n"
             f"- Body Type: {data.get('body_type', 'Not specified')}\n"
             f"- Fuel Type: {data.get('fuel_type', 'Not specified')}\n"
             f"- Important Features: {', '.join(equipment_labels) or 'None'}\n"

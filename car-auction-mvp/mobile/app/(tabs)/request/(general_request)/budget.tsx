@@ -15,10 +15,9 @@ const COLORS = {
 };
 
 const budgetOptions = [
-  { label: "Under 1,000,000 ETB", value: "under_1m" },
-  { label: "1M - 3M ETB", value: "1m_to_3m" },
-  { label: "3M - 5M ETB", value: "3m_to_5m" },
-  { label: "Over 5,000,000 ETB", value: "over_5m" },
+  { label: "1.3M - 3M ETB", value: "1_3m_to_3m" },
+  { label: "3M - 12M ETB", value: "3m_to_12m" },
+  { label: "12M+ ETB", value: "over_12m" },
 ];
 
 const RequestBudgetScreen = () => {
