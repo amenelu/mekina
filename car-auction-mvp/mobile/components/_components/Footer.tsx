@@ -8,6 +8,8 @@ import {
   useWindowDimensions,
 } from "react-native";
 import { useRouter } from "expo-router";
+import { useAuth } from "@/hooks/useAuth";
+import { showNativeFlowConfirm } from "@/lib/nativeFlowAlert";
 
 const COLORS = {
   foreground: "#F8F8F8",
@@ -18,12 +20,27 @@ const COLORS = {
 
 const Footer = () => {
   const router = useRouter();
+  const { user } = useAuth();
   const { width } = useWindowDimensions();
   const isWideWeb = Platform.OS === "web" && width >= 900;
   const isCompact = width < 420;
 
   const goTo = (href: string) => {
     router.push(href as any);
+  };
+
+  const goToTradeIn = () => {
+    if (!user) {
+      showNativeFlowConfirm({
+        title: "Login Required",
+        message: "Please log in to get a trade-in offer.",
+        confirmText: "Login",
+        onConfirm: () => router.push("/login"),
+      });
+      return;
+    }
+
+    goTo("/trade-in");
   };
 
   return (
@@ -86,17 +103,11 @@ const Footer = () => {
           ]}
         >
           <Text style={styles.footerLinkTitle}>Selling</Text>
-          <Pressable style={styles.footerLinkButton}>
-            <Text style={styles.footerLinkText}>List Your Car</Text>
-          </Pressable>
           <Pressable
             style={styles.footerLinkButton}
-            onPress={() => goTo("/trade-in")}
+            onPress={goToTradeIn}
           >
             <Text style={styles.footerLinkText}>Trade-in Value</Text>
-          </Pressable>
-          <Pressable style={styles.footerLinkButton}>
-            <Text style={styles.footerLinkText}>Seller Guide</Text>
           </Pressable>
         </View>
 
