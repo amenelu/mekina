@@ -441,23 +441,10 @@ const CarDetailScreen = () => {
   return (
     <>
       <Stack.Screen options={{ headerShown: false }} />
-      <View style={styles.detailsHeader}>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Go back"
-          onPress={handleBackPress}
-          style={styles.detailsHeaderBackButton}
-        >
-          <Text style={styles.detailsHeaderBackText}>Back</Text>
-        </Pressable>
-        <Text style={styles.detailsHeaderTitle} numberOfLines={1}>
-          {detailsTitle}
-        </Text>
-        <View style={styles.detailsHeaderSpacer} />
-      </View>
       <ScrollView
         style={styles.container}
         scrollEnabled={!isImageViewerVisible}
+        stickyHeaderIndices={[0]}
         refreshControl={
           !isImageViewerVisible ? (
           <RefreshControl
@@ -468,6 +455,21 @@ const CarDetailScreen = () => {
           ) : undefined
         }
       >
+        <View style={styles.detailsHeader}>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Go back"
+            onPress={handleBackPress}
+            style={styles.detailsHeaderBackButton}
+          >
+            <Text style={styles.detailsHeaderBackIcon}>‹</Text>
+            <Text style={styles.detailsHeaderBackText}>Back</Text>
+          </Pressable>
+          <Text style={styles.detailsHeaderTitle} numberOfLines={1}>
+            {detailsTitle}
+          </Text>
+          <View style={styles.detailsHeaderSpacer} />
+        </View>
         {/* Image Gallery */}
         <View style={[styles.imageGallery, isWideWeb && styles.imageGalleryWide]}>
           <View>
@@ -879,19 +881,26 @@ const styles = StyleSheet.create({
   },
   detailsHeaderBackButton: {
     minWidth: 76,
+    flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    paddingVertical: 9,
+    paddingVertical: 8,
     paddingHorizontal: 12,
-    borderRadius: 10,
-    backgroundColor: "#FFFFFF",
-    borderWidth: 1,
-    borderColor: "#FFFFFF",
+    borderRadius: 999,
+    backgroundColor: COLORS.foreground,
+  },
+  detailsHeaderBackIcon: {
+    color: COLORS.background,
+    fontSize: 28,
+    fontWeight: "600",
+    lineHeight: 30,
+    marginTop: -2,
   },
   detailsHeaderBackText: {
-    color: "#14181F",
+    color: COLORS.background,
     fontSize: 15,
     fontWeight: "800",
+    marginLeft: 2,
   },
   detailsHeaderTitle: {
     flex: 1,
