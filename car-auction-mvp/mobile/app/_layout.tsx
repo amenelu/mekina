@@ -8,7 +8,7 @@ import {
   Text,
   View,
 } from "react-native";
-import { Stack, router } from "expo-router";
+import { Stack } from "expo-router";
 import {
   getFocusedRouteNameFromRoute,
   ThemeProvider,
@@ -373,14 +373,6 @@ function WebGlobalPullToRefresh() {
 
 function AppStackHeader({ navigation, options, route, back }: any) {
   const canGoBack = Boolean(back || navigation?.canGoBack?.());
-  const routeName = route?.name || "";
-  const showLeftAction =
-    routeName !== "index" &&
-    routeName !== "(tabs)" &&
-    routeName !== "(admin)" &&
-    routeName !== "(dealer)" &&
-    routeName !== "(rental)" &&
-    routeName !== "(auth)";
   const title =
     typeof options.headerTitle === "string"
       ? options.headerTitle
@@ -393,17 +385,11 @@ function AppStackHeader({ navigation, options, route, back }: any) {
   return (
     <View style={styles.appHeader}>
       <View style={styles.appHeaderSide}>
-        {showLeftAction ? (
+        {canGoBack ? (
           <Pressable
             accessibilityRole="button"
             accessibilityLabel="Go back"
-            onPress={() => {
-              if (navigation?.canGoBack?.()) {
-                navigation.goBack();
-                return;
-              }
-              router.replace("/(tabs)" as any);
-            }}
+            onPress={() => navigation.goBack()}
             style={styles.appHeaderBackButton}
           >
             <Text style={styles.appHeaderBackText}>Back</Text>
