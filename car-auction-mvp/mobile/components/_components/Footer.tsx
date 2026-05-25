@@ -20,6 +20,7 @@ const Footer = () => {
   const router = useRouter();
   const { width } = useWindowDimensions();
   const isWideWeb = Platform.OS === "web" && width >= 900;
+  const isCompact = width < 420;
 
   const goTo = (href: string) => {
     router.push(href as any);
@@ -31,16 +32,30 @@ const Footer = () => {
         style={[
           styles.footerContentGrid,
           isWideWeb && styles.footerContentGridWide,
+          !isWideWeb && styles.footerContentGridCompact,
         ]}
       >
-        <View style={[styles.footerSection, isWideWeb && styles.brandSectionWide]}>
+        <View
+          style={[
+            styles.footerSection,
+            styles.brandSectionCompact,
+            isWideWeb && styles.brandSectionWide,
+          ]}
+        >
           <Text style={styles.footerBrand}>Mekina Auction</Text>
           <Text style={styles.footerDescription}>
             The premier automotive marketplace for modern vehicles in Ethiopia.
           </Text>
         </View>
 
-        <View style={[styles.footerSection, isWideWeb && styles.linkSectionWide]}>
+        <View
+          style={[
+            styles.footerSection,
+            styles.linkSectionCompact,
+            isCompact && styles.linkSectionNarrow,
+            isWideWeb && styles.linkSectionWide,
+          ]}
+        >
           <Text style={styles.footerLinkTitle}>Buying</Text>
           <Pressable
             style={styles.footerLinkButton}
@@ -59,7 +74,14 @@ const Footer = () => {
           </Pressable>
         </View>
 
-        <View style={[styles.footerSection, isWideWeb && styles.linkSectionWide]}>
+        <View
+          style={[
+            styles.footerSection,
+            styles.linkSectionCompact,
+            isCompact && styles.linkSectionNarrow,
+            isWideWeb && styles.linkSectionWide,
+          ]}
+        >
           <Text style={styles.footerLinkTitle}>Selling</Text>
           <Pressable style={styles.footerLinkButton}>
             <Text style={styles.footerLinkText}>List Your Car</Text>
@@ -75,7 +97,14 @@ const Footer = () => {
           </Pressable>
         </View>
 
-        <View style={[styles.footerSection, isWideWeb && styles.linkSectionWide]}>
+        <View
+          style={[
+            styles.footerSection,
+            styles.linkSectionCompact,
+            isCompact && styles.linkSectionNarrow,
+            isWideWeb && styles.linkSectionWide,
+          ]}
+        >
           <Text style={styles.footerLinkTitle}>Support</Text>
           <Pressable style={styles.footerLinkButton}>
             <Text style={styles.footerLinkText}>Contact Us</Text>
@@ -112,6 +141,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: 42,
   },
   footerContentGrid: { marginBottom: 10 },
+  footerContentGridCompact: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
+    columnGap: 12,
+    rowGap: 10,
+  },
   footerContentGridWide: {
     width: "100%",
     maxWidth: 1180,
@@ -122,14 +159,27 @@ const styles = StyleSheet.create({
     gap: 28,
   },
   footerSection: { marginBottom: 18 },
+  brandSectionCompact: {
+    width: "100%",
+    marginBottom: 8,
+  },
   brandSectionWide: {
     flex: 1.25,
     maxWidth: 360,
+    width: "auto",
     marginBottom: 0,
+  },
+  linkSectionCompact: {
+    width: "30%",
+    minWidth: 96,
+  },
+  linkSectionNarrow: {
+    minWidth: 86,
   },
   linkSectionWide: {
     flex: 0.7,
     minWidth: 120,
+    width: "auto",
     marginBottom: 0,
   },
   footerBrand: {
