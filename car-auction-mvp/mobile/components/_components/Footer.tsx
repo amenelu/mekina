@@ -42,7 +42,7 @@ const Footer = () => {
             isWideWeb && styles.brandSectionWide,
           ]}
         >
-          <Text style={styles.footerBrand}>Mekina Auction</Text>
+          <Text style={styles.footerBrand}>mekina</Text>
           <Text style={styles.footerDescription}>
             The premier automotive marketplace for modern vehicles in Ethiopia.
           </Text>
@@ -120,7 +120,7 @@ const Footer = () => {
 
       <View style={styles.footerBottom}>
         <Text style={styles.footerCopyright}>
-          &copy; {new Date().getFullYear()} Mekina Auction. All rights reserved.
+          &copy; {new Date().getFullYear()} mekina. All rights reserved.
         </Text>
       </View>
     </View>
