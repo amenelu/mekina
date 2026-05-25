@@ -66,7 +66,6 @@ const CarDetailScreen = () => {
   const [requestSubmitting, setRequestSubmitting] = useState(false);
   const imageViewerTranslateY = React.useRef(new Animated.Value(0)).current;
   const carouselRef = useRef<FlatList<string>>(null);
-  const imageViewerRef = useRef<FlatList<string>>(null);
   const thumbnailScrollRef = useRef<ScrollView>(null);
   const mainImageWidth = isWideWeb
     ? Math.min(Math.max(width - 56, 1), 1220)
@@ -244,16 +243,6 @@ const CarDetailScreen = () => {
   };
 
   useEffect(() => {
-    if (!isImageViewerVisible || !thumbnails.length) return;
-    requestAnimationFrame(() => {
-      imageViewerRef.current?.scrollToIndex({
-        index: viewerImageIndex,
-        animated: false,
-      });
-    });
-  }, [isImageViewerVisible, thumbnails.length, viewerImageIndex]);
-
-  useEffect(() => {
     if (!thumbnails.length) {
       setSelectedImageIndex(0);
       return;
@@ -269,13 +258,23 @@ const CarDetailScreen = () => {
     (index: number) => {
       if (index < 0 || index >= thumbnails.length) return;
       setSelectedImageIndex(index);
-      carouselRef.current?.scrollToIndex({ index, animated: true });
+      carouselRef.current?.scrollToIndex({ index, animated: false });
       thumbnailScrollRef.current?.scrollTo({
         x: Math.max(0, index * 92 - width / 2 + 40),
-        animated: true,
+        animated: false,
       });
     },
     [thumbnails, width]
+  );
+
+  const showViewerImage = useCallback(
+    (index: number) => {
+      if (!thumbnails.length) return;
+      const safeIndex = Math.min(Math.max(index, 0), thumbnails.length - 1);
+      setViewerImageIndex(safeIndex);
+      setSelectedImageIndex(safeIndex);
+    },
+    [thumbnails.length]
   );
 
   const handleCarouselMomentumEnd = useCallback(
@@ -990,42 +989,39 @@ const CarDetailScreen = () => {
               }),
             }}
           >
-            <FlatList
-              ref={imageViewerRef}
-              key={`image-viewer-${thumbnails.length}`}
-              data={thumbnails}
-              style={styles.imageViewerPager}
-              horizontal
-              pagingEnabled
-              showsHorizontalScrollIndicator={false}
-              initialNumToRender={thumbnails.length}
-              maxToRenderPerBatch={thumbnails.length}
-              windowSize={Math.max(3, thumbnails.length)}
-              removeClippedSubviews={false}
-              keyExtractor={(item, index) => `car-image-${index}`}
-              initialScrollIndex={Math.max(0, viewerImageIndex)}
-              getItemLayout={(data, index) => ({
-                length: Dimensions.get("window").width,
-                offset: Dimensions.get("window").width * index,
-                index,
-              })}
-              onMomentumScrollEnd={(event) => {
-                const rawIndex = Math.round(
-                  event.nativeEvent.contentOffset.x / Dimensions.get("window").width
-                );
-                const nextIndex = Math.min(
-                  Math.max(rawIndex, 0),
-                  Math.max(0, thumbnails.length - 1)
-                );
-                setViewerImageIndex(nextIndex);
-                setSelectedImageIndex(nextIndex);
-              }}
-              renderItem={({ item }) => (
-                <View style={styles.imageViewerPage}>
-                  <Image source={{ uri: item }} style={styles.fullscreenImage} />
-                </View>
+            <View style={styles.imageViewerPage}>
+              {thumbnails[viewerImageIndex] ? (
+                <Image
+                  key={`fullscreen-image-${viewerImageIndex}-${thumbnails[viewerImageIndex]}`}
+                  source={{ uri: thumbnails[viewerImageIndex] }}
+                  style={styles.fullscreenImage}
+                />
+              ) : null}
+              {thumbnails.length > 1 && viewerImageIndex > 0 && (
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel="Previous image"
+                  style={[styles.imageViewerArrow, styles.imageViewerArrowLeft]}
+                  onPress={() => showViewerImage(viewerImageIndex - 1)}
+                >
+                  <Text style={styles.imageViewerArrowText}>‹</Text>
+                </Pressable>
               )}
-            />
+              {thumbnails.length > 1 &&
+                viewerImageIndex < thumbnails.length - 1 && (
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel="Next image"
+                    style={[
+                      styles.imageViewerArrow,
+                      styles.imageViewerArrowRight,
+                    ]}
+                    onPress={() => showViewerImage(viewerImageIndex + 1)}
+                  >
+                    <Text style={styles.imageViewerArrowText}>›</Text>
+                  </Pressable>
+                )}
+            </View>
           </Animated.View>
           </Animated.View>
         </View>
@@ -1152,6 +1148,31 @@ const styles = StyleSheet.create({
     width: Dimensions.get("window").width,
     height: Dimensions.get("window").height,
     resizeMode: "contain",
+  },
+  imageViewerArrow: {
+    position: "absolute",
+    top: "50%",
+    width: 46,
+    height: 46,
+    marginTop: -23,
+    borderRadius: 23,
+    backgroundColor: "rgba(0,0,0,0.55)",
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.18)",
+  },
+  imageViewerArrowLeft: {
+    left: 18,
+  },
+  imageViewerArrowRight: {
+    right: 18,
+  },
+  imageViewerArrowText: {
+    color: COLORS.foreground,
+    fontSize: 34,
+    fontWeight: "500",
+    lineHeight: 38,
   },
   closeButton: {
     position: "absolute",
