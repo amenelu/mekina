@@ -441,10 +441,24 @@ const CarDetailScreen = () => {
   return (
     <>
       <Stack.Screen options={{ headerShown: false }} />
+      <View style={styles.detailsHeader}>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Go back"
+          onPress={handleBackPress}
+          style={styles.detailsHeaderBackButton}
+        >
+          <Ionicons name="chevron-back" size={20} color={COLORS.foreground} />
+          <Text style={styles.detailsHeaderBackText}>Back</Text>
+        </Pressable>
+        <Text style={styles.detailsHeaderTitle} numberOfLines={1}>
+          {detailsTitle}
+        </Text>
+        <View style={styles.detailsHeaderSpacer} />
+      </View>
       <ScrollView
         style={styles.container}
         scrollEnabled={!isImageViewerVisible}
-        stickyHeaderIndices={[0]}
         refreshControl={
           !isImageViewerVisible ? (
           <RefreshControl
@@ -455,21 +469,6 @@ const CarDetailScreen = () => {
           ) : undefined
         }
       >
-        <View style={styles.detailsHeader}>
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Go back"
-            onPress={handleBackPress}
-            style={styles.detailsHeaderBackButton}
-          >
-            <Text style={styles.detailsHeaderBackIcon}>‹</Text>
-            <Text style={styles.detailsHeaderBackText}>Back</Text>
-          </Pressable>
-          <Text style={styles.detailsHeaderTitle} numberOfLines={1}>
-            {detailsTitle}
-          </Text>
-          <View style={styles.detailsHeaderSpacer} />
-        </View>
         {/* Image Gallery */}
         <View style={[styles.imageGallery, isWideWeb && styles.imageGalleryWide]}>
           <View>
@@ -898,13 +897,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingVertical: 8,
     paddingRight: 10,
-  },
-  detailsHeaderBackIcon: {
-    color: COLORS.foreground,
-    fontSize: 28,
-    fontWeight: "600",
-    lineHeight: 30,
-    marginTop: -2,
   },
   detailsHeaderBackText: {
     color: COLORS.foreground,
