@@ -353,12 +353,13 @@ const HomeScreen = () => {
 
   React.useLayoutEffect(() => {
     navigation.setOptions({
-      headerTitleAlign: "center",
-      headerTitle: () => (
+      headerTitle: "",
+      headerLeft: () => (
         <Pressable
           onPress={() => ref.current?.scrollTo({ y: 0, animated: true })}
+          style={styles.headerBrandButton}
         >
-          <Text style={styles.headerTitleText}>Mekina</Text>
+          <Text style={styles.headerTitleText}>mekina</Text>
         </Pressable>
       ),
     });
@@ -687,6 +688,10 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: "bold",
     color: COLORS.foreground,
+  },
+  headerBrandButton: {
+    paddingHorizontal: 14,
+    paddingVertical: 8,
   },
   // Hero Section
   searchHero: {
