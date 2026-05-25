@@ -262,6 +262,8 @@ const CarDetailScreen = () => {
 
   const isViewingOwnListing = car?.owner?.id === user?.id;
   const showBuyerActions = !isViewingOwnListing;
+  const showRentalCompanyContact =
+    car?.listing_type === "rental" && car?.owner?.is_rental_company;
   const detailsTitle = car
     ? `${car.year} ${car.make} ${car.model}`
     : id
@@ -754,6 +756,42 @@ const CarDetailScreen = () => {
                 <Text style={styles.bidLabel}>Time Left</Text>
                 <Text style={styles.bidValue}>
                   {car.auction_details?.time_left || "N/A"}
+                </Text>
+              </View>
+            </View>
+          )}
+
+          {showRentalCompanyContact && (
+            <View style={styles.rentalContactCard}>
+              <Text style={styles.rentalContactTitle}>Rental Contact</Text>
+              <View style={styles.rentalContactRow}>
+                <Ionicons
+                  name="business-outline"
+                  size={18}
+                  color={COLORS.accent}
+                />
+                <Text style={styles.rentalContactText}>
+                  {car.owner?.username || "Rental company"}
+                </Text>
+              </View>
+              <View style={styles.rentalContactRow}>
+                <Ionicons
+                  name="call-outline"
+                  size={18}
+                  color={COLORS.accent}
+                />
+                <Text style={styles.rentalContactText}>
+                  {car.owner?.phone_number || "Phone not provided"}
+                </Text>
+              </View>
+              <View style={styles.rentalContactRow}>
+                <Ionicons
+                  name="mail-outline"
+                  size={18}
+                  color={COLORS.accent}
+                />
+                <Text style={styles.rentalContactText}>
+                  {car.owner?.email || "Email not provided"}
                 </Text>
               </View>
             </View>
@@ -1295,6 +1333,30 @@ const styles = StyleSheet.create({
     color: COLORS.accent,
     fontSize: 22,
     fontWeight: "bold",
+  },
+  rentalContactCard: {
+    backgroundColor: COLORS.card,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    padding: 15,
+    marginBottom: 20,
+    gap: 10,
+  },
+  rentalContactTitle: {
+    color: COLORS.foreground,
+    fontSize: 16,
+    fontWeight: "700",
+  },
+  rentalContactRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+  },
+  rentalContactText: {
+    color: COLORS.foreground,
+    fontSize: 15,
+    flex: 1,
   },
   bidBox: {
     backgroundColor: COLORS.card,

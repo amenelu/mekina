@@ -156,6 +156,7 @@ class Car(db.Model):
                 "id": self.owner.id,
                 "username": self.owner.username,
                 "is_dealer": self.owner.is_dealer,
+                "is_rental_company": self.owner.is_rental_company,
             }
         return car_dict
 

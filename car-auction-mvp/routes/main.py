@@ -731,6 +731,9 @@ def api_car_detail(car_id):
     # Manually add the price_display field for consistency with other endpoints
     if car.listing_type == "rental" and car.rental_listing:
         car_data["price_display"] = f"{car.rental_listing.price_per_day:,.0f} ETB/day"
+        if car.owner and car.owner.is_rental_company and car_data.get("owner"):
+            car_data["owner"]["email"] = car.owner.email
+            car_data["owner"]["phone_number"] = car.owner.phone_number
     else:
         car_data["price_display"] = car.get_price_display()
 
