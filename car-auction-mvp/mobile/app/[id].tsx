@@ -448,8 +448,7 @@ const CarDetailScreen = () => {
           onPress={handleBackPress}
           style={styles.detailsHeaderBackButton}
         >
-          <Ionicons name="chevron-back" size={20} color={COLORS.foreground} />
-          <Text style={styles.detailsHeaderBackText}>Back</Text>
+          <Text style={styles.detailsHeaderBackIcon}>‹</Text>
         </Pressable>
         <Text style={styles.detailsHeaderTitle} numberOfLines={1}>
           {detailsTitle}
@@ -472,19 +471,6 @@ const CarDetailScreen = () => {
         {/* Image Gallery */}
         <View style={[styles.imageGallery, isWideWeb && styles.imageGalleryWide]}>
           <View>
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel="Go back"
-              style={styles.galleryBackButton}
-              onPress={handleBackPress}
-            >
-              <Ionicons
-                name="chevron-back"
-                size={20}
-                color={COLORS.foreground}
-              />
-              <Text style={styles.galleryBackText}>Back</Text>
-            </Pressable>
             <FlatList
               ref={carouselRef}
               data={thumbnails}
@@ -892,17 +878,17 @@ const styles = StyleSheet.create({
     zIndex: 10,
   },
   detailsHeaderBackButton: {
-    minWidth: 76,
-    flexDirection: "row",
+    width: 42,
+    height: 42,
+    borderRadius: 21,
     alignItems: "center",
-    paddingVertical: 8,
-    paddingRight: 10,
+    justifyContent: "center",
   },
-  detailsHeaderBackText: {
+  detailsHeaderBackIcon: {
     color: COLORS.foreground,
-    fontSize: 15,
-    fontWeight: "700",
-    marginLeft: 2,
+    fontSize: 34,
+    fontWeight: "500",
+    lineHeight: 38,
   },
   detailsHeaderTitle: {
     flex: 1,
@@ -912,7 +898,7 @@ const styles = StyleSheet.create({
     textAlign: "center",
   },
   detailsHeaderSpacer: {
-    width: 76,
+    width: 42,
   },
   imageGallery: {
     marginBottom: 8,
@@ -1022,28 +1008,6 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(0,0,0,0.5)",
     borderRadius: 20,
     padding: 8,
-  },
-  galleryBackButton: {
-    position: "absolute",
-    top: 15,
-    left: 15,
-    zIndex: 2,
-    minWidth: 78,
-    height: 42,
-    borderRadius: 21,
-    backgroundColor: "rgba(0,0,0,0.55)",
-    alignItems: "center",
-    justifyContent: "center",
-    flexDirection: "row",
-    paddingHorizontal: 12,
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.18)",
-  },
-  galleryBackText: {
-    color: COLORS.foreground,
-    fontSize: 14,
-    fontWeight: "700",
-    marginLeft: 2,
   },
   contentContainer: {
     padding: 20,
