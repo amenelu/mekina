@@ -8,6 +8,8 @@ import {
   ScrollView,
   Image,
   Pressable,
+  Animated,
+  Easing,
 } from "react-native";
 import { useAuth } from "@/hooks/useAuth";
 import { Ionicons } from "@expo/vector-icons";
@@ -89,10 +91,12 @@ const DealerPublicProfilePage: React.FC = () => {
   const { id, modal } = useLocalSearchParams<{ id: string; modal?: string }>();
   const router = useRouter();
   const { token } = useAuth();
+  const isModal = modal === "1";
 
   const [profileData, setProfileData] = useState<ProfileData | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
+  const sheetTranslateY = React.useRef(new Animated.Value(560)).current;
 
   useEffect(() => {
     if (id) {
@@ -109,6 +113,32 @@ const DealerPublicProfilePage: React.FC = () => {
     }
   }, [id, token]);
 
+  useEffect(() => {
+    if (!isModal) return;
+    sheetTranslateY.setValue(560);
+    Animated.timing(sheetTranslateY, {
+      toValue: 0,
+      duration: 260,
+      easing: Easing.out(Easing.cubic),
+      useNativeDriver: true,
+    }).start();
+  }, [isModal, sheetTranslateY]);
+
+  const closeModal = React.useCallback(() => {
+    Animated.timing(sheetTranslateY, {
+      toValue: 560,
+      duration: 200,
+      easing: Easing.in(Easing.cubic),
+      useNativeDriver: true,
+    }).start(() => {
+      if (router.canGoBack()) {
+        router.back();
+        return;
+      }
+      router.replace("/(tabs)" as any);
+    });
+  }, [router, sheetTranslateY]);
+
   if (loading) {
     return <ActivityIndicator size="large" style={styles.centered} />;
   }
@@ -122,7 +152,6 @@ const DealerPublicProfilePage: React.FC = () => {
   }
 
   const { dealer, listings, ratings, avg_rating, review_count } = profileData;
-  const isModal = modal === "1";
   const profileContent = (
     <ScrollView
       style={[styles.container, isModal && styles.modalScroll]}
@@ -202,7 +231,12 @@ const DealerPublicProfilePage: React.FC = () => {
       <>
         <Stack.Screen options={{ headerShown: false }} />
         <View style={styles.modalBackdrop}>
-          <View style={styles.modalCard}>
+          <Animated.View
+            style={[
+              styles.modalCard,
+              { transform: [{ translateY: sheetTranslateY }] },
+            ]}
+          >
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle} numberOfLines={1}>
                 Dealer Profile
@@ -210,20 +244,14 @@ const DealerPublicProfilePage: React.FC = () => {
               <Pressable
                 accessibilityRole="button"
                 accessibilityLabel="Close dealer profile"
-                onPress={() => {
-                  if (router.canGoBack()) {
-                    router.back();
-                    return;
-                  }
-                  router.replace("/(tabs)" as any);
-                }}
+                onPress={closeModal}
                 style={styles.modalCloseButton}
               >
                 <Ionicons name="close" size={22} color={COLORS.foreground} />
               </Pressable>
             </View>
             {profileContent}
-          </View>
+          </Animated.View>
         </View>
       </>
     );
@@ -242,16 +270,18 @@ const styles = StyleSheet.create({
   modalBackdrop: {
     flex: 1,
     backgroundColor: "rgba(0,0,0,0.62)",
-    justifyContent: "center",
+    justifyContent: "flex-end",
     alignItems: "center",
-    padding: 16,
+    paddingHorizontal: 12,
+    paddingTop: 16,
   },
   modalCard: {
     width: "100%",
     maxWidth: 720,
     maxHeight: "88%",
     backgroundColor: COLORS.background,
-    borderRadius: 14,
+    borderTopLeftRadius: 18,
+    borderTopRightRadius: 18,
     borderWidth: 1,
     borderColor: COLORS.border,
     overflow: "hidden",
