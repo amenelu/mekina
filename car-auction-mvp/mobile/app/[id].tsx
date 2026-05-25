@@ -442,15 +442,14 @@ const CarDetailScreen = () => {
     <>
       <Stack.Screen options={{ headerShown: false }} />
       <View style={styles.detailsHeader}>
-        <View style={styles.detailsHeaderBackSlot}>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Go back"
+          onPress={handleBackPress}
+          style={styles.detailsHeaderBackButton}
+        >
           <Text style={styles.detailsHeaderBackText}>Back</Text>
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Go back"
-            onPress={handleBackPress}
-            style={StyleSheet.absoluteFill}
-          />
-        </View>
+        </Pressable>
         <Text style={styles.detailsHeaderTitle} numberOfLines={1}>
           {detailsTitle}
         </Text>
@@ -878,11 +877,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     zIndex: 10,
   },
-  detailsHeaderBackSlot: {
-    width: 76,
-    minHeight: 38,
+  detailsHeaderBackButton: {
+    minWidth: 76,
     alignItems: "center",
     justifyContent: "center",
+    paddingVertical: 9,
+    paddingHorizontal: 12,
     borderRadius: 10,
     backgroundColor: "#FFFFFF",
     borderWidth: 1,
