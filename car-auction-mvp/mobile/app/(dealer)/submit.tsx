@@ -96,7 +96,7 @@ const CarSubmissionForm = () => {
   const [price, setPrice] = useState("");
   const [description, setDescription] = useState("");
   const [condition, setCondition] =
-    useState<(typeof CONDITION_OPTIONS)[number]>("Used");
+    useState<(typeof CONDITION_OPTIONS)[number]>("New");
   const [mileage, setMileage] = useState("");
   const [bodyType, setBodyType] =
     useState<(typeof BODY_TYPE_OPTIONS)[number]>("SUV");
