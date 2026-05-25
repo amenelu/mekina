@@ -60,10 +60,12 @@ const CarDetailScreen = () => {
   const router = useRouter();
   const [isImageViewerVisible, setImageViewerVisible] = useState(false);
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
+  const [viewerImageIndex, setViewerImageIndex] = useState(0);
   const [requestModalVisible, setRequestModalVisible] = useState(false);
   const [requestSubmitting, setRequestSubmitting] = useState(false);
   const imageViewerTranslateY = React.useRef(new Animated.Value(0)).current;
   const carouselRef = useRef<FlatList<string>>(null);
+  const imageViewerRef = useRef<FlatList<string>>(null);
   const thumbnailScrollRef = useRef<ScrollView>(null);
   const mainImageWidth = isWideWeb
     ? Math.min(Math.max(width - 56, 1), 1220)
@@ -156,10 +158,32 @@ const CarDetailScreen = () => {
     navigation.setOptions({ headerShown: false });
   }, [navigation]);
 
-  const closeImageViewer = () => {
+  const galleryImages = [
+    car?.primary_image_url,
+    ...((car?.image_urls || []) as string[]),
+    ...((car?.images || []).map((image: any) => image.image_url) as string[]),
+  ].filter((uri, index, self) => Boolean(uri) && self.indexOf(uri) === index);
+
+  const thumbnails =
+    galleryImages.length > 0
+      ? galleryImages
+      : car?.primary_image_url
+      ? [car.primary_image_url]
+      : [];
+
+  const closeImageViewer = useCallback(() => {
     setImageViewerVisible(false);
     imageViewerTranslateY.setValue(0);
-  };
+    const safeIndex = Math.min(viewerImageIndex, Math.max(0, thumbnails.length - 1));
+    setSelectedImageIndex(safeIndex);
+    requestAnimationFrame(() => {
+      carouselRef.current?.scrollToIndex({ index: safeIndex, animated: false });
+      thumbnailScrollRef.current?.scrollTo({
+        x: Math.max(0, safeIndex * 92 - width / 2 + 40),
+        animated: false,
+      });
+    });
+  }, [imageViewerTranslateY, thumbnails.length, viewerImageIndex, width]);
 
   const imageViewerPanResponder = React.useMemo(
     () =>
@@ -196,21 +220,9 @@ const CarDetailScreen = () => {
           }).start();
         },
       }),
-    [imageViewerTranslateY]
+    [closeImageViewer, imageViewerTranslateY]
   );
 
-  const galleryImages = [
-    car?.primary_image_url,
-    ...((car?.image_urls || []) as string[]),
-    ...((car?.images || []).map((image: any) => image.image_url) as string[]),
-  ].filter((uri, index, self) => Boolean(uri) && self.indexOf(uri) === index);
-
-  const thumbnails =
-    galleryImages.length > 0
-      ? galleryImages
-      : car?.primary_image_url
-      ? [car.primary_image_url]
-      : [];
   const isViewingOwnListing = car?.owner?.id === user?.id;
   const showBuyerActions = !isViewingOwnListing;
   const detailsTitle = car
@@ -220,9 +232,21 @@ const CarDetailScreen = () => {
     : "Car Details";
 
   const openImageViewer = (index: number) => {
-    setSelectedImageIndex(index);
+    const safeIndex = Math.min(Math.max(index, 0), Math.max(0, thumbnails.length - 1));
+    setSelectedImageIndex(safeIndex);
+    setViewerImageIndex(safeIndex);
     setImageViewerVisible(true);
   };
+
+  useEffect(() => {
+    if (!isImageViewerVisible || !thumbnails.length) return;
+    requestAnimationFrame(() => {
+      imageViewerRef.current?.scrollToIndex({
+        index: viewerImageIndex,
+        animated: false,
+      });
+    });
+  }, [isImageViewerVisible, thumbnails.length, viewerImageIndex]);
 
   useEffect(() => {
     if (!thumbnails.length) {
@@ -251,8 +275,10 @@ const CarDetailScreen = () => {
 
   const handleCarouselMomentumEnd = useCallback(
     (event: any) => {
-      const nextIndex = Math.round(
-        event.nativeEvent.contentOffset.x / mainImageWidth
+      const rawIndex = Math.round(event.nativeEvent.contentOffset.x / mainImageWidth);
+      const nextIndex = Math.min(
+        Math.max(rawIndex, 0),
+        Math.max(0, thumbnails.length - 1)
       );
       if (nextIndex !== selectedImageIndex) {
         setSelectedImageIndex(nextIndex);
@@ -261,22 +287,6 @@ const CarDetailScreen = () => {
         x: Math.max(0, nextIndex * 92 - mainImageWidth / 2 + 40),
         animated: true,
       });
-    },
-    [mainImageWidth, selectedImageIndex]
-  );
-
-  const handleCarouselScroll = useCallback(
-    (event: any) => {
-      const nextIndex = Math.round(
-        event.nativeEvent.contentOffset.x / mainImageWidth
-      );
-      if (
-        nextIndex >= 0 &&
-        nextIndex < thumbnails.length &&
-        nextIndex !== selectedImageIndex
-      ) {
-        setSelectedImageIndex(nextIndex);
-      }
     },
     [mainImageWidth, selectedImageIndex, thumbnails.length]
   );
@@ -485,8 +495,6 @@ const CarDetailScreen = () => {
                 offset: mainImageWidth * index,
                 index,
               })}
-              onScroll={handleCarouselScroll}
-              scrollEventThrottle={16}
               onMomentumScrollEnd={handleCarouselMomentumEnd}
               renderItem={({ item, index }) => (
                 <Pressable onPress={() => openImageViewer(index)}>
@@ -827,22 +835,33 @@ const CarDetailScreen = () => {
             }}
           >
             <FlatList
+              ref={imageViewerRef}
+              key={`image-viewer-${thumbnails.length}`}
               data={thumbnails}
               style={styles.imageViewerPager}
               horizontal
               pagingEnabled
               showsHorizontalScrollIndicator={false}
+              initialNumToRender={thumbnails.length}
+              maxToRenderPerBatch={thumbnails.length}
+              windowSize={Math.max(3, thumbnails.length)}
+              removeClippedSubviews={false}
               keyExtractor={(item, index) => `car-image-${index}`}
-              initialScrollIndex={Math.max(0, selectedImageIndex)}
+              initialScrollIndex={Math.max(0, viewerImageIndex)}
               getItemLayout={(data, index) => ({
                 length: Dimensions.get("window").width,
                 offset: Dimensions.get("window").width * index,
                 index,
               })}
               onMomentumScrollEnd={(event) => {
-                const nextIndex = Math.round(
+                const rawIndex = Math.round(
                   event.nativeEvent.contentOffset.x / Dimensions.get("window").width
                 );
+                const nextIndex = Math.min(
+                  Math.max(rawIndex, 0),
+                  Math.max(0, thumbnails.length - 1)
+                );
+                setViewerImageIndex(nextIndex);
                 setSelectedImageIndex(nextIndex);
               }}
               renderItem={({ item }) => (
