@@ -318,6 +318,94 @@ const CarDetailScreen = () => {
     [mainImageWidth, selectedImageIndex, thumbnails.length]
   );
 
+  const openDealerProfileSheet = useCallback(async () => {
+    const dealerId = car?.owner?.id;
+    if (!dealerId || !car?.owner?.is_dealer) return;
+
+    if (Platform.OS === "web" && typeof window !== "undefined") {
+      (window as any).__mekinaDealerProfileOpen = true;
+    }
+    setDealerProfileVisible(true);
+    setDealerProfileLoading(true);
+    setDealerProfile(null);
+    dealerSheetTranslateY.setValue(620);
+    Animated.timing(dealerSheetTranslateY, {
+      toValue: 0,
+      duration: 260,
+      useNativeDriver: true,
+    }).start();
+
+    try {
+      const response = await getDealerProfile(String(dealerId));
+      setDealerProfile(response.data);
+    } catch (error) {
+      console.error("Failed to load dealer profile:", error);
+      showNativeFlowAlert("Error", "Could not load dealer profile.");
+      setDealerProfileVisible(false);
+      if (Platform.OS === "web" && typeof window !== "undefined") {
+        (window as any).__mekinaDealerProfileOpen = false;
+      }
+    } finally {
+      setDealerProfileLoading(false);
+    }
+  }, [car?.owner?.id, car?.owner?.is_dealer, dealerSheetTranslateY]);
+
+  const closeDealerProfileSheet = useCallback(() => {
+    Animated.timing(dealerSheetTranslateY, {
+      toValue: 620,
+      duration: 200,
+      useNativeDriver: true,
+    }).start(() => {
+      setDealerProfileVisible(false);
+      setDealerProfile(null);
+      if (Platform.OS === "web" && typeof window !== "undefined") {
+        (window as any).__mekinaDealerProfileOpen = false;
+      }
+    });
+  }, [dealerSheetTranslateY]);
+
+  useEffect(() => {
+    if (
+      Platform.OS !== "web" ||
+      typeof window === "undefined" ||
+      dealerProfileVisible
+    ) {
+      return;
+    }
+    (window as any).__mekinaDealerProfileOpen = false;
+  }, [dealerProfileVisible]);
+
+  const dealerSheetPanResponder = React.useMemo(
+    () =>
+      PanResponder.create({
+        onMoveShouldSetPanResponder: (_, gestureState) =>
+          Math.abs(gestureState.dy) > Math.abs(gestureState.dx) &&
+          gestureState.dy > 10,
+        onPanResponderMove: (_, gestureState) => {
+          dealerSheetTranslateY.setValue(Math.max(0, gestureState.dy));
+        },
+        onPanResponderRelease: (_, gestureState) => {
+          if (gestureState.dy > 110) {
+            closeDealerProfileSheet();
+            return;
+          }
+          Animated.spring(dealerSheetTranslateY, {
+            toValue: 0,
+            useNativeDriver: true,
+            bounciness: 6,
+          }).start();
+        },
+        onPanResponderTerminate: () => {
+          Animated.spring(dealerSheetTranslateY, {
+            toValue: 0,
+            useNativeDriver: true,
+            bounciness: 6,
+          }).start();
+        },
+      }),
+    [closeDealerProfileSheet, dealerSheetTranslateY]
+  );
+
   if (loading && !refreshing) {
     return (
       <View style={styles.centered}>
@@ -474,90 +562,6 @@ const CarDetailScreen = () => {
       Alert.alert("Error", "Failed to update favorite status.");
     }
   };
-
-  const openDealerProfileSheet = async () => {
-    if (!car.owner?.is_dealer) return;
-
-    if (Platform.OS === "web" && typeof window !== "undefined") {
-      (window as any).__mekinaDealerProfileOpen = true;
-    }
-    setDealerProfileVisible(true);
-    setDealerProfileLoading(true);
-    setDealerProfile(null);
-    dealerSheetTranslateY.setValue(620);
-    Animated.timing(dealerSheetTranslateY, {
-      toValue: 0,
-      duration: 260,
-      useNativeDriver: true,
-    }).start();
-
-    try {
-      const response = await getDealerProfile(String(car.owner.id));
-      setDealerProfile(response.data);
-    } catch (error) {
-      console.error("Failed to load dealer profile:", error);
-      showNativeFlowAlert("Error", "Could not load dealer profile.");
-      setDealerProfileVisible(false);
-    } finally {
-      setDealerProfileLoading(false);
-    }
-  };
-
-  const closeDealerProfileSheet = () => {
-    Animated.timing(dealerSheetTranslateY, {
-      toValue: 620,
-      duration: 200,
-      useNativeDriver: true,
-    }).start(() => {
-      setDealerProfileVisible(false);
-      setDealerProfile(null);
-      if (Platform.OS === "web" && typeof window !== "undefined") {
-        (window as any).__mekinaDealerProfileOpen = false;
-      }
-    });
-  };
-
-  useEffect(() => {
-    if (
-      Platform.OS !== "web" ||
-      typeof window === "undefined" ||
-      dealerProfileVisible
-    ) {
-      return;
-    }
-    (window as any).__mekinaDealerProfileOpen = false;
-  }, [dealerProfileVisible]);
-
-  const dealerSheetPanResponder = React.useMemo(
-    () =>
-      PanResponder.create({
-        onMoveShouldSetPanResponder: (_, gestureState) =>
-          Math.abs(gestureState.dy) > Math.abs(gestureState.dx) &&
-          gestureState.dy > 10,
-        onPanResponderMove: (_, gestureState) => {
-          dealerSheetTranslateY.setValue(Math.max(0, gestureState.dy));
-        },
-        onPanResponderRelease: (_, gestureState) => {
-          if (gestureState.dy > 110) {
-            closeDealerProfileSheet();
-            return;
-          }
-          Animated.spring(dealerSheetTranslateY, {
-            toValue: 0,
-            useNativeDriver: true,
-            bounciness: 6,
-          }).start();
-        },
-        onPanResponderTerminate: () => {
-          Animated.spring(dealerSheetTranslateY, {
-            toValue: 0,
-            useNativeDriver: true,
-            bounciness: 6,
-          }).start();
-        },
-      }),
-    [closeDealerProfileSheet, dealerSheetTranslateY]
-  );
 
   return (
     <>
