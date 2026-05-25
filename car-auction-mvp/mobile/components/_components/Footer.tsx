@@ -1,5 +1,12 @@
 import React from "react";
-import { View, Pressable, Text, StyleSheet, Platform } from "react-native";
+import {
+  View,
+  Pressable,
+  Text,
+  StyleSheet,
+  Platform,
+  useWindowDimensions,
+} from "react-native";
 import { useRouter } from "expo-router";
 
 const COLORS = {
@@ -11,22 +18,29 @@ const COLORS = {
 
 const Footer = () => {
   const router = useRouter();
+  const { width } = useWindowDimensions();
+  const isWideWeb = Platform.OS === "web" && width >= 900;
 
   const goTo = (href: string) => {
     router.push(href as any);
   };
 
   return (
-    <View style={styles.container}>
-      <View style={styles.footerContentGrid}>
-        <View style={styles.footerSection}>
+    <View style={[styles.container, isWideWeb && styles.containerWide]}>
+      <View
+        style={[
+          styles.footerContentGrid,
+          isWideWeb && styles.footerContentGridWide,
+        ]}
+      >
+        <View style={[styles.footerSection, isWideWeb && styles.brandSectionWide]}>
           <Text style={styles.footerBrand}>Mekina Auction</Text>
           <Text style={styles.footerDescription}>
             The premier automotive marketplace for modern vehicles in Ethiopia.
           </Text>
         </View>
 
-        <View style={styles.footerSection}>
+        <View style={[styles.footerSection, isWideWeb && styles.linkSectionWide]}>
           <Text style={styles.footerLinkTitle}>Buying</Text>
           <Pressable
             style={styles.footerLinkButton}
@@ -45,7 +59,7 @@ const Footer = () => {
           </Pressable>
         </View>
 
-        <View style={styles.footerSection}>
+        <View style={[styles.footerSection, isWideWeb && styles.linkSectionWide]}>
           <Text style={styles.footerLinkTitle}>Selling</Text>
           <Pressable style={styles.footerLinkButton}>
             <Text style={styles.footerLinkText}>List Your Car</Text>
@@ -61,7 +75,7 @@ const Footer = () => {
           </Pressable>
         </View>
 
-        <View style={styles.footerSection}>
+        <View style={[styles.footerSection, isWideWeb && styles.linkSectionWide]}>
           <Text style={styles.footerLinkTitle}>Support</Text>
           <Pressable style={styles.footerLinkButton}>
             <Text style={styles.footerLinkText}>Contact Us</Text>
@@ -87,42 +101,67 @@ const Footer = () => {
 const styles = StyleSheet.create({
   container: {
     backgroundColor: COLORS.secondary,
-    paddingTop: 40,
-    paddingHorizontal: 25,
+    paddingTop: 24,
+    paddingHorizontal: 20,
     borderTopWidth: 1,
     borderTopColor: COLORS.border,
     paddingBottom: Platform.OS === "web" ? 0 : 12,
   },
-  footerContentGrid: { marginBottom: 20 },
-  footerSection: { marginBottom: 30 },
+  containerWide: {
+    paddingTop: 26,
+    paddingHorizontal: 42,
+  },
+  footerContentGrid: { marginBottom: 10 },
+  footerContentGridWide: {
+    width: "100%",
+    maxWidth: 1180,
+    alignSelf: "center",
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
+    gap: 28,
+  },
+  footerSection: { marginBottom: 18 },
+  brandSectionWide: {
+    flex: 1.25,
+    maxWidth: 360,
+    marginBottom: 0,
+  },
+  linkSectionWide: {
+    flex: 0.7,
+    minWidth: 120,
+    marginBottom: 0,
+  },
   footerBrand: {
-    fontSize: 22,
+    fontSize: 20,
     fontWeight: "700",
     color: COLORS.foreground,
     marginBottom: 8,
   },
   footerDescription: {
-    fontSize: 15,
+    fontSize: 14,
     color: COLORS.mutedForeground,
-    lineHeight: 22,
+    lineHeight: 20,
   },
   footerLinkButton: {
     alignSelf: "flex-start",
-    marginBottom: 12,
+    marginBottom: 7,
+    minHeight: 24,
+    justifyContent: "center",
   },
   footerLinkTitle: {
-    fontSize: 18,
+    fontSize: 15,
     fontWeight: "600",
     color: COLORS.foreground,
-    marginBottom: 16,
+    marginBottom: 8,
   },
   footerLinkText: {
     color: COLORS.mutedForeground,
-    fontSize: 15,
+    fontSize: 14,
   },
   footerBottom: {
-    paddingTop: 20,
-    paddingBottom: Platform.OS === "web" ? 10 : 16,
+    paddingTop: 12,
+    paddingBottom: Platform.OS === "web" ? 8 : 14,
     borderTopWidth: 1,
     borderTopColor: COLORS.border,
     alignItems: "center",
