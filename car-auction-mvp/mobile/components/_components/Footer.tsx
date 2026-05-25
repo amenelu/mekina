@@ -69,7 +69,10 @@ const Footer = () => {
           >
             <Text style={styles.footerLinkText}>How It Works</Text>
           </Pressable>
-          <Pressable style={styles.footerLinkButton}>
+          <Pressable
+            style={styles.footerLinkButton}
+            onPress={() => goTo("/faq")}
+          >
             <Text style={styles.footerLinkText}>FAQ</Text>
           </Pressable>
         </View>
