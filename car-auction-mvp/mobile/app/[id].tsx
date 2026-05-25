@@ -473,6 +473,19 @@ const CarDetailScreen = () => {
         {/* Image Gallery */}
         <View style={[styles.imageGallery, isWideWeb && styles.imageGalleryWide]}>
           <View>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Go back"
+              style={styles.galleryBackButton}
+              onPress={handleBackPress}
+            >
+              <Ionicons
+                name="chevron-back"
+                size={20}
+                color={COLORS.foreground}
+              />
+              <Text style={styles.galleryBackText}>Back</Text>
+            </Pressable>
             <FlatList
               ref={carouselRef}
               data={thumbnails}
@@ -1017,6 +1030,28 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(0,0,0,0.5)",
     borderRadius: 20,
     padding: 8,
+  },
+  galleryBackButton: {
+    position: "absolute",
+    top: 15,
+    left: 15,
+    zIndex: 2,
+    minWidth: 78,
+    height: 42,
+    borderRadius: 21,
+    backgroundColor: "rgba(0,0,0,0.55)",
+    alignItems: "center",
+    justifyContent: "center",
+    flexDirection: "row",
+    paddingHorizontal: 12,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.18)",
+  },
+  galleryBackText: {
+    color: COLORS.foreground,
+    fontSize: 14,
+    fontWeight: "700",
+    marginLeft: 2,
   },
   contentContainer: {
     padding: 20,
