@@ -87,7 +87,25 @@ const CompareBidsScreen = () => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <Stack.Screen options={{ title: "Compare Offers" }} />
+      <Stack.Screen options={{ headerShown: false }} />
+      <View style={styles.pageHeader}>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Go back"
+          onPress={() => {
+            if (router.canGoBack()) {
+              router.back();
+              return;
+            }
+            router.replace("/(tabs)/my-requests" as any);
+          }}
+          style={styles.pageHeaderBackButton}
+        >
+          <Text style={styles.pageHeaderBackIcon}>‹</Text>
+        </Pressable>
+        <Text style={styles.pageHeaderTitle}>Compare Offers</Text>
+        <View style={styles.pageHeaderSpacer} />
+      </View>
       <ScrollView contentContainerStyle={styles.scrollContent}>
         <View style={styles.header}>
           <Text style={styles.title}>Side-by-Side Comparison</Text>
@@ -238,6 +256,38 @@ const CompareBidsScreen = () => {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.background },
+  pageHeader: {
+    height: 58,
+    backgroundColor: COLORS.card,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.border,
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 12,
+  },
+  pageHeaderBackButton: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  pageHeaderBackIcon: {
+    color: COLORS.text,
+    fontSize: 34,
+    fontWeight: "500",
+    lineHeight: 38,
+  },
+  pageHeaderTitle: {
+    flex: 1,
+    color: COLORS.text,
+    fontSize: 17,
+    fontWeight: "800",
+    textAlign: "center",
+  },
+  pageHeaderSpacer: {
+    width: 42,
+  },
   centered: {
     flex: 1,
     justifyContent: "center",
