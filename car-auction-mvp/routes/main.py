@@ -252,6 +252,56 @@ def send_push_notification(user_id, message_body, data=None):
 main_bp = Blueprint("main", __name__)
 
 
+@main_bp.route("/api/support-question", methods=["POST"])
+def api_support_question():
+    data = request.get_json(silent=True) or {}
+    question = (data.get("question") or "").strip()
+    name = (data.get("name") or "").strip()
+    email = (data.get("email") or "").strip()
+
+    if len(question) < 5:
+        return jsonify({"message": "Please enter a question."}), 400
+
+    requester = None
+    auth_header = request.headers.get("Authorization")
+    if auth_header:
+        try:
+            requester = verify_jwt(auth_header.split(" ")[1])
+        except (IndexError, ValueError, Exception):
+            requester = None
+
+    if requester:
+        name = requester.username
+        email = requester.email
+
+    admins = User.query.filter_by(is_admin=True).all()
+    if not admins:
+        current_app.logger.warning("Support question received but no admins exist.")
+        return jsonify({"message": "Question received."}), 200
+
+    contact = email or "no email provided"
+    sender = name or "Customer"
+    clipped_question = question[:500]
+    message = f"FAQ question from {sender} ({contact}): {clipped_question}"
+
+    notifications = []
+    for admin in admins:
+        notification = Notification(user_id=admin.id, message=message)
+        db.session.add(notification)
+        notifications.append(notification)
+
+    db.session.commit()
+
+    for notification in notifications:
+        socketio.emit(
+            "new_notification",
+            notification.to_dict(),
+            room=str(notification.user_id),
+        )
+
+    return jsonify({"message": "Your question has been sent."}), 201
+
+
 def _get_featured_cars():
     """Helper function to fetch active, approved, featured cars."""
     return Car.query.filter_by(is_featured=True, is_approved=True, is_active=True).all()
