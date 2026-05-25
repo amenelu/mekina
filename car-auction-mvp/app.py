@@ -2,6 +2,7 @@ from flask import Flask, request as flask_request
 from flask_login import current_user
 from config import Config, config_by_name, _database_uri
 import os
+from fnmatch import fnmatch
 
 from extensions import db, socketio, login_manager, migrate
 
@@ -56,7 +57,14 @@ def create_app(config_class=None):
             if item.strip()
         ]
         if configured_origins:
-            return origin in configured_origins
+            return any(
+                origin == configured_origin
+                or (
+                    "*" in configured_origin
+                    and fnmatch(origin, configured_origin)
+                )
+                for configured_origin in configured_origins
+            )
 
         # In local development, allow browser clients from common Expo/Web hosts.
         if app.config.get("FLASK_DEBUG", False):

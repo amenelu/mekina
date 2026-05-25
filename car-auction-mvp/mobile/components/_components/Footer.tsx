@@ -1,6 +1,6 @@
 import React from "react";
 import { View, Pressable, Text, StyleSheet, Platform } from "react-native";
-import { Link } from "expo-router";
+import { useRouter } from "expo-router";
 
 const COLORS = {
   foreground: "#F8F8F8",
@@ -10,6 +10,12 @@ const COLORS = {
 };
 
 const Footer = () => {
+  const router = useRouter();
+
+  const goTo = (href: string) => {
+    router.push(href as any);
+  };
+
   return (
     <View style={styles.container}>
       <View style={styles.footerContentGrid}>
@@ -22,45 +28,48 @@ const Footer = () => {
 
         <View style={styles.footerSection}>
           <Text style={styles.footerLinkTitle}>Buying</Text>
-          <Link href="/all_listings" asChild>
-            <Pressable>
-              <Text style={styles.footerLinkText}>All Listings</Text>
-            </Pressable>
-          </Link>
-          <Link href="/how-it-works" asChild>
-            <Pressable>
-              <Text style={styles.footerLinkText}>How It Works</Text>
-            </Pressable>
-          </Link>
-          <Pressable>
+          <Pressable
+            style={styles.footerLinkButton}
+            onPress={() => goTo("/all_listings")}
+          >
+            <Text style={styles.footerLinkText}>All Listings</Text>
+          </Pressable>
+          <Pressable
+            style={styles.footerLinkButton}
+            onPress={() => goTo("/how-it-works")}
+          >
+            <Text style={styles.footerLinkText}>How It Works</Text>
+          </Pressable>
+          <Pressable style={styles.footerLinkButton}>
             <Text style={styles.footerLinkText}>FAQ</Text>
           </Pressable>
         </View>
 
         <View style={styles.footerSection}>
           <Text style={styles.footerLinkTitle}>Selling</Text>
-          <Pressable>
+          <Pressable style={styles.footerLinkButton}>
             <Text style={styles.footerLinkText}>List Your Car</Text>
           </Pressable>
-          <Link href="/trade-in" asChild>
-            <Pressable>
-              <Text style={styles.footerLinkText}>Trade-in Value</Text>
-            </Pressable>
-          </Link>
-          <Pressable>
+          <Pressable
+            style={styles.footerLinkButton}
+            onPress={() => goTo("/trade-in")}
+          >
+            <Text style={styles.footerLinkText}>Trade-in Value</Text>
+          </Pressable>
+          <Pressable style={styles.footerLinkButton}>
             <Text style={styles.footerLinkText}>Seller Guide</Text>
           </Pressable>
         </View>
 
         <View style={styles.footerSection}>
           <Text style={styles.footerLinkTitle}>Support</Text>
-          <Pressable>
+          <Pressable style={styles.footerLinkButton}>
             <Text style={styles.footerLinkText}>Contact Us</Text>
           </Pressable>
-          <Pressable>
+          <Pressable style={styles.footerLinkButton}>
             <Text style={styles.footerLinkText}>Terms & Conditions</Text>
           </Pressable>
-          <Pressable>
+          <Pressable style={styles.footerLinkButton}>
             <Text style={styles.footerLinkText}>Privacy Policy</Text>
           </Pressable>
         </View>
@@ -97,6 +106,10 @@ const styles = StyleSheet.create({
     color: COLORS.mutedForeground,
     lineHeight: 22,
   },
+  footerLinkButton: {
+    alignSelf: "flex-start",
+    marginBottom: 12,
+  },
   footerLinkTitle: {
     fontSize: 18,
     fontWeight: "600",
@@ -106,7 +119,6 @@ const styles = StyleSheet.create({
   footerLinkText: {
     color: COLORS.mutedForeground,
     fontSize: 15,
-    marginBottom: 12,
   },
   footerBottom: {
     paddingTop: 20,
