@@ -29,6 +29,7 @@ import { Ionicons } from "@expo/vector-icons";
 import VehicleCard, { Vehicle } from "@/components/_components/VehicleCard";
 import { useAuth } from "@/hooks/useAuth";
 import { getListing, toggleFavorite } from "@/lib/api/listings";
+import { getDealerProfile } from "@/lib/api/dealer";
 import { createRequest } from "@/lib/api/requests";
 import { getChatHistory, sendChatMessage } from "@/lib/api/messages";
 import {
@@ -74,6 +75,10 @@ const CarDetailScreen = () => {
   const [contactModalVisible, setContactModalVisible] = useState(false);
   const [message, setMessage] = useState("");
   const [sendingMessage, setSendingMessage] = useState(false);
+  const [dealerProfileVisible, setDealerProfileVisible] = useState(false);
+  const [dealerProfileLoading, setDealerProfileLoading] = useState(false);
+  const [dealerProfile, setDealerProfile] = useState<any | null>(null);
+  const dealerSheetTranslateY = React.useRef(new Animated.Value(620)).current;
 
   const handleBackPress = useCallback(() => {
     if (router.canGoBack()) {
@@ -448,6 +453,42 @@ const CarDetailScreen = () => {
     }
   };
 
+  const openDealerProfileSheet = async () => {
+    if (!car.owner?.is_dealer) return;
+
+    setDealerProfileVisible(true);
+    setDealerProfileLoading(true);
+    setDealerProfile(null);
+    dealerSheetTranslateY.setValue(620);
+    Animated.timing(dealerSheetTranslateY, {
+      toValue: 0,
+      duration: 260,
+      useNativeDriver: true,
+    }).start();
+
+    try {
+      const response = await getDealerProfile(String(car.owner.id));
+      setDealerProfile(response.data);
+    } catch (error) {
+      console.error("Failed to load dealer profile:", error);
+      showNativeFlowAlert("Error", "Could not load dealer profile.");
+      setDealerProfileVisible(false);
+    } finally {
+      setDealerProfileLoading(false);
+    }
+  };
+
+  const closeDealerProfileSheet = () => {
+    Animated.timing(dealerSheetTranslateY, {
+      toValue: 620,
+      duration: 200,
+      useNativeDriver: true,
+    }).start(() => {
+      setDealerProfileVisible(false);
+      setDealerProfile(null);
+    });
+  };
+
   return (
     <>
       <Stack.Screen options={{ headerShown: false }} />
@@ -591,10 +632,7 @@ const CarDetailScreen = () => {
               style={styles.dealerRow}
               onPress={() => {
                 if (car.owner.is_dealer) {
-                  router.push({
-                    pathname: "/(details)/dealers/public/[id]",
-                    params: { id: String(car.owner.id), modal: "1" },
-                  });
+                  openDealerProfileSheet();
                 }
               }}
               disabled={!car.owner.is_dealer}
@@ -806,6 +844,124 @@ const CarDetailScreen = () => {
               </Pressable>
             </View>
           </View>
+        </View>
+      </Modal>
+
+      <Modal
+        visible={dealerProfileVisible}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={closeDealerProfileSheet}
+      >
+        <View style={styles.dealerSheetBackdrop}>
+          <Pressable
+            style={StyleSheet.absoluteFill}
+            onPress={closeDealerProfileSheet}
+          />
+          <Animated.View
+            style={[
+              styles.dealerSheet,
+              { transform: [{ translateY: dealerSheetTranslateY }] },
+            ]}
+          >
+            <View style={styles.dealerSheetHeader}>
+              <Text style={styles.dealerSheetTitle}>Dealer Profile</Text>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Close dealer profile"
+                onPress={closeDealerProfileSheet}
+                style={styles.dealerSheetCloseButton}
+              >
+                <Ionicons name="close" size={22} color={COLORS.foreground} />
+              </Pressable>
+            </View>
+            {dealerProfileLoading ? (
+              <View style={styles.dealerSheetLoading}>
+                <ActivityIndicator color={COLORS.accent} />
+              </View>
+            ) : dealerProfile ? (
+              <ScrollView
+                style={styles.dealerSheetScroll}
+                contentContainerStyle={styles.dealerSheetScrollContent}
+              >
+                <View style={styles.dealerSheetSummary}>
+                  <Text style={styles.dealerSheetName}>
+                    {dealerProfile.dealer?.username || car.owner?.username}
+                  </Text>
+                  {dealerProfile.dealer?.is_verified && (
+                    <View style={styles.dealerSheetBadge}>
+                      <Ionicons
+                        name="shield-checkmark"
+                        size={15}
+                        color={COLORS.accent}
+                      />
+                      <Text style={styles.dealerSheetBadgeText}>
+                        Verified Dealer
+                      </Text>
+                    </View>
+                  )}
+                  <View style={styles.dealerSheetRating}>
+                    <Ionicons name="star" size={18} color="#FFD700" />
+                    <Text style={styles.dealerSheetRatingText}>
+                      {(dealerProfile.avg_rating || 0).toFixed(1)} (
+                      {dealerProfile.review_count || 0} reviews)
+                    </Text>
+                  </View>
+                </View>
+
+                <View style={styles.dealerSheetSection}>
+                  <Text style={styles.dealerSheetSectionTitle}>
+                    Active Listings ({dealerProfile.listings?.length || 0})
+                  </Text>
+                  {(dealerProfile.listings || []).slice(0, 4).map((listing: any) => (
+                    <Pressable
+                      key={listing.id}
+                      style={styles.dealerSheetListing}
+                      onPress={() => {
+                        closeDealerProfileSheet();
+                        router.push(`/${listing.id}`);
+                      }}
+                    >
+                      <Image
+                        source={{
+                          uri:
+                            listing.image_urls?.[0] ||
+                            "https://placehold.co/600x400",
+                        }}
+                        style={styles.dealerSheetListingImage}
+                      />
+                      <View style={styles.dealerSheetListingBody}>
+                        <Text style={styles.dealerSheetListingTitle}>
+                          {listing.year} {listing.make} {listing.model}
+                        </Text>
+                        <Text style={styles.dealerSheetListingPrice}>
+                          {listing.fixed_price?.toLocaleString?.() || "N/A"} ETB
+                        </Text>
+                      </View>
+                    </Pressable>
+                  ))}
+                </View>
+
+                <View style={styles.dealerSheetSection}>
+                  <Text style={styles.dealerSheetSectionTitle}>Reviews</Text>
+                  {(dealerProfile.ratings || []).length > 0 ? (
+                    dealerProfile.ratings.slice(0, 3).map((review: any) => (
+                      <View key={review.id} style={styles.dealerSheetReview}>
+                        <Text style={styles.dealerSheetReviewAuthor}>
+                          {review.buyer_username}
+                        </Text>
+                        <Text style={styles.dealerSheetReviewText}>
+                          {review.comment || "No comment provided."}
+                        </Text>
+                      </View>
+                    ))
+                  ) : (
+                    <Text style={styles.dealerSheetEmpty}>No reviews yet.</Text>
+                  )}
+                </View>
+              </ScrollView>
+            ) : null}
+          </Animated.View>
         </View>
       </Modal>
 
@@ -1246,6 +1402,143 @@ const styles = StyleSheet.create({
   sendButtonText: {
     color: "#fff",
     fontWeight: "600",
+  },
+  dealerSheetBackdrop: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.62)",
+    justifyContent: "flex-end",
+    alignItems: "center",
+  },
+  dealerSheet: {
+    width: "100%",
+    maxWidth: 760,
+    maxHeight: "88%",
+    backgroundColor: COLORS.background,
+    borderTopLeftRadius: 18,
+    borderTopRightRadius: 18,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    overflow: "hidden",
+  },
+  dealerSheetHeader: {
+    height: 54,
+    backgroundColor: COLORS.card,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.border,
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 16,
+  },
+  dealerSheetTitle: {
+    flex: 1,
+    color: COLORS.foreground,
+    fontSize: 17,
+    fontWeight: "800",
+  },
+  dealerSheetCloseButton: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: COLORS.border,
+  },
+  dealerSheetLoading: {
+    minHeight: 220,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  dealerSheetScroll: {
+    flex: 0,
+  },
+  dealerSheetScrollContent: {
+    paddingBottom: 20,
+  },
+  dealerSheetSummary: {
+    padding: 20,
+    alignItems: "center",
+    backgroundColor: COLORS.card,
+  },
+  dealerSheetName: {
+    color: COLORS.foreground,
+    fontSize: 24,
+    fontWeight: "800",
+  },
+  dealerSheetBadge: {
+    marginTop: 8,
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "rgba(163, 112, 247, 0.16)",
+    borderRadius: 12,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+  },
+  dealerSheetBadgeText: {
+    color: COLORS.accent,
+    fontWeight: "700",
+    marginLeft: 6,
+  },
+  dealerSheetRating: {
+    marginTop: 12,
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  dealerSheetRatingText: {
+    color: COLORS.mutedForeground,
+    marginLeft: 8,
+    fontSize: 15,
+  },
+  dealerSheetSection: {
+    padding: 18,
+  },
+  dealerSheetSectionTitle: {
+    color: COLORS.foreground,
+    fontSize: 18,
+    fontWeight: "800",
+    marginBottom: 12,
+  },
+  dealerSheetListing: {
+    backgroundColor: COLORS.card,
+    borderRadius: 12,
+    overflow: "hidden",
+    marginBottom: 12,
+  },
+  dealerSheetListingImage: {
+    width: "100%",
+    height: 150,
+    backgroundColor: COLORS.border,
+  },
+  dealerSheetListingBody: {
+    padding: 12,
+  },
+  dealerSheetListingTitle: {
+    color: COLORS.foreground,
+    fontSize: 15,
+    fontWeight: "700",
+  },
+  dealerSheetListingPrice: {
+    color: COLORS.accent,
+    fontSize: 15,
+    fontWeight: "800",
+    marginTop: 4,
+  },
+  dealerSheetReview: {
+    backgroundColor: COLORS.card,
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 10,
+  },
+  dealerSheetReviewAuthor: {
+    color: COLORS.foreground,
+    fontWeight: "800",
+    marginBottom: 5,
+  },
+  dealerSheetReviewText: {
+    color: COLORS.mutedForeground,
+    lineHeight: 20,
+  },
+  dealerSheetEmpty: {
+    color: COLORS.mutedForeground,
   },
   similarSection: {
     marginTop: 20,
