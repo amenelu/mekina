@@ -214,6 +214,15 @@ const CarDetailScreen = () => {
   const isViewingOwnListing = car?.owner?.id === user?.id;
   const showBuyerActions = !isViewingOwnListing;
 
+  const handleBackPress = () => {
+    if (router.canGoBack()) {
+      router.back();
+      return;
+    }
+
+    router.replace("/(tabs)" as any);
+  };
+
   const openImageViewer = (index: number) => {
     setSelectedImageIndex(index);
     setImageViewerVisible(true);
@@ -452,6 +461,18 @@ const CarDetailScreen = () => {
         {/* Image Gallery */}
         <View style={[styles.imageGallery, isWideWeb && styles.imageGalleryWide]}>
           <View>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Go back"
+              style={styles.galleryBackButton}
+              onPress={handleBackPress}
+            >
+              <Ionicons
+                name="chevron-back"
+                size={26}
+                color={COLORS.foreground}
+              />
+            </Pressable>
             <FlatList
               ref={carouselRef}
               data={thumbnails}
@@ -956,6 +977,20 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(0,0,0,0.5)",
     borderRadius: 20,
     padding: 8,
+  },
+  galleryBackButton: {
+    position: "absolute",
+    top: 15,
+    left: 15,
+    zIndex: 2,
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    backgroundColor: "rgba(0,0,0,0.55)",
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.18)",
   },
   contentContainer: {
     padding: 20,
