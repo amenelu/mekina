@@ -478,6 +478,9 @@ const CarDetailScreen = () => {
   const openDealerProfileSheet = async () => {
     if (!car.owner?.is_dealer) return;
 
+    if (Platform.OS === "web" && typeof window !== "undefined") {
+      (window as any).__mekinaDealerProfileOpen = true;
+    }
     setDealerProfileVisible(true);
     setDealerProfileLoading(true);
     setDealerProfile(null);
@@ -508,8 +511,53 @@ const CarDetailScreen = () => {
     }).start(() => {
       setDealerProfileVisible(false);
       setDealerProfile(null);
+      if (Platform.OS === "web" && typeof window !== "undefined") {
+        (window as any).__mekinaDealerProfileOpen = false;
+      }
     });
   };
+
+  useEffect(() => {
+    if (
+      Platform.OS !== "web" ||
+      typeof window === "undefined" ||
+      dealerProfileVisible
+    ) {
+      return;
+    }
+    (window as any).__mekinaDealerProfileOpen = false;
+  }, [dealerProfileVisible]);
+
+  const dealerSheetPanResponder = React.useMemo(
+    () =>
+      PanResponder.create({
+        onMoveShouldSetPanResponder: (_, gestureState) =>
+          Math.abs(gestureState.dy) > Math.abs(gestureState.dx) &&
+          gestureState.dy > 10,
+        onPanResponderMove: (_, gestureState) => {
+          dealerSheetTranslateY.setValue(Math.max(0, gestureState.dy));
+        },
+        onPanResponderRelease: (_, gestureState) => {
+          if (gestureState.dy > 110) {
+            closeDealerProfileSheet();
+            return;
+          }
+          Animated.spring(dealerSheetTranslateY, {
+            toValue: 0,
+            useNativeDriver: true,
+            bounciness: 6,
+          }).start();
+        },
+        onPanResponderTerminate: () => {
+          Animated.spring(dealerSheetTranslateY, {
+            toValue: 0,
+            useNativeDriver: true,
+            bounciness: 6,
+          }).start();
+        },
+      }),
+    [closeDealerProfileSheet, dealerSheetTranslateY]
+  );
 
   return (
     <>
@@ -885,6 +933,7 @@ const CarDetailScreen = () => {
               styles.dealerSheet,
               { transform: [{ translateY: dealerSheetTranslateY }] },
             ]}
+            {...dealerSheetPanResponder.panHandlers}
           >
             <View style={styles.dealerSheetHeader}>
               <Text style={styles.dealerSheetTitle}>Dealer Profile</Text>

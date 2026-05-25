@@ -263,6 +263,8 @@ function WebGlobalPullToRefresh() {
       Number((window as any).__mekinaWebPullRefreshHandlers || 0) > 0;
     const isImageViewerOpen = () =>
       Boolean((window as any).__mekinaImageViewerOpen);
+    const isDealerProfileOpen = () =>
+      Boolean((window as any).__mekinaDealerProfileOpen);
 
     const updatePullDistance = (distance: number) => {
       if (rafId !== null) {
@@ -278,6 +280,7 @@ function WebGlobalPullToRefresh() {
       if (
         refreshing ||
         isImageViewerOpen() ||
+        isDealerProfileOpen() ||
         pageHasInAppRefresh() ||
         isTextEntry(event.target) ||
         isInsideHorizontalScroller(event.target) ||
@@ -294,7 +297,13 @@ function WebGlobalPullToRefresh() {
     };
 
     const onTouchMove = (event: TouchEvent) => {
-      if (!pulling || refreshing || isImageViewerOpen() || event.touches.length !== 1) {
+      if (
+        !pulling ||
+        refreshing ||
+        isImageViewerOpen() ||
+        isDealerProfileOpen() ||
+        event.touches.length !== 1
+      ) {
         return;
       }
 
