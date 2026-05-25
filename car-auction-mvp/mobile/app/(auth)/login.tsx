@@ -10,6 +10,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   ScrollView,
+  useWindowDimensions,
 } from "react-native";
 import BouncyCheckbox from "react-native-bouncy-checkbox";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -31,6 +32,8 @@ export default function LoginScreen() {
   const navigation = useNavigation();
   const router = useRouter();
   const { login: setAuth, setRememberMe } = useAuth();
+  const { width } = useWindowDimensions();
+  const isWideWeb = Platform.OS === "web" && width >= 900;
 
   const showError = (title: string, message: string) => {
     setErrorMessage(message);
@@ -94,103 +97,109 @@ export default function LoginScreen() {
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         style={{ flex: 1 }}
       >
-        <ScrollView contentContainerStyle={{ flexGrow: 1 }}>
-          <View style={styles.content}>
-            <Text style={styles.title}>Login</Text>
+        <ScrollView contentContainerStyle={styles.scrollContent}>
+          <View style={[styles.content, isWideWeb && styles.contentWide]}>
+            <View style={[styles.formPanel, isWideWeb && styles.formPanelWide]}>
+              <Text style={styles.title}>Login</Text>
 
-            <View style={styles.formGroup}>
-              <Text style={styles.label}>Username or Email</Text>
-              <TextInput
-                testID="login-input"
-                style={[
-                  styles.input,
-                  focusedInput === "login" && styles.inputFocused,
-                ]}
-                value={login}
-                onChangeText={(value) => {
-                  setLogin(value);
-                  if (errorMessage) setErrorMessage("");
-                }}
-                keyboardType="email-address"
-                autoCapitalize="none"
-                onFocus={() => setFocusedInput("login")}
-                onBlur={() => setFocusedInput(null)}
-              />
-            </View>
-
-            <View style={styles.formGroup}>
-              <Text style={styles.label}>Password</Text>
-              <TextInput
-                testID="password-input"
-                style={[
-                  styles.input,
-                  focusedInput === "password" && styles.inputFocused,
-                ]}
-                value={password}
-                onChangeText={(value) => {
-                  setPassword(value);
-                  if (errorMessage) setErrorMessage("");
-                }}
-                secureTextEntry
-                onFocus={() => setFocusedInput("password")}
-                onBlur={() => setFocusedInput(null)}
-              />
-            </View>
-
-            {errorMessage ? (
-              <View
-                testID="login-error-banner"
-                accessibilityLiveRegion="polite"
-                style={styles.errorBanner}
-              >
-                <Text style={styles.errorBannerText}>{errorMessage}</Text>
+              <View style={styles.formGroup}>
+                <Text style={styles.label}>Username or Email</Text>
+                <TextInput
+                  testID="login-input"
+                  style={[
+                    styles.input,
+                    focusedInput === "login" && styles.inputFocused,
+                  ]}
+                  value={login}
+                  onChangeText={(value) => {
+                    setLogin(value);
+                    if (errorMessage) setErrorMessage("");
+                  }}
+                  keyboardType="email-address"
+                  autoCapitalize="none"
+                  onFocus={() => setFocusedInput("login")}
+                  onBlur={() => setFocusedInput(null)}
+                />
               </View>
-            ) : null}
 
-            <View style={styles.checkboxContainer}>
-              <BouncyCheckbox
-                testID="remember-me-checkbox"
-                size={22}
-                fillColor="#6118d7ff"
-                unFillColor="#FFFFFF"
-                text="Remember me"
-                iconStyle={{ borderColor: "#ced4da" }}
-                innerIconStyle={{ borderWidth: 2 }}
-                textStyle={{ textDecorationLine: "none", fontSize: 16 }}
-                onPress={(isChecked: boolean) => setRememberMeChecked(isChecked)}
-              />
-            </View>
+              <View style={styles.formGroup}>
+                <Text style={styles.label}>Password</Text>
+                <TextInput
+                  testID="password-input"
+                  style={[
+                    styles.input,
+                    focusedInput === "password" && styles.inputFocused,
+                  ]}
+                  value={password}
+                  onChangeText={(value) => {
+                    setPassword(value);
+                    if (errorMessage) setErrorMessage("");
+                  }}
+                  secureTextEntry
+                  onFocus={() => setFocusedInput("password")}
+                  onBlur={() => setFocusedInput(null)}
+                />
+              </View>
 
-            <TouchableOpacity
-              testID="login-submit"
-              style={styles.loginButton}
-              onPress={handleLogin}
-              disabled={isLoading}
-            >
-              {isLoading ? (
-                <ActivityIndicator color="#ffffff" />
-              ) : (
-                <Text style={styles.loginButtonText}>Submit</Text>
-              )}
-            </TouchableOpacity>
+              {errorMessage ? (
+                <View
+                  testID="login-error-banner"
+                  accessibilityLiveRegion="polite"
+                  style={styles.errorBanner}
+                >
+                  <Text style={styles.errorBannerText}>{errorMessage}</Text>
+                </View>
+              ) : null}
 
-            <View style={styles.forgotPasswordContainer}>
-              <Link href="/forgot-password" asChild>
-                <TouchableOpacity>
-                  <Text style={styles.forgotPasswordText}>Forgot password?</Text>
-                </TouchableOpacity>
-              </Link>
-            </View>
+              <View style={styles.checkboxContainer}>
+                <BouncyCheckbox
+                  testID="remember-me-checkbox"
+                  size={22}
+                  fillColor="#6118d7ff"
+                  unFillColor="#FFFFFF"
+                  text="Remember me"
+                  iconStyle={{ borderColor: "#ced4da" }}
+                  innerIconStyle={{ borderWidth: 2 }}
+                  textStyle={{ textDecorationLine: "none", fontSize: 16 }}
+                  onPress={(isChecked: boolean) =>
+                    setRememberMeChecked(isChecked)
+                  }
+                />
+              </View>
 
-            <View style={styles.registerContainer}>
-              <Text style={styles.registerText}>
-                {"Don't have an account? "}
-              </Text>
-              <Link href="/register" asChild>
-                <TouchableOpacity>
-                  <Text style={styles.registerLinkText}>Register</Text>
-                </TouchableOpacity>
-              </Link>
+              <TouchableOpacity
+                testID="login-submit"
+                style={styles.loginButton}
+                onPress={handleLogin}
+                disabled={isLoading}
+              >
+                {isLoading ? (
+                  <ActivityIndicator color="#ffffff" />
+                ) : (
+                  <Text style={styles.loginButtonText}>Submit</Text>
+                )}
+              </TouchableOpacity>
+
+              <View style={styles.forgotPasswordContainer}>
+                <Link href="/forgot-password" asChild>
+                  <TouchableOpacity>
+                    <Text style={styles.forgotPasswordText}>
+                      Forgot password?
+                    </Text>
+                  </TouchableOpacity>
+                </Link>
+              </View>
+
+              <View style={styles.registerContainer}>
+                <Text style={styles.registerText}>
+                  {"Don't have an account? "}
+                </Text>
+                <Link href="/register" asChild>
+                  <TouchableOpacity>
+                    <Text style={styles.registerLinkText}>Register</Text>
+                  </TouchableOpacity>
+                </Link>
+              </View>
             </View>
           </View>
         </ScrollView>
@@ -201,10 +210,32 @@ export default function LoginScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#F8F9FA" }, // Light gray background
+  scrollContent: { flexGrow: 1 },
   content: {
     flex: 1,
     justifyContent: "center",
     paddingHorizontal: 24,
+  },
+  contentWide: {
+    alignItems: "center",
+    paddingHorizontal: 32,
+    paddingVertical: 64,
+  },
+  formPanel: {
+    width: "100%",
+  },
+  formPanelWide: {
+    maxWidth: 440,
+    backgroundColor: "#FFFFFF",
+    borderWidth: 1,
+    borderColor: "#E5E7EB",
+    borderRadius: 14,
+    paddingHorizontal: 32,
+    paddingVertical: 34,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 18 },
+    shadowOpacity: 0.1,
+    shadowRadius: 32,
   },
   title: {
     fontSize: 36,
