@@ -371,39 +371,6 @@ function WebGlobalPullToRefresh() {
   );
 }
 
-function AppStackHeader({ navigation, options, route, back }: any) {
-  const canGoBack = Boolean(back || navigation?.canGoBack?.());
-  const title =
-    typeof options.headerTitle === "string"
-      ? options.headerTitle
-      : typeof options.title === "string"
-      ? options.title
-      : route?.name === "[id]"
-      ? "Car Details"
-      : "Mekina";
-
-  return (
-    <View style={styles.appHeader}>
-      <View style={styles.appHeaderSide}>
-        {canGoBack ? (
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Go back"
-            onPress={() => navigation.goBack()}
-            style={styles.appHeaderBackButton}
-          >
-            <Text style={styles.appHeaderBackText}>Back</Text>
-          </Pressable>
-        ) : null}
-      </View>
-      <Text style={styles.appHeaderTitle} numberOfLines={1}>
-        {title}
-      </Text>
-      <View style={styles.appHeaderSide} />
-    </View>
-  );
-}
-
 export default function RootLayout() {
   return (
     <RootErrorBoundary>
@@ -414,7 +381,6 @@ export default function RootLayout() {
           <ThemeProvider value={MyDarkTheme}>
             <Stack
               screenOptions={{
-                header: (props) => <AppStackHeader {...props} />,
                 headerStyle: { backgroundColor: COLORS.card },
                 headerTintColor: COLORS.foreground,
                 headerTitleStyle: { color: COLORS.foreground },
@@ -484,42 +450,6 @@ export default function RootLayout() {
 }
 
 const styles = StyleSheet.create({
-  appHeader: {
-    height: 58,
-    backgroundColor: COLORS.card,
-    borderBottomWidth: 1,
-    borderBottomColor: "#313843",
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: 12,
-  },
-  appHeaderSide: {
-    width: 86,
-    alignItems: "flex-start",
-    justifyContent: "center",
-  },
-  appHeaderBackButton: {
-    minWidth: 72,
-    minHeight: 38,
-    borderRadius: 10,
-    backgroundColor: "#FFFFFF",
-    borderWidth: 1,
-    borderColor: "#FFFFFF",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  appHeaderBackText: {
-    color: COLORS.background,
-    fontSize: 15,
-    fontWeight: "800",
-  },
-  appHeaderTitle: {
-    flex: 1,
-    color: COLORS.foreground,
-    fontSize: 17,
-    fontWeight: "800",
-    textAlign: "center",
-  },
   errorShell: {
     flex: 1,
     backgroundColor: COLORS.background,
