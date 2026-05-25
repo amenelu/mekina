@@ -162,8 +162,18 @@ const EditListingScreen = () => {
   }, [id, token]);
 
   const handleUpdate = async () => {
-    if (!make || !model || !year || !price) {
-      Alert.alert("Error", "Please fill in all required fields.");
+    const missingFields = [
+      !make.trim() ? "Make" : null,
+      !model.trim() ? "Model" : null,
+      !year.trim() ? "Year" : null,
+      !price.trim() ? "Price" : null,
+    ].filter(Boolean);
+
+    if (missingFields.length > 0) {
+      showNativeFlowAlert(
+        "Missing Required Details",
+        `Please fill in: ${missingFields.join(", ")}.`,
+      );
       return;
     }
     setIsSubmitting(true);
@@ -185,7 +195,7 @@ const EditListingScreen = () => {
     } catch (error: any) {
       const message =
         error.response?.data?.message || "Failed to update listing.";
-      Alert.alert("Update Failed", message);
+      showNativeFlowAlert("Update Failed", message);
     } finally {
       setIsSubmitting(false);
     }

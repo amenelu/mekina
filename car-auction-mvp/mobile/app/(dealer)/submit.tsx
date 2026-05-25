@@ -111,6 +111,9 @@ const CarSubmissionForm = () => {
   const [primaryImageIndex, setPrimaryImageIndex] = useState(0);
   const needsRange = fuelType === "Electric" || fuelType === "Hybrid";
   const isWideWeb = Platform.OS === "web" && width >= 1000;
+  const showRequiredAlert = (message: string) => {
+    showNativeFlowAlert("Missing Required Details", message);
+  };
 
   const appendImagesToFormData = async (formData: FormData) => {
     for (const image of images) {
@@ -150,23 +153,30 @@ const CarSubmissionForm = () => {
       return;
     }
 
-    if (!make || !model || !year || !price) {
-      Alert.alert("Error", "Please fill in all required fields.");
+    const missingFields = [
+      !make.trim() ? "Make" : null,
+      !model.trim() ? "Model" : null,
+      !year.trim() ? "Year" : null,
+      !price.trim() ? "Sale price" : null,
+    ].filter(Boolean);
+
+    if (missingFields.length > 0) {
+      showRequiredAlert(`Please fill in: ${missingFields.join(", ")}.`);
       return;
     }
 
     if (condition === "Used" && !mileage.trim()) {
-      Alert.alert("Error", "Mileage is required for used cars.");
+      showRequiredAlert("Mileage is required for used cars.");
       return;
     }
 
     if (needsRange && !electricRangeKm.trim()) {
-      Alert.alert("Error", "Range is required for hybrid and electric cars.");
+      showRequiredAlert("Range is required for hybrid and electric cars.");
       return;
     }
 
     if (images.length === 0) {
-      Alert.alert("Error", "Please upload at least one photo of the car.");
+      showRequiredAlert("Please upload at least one photo of the car.");
       return;
     }
 
