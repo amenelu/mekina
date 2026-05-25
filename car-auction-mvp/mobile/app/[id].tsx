@@ -151,10 +151,15 @@ const CarDetailScreen = () => {
     fetchCarDetails(true);
   };
 
-  // Hide the platform header and render a consistent in-screen header instead.
+  // Set a native title; the root layout renders the visible custom header.
   React.useLayoutEffect(() => {
-    navigation.setOptions({ headerShown: false });
-  }, [navigation]);
+    const title = car
+      ? `${car.year} ${car.make} ${car.model}`
+      : id
+      ? "Loading..."
+      : "Car Details";
+    navigation.setOptions({ title, headerShown: true });
+  }, [navigation, car, id]);
 
   const closeImageViewer = () => {
     setImageViewerVisible(false);
@@ -213,12 +218,6 @@ const CarDetailScreen = () => {
       : [];
   const isViewingOwnListing = car?.owner?.id === user?.id;
   const showBuyerActions = !isViewingOwnListing;
-  const detailsTitle = car
-    ? `${car.year} ${car.make} ${car.model}`
-    : id
-    ? "Loading..."
-    : "Car Details";
-
   const openImageViewer = (index: number) => {
     setSelectedImageIndex(index);
     setImageViewerVisible(true);
@@ -440,22 +439,7 @@ const CarDetailScreen = () => {
 
   return (
     <>
-      <Stack.Screen options={{ headerShown: false }} />
-      <View style={styles.detailsHeader}>
-        <View style={styles.detailsHeaderBackSlot}>
-          <Text style={styles.detailsHeaderBackText}>Back</Text>
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Go back"
-            onPress={handleBackPress}
-            style={StyleSheet.absoluteFill}
-          />
-        </View>
-        <Text style={styles.detailsHeaderTitle} numberOfLines={1}>
-          {detailsTitle}
-        </Text>
-        <View style={styles.detailsHeaderSpacer} />
-      </View>
+      <Stack.Screen />
       <ScrollView
         style={styles.container}
         scrollEnabled={!isImageViewerVisible}
@@ -867,41 +851,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: COLORS.background,
-  },
-  detailsHeader: {
-    height: 58,
-    backgroundColor: COLORS.card,
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.border,
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: 12,
-    zIndex: 10,
-  },
-  detailsHeaderBackSlot: {
-    width: 76,
-    minHeight: 38,
-    alignItems: "center",
-    justifyContent: "center",
-    borderRadius: 10,
-    backgroundColor: "#FFFFFF",
-    borderWidth: 1,
-    borderColor: "#FFFFFF",
-  },
-  detailsHeaderBackText: {
-    color: "#14181F",
-    fontSize: 15,
-    fontWeight: "800",
-  },
-  detailsHeaderTitle: {
-    flex: 1,
-    color: COLORS.foreground,
-    fontSize: 17,
-    fontWeight: "800",
-    textAlign: "center",
-  },
-  detailsHeaderSpacer: {
-    width: 76,
   },
   imageGallery: {
     marginBottom: 8,
