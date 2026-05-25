@@ -79,6 +79,7 @@ const ComparisonCard = ({
 
 const CompareScreen = () => {
   const params = useLocalSearchParams();
+  const router = useRouter();
   const { car_ids } = params as { car_ids: string | string[] };
   const { width } = useWindowDimensions();
   const [carsToCompare, setCarsToCompare] = useState<Vehicle[]>([]);
@@ -145,7 +146,25 @@ const CompareScreen = () => {
 
   return (
     <>
-      <Stack.Screen options={{ title: "Compare Vehicles" }} />
+      <Stack.Screen options={{ headerShown: false }} />
+      <View style={styles.header}>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Go back"
+          onPress={() => {
+            if (router.canGoBack()) {
+              router.back();
+              return;
+            }
+            router.replace("/(tabs)/all_listings" as any);
+          }}
+          style={styles.headerBackButton}
+        >
+          <Text style={styles.headerBackIcon}>‹</Text>
+        </Pressable>
+        <Text style={styles.headerTitle}>Compare Vehicles</Text>
+        <View style={styles.headerSpacer} />
+      </View>
       <ScrollView
         horizontal={!isWideWeb}
         pagingEnabled={!isWideWeb}
@@ -173,6 +192,38 @@ const CompareScreen = () => {
 };
 
 const styles = StyleSheet.create({
+  header: {
+    height: 58,
+    backgroundColor: COLORS.card,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.border,
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 12,
+  },
+  headerBackButton: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  headerBackIcon: {
+    color: COLORS.foreground,
+    fontSize: 34,
+    fontWeight: "500",
+    lineHeight: 38,
+  },
+  headerTitle: {
+    flex: 1,
+    color: COLORS.foreground,
+    fontSize: 17,
+    fontWeight: "800",
+    textAlign: "center",
+  },
+  headerSpacer: {
+    width: 42,
+  },
   container: {
     backgroundColor: COLORS.background,
     paddingVertical: 20,

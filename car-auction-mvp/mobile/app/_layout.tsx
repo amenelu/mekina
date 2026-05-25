@@ -417,7 +417,12 @@ export default function RootLayout() {
               <Stack.Screen name="deal/[id]" options={{ title: "Deal Summary" }} />
               <Stack.Screen
                 name="(details)/dealers/public/[id]"
-                options={{ presentation: "modal", title: "Dealer Profile" }}
+                options={{
+                  presentation: "transparentModal",
+                  animation: "fade",
+                  headerShown: false,
+                  contentStyle: { backgroundColor: "transparent" },
+                }}
               />
               <Stack.Screen
                 name="(details)/dealers/[id]"
