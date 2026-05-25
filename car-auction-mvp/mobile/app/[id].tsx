@@ -264,6 +264,7 @@ const CarDetailScreen = () => {
   const showBuyerActions = !isViewingOwnListing;
   const showRentalCompanyContact =
     car?.listing_type === "rental" && car?.owner?.is_rental_company;
+  const hasDescription = Boolean(car?.description?.trim());
   const detailsTitle = car
     ? `${car.year} ${car.make} ${car.model}`
     : id
@@ -797,8 +798,12 @@ const CarDetailScreen = () => {
             </View>
           )}
 
-          <Text style={styles.sectionTitle}>Description</Text>
-          <Text style={styles.description}>{car.description}</Text>
+          {hasDescription && (
+            <>
+              <Text style={styles.sectionTitle}>Description</Text>
+              <Text style={styles.description}>{car.description}</Text>
+            </>
+          )}
 
           <Text style={styles.sectionTitle}>Specifications</Text>
           <View style={styles.specsContainer}>
