@@ -583,7 +583,10 @@ const CarDetailScreen = () => {
               style={styles.dealerRow}
               onPress={() => {
                 if (car.owner.is_dealer) {
-                  router.push(`/(details)/dealers/public/${car.owner.id}`);
+                  router.push({
+                    pathname: "/(details)/dealers/public/[id]",
+                    params: { id: String(car.owner.id), modal: "1" },
+                  });
                 }
               }}
               disabled={!car.owner.is_dealer}

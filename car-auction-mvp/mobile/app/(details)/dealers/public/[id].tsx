@@ -1,4 +1,4 @@
-import { useLocalSearchParams, Stack, Link } from "expo-router";
+import { useLocalSearchParams, Stack, Link, useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
   View,
@@ -86,7 +86,8 @@ const ListingImageWithLoader = ({ uri }: { uri: string }) => {
 };
 
 const DealerPublicProfilePage: React.FC = () => {
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const { id, modal } = useLocalSearchParams<{ id: string; modal?: string }>();
+  const router = useRouter();
   const { token } = useAuth();
 
   const [profileData, setProfileData] = useState<ProfileData | null>(null);
@@ -121,92 +122,171 @@ const DealerPublicProfilePage: React.FC = () => {
   }
 
   const { dealer, listings, ratings, avg_rating, review_count } = profileData;
+  const isModal = modal === "1";
+  const profileContent = (
+    <ScrollView
+      style={[styles.container, isModal && styles.modalScroll]}
+      contentContainerStyle={isModal && styles.modalScrollContent}
+    >
+      <View style={styles.header}>
+        <Text style={styles.dealerName}>{dealer.username}</Text>
+        {dealer.is_verified && (
+          <View style={styles.verifiedBadge}>
+            <Ionicons name="shield-checkmark" size={16} color={COLORS.accent} />
+            <Text style={styles.verifiedText}>Verified Dealer</Text>
+          </View>
+        )}
+        <View style={styles.ratingSummary}>
+          <Ionicons name="star" size={20} color="#FFD700" />
+          <Text style={styles.ratingText}>
+            {avg_rating.toFixed(1)} ({review_count} reviews)
+          </Text>
+        </View>
+      </View>
+
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>Active Listings ({listings.length})</Text>
+        {listings.length > 0 ? (
+          listings.map((car) => (
+            <Link key={car.id} href={`/${car.id}`} asChild>
+              <Pressable style={styles.listingCard}>
+                <ListingImageWithLoader
+                  uri={car.image_urls[0] || "https://placehold.co/600x400"}
+                />
+                <View style={styles.listingDetails}>
+                  <Text
+                    style={styles.listingTitle}
+                  >{`${car.year} ${car.make} ${car.model}`}</Text>
+                  <Text style={styles.listingPrice}>
+                    {car.fixed_price.toLocaleString()} ETB
+                  </Text>
+                </View>
+              </Pressable>
+            </Link>
+          ))
+        ) : (
+          <Text style={styles.emptyText}>No active listings.</Text>
+        )}
+      </View>
+
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>Reviews</Text>
+        {ratings.length > 0 ? (
+          ratings.map((review) => (
+            <View key={review.id} style={styles.reviewCard}>
+              <View style={styles.reviewHeader}>
+                <Text style={styles.reviewAuthor}>{review.buyer_username}</Text>
+                <View style={styles.starRating}>
+                  {[...Array(5)].map((_, i) => (
+                    <Ionicons
+                      key={i}
+                      name="star"
+                      size={14}
+                      color={i < review.rating ? "#FFD700" : COLORS.border}
+                    />
+                  ))}
+                </View>
+              </View>
+              <Text style={styles.reviewComment}>{review.comment}</Text>
+            </View>
+          ))
+        ) : (
+          <Text style={styles.emptyText}>No reviews yet.</Text>
+        )}
+      </View>
+    </ScrollView>
+  );
+
+  if (isModal) {
+    return (
+      <>
+        <Stack.Screen options={{ headerShown: false }} />
+        <View style={styles.modalBackdrop}>
+          <View style={styles.modalCard}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle} numberOfLines={1}>
+                Dealer Profile
+              </Text>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Close dealer profile"
+                onPress={() => {
+                  if (router.canGoBack()) {
+                    router.back();
+                    return;
+                  }
+                  router.replace("/(tabs)" as any);
+                }}
+                style={styles.modalCloseButton}
+              >
+                <Ionicons name="close" size={22} color={COLORS.foreground} />
+              </Pressable>
+            </View>
+            {profileContent}
+          </View>
+        </View>
+      </>
+    );
+  }
 
   return (
     <>
       <Stack.Screen options={{ title: `${dealer.username}'s Profile` }} />
-      <ScrollView style={styles.container}>
-        <View style={styles.header}>
-          <Text style={styles.dealerName}>{dealer.username}</Text>
-          {dealer.is_verified && (
-            <View style={styles.verifiedBadge}>
-              <Ionicons
-                name="shield-checkmark"
-                size={16}
-                color={COLORS.accent}
-              />
-              <Text style={styles.verifiedText}>Verified Dealer</Text>
-            </View>
-          )}
-          <View style={styles.ratingSummary}>
-            <Ionicons name="star" size={20} color="#FFD700" />
-            <Text style={styles.ratingText}>
-              {avg_rating.toFixed(1)} ({review_count} reviews)
-            </Text>
-          </View>
-        </View>
-
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>
-            Active Listings ({listings.length})
-          </Text>
-          {listings.length > 0 ? (
-            listings.map((car) => (
-              <Link key={car.id} href={`/${car.id}`} asChild>
-                <Pressable style={styles.listingCard}>
-                  <ListingImageWithLoader
-                    uri={car.image_urls[0] || "https://placehold.co/600x400"}
-                  />
-                  <View style={styles.listingDetails}>
-                    <Text
-                      style={styles.listingTitle}
-                    >{`${car.year} ${car.make} ${car.model}`}</Text>
-                    <Text style={styles.listingPrice}>
-                      {car.fixed_price.toLocaleString()} ETB
-                    </Text>
-                  </View>
-                </Pressable>
-              </Link>
-            ))
-          ) : (
-            <Text style={styles.emptyText}>No active listings.</Text>
-          )}
-        </View>
-
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Reviews</Text>
-          {ratings.length > 0 ? (
-            ratings.map((review) => (
-              <View key={review.id} style={styles.reviewCard}>
-                <View style={styles.reviewHeader}>
-                  <Text style={styles.reviewAuthor}>
-                    {review.buyer_username}
-                  </Text>
-                  <View style={styles.starRating}>
-                    {[...Array(5)].map((_, i) => (
-                      <Ionicons
-                        key={i}
-                        name="star"
-                        size={14}
-                        color={i < review.rating ? "#FFD700" : COLORS.border}
-                      />
-                    ))}
-                  </View>
-                </View>
-                <Text style={styles.reviewComment}>{review.comment}</Text>
-              </View>
-            ))
-          ) : (
-            <Text style={styles.emptyText}>No reviews yet.</Text>
-          )}
-        </View>
-      </ScrollView>
+      {profileContent}
     </>
   );
 };
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.background },
+  modalBackdrop: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.62)",
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 16,
+  },
+  modalCard: {
+    width: "100%",
+    maxWidth: 720,
+    maxHeight: "88%",
+    backgroundColor: COLORS.background,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    overflow: "hidden",
+  },
+  modalHeader: {
+    height: 54,
+    backgroundColor: COLORS.card,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.border,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 16,
+  },
+  modalTitle: {
+    color: COLORS.foreground,
+    fontSize: 17,
+    fontWeight: "800",
+    flex: 1,
+  },
+  modalCloseButton: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: COLORS.muted,
+    marginLeft: 12,
+  },
+  modalScroll: {
+    flex: 0,
+  },
+  modalScrollContent: {
+    paddingBottom: 12,
+  },
   centered: {
     flex: 1,
     justifyContent: "center",
