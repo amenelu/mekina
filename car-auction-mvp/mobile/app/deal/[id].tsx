@@ -57,6 +57,11 @@ interface Deal {
     mileage: number;
   };
   has_rated?: boolean;
+  permissions?: {
+    can_complete?: boolean;
+    can_request_completion?: boolean;
+    can_rate?: boolean;
+  };
 }
 
 const DealSummaryScreen = () => {
@@ -76,7 +81,19 @@ const DealSummaryScreen = () => {
   const isWideWeb = Platform.OS === "web" && width >= 1000;
   const normalizedDealStatus = String(deal?.status || "").trim().toLowerCase();
   const isCompletedDeal = normalizedDealStatus === "completed";
-  const showDealActions = !isCompletedDeal;
+  const isAcceptedDeal = normalizedDealStatus === "accepted";
+  const isDealBuyer = Number(user?.id) === Number(deal?.customer?.id);
+  const isDealDealer = Number(user?.id) === Number(deal?.dealer?.id);
+  const canCompleteDeal =
+    deal?.permissions?.can_complete ??
+    (isAcceptedDeal && (isDealBuyer || Boolean(user?.is_admin)));
+  const canRequestCompletion =
+    deal?.permissions?.can_request_completion ??
+    (isAcceptedDeal && isDealDealer && !Boolean(user?.is_admin));
+  const canRateDeal =
+    deal?.permissions?.can_rate ??
+    (!isDealer && isCompletedDeal && deal?.has_rated === false);
+  const showDealActions = canCompleteDeal || canRequestCompletion;
 
   const fetchDeal = useCallback(
     async (isRefresh = false) => {
@@ -329,44 +346,53 @@ const DealSummaryScreen = () => {
             {showDealActions && (
               <View style={styles.section}>
                 <Text style={styles.sectionTitle}>Deal Actions</Text>
-                <Text style={styles.completionHelp}>
-                  Buyers can mark the deal completed after payment,
-                  inspection, and handover are finalized. Dealers can ask the
-                  buyer to confirm completion.
-                </Text>
-                <Pressable
-                  style={styles.completeButton}
-                  onPress={handleCompleteDeal}
-                  disabled={completingDeal}
-                >
-                  {completingDeal ? (
-                    <ActivityIndicator color="#fff" size="small" />
-                  ) : (
-                    <Text style={styles.completeButtonText}>
-                      Mark Deal Completed
+                {canCompleteDeal ? (
+                  <>
+                    <Text style={styles.completionHelp}>
+                      Mark this completed after payment, inspection, and
+                      handover are finalized. The dealer will receive a 1 point
+                      reward.
                     </Text>
-                  )}
-                </Pressable>
-                <Pressable
-                  style={[
-                    styles.requestCompletionButton,
-                    styles.secondaryActionSpacing,
-                  ]}
-                  onPress={handleRequestCompletion}
-                  disabled={requestingCompletion}
-                >
-                  {requestingCompletion ? (
-                    <ActivityIndicator color={COLORS.accent} size="small" />
-                  ) : (
-                    <Text style={styles.requestCompletionButtonText}>
-                      Ask Buyer to Confirm Completion
+                    <Pressable
+                      style={styles.completeButton}
+                      onPress={handleCompleteDeal}
+                      disabled={completingDeal}
+                    >
+                      {completingDeal ? (
+                        <ActivityIndicator color="#fff" size="small" />
+                      ) : (
+                        <Text style={styles.completeButtonText}>
+                          Mark Deal Completed
+                        </Text>
+                      )}
+                    </Pressable>
+                  </>
+                ) : null}
+                {canRequestCompletion ? (
+                  <>
+                    <Text style={styles.completionHelp}>
+                      Ask the buyer to confirm completion once payment,
+                      inspection, and handover are finalized.
                     </Text>
-                  )}
-                </Pressable>
+                    <Pressable
+                      style={styles.requestCompletionButton}
+                      onPress={handleRequestCompletion}
+                      disabled={requestingCompletion}
+                    >
+                      {requestingCompletion ? (
+                        <ActivityIndicator color={COLORS.accent} size="small" />
+                      ) : (
+                        <Text style={styles.requestCompletionButtonText}>
+                          Ask Buyer to Confirm Completion
+                        </Text>
+                      )}
+                    </Pressable>
+                  </>
+                ) : null}
               </View>
             )}
 
-            {!isDealer && isCompletedDeal && deal.has_rated === false && (
+            {canRateDeal && (
               <View style={styles.section}>
                 <Text style={styles.sectionTitle}>Rate Your Experience</Text>
                 <View style={styles.ratingContainer}>

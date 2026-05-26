@@ -1208,14 +1208,29 @@ def api_deal_summary(current_user, deal_id):
     ):
         return jsonify({"error": "Permission denied"}), 403
 
-    deal_data = deal.to_dict()
+    deal_data = _deal_to_api_dict(deal, current_user)
 
-    # Check if the current user (buyer) has already rated this deal
-    if current_user.id == deal.customer_id:
+    return jsonify(deal=deal_data)
+
+
+def _deal_to_api_dict(deal, current_user):
+    deal_data = deal.to_dict()
+    is_accepted = (deal.status or "").lower() == "accepted"
+    is_completed = (deal.status or "").lower() == "completed"
+    is_buyer = current_user.id == deal.customer_id
+    is_dealer = current_user.id == deal.dealer_id
+
+    existing_rating = None
+    if is_buyer:
         existing_rating = DealerRating.query.filter_by(deal_id=deal.id).first()
         deal_data["has_rated"] = True if existing_rating else False
 
-    return jsonify(deal=deal_data)
+    deal_data["permissions"] = {
+        "can_complete": is_accepted and (is_buyer or current_user.is_admin),
+        "can_request_completion": is_accepted and is_dealer and not current_user.is_admin,
+        "can_rate": is_completed and is_buyer and existing_rating is None,
+    }
+    return deal_data
 
 
 @request_bp.route("/api/deals/<int:deal_id>/complete", methods=["POST"])
@@ -1230,10 +1245,7 @@ def api_complete_deal(current_user, deal_id):
     except ValueError as exc:
         return jsonify({"status": "error", "message": str(exc)}), 400
 
-    deal_data = completed_deal.to_dict()
-    if current_user.id == completed_deal.customer_id:
-        existing_rating = DealerRating.query.filter_by(deal_id=completed_deal.id).first()
-        deal_data["has_rated"] = True if existing_rating else False
+    deal_data = _deal_to_api_dict(completed_deal, current_user)
 
     return jsonify(
         {
