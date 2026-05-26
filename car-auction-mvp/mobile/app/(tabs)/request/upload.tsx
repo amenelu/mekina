@@ -102,7 +102,8 @@ const RequestUploadScreen = () => {
     images: getDraftImageUris(images),
   });
 
-  const goToMyRequests = () => {
+  const goToMyRequests = async () => {
+    await clearRequestDraft(user?.id);
     router.replace("/my-requests");
   };
 

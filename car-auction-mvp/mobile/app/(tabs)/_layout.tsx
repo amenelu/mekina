@@ -145,7 +145,7 @@ export default function TabsLayout() {
                     ]
                   );
                 } else {
-                  props.onPress?.(e);
+                  router.replace("/request" as any);
                 }
               }}
             />

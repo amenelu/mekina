@@ -40,7 +40,8 @@ const RequestBrandScreen = () => {
 
   useRequestDraftPersistence("/request/brand", { ...params, brand });
 
-  const goToMyRequests = () => {
+  const goToMyRequests = async () => {
+    await clearRequestDraft(user?.id);
     router.replace("/my-requests");
   };
 

@@ -163,7 +163,7 @@ export default function TabsLayoutWeb() {
                     "Login"
                   );
                 } else {
-                  props.onPress?.(e);
+                  router.replace("/request" as any);
                 }
               }}
             />

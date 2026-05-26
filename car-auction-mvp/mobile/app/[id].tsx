@@ -37,6 +37,7 @@ import {
   showNativeFlowConfirm,
 } from "@/lib/nativeFlowAlert";
 import { saveRecentSubmittedRequest } from "@/lib/recentSubmittedRequests";
+import { clearRequestDraft } from "@/lib/requestDraft";
 const COLORS = {
   background: "#14181F",
   foreground: "#F8F8F8",
@@ -495,11 +496,15 @@ const CarDetailScreen = () => {
       });
       setRequestModalVisible(false);
       await saveRecentSubmittedRequest(response.data.request, user?.id);
+      await clearRequestDraft(user?.id);
 
       showNativeFlowAlert(
         "Success",
         "Your request has been submitted successfully!",
-        () => router.replace("/my-requests"),
+        async () => {
+          await clearRequestDraft(user?.id);
+          router.replace("/my-requests");
+        },
         "Close"
       );
     } catch (error: any) {
