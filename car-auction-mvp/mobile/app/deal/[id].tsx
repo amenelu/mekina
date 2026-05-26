@@ -26,7 +26,7 @@ import {
   rateDeal,
   requestDealCompletion,
 } from "@/lib/api/requests";
-import { DEALER_ROUTES } from "@/lib/roleRoutes";
+import { DEALER_ROUTES, getPostLoginRoute } from "@/lib/roleRoutes";
 
 const COLORS = {
   background: "#14181F",
@@ -75,11 +75,9 @@ const DealSummaryScreen = () => {
   const [requestingCompletion, setRequestingCompletion] = useState(false);
   const isWideWeb = Platform.OS === "web" && width >= 1000;
   const canCompleteDeal =
-    deal?.status === "accepted" &&
-    (Number(user?.id) === Number(deal.customer?.id) || user?.is_admin);
+    deal?.status === "accepted" && (!isDealer || user?.is_admin);
   const canRequestCompletion =
-    deal?.status === "accepted" &&
-    (Number(user?.id) === Number(deal.dealer?.id) || user?.is_admin);
+    deal?.status === "accepted" && (isDealer || user?.is_admin);
 
   const fetchDeal = useCallback(
     async (isRefresh = false) => {
@@ -112,6 +110,15 @@ const DealSummaryScreen = () => {
   const onRefresh = () => {
     setRefreshing(true);
     fetchDeal(true);
+  };
+
+  const handleBackPress = () => {
+    if (router.canGoBack()) {
+      router.back();
+      return;
+    }
+
+    router.replace(getPostLoginRoute(user) as any);
   };
 
   const handleSubmitReview = async () => {
@@ -215,7 +222,21 @@ const DealSummaryScreen = () => {
 
   return (
     <>
-      <Stack.Screen options={{ title: `Deal #${deal.id}` }} />
+      <Stack.Screen options={{ headerShown: false }} />
+      <View style={styles.detailsHeader}>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Go back"
+          onPress={handleBackPress}
+          style={styles.detailsHeaderBackButton}
+        >
+          <Ionicons name="chevron-back" size={24} color={COLORS.foreground} />
+        </Pressable>
+        <Text style={styles.detailsHeaderTitle} numberOfLines={1}>
+          Deal #{deal.id}
+        </Text>
+        <View style={styles.detailsHeaderSpacer} />
+      </View>
       <ScrollView
         style={styles.container}
         refreshControl={
@@ -426,6 +447,31 @@ const DealSummaryScreen = () => {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.background },
+  detailsHeader: {
+    height: 56,
+    backgroundColor: COLORS.card,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.border,
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 12,
+  },
+  detailsHeaderBackButton: {
+    width: 44,
+    height: 44,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  detailsHeaderTitle: {
+    flex: 1,
+    color: COLORS.foreground,
+    fontSize: 18,
+    fontWeight: "700",
+    textAlign: "center",
+  },
+  detailsHeaderSpacer: {
+    width: 44,
+  },
   centered: {
     flex: 1,
     justifyContent: "center",
