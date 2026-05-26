@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useCallback } from "react";
 import ConversationItem from "@/components/_components/ConversationItem";
 
 import {
@@ -51,13 +51,19 @@ const MessagesScreen = () => {
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const isWideWeb = Platform.OS === "web" && width >= 1000;
 
-  const fetchMessages = useCallback(async (isRefresh = false) => {
+  const fetchMessages = useCallback(async (options?: {
+    isRefresh?: boolean;
+    refreshBadges?: boolean;
+  }) => {
     if (!token) return;
+    const isRefresh = options?.isRefresh ?? false;
     if (!isRefresh) setLoading(true);
     try {
       const response = await getMyMessages();
       setConversations(response.data.conversations);
-      refreshCounts();
+      if (options?.refreshBadges) {
+        await refreshCounts();
+      }
     } catch (error) {
       console.error("Failed to fetch messages:", error);
     } finally {
@@ -66,37 +72,32 @@ const MessagesScreen = () => {
     }
   }, [refreshCounts, token]);
 
-  useEffect(() => {
-    fetchMessages();
-  }, [fetchMessages]);
-
   useFocusEffect(
     useCallback(() => {
-      fetchMessages();
+      fetchMessages({ refreshBadges: true });
     }, [fetchMessages])
   );
 
-  useEffect(() => {
-    if (socket) {
+  useFocusEffect(
+    useCallback(() => {
+      if (!socket) return;
+
       const handleConversationUpdate = () => {
         fetchMessages();
       };
-
       socket.on("conversation_list_update", handleConversationUpdate);
-      socket.on("message_count_update", handleConversationUpdate);
       socket.on("new_chat_message", handleConversationUpdate);
 
       return () => {
         socket.off("conversation_list_update", handleConversationUpdate);
-        socket.off("message_count_update", handleConversationUpdate);
         socket.off("new_chat_message", handleConversationUpdate);
       };
-    }
-  }, [fetchMessages, socket]);
+    }, [fetchMessages, socket])
+  );
 
   const onRefresh = () => {
     setRefreshing(true);
-    fetchMessages(true);
+    fetchMessages({ isRefresh: true, refreshBadges: true });
   };
 
   if (loading && !refreshing) {

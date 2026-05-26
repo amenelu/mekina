@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect } from "react";
+import React, { useState, useCallback } from "react";
 import {
   View,
   Text,
@@ -33,12 +33,16 @@ const MessagesScreen = () => {
   const [refreshing, setRefreshing] = useState(false);
   const isWideWeb = Platform.OS === "web" && width >= 1000;
 
-  const fetchConversations = useCallback(async () => {
+  const fetchConversations = useCallback(async (options?: {
+    refreshBadges?: boolean;
+  }) => {
     if (!token) return;
     try {
       const response = await getMyMessages();
       setConversations(response.data.conversations);
-      refreshCounts();
+      if (options?.refreshBadges) {
+        await refreshCounts();
+      }
     } catch (error) {
       console.error("Failed to fetch conversations:", error);
     } finally {
@@ -49,31 +53,30 @@ const MessagesScreen = () => {
 
   useFocusEffect(
     useCallback(() => {
-      fetchConversations();
+      fetchConversations({ refreshBadges: true });
     }, [fetchConversations])
   );
 
-  useEffect(() => {
-    if (socket) {
+  useFocusEffect(
+    useCallback(() => {
+      if (!socket) return;
+
       const handleConversationUpdate = () => {
         fetchConversations();
       };
-
       socket.on("conversation_list_update", handleConversationUpdate);
-      socket.on("message_count_update", handleConversationUpdate);
       socket.on("new_chat_message", handleConversationUpdate);
 
       return () => {
         socket.off("conversation_list_update", handleConversationUpdate);
-        socket.off("message_count_update", handleConversationUpdate);
         socket.off("new_chat_message", handleConversationUpdate);
       };
-    }
-  }, [fetchConversations, socket]);
+    }, [fetchConversations, socket])
+  );
 
   const onRefresh = () => {
     setRefreshing(true);
-    fetchConversations();
+    fetchConversations({ refreshBadges: true });
   };
 
   return (

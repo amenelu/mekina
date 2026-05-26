@@ -6,7 +6,6 @@ import React, {
   ReactNode,
 } from "react";
 import { io, Socket } from "socket.io-client";
-import { AppState } from "react-native";
 import API_URL from "@/constants/Api";
 import { useAuth } from "@/hooks/useAuth";
 import { getUnreadCounts } from "@/lib/api/notifications";
@@ -76,7 +75,6 @@ export const SocketProvider = ({ children }: { children: ReactNode }) => {
 
     newSocket.on("connect", () => {
       setIsConnected(true);
-      fetchCounts();
     });
 
     newSocket.on("disconnect", () => {
@@ -92,37 +90,18 @@ export const SocketProvider = ({ children }: { children: ReactNode }) => {
         setUnreadNotificationCount(data.count);
       } else {
         setUnreadNotificationCount((count) => count + 1);
-        fetchCounts();
       }
     });
 
     newSocket.on("notification_count_update", (data?: { count?: number }) => {
       if (typeof data?.count === "number") {
         setUnreadNotificationCount(data.count);
-      } else {
-        fetchCounts();
       }
     });
 
     return () => {
       newSocket.disconnect();
       setSocket(null);
-    };
-  }, [fetchCounts, token]);
-
-  useEffect(() => {
-    if (!token) return;
-
-    const intervalId = setInterval(fetchCounts, 15000);
-    const subscription = AppState.addEventListener("change", (state) => {
-      if (state === "active") {
-        fetchCounts();
-      }
-    });
-
-    return () => {
-      clearInterval(intervalId);
-      subscription.remove();
     };
   }, [fetchCounts, token]);
 

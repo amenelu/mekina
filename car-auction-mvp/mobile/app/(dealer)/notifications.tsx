@@ -138,12 +138,16 @@ const NotificationsScreen = () => {
   const [refreshing, setRefreshing] = useState(false);
   const isWideWeb = Platform.OS === "web" && width >= 1000;
 
-  const fetchNotifications = useCallback(async () => {
+  const fetchNotifications = useCallback(async (options?: {
+    refreshBadges?: boolean;
+  }) => {
     if (!token) return;
     try {
       const response = await getNotifications();
       setNotifications(response.data.notifications);
-      await refreshCounts();
+      if (options?.refreshBadges) {
+        await refreshCounts();
+      }
     } catch (error) {
       console.error("Failed to fetch notifications:", error);
     } finally {
@@ -154,7 +158,7 @@ const NotificationsScreen = () => {
 
   useFocusEffect(
     useCallback(() => {
-      fetchNotifications();
+      fetchNotifications({ refreshBadges: true });
     }, [fetchNotifications])
   );
 
@@ -176,7 +180,7 @@ const NotificationsScreen = () => {
 
   const onRefresh = () => {
     setRefreshing(true);
-    fetchNotifications();
+    fetchNotifications({ refreshBadges: true });
   };
 
   return (
