@@ -316,22 +316,6 @@ const DealSummaryScreen = () => {
                 deal.payment_method.slice(1)}
             </Text>
 
-            <View
-              style={[
-                styles.statusBadge,
-                isCompletedDeal && styles.statusBadgeCompleted,
-                completionRequested && styles.statusBadgePending,
-              ]}
-            >
-              <Text style={styles.statusBadgeText}>
-                {isCompletedDeal
-                  ? `Completed · +${
-                      deal.reward_points_amount || 1
-                    } point reward`
-                  : "Accepted · awaiting completion"}
-              </Text>
-            </View>
-
             <View style={styles.section}>
               <Text style={styles.sectionTitle}>Parties Involved</Text>
               <View style={styles.party}>
