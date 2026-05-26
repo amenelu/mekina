@@ -97,9 +97,10 @@ const DealSummaryScreen = () => {
       isDealBuyer ||
       (Boolean(deal?.permissions?.can_complete) && !isDealer && !isDealDealer));
   const canDealerRequestCompletion =
-    isAcceptedDeal &&
+    !isCompletedDeal &&
     !canBuyerComplete &&
-    (Boolean(deal?.permissions?.can_request_completion) || isDealDealer || isDealer);
+    !completionRequested &&
+    (isDealer || isDealDealer || Boolean(deal?.permissions?.can_request_completion));
   const canRateDeal =
     deal?.permissions?.can_rate ??
     (isDealBuyer && isCompletedDeal && deal?.has_rated === false);
@@ -316,6 +317,14 @@ const DealSummaryScreen = () => {
                 deal.payment_method.slice(1)}
             </Text>
 
+            {completionRequested ? (
+              <View style={styles.statusBadge}>
+                <Text style={styles.statusBadgeText}>
+                  Accepted · awaiting buyer confirmation
+                </Text>
+              </View>
+            ) : null}
+
             <View style={styles.section}>
               <Text style={styles.sectionTitle}>Parties Involved</Text>
               <View style={styles.party}>
@@ -350,7 +359,10 @@ const DealSummaryScreen = () => {
               </Text>
             </View>
 
-            {(canDealerRequestCompletion || canBuyerComplete || completionMessage) && (
+            {(canDealerRequestCompletion ||
+              completionRequested ||
+              canBuyerComplete ||
+              completionMessage) && (
               <View style={styles.section}>
                 <Text style={styles.sectionTitle}>Completion</Text>
                 {completionMessage ? (
