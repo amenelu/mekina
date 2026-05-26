@@ -74,10 +74,16 @@ const DealSummaryScreen = () => {
   const [completingDeal, setCompletingDeal] = useState(false);
   const [requestingCompletion, setRequestingCompletion] = useState(false);
   const isWideWeb = Platform.OS === "web" && width >= 1000;
+  const isAcceptedDeal = String(deal?.status || "").toLowerCase() === "accepted";
+  const isCompletedDeal = String(deal?.status || "").toLowerCase() === "completed";
+  const isDealBuyer = Number(user?.id) === Number(deal?.customer?.id);
+  const isDealDealer = Number(user?.id) === Number(deal?.dealer?.id);
   const canCompleteDeal =
-    deal?.status === "accepted" && (!isDealer || user?.is_admin);
+    isAcceptedDeal && (isDealBuyer || user?.is_admin);
   const canRequestCompletion =
-    deal?.status === "accepted" && (isDealer || user?.is_admin);
+    isAcceptedDeal &&
+    !canCompleteDeal &&
+    (isDealer || isDealDealer || user?.is_admin);
 
   const fetchDeal = useCallback(
     async (isRefresh = false) => {
@@ -250,14 +256,14 @@ const DealSummaryScreen = () => {
         <View style={[styles.content, isWideWeb && styles.contentWide]}>
           <View style={styles.header}>
             <Text style={styles.headerTitle}>
-              {deal.status === "completed"
+              {isCompletedDeal
                 ? "Deal Completed"
                 : isDealer
                 ? "Offer Accepted!"
                 : "Deal Confirmed!"}
             </Text>
             <Text style={styles.headerSubtitle}>
-              {deal.status === "completed"
+              {isCompletedDeal
                 ? "This deal has been marked complete. The dealer reward is recorded."
                 : isDealer
                 ? "Your offer was accepted. Contact the customer to finalize the transaction."
@@ -281,11 +287,11 @@ const DealSummaryScreen = () => {
             <View
               style={[
                 styles.statusBadge,
-                deal.status === "completed" && styles.statusBadgeCompleted,
+                isCompletedDeal && styles.statusBadgeCompleted,
               ]}
             >
               <Text style={styles.statusBadgeText}>
-                {deal.status === "completed"
+                {isCompletedDeal
                   ? `Completed · +${
                       deal.reward_points_amount || 1
                     } point reward`
@@ -375,7 +381,7 @@ const DealSummaryScreen = () => {
               </View>
             )}
 
-            {!isDealer && deal.status === "completed" && deal.has_rated === false && (
+            {!isDealer && isCompletedDeal && deal.has_rated === false && (
               <View style={styles.section}>
                 <Text style={styles.sectionTitle}>Rate Your Experience</Text>
                 <View style={styles.ratingContainer}>
