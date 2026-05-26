@@ -70,6 +70,7 @@ interface AdvancedAnalytics {
     active_listings: number;
     bids_placed: number;
     bids_won: number;
+    closed_deals?: number;
     win_rate: number;
   };
   competitive_benchmarking: {
@@ -323,6 +324,12 @@ const AnalyticsScreen = () => {
                     {advancedData.inventory_performance.win_rate}%
                   </Text>
                   <Text style={styles.statLabel}>Win Rate</Text>
+                </View>
+                <View style={styles.statBox}>
+                  <Text style={styles.statNumber}>
+                    {advancedData.inventory_performance.closed_deals ?? 0}
+                  </Text>
+                  <Text style={styles.statLabel}>Closed Deals</Text>
                 </View>
               </View>
             </AnalyticsCard>

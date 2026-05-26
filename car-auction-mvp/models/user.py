@@ -62,6 +62,12 @@ class User(UserMixin, db.Model):
         )
         return float(avg_rating) if avg_rating is not None else 0
 
+    def get_closed_deal_count(self):
+        """Returns the number of confirmed completed deals for this dealer."""
+        from models.deal import Deal
+
+        return Deal.query.filter_by(dealer_id=self.id, status="completed").count()
+
     def get_analytics_status(self):
         """
         Calculates if the dealer has unlocked advanced analytics based on credit spending.

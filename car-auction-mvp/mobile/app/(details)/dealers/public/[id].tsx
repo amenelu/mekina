@@ -29,6 +29,7 @@ interface DealerProfile {
   id: number;
   username: string;
   is_verified: boolean;
+  closed_deal_count?: number;
 }
 
 interface CarListing {
@@ -169,6 +170,12 @@ const DealerPublicProfilePage: React.FC = () => {
           <Ionicons name="star" size={20} color="#FFD700" />
           <Text style={styles.ratingText}>
             {avg_rating.toFixed(1)} ({review_count} reviews)
+          </Text>
+        </View>
+        <View style={styles.ratingSummary}>
+          <Ionicons name="checkmark-circle" size={20} color="#28a745" />
+          <Text style={styles.ratingText}>
+            {dealer.closed_deal_count || 0} closed deals
           </Text>
         </View>
       </View>

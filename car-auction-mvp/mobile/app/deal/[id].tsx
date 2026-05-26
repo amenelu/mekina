@@ -20,7 +20,7 @@ import {
 } from "expo-router";
 import { useAuth } from "@/hooks/useAuth";
 import { Ionicons } from "@expo/vector-icons";
-import { getDeal, rateDeal } from "@/lib/api/requests";
+import { completeDeal, getDeal, rateDeal } from "@/lib/api/requests";
 import { DEALER_ROUTES } from "@/lib/roleRoutes";
 
 const COLORS = {
@@ -38,8 +38,12 @@ interface Deal {
   final_price: number;
   payment_method: string;
   deal_date: string;
-  customer: { username: string; email: string; phone_number: string };
-  dealer: { username: string; email: string; phone_number: string };
+  status: "accepted" | "completed" | string;
+  completed_at?: string | null;
+  reward_points_awarded?: boolean;
+  reward_points_amount?: number;
+  customer: { id: number; username: string; email: string; phone_number: string };
+  dealer: { id: number; username: string; email: string; phone_number: string };
   accepted_bid: {
     car_year: number;
     make: string;
@@ -62,7 +66,10 @@ const DealSummaryScreen = () => {
   const [rating, setRating] = useState(0);
   const [reviewText, setReviewText] = useState("");
   const [submittingReview, setSubmittingReview] = useState(false);
+  const [completingDeal, setCompletingDeal] = useState(false);
   const isWideWeb = Platform.OS === "web" && width >= 1000;
+  const canCompleteDeal =
+    deal?.status === "accepted" && (user?.id === deal.customer?.id || user?.is_admin);
 
   const fetchDeal = useCallback(
     async (isRefresh = false) => {
@@ -98,6 +105,14 @@ const DealSummaryScreen = () => {
   };
 
   const handleSubmitReview = async () => {
+    if (deal?.status !== "completed") {
+      Alert.alert(
+        "Complete Deal First",
+        "Mark the deal completed before rating the dealer."
+      );
+      return;
+    }
+
     if (rating === 0) {
       Alert.alert("Rating Required", "Please select a star rating.");
       return;
@@ -121,6 +136,31 @@ const DealSummaryScreen = () => {
       );
     } finally {
       setSubmittingReview(false);
+    }
+  };
+
+  const handleCompleteDeal = async () => {
+    if (!id || completingDeal) return;
+
+    setCompletingDeal(true);
+    try {
+      const response = await completeDeal(String(id));
+      setDeal(response.data.deal);
+      Alert.alert(
+        "Deal Completed",
+        response.data.message ||
+          "The dealer has been rewarded for closing this deal."
+      );
+    } catch (error: any) {
+      console.error("Failed to complete deal:", error);
+      Alert.alert(
+        "Error",
+        error.response?.data?.message ||
+          error.userMessage ||
+          "Failed to complete deal."
+      );
+    } finally {
+      setCompletingDeal(false);
     }
   };
 
@@ -156,12 +196,18 @@ const DealSummaryScreen = () => {
         <View style={[styles.content, isWideWeb && styles.contentWide]}>
           <View style={styles.header}>
             <Text style={styles.headerTitle}>
-              {isDealer ? "Offer Accepted!" : "Deal Confirmed!"}
+              {deal.status === "completed"
+                ? "Deal Completed"
+                : isDealer
+                ? "Offer Accepted!"
+                : "Deal Confirmed!"}
             </Text>
             <Text style={styles.headerSubtitle}>
-              {isDealer
+              {deal.status === "completed"
+                ? "This deal has been marked complete. The dealer reward is recorded."
+                : isDealer
                 ? "Your offer was accepted. Contact the customer to finalize the transaction."
-                : "Here are the details of your agreement. Please contact the dealer to finalize the transaction."}
+                : "Here are the details of your agreement. Mark the deal completed after the transaction is finalized."}
             </Text>
           </View>
 
@@ -177,6 +223,21 @@ const DealSummaryScreen = () => {
               {deal.payment_method.charAt(0).toUpperCase() +
                 deal.payment_method.slice(1)}
             </Text>
+
+            <View
+              style={[
+                styles.statusBadge,
+                deal.status === "completed" && styles.statusBadgeCompleted,
+              ]}
+            >
+              <Text style={styles.statusBadgeText}>
+                {deal.status === "completed"
+                  ? `Completed · +${
+                      deal.reward_points_amount || 1
+                    } point reward`
+                  : "Accepted · awaiting completion"}
+              </Text>
+            </View>
 
             <View style={styles.section}>
               <Text style={styles.sectionTitle}>Parties Involved</Text>
@@ -212,7 +273,31 @@ const DealSummaryScreen = () => {
               </Text>
             </View>
 
-            {!isDealer && deal.has_rated === false && (
+            {canCompleteDeal && (
+              <View style={styles.section}>
+                <Text style={styles.sectionTitle}>Confirm Completion</Text>
+                <Text style={styles.completionHelp}>
+                  Only mark this completed after payment, inspection, and
+                  handover are finalized. The dealer will receive a 1 point
+                  reward.
+                </Text>
+                <Pressable
+                  style={styles.completeButton}
+                  onPress={handleCompleteDeal}
+                  disabled={completingDeal}
+                >
+                  {completingDeal ? (
+                    <ActivityIndicator color="#fff" size="small" />
+                  ) : (
+                    <Text style={styles.completeButtonText}>
+                      Mark Deal Completed
+                    </Text>
+                  )}
+                </Pressable>
+              </View>
+            )}
+
+            {!isDealer && deal.status === "completed" && deal.has_rated === false && (
               <View style={styles.section}>
                 <Text style={styles.sectionTitle}>Rate Your Experience</Text>
                 <View style={styles.ratingContainer}>
@@ -327,6 +412,25 @@ const styles = StyleSheet.create({
     textAlign: "center",
     marginBottom: 20,
   },
+  statusBadge: {
+    alignSelf: "center",
+    backgroundColor: "rgba(163, 112, 247, 0.14)",
+    borderWidth: 1,
+    borderColor: COLORS.accent,
+    borderRadius: 999,
+    paddingHorizontal: 14,
+    paddingVertical: 7,
+    marginBottom: 4,
+  },
+  statusBadgeCompleted: {
+    backgroundColor: "rgba(40, 167, 69, 0.14)",
+    borderColor: COLORS.success,
+  },
+  statusBadgeText: {
+    color: COLORS.foreground,
+    fontSize: 13,
+    fontWeight: "700",
+  },
   section: {
     borderTopWidth: 1,
     borderTopColor: COLORS.border,
@@ -353,6 +457,23 @@ const styles = StyleSheet.create({
     marginBottom: 5,
   },
   carDetail: { fontSize: 16, color: COLORS.mutedForeground, marginTop: 2 },
+  completionHelp: {
+    color: COLORS.mutedForeground,
+    fontSize: 15,
+    lineHeight: 22,
+    marginBottom: 12,
+  },
+  completeButton: {
+    backgroundColor: COLORS.success,
+    padding: 13,
+    borderRadius: 10,
+    alignItems: "center",
+  },
+  completeButtonText: {
+    color: "#fff",
+    fontSize: 16,
+    fontWeight: "800",
+  },
   doneButton: {
     backgroundColor: COLORS.accent,
     padding: 15,

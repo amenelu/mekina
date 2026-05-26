@@ -858,6 +858,7 @@ def api_advanced_analytics(current_user):
     my_wins_count = DealerBid.query.filter_by(
         dealer_id=current_user.id, status="accepted"
     ).count()
+    my_closed_deals_count = current_user.get_closed_deal_count()
     my_win_rate = (my_wins_count / my_bids_count * 100) if my_bids_count > 0 else 0
 
     # 4. Competitive Benchmarking
@@ -899,6 +900,7 @@ def api_advanced_analytics(current_user):
                 "active_listings": my_listings_count,
                 "bids_placed": my_bids_count,
                 "bids_won": my_wins_count,
+                "closed_deals": my_closed_deals_count,
                 "win_rate": round(my_win_rate, 1),
             },
             "competitive_benchmarking": {
@@ -948,7 +950,10 @@ def api_dealer_profile(dealer_id):
     )
 
     return jsonify(
-        dealer=dealer.to_dict(detail_level="owner" if can_view_phone else "public"),
+        dealer={
+            **dealer.to_dict(detail_level="owner" if can_view_phone else "public"),
+            "closed_deal_count": dealer.get_closed_deal_count(),
+        },
         listings=[car.to_dict() for car in active_listings],
         ratings=[r.to_dict() for r in ratings],
         avg_rating=round(avg_rating, 2),

@@ -20,6 +20,7 @@ from models.deal import Deal
 from extensions import db, socketio
 from models.dealer_rating import DealerRating
 from models.notification import Notification
+from models.point_transaction import PointTransaction
 from models.request_question import RequestQuestion
 from routes.main import mark_notification_as_read
 from routes.seller import save_base64_image
@@ -987,6 +988,53 @@ def _accept_offer_logic(bid_id, user_id, payment_method):
     return new_deal, deal_notification
 
 
+def _complete_deal_logic(deal):
+    if deal.status == "completed":
+        return deal, None
+
+    if deal.status != "accepted":
+        raise ValueError("Only accepted deals can be completed.")
+
+    reward_points = 1
+    deal.status = "completed"
+    deal.completed_at = datetime.utcnow()
+
+    reward_notification = None
+    if not deal.reward_points_awarded and deal.dealer:
+        deal.dealer.points = (deal.dealer.points or 0) + reward_points
+        deal.reward_points_awarded = True
+        deal.reward_points_amount = reward_points
+        db.session.add(
+            PointTransaction(
+                user_id=deal.dealer_id,
+                amount=reward_points,
+                transaction_type="closed_deal_reward",
+                description=f"Reward for completed deal #{deal.id}",
+            )
+        )
+        reward_notification = Notification(
+            user_id=deal.dealer_id,
+            message=(
+                f"Deal #{deal.id} was marked completed. You earned "
+                f"{reward_points} point."
+            ),
+            link=url_for("request.deal_summary", deal_id=deal.id),
+        )
+        db.session.add(reward_notification)
+
+    db.session.commit()
+
+    if reward_notification:
+        socketio.emit(
+            "new_notification",
+            reward_notification.to_dict(),
+            room=str(deal.dealer_id),
+        )
+        send_push_notification(deal.dealer_id, reward_notification.message)
+
+    return deal, reward_notification
+
+
 @request_bp.route("/offer/<int:bid_id>/accept", methods=["POST"])
 @login_required
 def accept_offer(bid_id):
@@ -1169,6 +1217,35 @@ def api_deal_summary(current_user, deal_id):
     return jsonify(deal=deal_data)
 
 
+@request_bp.route("/api/deals/<int:deal_id>/complete", methods=["POST"])
+@token_required
+def api_complete_deal(current_user, deal_id):
+    deal = Deal.query.get_or_404(deal_id)
+    if current_user.id != deal.customer_id and not current_user.is_admin:
+        return jsonify({"status": "error", "message": "Permission denied."}), 403
+
+    try:
+        completed_deal, _ = _complete_deal_logic(deal)
+    except ValueError as exc:
+        return jsonify({"status": "error", "message": str(exc)}), 400
+
+    deal_data = completed_deal.to_dict()
+    if current_user.id == completed_deal.customer_id:
+        existing_rating = DealerRating.query.filter_by(deal_id=completed_deal.id).first()
+        deal_data["has_rated"] = True if existing_rating else False
+
+    return jsonify(
+        {
+            "status": "success",
+            "message": (
+                f"Deal completed. The dealer earned "
+                f"{completed_deal.reward_points_amount or 1} point."
+            ),
+            "deal": deal_data,
+        }
+    )
+
+
 @request_bp.route("/api/requests", methods=["POST"])
 @token_required
 def api_create_request(current_user):
@@ -1337,6 +1414,9 @@ def rate_dealer(deal_id):
     # Security checks
     if deal.customer_id != current_user.id:
         abort(403)  # Only the buyer from the deal can rate
+    if deal.status != "completed":
+        flash("Please mark the deal completed before rating the dealer.", "warning")
+        return redirect(url_for("request.deal_summary", deal_id=deal.id))
     if DealerRating.query.filter_by(deal_id=deal.id).first():
         flash("You have already submitted a review for this deal.", "warning")
         return redirect(url_for("request.deal_summary", deal_id=deal.id))
@@ -1372,6 +1452,16 @@ def api_rate_dealer(current_user, deal_id):
     # Security checks
     if deal.customer_id != current_user.id:
         return jsonify({"status": "error", "message": "Permission denied."}), 403
+    if deal.status != "completed":
+        return (
+            jsonify(
+                {
+                    "status": "error",
+                    "message": "Please mark the deal completed before rating the dealer.",
+                }
+            ),
+            400,
+        )
     if DealerRating.query.filter_by(deal_id=deal.id).first():
         return (
             jsonify(
@@ -1399,7 +1489,7 @@ def api_rate_dealer(current_user, deal_id):
 
     new_rating = DealerRating(
         rating=data.get("rating"),
-        review_text=data.get("review_text") or None,
+        review_text=data.get("review_text") or data.get("comment") or None,
         dealer_id=deal.dealer_id,
         buyer_id=deal.customer_id,
         deal_id=deal.id,

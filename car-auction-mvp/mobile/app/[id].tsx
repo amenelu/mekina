@@ -1025,6 +1025,16 @@ const CarDetailScreen = () => {
                       {dealerProfile.review_count || 0} reviews)
                     </Text>
                   </View>
+                  <View style={styles.dealerSheetClosedDeals}>
+                    <Ionicons
+                      name="checkmark-circle"
+                      size={18}
+                      color={COLORS.success}
+                    />
+                    <Text style={styles.dealerSheetRatingText}>
+                      {dealerProfile.dealer?.closed_deal_count || 0} closed deals
+                    </Text>
+                  </View>
                 </View>
 
                 <View style={styles.dealerSheetSection}>
@@ -1595,6 +1605,11 @@ const styles = StyleSheet.create({
   },
   dealerSheetRating: {
     marginTop: 12,
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  dealerSheetClosedDeals: {
+    marginTop: 8,
     flexDirection: "row",
     alignItems: "center",
   },

@@ -6,6 +6,10 @@ class Deal(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     final_price = db.Column(db.Float, nullable=False)
     deal_date = db.Column(db.DateTime, default=datetime.utcnow)
+    status = db.Column(db.String(20), nullable=False, default='accepted')
+    completed_at = db.Column(db.DateTime, nullable=True)
+    reward_points_awarded = db.Column(db.Boolean, nullable=False, default=False)
+    reward_points_amount = db.Column(db.Integer, nullable=False, default=0)
 
     customer_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     dealer_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
@@ -22,6 +26,10 @@ class Deal(db.Model):
             'id': self.id,
             'final_price': self.final_price,
             'deal_date': self.deal_date.isoformat() + 'Z',
+            'status': self.status,
+            'completed_at': self.completed_at.isoformat() + 'Z' if self.completed_at else None,
+            'reward_points_awarded': self.reward_points_awarded,
+            'reward_points_amount': self.reward_points_amount,
             'payment_method': self.payment_method,
             'customer': self.customer.to_dict(detail_level='owner') if self.customer else None,
             'dealer': self.dealer.to_dict(detail_level='owner') if self.dealer else None,
