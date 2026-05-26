@@ -81,15 +81,16 @@ const DealSummaryScreen = () => {
   const isWideWeb = Platform.OS === "web" && width >= 1000;
   const normalizedDealStatus = String(deal?.status || "").trim().toLowerCase();
   const isCompletedDeal = normalizedDealStatus === "completed";
-  const isAcceptedDeal = normalizedDealStatus === "accepted";
-  const isDealBuyer = Number(user?.id) === Number(deal?.customer?.id);
-  const isDealDealer = Number(user?.id) === Number(deal?.dealer?.id);
+  const isPendingDeal = !isCompletedDeal;
   const canCompleteDeal =
-    deal?.permissions?.can_complete ??
-    (isAcceptedDeal && (isDealBuyer || Boolean(user?.is_admin)));
+    isPendingDeal &&
+    (Boolean(deal?.permissions?.can_complete) ||
+      Boolean(user?.is_admin) ||
+      !isDealer);
   const canRequestCompletion =
-    deal?.permissions?.can_request_completion ??
-    (isAcceptedDeal && isDealDealer && !Boolean(user?.is_admin));
+    isPendingDeal &&
+    !canCompleteDeal &&
+    (Boolean(deal?.permissions?.can_request_completion) || isDealer);
   const canRateDeal =
     deal?.permissions?.can_rate ??
     (!isDealer && isCompletedDeal && deal?.has_rated === false);
