@@ -805,6 +805,7 @@ def api_points_history(current_user):
 
     return jsonify(
         {
+            "current_points": current_user.points or 0,
             "transactions": [
                 {
                     "id": t.id,

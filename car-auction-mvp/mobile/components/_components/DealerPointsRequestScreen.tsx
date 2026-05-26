@@ -35,6 +35,7 @@ export default function DealerPointsRequestScreen() {
   const [submitting, setSubmitting] = useState(false);
   const [transactions, setTransactions] = useState<any[]>([]);
   const [loadingHistory, setLoadingHistory] = useState(true);
+  const [currentPoints, setCurrentPoints] = useState<number | null>(null);
 
   const fetchHistory = useCallback(async () => {
     if (!token) return;
@@ -50,6 +51,9 @@ export default function DealerPointsRequestScreen() {
         },
       );
       const data = await response.json();
+      if (typeof data.current_points === "number") {
+        setCurrentPoints(data.current_points);
+      }
       if (data.transactions) {
         setTransactions(data.transactions);
       }
@@ -64,7 +68,7 @@ export default function DealerPointsRequestScreen() {
     fetchHistory();
   }, [fetchHistory]);
 
-  const currentPoints = user?.points ?? 0;
+  const displayedCurrentPoints = currentPoints ?? user?.points ?? 0;
 
   const dashboardRoute = user?.is_rental_company
     ? RENTAL_ROUTES.dashboard
@@ -167,7 +171,7 @@ export default function DealerPointsRequestScreen() {
             <Ionicons name="flash-outline" size={22} color={COLORS.accent} />
             <Text style={styles.summaryTitle}>Your Current Balance</Text>
           </View>
-          <Text style={styles.summaryValue}>{currentPoints}</Text>
+          <Text style={styles.summaryValue}>{displayedCurrentPoints}</Text>
           <Text style={styles.summarySubtitle}>
             Need more points to keep responding to requests or placing offers?
           </Text>
