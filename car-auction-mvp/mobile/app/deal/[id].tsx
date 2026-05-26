@@ -74,16 +74,14 @@ const DealSummaryScreen = () => {
   const [completingDeal, setCompletingDeal] = useState(false);
   const [requestingCompletion, setRequestingCompletion] = useState(false);
   const isWideWeb = Platform.OS === "web" && width >= 1000;
-  const isAcceptedDeal = String(deal?.status || "").toLowerCase() === "accepted";
-  const isCompletedDeal = String(deal?.status || "").toLowerCase() === "completed";
+  const normalizedDealStatus = String(deal?.status || "").trim().toLowerCase();
+  const isAcceptedDeal = normalizedDealStatus === "accepted";
+  const isCompletedDeal = normalizedDealStatus === "completed";
   const isDealBuyer = Number(user?.id) === Number(deal?.customer?.id);
-  const isDealDealer = Number(user?.id) === Number(deal?.dealer?.id);
   const canCompleteDeal =
     isAcceptedDeal && (isDealBuyer || user?.is_admin);
   const canRequestCompletion =
-    isAcceptedDeal &&
-    !canCompleteDeal &&
-    (isDealer || isDealDealer || user?.is_admin);
+    !isCompletedDeal && !canCompleteDeal;
 
   const fetchDeal = useCallback(
     async (isRefresh = false) => {
