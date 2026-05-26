@@ -75,13 +75,8 @@ const DealSummaryScreen = () => {
   const [requestingCompletion, setRequestingCompletion] = useState(false);
   const isWideWeb = Platform.OS === "web" && width >= 1000;
   const normalizedDealStatus = String(deal?.status || "").trim().toLowerCase();
-  const isAcceptedDeal = normalizedDealStatus === "accepted";
   const isCompletedDeal = normalizedDealStatus === "completed";
-  const isDealBuyer = Number(user?.id) === Number(deal?.customer?.id);
-  const canCompleteDeal =
-    isAcceptedDeal && (isDealBuyer || user?.is_admin);
-  const canRequestCompletion =
-    !isCompletedDeal && !canCompleteDeal;
+  const showDealActions = !isCompletedDeal;
 
   const fetchDeal = useCallback(
     async (isRefresh = false) => {
@@ -331,13 +326,13 @@ const DealSummaryScreen = () => {
               </Text>
             </View>
 
-            {canCompleteDeal && (
+            {showDealActions && (
               <View style={styles.section}>
-                <Text style={styles.sectionTitle}>Confirm Completion</Text>
+                <Text style={styles.sectionTitle}>Deal Actions</Text>
                 <Text style={styles.completionHelp}>
-                  Only mark this completed after payment, inspection, and
-                  handover are finalized. The dealer will receive a 1 point
-                  reward.
+                  Buyers can mark the deal completed after payment,
+                  inspection, and handover are finalized. Dealers can ask the
+                  buyer to confirm completion.
                 </Text>
                 <Pressable
                   style={styles.completeButton}
@@ -352,19 +347,11 @@ const DealSummaryScreen = () => {
                     </Text>
                   )}
                 </Pressable>
-              </View>
-            )}
-
-            {canRequestCompletion && (
-              <View style={styles.section}>
-                <Text style={styles.sectionTitle}>Completion Request</Text>
-                <Text style={styles.completionHelp}>
-                  Once payment, inspection, and handover are finalized, ask the
-                  buyer to confirm completion. The dealer reward is only applied
-                  after buyer confirmation.
-                </Text>
                 <Pressable
-                  style={styles.requestCompletionButton}
+                  style={[
+                    styles.requestCompletionButton,
+                    styles.secondaryActionSpacing,
+                  ]}
                   onPress={handleRequestCompletion}
                   disabled={requestingCompletion}
                 >
@@ -588,6 +575,9 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     alignItems: "center",
     backgroundColor: "rgba(163, 112, 247, 0.12)",
+  },
+  secondaryActionSpacing: {
+    marginTop: 10,
   },
   requestCompletionButtonText: {
     color: COLORS.accent,
