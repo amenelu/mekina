@@ -315,6 +315,18 @@ const PlaceOfferScreen = () => {
     requestAnimationFrame(() => scrollRef.current?.scrollTo({ y: 0, animated: true }));
   };
 
+  const handleEditBidPress = (bid: DealerBid) => {
+    if (!isBidInEditWindow(bid)) {
+      showNativeFlowAlert(
+        "Edit Window Expired",
+        "Offers can only be edited within 5 minutes after they are submitted."
+      );
+      return;
+    }
+
+    startEditingBid(bid);
+  };
+
   const cancelEditingBid = () => {
     setEditingBid(null);
     setImage(null);
@@ -517,7 +529,7 @@ const PlaceOfferScreen = () => {
                 </View>
                 <Pressable
                   style={styles.editPromptButton}
-                  onPress={() => startEditingBid(ownBid)}
+                  onPress={() => handleEditBidPress(ownBid)}
                 >
                   <Text style={styles.editPromptButtonText}>Edit</Text>
                 </Pressable>
@@ -912,7 +924,7 @@ const PlaceOfferScreen = () => {
                       {isMyBid && (
                         <Pressable
                           style={styles.editBidButton}
-                          onPress={() => startEditingBid(bid)}
+                          onPress={() => handleEditBidPress(bid)}
                         >
                           <Ionicons
                             name="create-outline"
