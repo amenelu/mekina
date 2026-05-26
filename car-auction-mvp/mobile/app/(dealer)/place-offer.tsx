@@ -477,14 +477,6 @@ const PlaceOfferScreen = () => {
         new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime() ||
         b.id - a.id
     )[0];
-  const editableBid = existingBids
-    .filter((bid) => isCurrentDealerBid(bid) && isBidInEditWindow(bid))
-    .sort(
-      (a, b) =>
-        new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime() ||
-        b.id - a.id
-    )[0];
-
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
@@ -503,41 +495,32 @@ const PlaceOfferScreen = () => {
         <View style={[styles.contentGrid, isWideWeb && styles.contentGridWide]}>
           <View style={[styles.formColumn, isWideWeb && styles.formColumnWide]}>
             {ownBid && !editingBid && (
-              <View
-                style={[
-                  styles.editPromptCard,
-                  !editableBid && styles.editPromptCardDisabled,
-                ]}
-              >
+              <View style={styles.editPromptCard}>
                 <View style={styles.editPromptIcon}>
                   <Ionicons
-                    name={editableBid ? "create-outline" : "time-outline"}
+                    name="create-outline"
                     size={22}
-                    color={editableBid ? COLORS.accent : COLORS.textSecondary}
+                    color={COLORS.accent}
                   />
                 </View>
                 <View style={styles.editPromptBody}>
                   <Text style={styles.editPromptTitle}>
-                    {editableBid
-                      ? "You can still edit your offer"
-                      : "Your offer was submitted"}
+                    Edit your submitted offer
                   </Text>
                   <Text style={styles.editPromptText}>
-                    {editableBid
+                    {isBidInEditWindow(ownBid)
                       ? formatEditWindowRemaining(
-                          editableBid.free_edit_seconds_remaining
+                          ownBid.free_edit_seconds_remaining
                         )
-                      : "The 5 minute free edit window has expired."}
+                      : "If the free edit window has passed, the server will block the update."}
                   </Text>
                 </View>
-                {editableBid ? (
-                  <Pressable
-                    style={styles.editPromptButton}
-                    onPress={() => startEditingBid(editableBid)}
-                  >
-                    <Text style={styles.editPromptButtonText}>Edit</Text>
-                  </Pressable>
-                ) : null}
+                <Pressable
+                  style={styles.editPromptButton}
+                  onPress={() => startEditingBid(ownBid)}
+                >
+                  <Text style={styles.editPromptButtonText}>Edit</Text>
+                </Pressable>
               </View>
             )}
 
@@ -889,7 +872,6 @@ const PlaceOfferScreen = () => {
                 {existingBids.map((bid) => {
                   const isMyBid = isCurrentDealerBid(bid);
                   const isCheapest = bid.id === cheapestBidId;
-                  const canEditBid = isMyBid && isBidInEditWindow(bid);
 
                   return (
                     <View
@@ -927,7 +909,7 @@ const PlaceOfferScreen = () => {
                           {new Date(bid.valid_until).toLocaleDateString()}
                         </Text>
                       </View>
-                      {canEditBid && (
+                      {isMyBid && (
                         <Pressable
                           style={styles.editBidButton}
                           onPress={() => startEditingBid(bid)}
@@ -941,11 +923,6 @@ const PlaceOfferScreen = () => {
                             Edit offer
                           </Text>
                         </Pressable>
-                      )}
-                      {isMyBid && !canEditBid && (
-                        <Text style={styles.editExpiredText}>
-                          Edit window expired
-                        </Text>
                       )}
                     </View>
                   );
@@ -1007,10 +984,6 @@ const styles = StyleSheet.create({
     marginBottom: 14,
     gap: 12,
   },
-  editPromptCardDisabled: {
-    backgroundColor: COLORS.card,
-    borderColor: COLORS.border,
-  },
   editPromptIcon: {
     width: 42,
     height: 42,
@@ -1044,12 +1017,6 @@ const styles = StyleSheet.create({
   editPromptButtonText: {
     color: "white",
     fontWeight: "800",
-  },
-  editExpiredText: {
-    color: COLORS.textSecondary,
-    fontSize: 12,
-    fontWeight: "700",
-    marginTop: 10,
   },
   formColumnWide: {
     flex: 1,
