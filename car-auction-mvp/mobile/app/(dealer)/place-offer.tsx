@@ -268,6 +268,9 @@ const PlaceOfferScreen = () => {
     return Number.isFinite(expiresAt) && Date.now() <= expiresAt;
   };
 
+  const isCurrentDealerBid = (bid: DealerBid) =>
+    Number(bid.dealer_id) === Number(user?.id);
+
   const startEditingBid = (bid: DealerBid) => {
     setEditingBid(bid);
     setMake(bid.make || "");
@@ -441,6 +444,12 @@ const PlaceOfferScreen = () => {
           bid.price < lowest.price ? bid : lowest
         ).id
       : null;
+  const editableBid = existingBids
+    .filter((bid) => isCurrentDealerBid(bid) && isBidInEditWindow(bid))
+    .sort(
+      (a, b) =>
+        new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+    )[0];
 
   return (
     <SafeAreaView style={styles.container}>
@@ -459,6 +468,28 @@ const PlaceOfferScreen = () => {
       <ScrollView ref={scrollRef}>
         <View style={[styles.contentGrid, isWideWeb && styles.contentGridWide]}>
           <View style={[styles.formColumn, isWideWeb && styles.formColumnWide]}>
+            {editableBid && !editingBid && (
+              <View style={styles.editPromptCard}>
+                <View style={styles.editPromptIcon}>
+                  <Ionicons name="create-outline" size={22} color={COLORS.accent} />
+                </View>
+                <View style={styles.editPromptBody}>
+                  <Text style={styles.editPromptTitle}>
+                    You can still edit your offer
+                  </Text>
+                  <Text style={styles.editPromptText}>
+                    Free edits are available for 5 minutes after sending.
+                  </Text>
+                </View>
+                <Pressable
+                  style={styles.editPromptButton}
+                  onPress={() => startEditingBid(editableBid)}
+                >
+                  <Text style={styles.editPromptButtonText}>Edit</Text>
+                </Pressable>
+              </View>
+            )}
+
             <View style={styles.formCard}>
               <View style={styles.formHeaderRow}>
                 <Text style={styles.sectionTitle}>
@@ -805,7 +836,7 @@ const PlaceOfferScreen = () => {
               <View style={styles.formCard}>
                 <Text style={styles.sectionTitle}>Previous Offers</Text>
                 {existingBids.map((bid) => {
-                  const isMyBid = bid.dealer_id === user?.id;
+                  const isMyBid = isCurrentDealerBid(bid);
                   const isCheapest = bid.id === cheapestBidId;
                   const canEditBid = isMyBid && isBidInEditWindow(bid);
 
@@ -907,6 +938,53 @@ const styles = StyleSheet.create({
     paddingTop: 24,
   },
   formColumn: { width: "100%" },
+  editPromptCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#201832",
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: COLORS.accent,
+    padding: 14,
+    marginHorizontal: 10,
+    marginTop: 14,
+    marginBottom: 14,
+    gap: 12,
+  },
+  editPromptIcon: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "rgba(163, 112, 247, 0.16)",
+  },
+  editPromptBody: {
+    flex: 1,
+  },
+  editPromptTitle: {
+    color: COLORS.text,
+    fontSize: 15,
+    fontWeight: "800",
+    marginBottom: 3,
+  },
+  editPromptText: {
+    color: COLORS.textSecondary,
+    fontSize: 12,
+    lineHeight: 17,
+  },
+  editPromptButton: {
+    minHeight: 38,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: COLORS.accent,
+  },
+  editPromptButtonText: {
+    color: "white",
+    fontWeight: "800",
+  },
   formColumnWide: {
     flex: 1,
     width: "auto",
