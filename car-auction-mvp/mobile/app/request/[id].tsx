@@ -14,7 +14,7 @@ import {
   RefreshControl,
   TextInput,
 } from "react-native";
-import { useLocalSearchParams, useRouter, Stack, Link } from "expo-router";
+import { useLocalSearchParams, useRouter, Stack } from "expo-router";
 import { useAuth } from "@/hooks/useAuth";
 import { isAxiosError } from "axios";
 import { Ionicons } from "@expo/vector-icons";
@@ -25,6 +25,7 @@ import {
   compareSelectedBids,
   getRequestDetail,
 } from "@/lib/api/requests";
+import { getDealerProfile } from "@/lib/api/dealer";
 import {
   showNativeFlowAlert,
   showNativeFlowConfirm,
@@ -91,6 +92,39 @@ interface DealerBid {
     username: string;
     avg_rating: number;
   };
+}
+
+interface DealerProfileListing {
+  id: number;
+  make: string;
+  model: string;
+  year: number;
+  fixed_price?: number | null;
+  primary_image_url?: string | null;
+  image_urls?: string[];
+  images?: { image_url?: string | null }[];
+}
+
+interface DealerProfileRating {
+  id: number;
+  rating: number;
+  review_text?: string | null;
+  comment?: string | null;
+  buyer_username?: string | null;
+}
+
+interface DealerProfileData {
+  dealer?: {
+    id: number;
+    username: string;
+    avg_rating?: number;
+    closed_deal_count?: number;
+    phone?: string | null;
+  };
+  listings?: DealerProfileListing[];
+  ratings?: DealerProfileRating[];
+  avg_rating?: number;
+  review_count?: number;
 }
 
 // New interface for comparison data
@@ -166,6 +200,11 @@ const RequestDetailScreen = () => {
   const [questionBidId, setQuestionBidId] = useState<number | null>(null);
   const [questionText, setQuestionText] = useState("");
   const [isQuestionSubmitting, setQuestionSubmitting] = useState(false);
+  const [isDealerProfileVisible, setDealerProfileVisible] = useState(false);
+  const [dealerProfile, setDealerProfile] = useState<DealerProfileData | null>(
+    null
+  );
+  const [isDealerProfileLoading, setDealerProfileLoading] = useState(false);
 
   const handleBackPress = useCallback(() => {
     if (router.canGoBack()) {
@@ -236,6 +275,28 @@ const RequestDetailScreen = () => {
   const closeImageViewer = () => {
     setImageViewerVisible(false);
     setSelectedImages([]);
+  };
+
+  const openDealerProfileModal = async (dealerId: number) => {
+    setDealerProfileVisible(true);
+    setDealerProfileLoading(true);
+    setDealerProfile(null);
+
+    try {
+      const response = await getDealerProfile(dealerId);
+      setDealerProfile(response.data);
+    } catch (error) {
+      console.error("Failed to load dealer profile:", error);
+      setDealerProfileVisible(false);
+      showNativeFlowAlert("Error", "Could not load this dealer profile.");
+    } finally {
+      setDealerProfileLoading(false);
+    }
+  };
+
+  const closeDealerProfileModal = () => {
+    setDealerProfileVisible(false);
+    setDealerProfile(null);
   };
 
   const toggleQA = (bidId: number) => {
@@ -539,21 +600,17 @@ const RequestDetailScreen = () => {
                     )}
                     <View style={styles.bidHeader}>
                       <View style={styles.bidDealerInfo}>
-                        <Link
-                          href={`/(details)/dealers/public/${bid.dealer.id}`}
-                          asChild
+                        <Pressable
+                          style={styles.dealerProfileLink}
+                          onPress={(event: any) => {
+                            event?.stopPropagation?.();
+                            openDealerProfileModal(bid.dealer.id);
+                          }}
                         >
-                          <Pressable
-                            style={styles.dealerProfileLink}
-                            onPress={(event: any) => {
-                              event?.stopPropagation?.();
-                            }}
-                          >
-                            <Text style={styles.dealerName}>
-                              {bid.dealer.username}
-                            </Text>
-                          </Pressable>
-                        </Link>
+                          <Text style={styles.dealerName}>
+                            {bid.dealer.username}
+                          </Text>
+                        </Pressable>
                         <View style={styles.dealerRating}>
                           <Ionicons name="star" size={16} color="#FFD700" />
                           <Text style={styles.dealerRatingText}>
@@ -782,6 +839,174 @@ const RequestDetailScreen = () => {
           </Pressable>
         </View>
       )}
+
+      <Modal
+        animationType="slide"
+        transparent
+        visible={isDealerProfileVisible}
+        onRequestClose={closeDealerProfileModal}
+      >
+        <View style={styles.dealerModalOverlay}>
+          <Pressable
+            style={styles.dealerModalBackdrop}
+            onPress={closeDealerProfileModal}
+          />
+          <View style={styles.dealerModalSheet}>
+            <View style={styles.dealerModalHandle} />
+            <View style={styles.dealerModalHeader}>
+              <View>
+                <Text style={styles.dealerModalEyebrow}>Dealer profile</Text>
+                <Text style={styles.dealerModalTitle} numberOfLines={1}>
+                  {dealerProfile?.dealer?.username || "Dealer"}
+                </Text>
+              </View>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Close dealer profile"
+                style={styles.dealerModalCloseButton}
+                onPress={closeDealerProfileModal}
+              >
+                <Ionicons name="close" size={22} color={COLORS.foreground} />
+              </Pressable>
+            </View>
+
+            {isDealerProfileLoading ? (
+              <View style={styles.dealerModalLoading}>
+                <ActivityIndicator color={COLORS.accent} />
+              </View>
+            ) : (
+              <ScrollView
+                style={styles.dealerModalScroll}
+                contentContainerStyle={styles.dealerModalContent}
+                showsVerticalScrollIndicator={false}
+              >
+                <View style={styles.dealerModalStatsRow}>
+                  <View style={styles.dealerModalStat}>
+                    <Ionicons name="star" size={17} color="#FFD700" />
+                    <Text style={styles.dealerModalStatText}>
+                      {dealerProfile?.avg_rating
+                        ? dealerProfile.avg_rating.toFixed(1)
+                        : "New"}
+                    </Text>
+                    <Text style={styles.dealerModalStatLabel}>Rating</Text>
+                  </View>
+                  <View style={styles.dealerModalStat}>
+                    <Ionicons
+                      name="chatbubble-ellipses"
+                      size={17}
+                      color={COLORS.accent}
+                    />
+                    <Text style={styles.dealerModalStatText}>
+                      {dealerProfile?.review_count ?? 0}
+                    </Text>
+                    <Text style={styles.dealerModalStatLabel}>Reviews</Text>
+                  </View>
+                  <View style={styles.dealerModalStat}>
+                    <Ionicons
+                      name="checkmark-circle"
+                      size={17}
+                      color={COLORS.success}
+                    />
+                    <Text style={styles.dealerModalStatText}>
+                      {dealerProfile?.dealer?.closed_deal_count ?? 0}
+                    </Text>
+                    <Text style={styles.dealerModalStatLabel}>Deals</Text>
+                  </View>
+                </View>
+
+                <View style={styles.dealerModalSection}>
+                  <Text style={styles.dealerModalSectionTitle}>
+                    Active listings
+                  </Text>
+                  {dealerProfile?.listings?.length ? (
+                    dealerProfile.listings.slice(0, 4).map((listing) => {
+                      const listingImage =
+                        listing.primary_image_url ||
+                        listing.image_urls?.[0] ||
+                        listing.images?.[0]?.image_url;
+                      return (
+                        <View
+                          key={listing.id}
+                          style={styles.dealerModalListingRow}
+                        >
+                          {listingImage ? (
+                            <Image
+                              source={{ uri: mediaUrl(listingImage) || "" }}
+                              style={styles.dealerModalListingImage}
+                            />
+                          ) : (
+                            <View
+                              style={[
+                                styles.dealerModalListingImage,
+                                styles.dealerModalListingPlaceholder,
+                              ]}
+                            >
+                              <Ionicons
+                                name="car-sport"
+                                size={22}
+                                color={COLORS.mutedForeground}
+                              />
+                            </View>
+                          )}
+                          <View style={styles.dealerModalListingBody}>
+                            <Text
+                              style={styles.dealerModalListingTitle}
+                              numberOfLines={1}
+                            >
+                              {listing.year} {listing.make} {listing.model}
+                            </Text>
+                            <Text style={styles.dealerModalListingPrice}>
+                              {listing.fixed_price
+                                ? `${listing.fixed_price.toLocaleString()} ETB`
+                                : "Price on request"}
+                            </Text>
+                          </View>
+                        </View>
+                      );
+                    })
+                  ) : (
+                    <Text style={styles.dealerModalEmptyText}>
+                      No active listings right now.
+                    </Text>
+                  )}
+                </View>
+
+                <View style={styles.dealerModalSection}>
+                  <Text style={styles.dealerModalSectionTitle}>
+                    Recent reviews
+                  </Text>
+                  {dealerProfile?.ratings?.length ? (
+                    dealerProfile.ratings.slice(0, 3).map((rating) => (
+                      <View key={rating.id} style={styles.dealerModalReview}>
+                        <View style={styles.dealerModalReviewHeader}>
+                          <Text style={styles.dealerModalReviewAuthor}>
+                            {rating.buyer_username || "Buyer"}
+                          </Text>
+                          <View style={styles.dealerModalReviewRating}>
+                            <Ionicons name="star" size={12} color="#FFD700" />
+                            <Text style={styles.dealerModalReviewRatingText}>
+                              {rating.rating}
+                            </Text>
+                          </View>
+                        </View>
+                        <Text style={styles.dealerModalReviewText}>
+                          {rating.review_text ||
+                            rating.comment ||
+                            "No written review."}
+                        </Text>
+                      </View>
+                    ))
+                  ) : (
+                    <Text style={styles.dealerModalEmptyText}>
+                      This dealer has no reviews yet.
+                    </Text>
+                  )}
+                </View>
+              </ScrollView>
+            )}
+          </View>
+        </View>
+      </Modal>
 
       <Modal
         animationType="fade"
@@ -1426,6 +1651,190 @@ const styles = StyleSheet.create({
     color: COLORS.foreground,
     fontSize: 18,
     fontWeight: "bold",
+  },
+  dealerModalOverlay: {
+    flex: 1,
+    justifyContent: "flex-end",
+    backgroundColor: "rgba(0,0,0,0.58)",
+  },
+  dealerModalBackdrop: {
+    ...StyleSheet.absoluteFillObject,
+  },
+  dealerModalSheet: {
+    maxHeight: "82%",
+    backgroundColor: COLORS.card,
+    borderTopLeftRadius: 22,
+    borderTopRightRadius: 22,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    paddingTop: 10,
+    overflow: "hidden",
+  },
+  dealerModalHandle: {
+    alignSelf: "center",
+    width: 46,
+    height: 5,
+    borderRadius: 999,
+    backgroundColor: COLORS.muted,
+    marginBottom: 12,
+  },
+  dealerModalHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 20,
+    paddingBottom: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.border,
+  },
+  dealerModalEyebrow: {
+    color: COLORS.mutedForeground,
+    fontSize: 12,
+    fontWeight: "700",
+    textTransform: "uppercase",
+    letterSpacing: 0,
+    marginBottom: 3,
+  },
+  dealerModalTitle: {
+    color: COLORS.foreground,
+    fontSize: 22,
+    fontWeight: "800",
+    maxWidth: SCREEN_WIDTH - 100,
+  },
+  dealerModalCloseButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: COLORS.muted,
+  },
+  dealerModalLoading: {
+    minHeight: 240,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  dealerModalScroll: {
+    maxHeight: "100%",
+  },
+  dealerModalContent: {
+    padding: 20,
+    paddingBottom: 30,
+  },
+  dealerModalStatsRow: {
+    flexDirection: "row",
+    gap: 10,
+    marginBottom: 20,
+  },
+  dealerModalStat: {
+    flex: 1,
+    minHeight: 78,
+    borderRadius: 12,
+    backgroundColor: COLORS.background,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    alignItems: "center",
+    justifyContent: "center",
+    padding: 10,
+  },
+  dealerModalStatText: {
+    color: COLORS.foreground,
+    fontSize: 17,
+    fontWeight: "800",
+    marginTop: 4,
+  },
+  dealerModalStatLabel: {
+    color: COLORS.mutedForeground,
+    fontSize: 12,
+    marginTop: 2,
+  },
+  dealerModalSection: {
+    marginTop: 4,
+    marginBottom: 18,
+  },
+  dealerModalSectionTitle: {
+    color: COLORS.foreground,
+    fontSize: 16,
+    fontWeight: "800",
+    marginBottom: 10,
+  },
+  dealerModalListingRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: COLORS.background,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    padding: 10,
+    marginBottom: 10,
+  },
+  dealerModalListingImage: {
+    width: 66,
+    height: 52,
+    borderRadius: 8,
+    backgroundColor: COLORS.muted,
+    marginRight: 12,
+  },
+  dealerModalListingPlaceholder: {
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  dealerModalListingBody: {
+    flex: 1,
+  },
+  dealerModalListingTitle: {
+    color: COLORS.foreground,
+    fontSize: 15,
+    fontWeight: "700",
+  },
+  dealerModalListingPrice: {
+    color: COLORS.accent,
+    fontSize: 13,
+    fontWeight: "700",
+    marginTop: 4,
+  },
+  dealerModalEmptyText: {
+    color: COLORS.mutedForeground,
+    fontSize: 14,
+    lineHeight: 20,
+  },
+  dealerModalReview: {
+    backgroundColor: COLORS.background,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    padding: 12,
+    marginBottom: 10,
+  },
+  dealerModalReviewHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 6,
+  },
+  dealerModalReviewAuthor: {
+    color: COLORS.foreground,
+    fontSize: 14,
+    fontWeight: "700",
+  },
+  dealerModalReviewRating: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#2E2245",
+    borderRadius: 999,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+  },
+  dealerModalReviewRatingText: {
+    color: COLORS.foreground,
+    fontSize: 12,
+    fontWeight: "800",
+    marginLeft: 4,
+  },
+  dealerModalReviewText: {
+    color: COLORS.mutedForeground,
+    fontSize: 13,
+    lineHeight: 19,
   },
   questionModalOverlay: {
     flex: 1,
