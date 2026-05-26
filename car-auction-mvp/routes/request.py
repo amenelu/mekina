@@ -1247,6 +1247,67 @@ def api_complete_deal(current_user, deal_id):
     )
 
 
+@request_bp.route("/api/deals/<int:deal_id>/request-completion", methods=["POST"])
+@token_required
+def api_request_deal_completion(current_user, deal_id):
+    deal = Deal.query.get_or_404(deal_id)
+    if current_user.id != deal.dealer_id and not current_user.is_admin:
+        return jsonify({"status": "error", "message": "Permission denied."}), 403
+
+    if deal.status == "completed":
+        return jsonify(
+            {
+                "status": "info",
+                "message": "This deal has already been completed.",
+                "deal": deal.to_dict(),
+            }
+        )
+
+    if deal.status != "accepted":
+        return (
+            jsonify(
+                {
+                    "status": "error",
+                    "message": "Only accepted deals can be requested for completion.",
+                }
+            ),
+            400,
+        )
+
+    notification = Notification(
+        user_id=deal.customer_id,
+        message=(
+            f"{deal.dealer.username} requested confirmation that deal "
+            f"#{deal.id} is complete."
+        ),
+        link=url_for("request.deal_summary", deal_id=deal.id),
+    )
+    db.session.add(notification)
+    db.session.commit()
+
+    unread_count = Notification.query.filter_by(
+        user_id=deal.customer_id, is_read=False
+    ).count()
+    socketio.emit(
+        "new_notification",
+        {
+            "message": notification.message,
+            "link": notification.link,
+            "timestamp": notification.timestamp.isoformat() + "Z",
+            "count": unread_count,
+        },
+        room=str(deal.customer_id),
+    )
+    send_push_notification(deal.customer_id, notification.message)
+
+    return jsonify(
+        {
+            "status": "success",
+            "message": "The buyer has been asked to confirm completion.",
+        }
+    )
+
+
 @request_bp.route("/api/requests", methods=["POST"])
 @token_required
 def api_create_request(current_user):

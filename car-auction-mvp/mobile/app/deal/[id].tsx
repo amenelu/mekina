@@ -20,7 +20,12 @@ import {
 } from "expo-router";
 import { useAuth } from "@/hooks/useAuth";
 import { Ionicons } from "@expo/vector-icons";
-import { completeDeal, getDeal, rateDeal } from "@/lib/api/requests";
+import {
+  completeDeal,
+  getDeal,
+  rateDeal,
+  requestDealCompletion,
+} from "@/lib/api/requests";
 import { DEALER_ROUTES } from "@/lib/roleRoutes";
 
 const COLORS = {
@@ -67,9 +72,14 @@ const DealSummaryScreen = () => {
   const [reviewText, setReviewText] = useState("");
   const [submittingReview, setSubmittingReview] = useState(false);
   const [completingDeal, setCompletingDeal] = useState(false);
+  const [requestingCompletion, setRequestingCompletion] = useState(false);
   const isWideWeb = Platform.OS === "web" && width >= 1000;
   const canCompleteDeal =
-    deal?.status === "accepted" && (user?.id === deal.customer?.id || user?.is_admin);
+    deal?.status === "accepted" &&
+    (Number(user?.id) === Number(deal.customer?.id) || user?.is_admin);
+  const canRequestCompletion =
+    deal?.status === "accepted" &&
+    (Number(user?.id) === Number(deal.dealer?.id) || user?.is_admin);
 
   const fetchDeal = useCallback(
     async (isRefresh = false) => {
@@ -161,6 +171,29 @@ const DealSummaryScreen = () => {
       );
     } finally {
       setCompletingDeal(false);
+    }
+  };
+
+  const handleRequestCompletion = async () => {
+    if (!id || requestingCompletion) return;
+
+    setRequestingCompletion(true);
+    try {
+      const response = await requestDealCompletion(String(id));
+      Alert.alert(
+        "Completion Requested",
+        response.data?.message || "The buyer has been asked to confirm completion."
+      );
+    } catch (error: any) {
+      console.error("Failed to request deal completion:", error);
+      Alert.alert(
+        "Request Failed",
+        error.response?.data?.message ||
+          error.userMessage ||
+          "Could not request completion."
+      );
+    } finally {
+      setRequestingCompletion(false);
     }
   };
 
@@ -291,6 +324,30 @@ const DealSummaryScreen = () => {
                   ) : (
                     <Text style={styles.completeButtonText}>
                       Mark Deal Completed
+                    </Text>
+                  )}
+                </Pressable>
+              </View>
+            )}
+
+            {canRequestCompletion && (
+              <View style={styles.section}>
+                <Text style={styles.sectionTitle}>Completion Request</Text>
+                <Text style={styles.completionHelp}>
+                  Once payment, inspection, and handover are finalized, ask the
+                  buyer to confirm completion. The dealer reward is only applied
+                  after buyer confirmation.
+                </Text>
+                <Pressable
+                  style={styles.requestCompletionButton}
+                  onPress={handleRequestCompletion}
+                  disabled={requestingCompletion}
+                >
+                  {requestingCompletion ? (
+                    <ActivityIndicator color={COLORS.accent} size="small" />
+                  ) : (
+                    <Text style={styles.requestCompletionButtonText}>
+                      Ask Buyer to Confirm Completion
                     </Text>
                   )}
                 </Pressable>
@@ -471,6 +528,19 @@ const styles = StyleSheet.create({
   },
   completeButtonText: {
     color: "#fff",
+    fontSize: 16,
+    fontWeight: "800",
+  },
+  requestCompletionButton: {
+    borderWidth: 1,
+    borderColor: COLORS.accent,
+    padding: 13,
+    borderRadius: 10,
+    alignItems: "center",
+    backgroundColor: "rgba(163, 112, 247, 0.12)",
+  },
+  requestCompletionButtonText: {
+    color: COLORS.accent,
     fontSize: 16,
     fontWeight: "800",
   },

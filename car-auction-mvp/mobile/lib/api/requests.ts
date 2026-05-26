@@ -68,6 +68,10 @@ export function completeDeal(dealId: string | number) {
   return apiClient.post(`/requests/api/deals/${dealId}/complete`);
 }
 
+export function requestDealCompletion(dealId: string | number) {
+  return apiClient.post(`/requests/api/deals/${dealId}/request-completion`);
+}
+
 export function rateDeal(
   dealId: string | number,
   payload: { rating: number; comment?: string }
