@@ -989,6 +989,25 @@ def _accept_offer_logic(bid_id, user_id, payment_method):
     return new_deal, deal_notification
 
 
+COMPLETION_REQUEST_PREFIX = "Completion requested for deal"
+
+
+def _deal_summary_link(deal_id):
+    return url_for("request.deal_summary", deal_id=deal_id)
+
+
+def _find_completion_request_notification(deal):
+    return (
+        Notification.query.filter(
+            Notification.user_id == deal.customer_id,
+            Notification.link == _deal_summary_link(deal.id),
+            Notification.message.like(f"{COMPLETION_REQUEST_PREFIX} #{deal.id}.%"),
+        )
+        .order_by(Notification.timestamp.desc())
+        .first()
+    )
+
+
 def _complete_deal_logic(deal):
     if deal.status == "completed":
         return deal, None
@@ -1228,27 +1247,24 @@ def _deal_to_api_dict(deal, current_user):
     is_completed = (deal.status or "").lower() == "completed"
     is_buyer = current_user.id == deal.customer_id
     is_dealer = current_user.id == deal.dealer_id
-    completion_request = (
-        Notification.query.filter(
-            Notification.user_id == deal.customer_id,
-            Notification.link == url_for("request.deal_summary", deal_id=deal.id),
-            Notification.message.ilike(f"%requested confirmation%deal #{deal.id}%"),
-        )
-        .order_by(Notification.timestamp.desc())
-        .first()
-    )
+    completion_request = _find_completion_request_notification(deal)
 
     existing_rating = None
     if is_buyer:
         existing_rating = DealerRating.query.filter_by(deal_id=deal.id).first()
         deal_data["has_rated"] = True if existing_rating else False
 
+    deal_data["viewer_role"] = (
+        "admin" if current_user.is_admin else "buyer" if is_buyer else "dealer" if is_dealer else "none"
+    )
     deal_data["completion_requested_at"] = (
         completion_request.timestamp.isoformat() + "Z"
         if completion_request and is_accepted
         else None
     )
-    deal_data["completion_requested_by_id"] = deal.dealer_id if completion_request else None
+    deal_data["completion_requested_by_id"] = (
+        deal.dealer_id if completion_request and is_accepted else None
+    )
     deal_data["permissions"] = {
         "can_complete": is_accepted and (is_buyer or current_user.is_admin),
         "can_request_completion": is_accepted and is_dealer and not current_user.is_admin,
@@ -1271,8 +1287,8 @@ def api_complete_deal(current_user, deal_id):
 
     buyer_notification = Notification(
         user_id=completed_deal.customer_id,
-        message=f"Deal #{completed_deal.id} has been marked completed.",
-        link=url_for("request.deal_summary", deal_id=completed_deal.id),
+        message=f"You confirmed deal #{completed_deal.id} as completed.",
+        link=_deal_summary_link(completed_deal.id),
     )
     db.session.add(buyer_notification)
     db.session.commit()
@@ -1298,19 +1314,20 @@ def api_complete_deal(current_user, deal_id):
 @token_required
 def api_request_deal_completion(current_user, deal_id):
     deal = Deal.query.get_or_404(deal_id)
-    if current_user.id != deal.dealer_id and not current_user.is_admin:
+    if current_user.id != deal.dealer_id:
         return jsonify({"status": "error", "message": "Permission denied."}), 403
 
-    if deal.status == "completed":
+    deal_status = (deal.status or "").lower()
+    if deal_status == "completed":
         return jsonify(
             {
                 "status": "info",
                 "message": "This deal has already been completed.",
-                "deal": deal.to_dict(),
+                "deal": _deal_to_api_dict(deal, current_user),
             }
         )
 
-    if deal.status != "accepted":
+    if deal_status != "accepted":
         return (
             jsonify(
                 {
@@ -1321,23 +1338,24 @@ def api_request_deal_completion(current_user, deal_id):
             400,
         )
 
-    notification = Notification(
-        user_id=deal.customer_id,
-        message=(
-            f"{deal.dealer.username} requested confirmation that deal "
-            f"#{deal.id} is complete."
-        ),
-        link=url_for("request.deal_summary", deal_id=deal.id),
-    )
-    db.session.add(notification)
-    db.session.commit()
-
-    _emit_notification(notification)
+    notification = _find_completion_request_notification(deal)
+    if notification is None:
+        notification = Notification(
+            user_id=deal.customer_id,
+            message=(
+                f"{COMPLETION_REQUEST_PREFIX} #{deal.id}. "
+                f"{deal.dealer.username} asks you to confirm the deal is complete."
+            ),
+            link=_deal_summary_link(deal.id),
+        )
+        db.session.add(notification)
+        db.session.commit()
+        _emit_notification(notification)
 
     return jsonify(
         {
             "status": "success",
-            "message": "The buyer has been asked to confirm completion.",
+            "message": "Waiting for buyer confirmation.",
             "deal": _deal_to_api_dict(deal, current_user),
         }
     )
