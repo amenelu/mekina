@@ -140,6 +140,67 @@ class DealerBidForm(FlaskForm):
 # Define the grace period for free edits (e.g., 30 minutes)
 EDIT_GRACE_PERIOD_MINUTES = 30
 BID_PHOTO_UPLOAD_FOLDER = "static/uploads/dealer_bids"  # Define upload folder
+BID_FREE_EDIT_WINDOW_SECONDS = 5 * 60
+
+
+def _bid_free_edit_expires_at(bid):
+    return bid.timestamp + timedelta(seconds=BID_FREE_EDIT_WINDOW_SECONDS)
+
+
+def _bid_is_in_free_edit_window(bid):
+    return datetime.utcnow() <= _bid_free_edit_expires_at(bid)
+
+
+def _parse_bid_payload(data):
+    try:
+        price = float(data.get("price"))
+        car_year = int(data.get("car_year"))
+        mileage = int(data.get("mileage")) if data.get("mileage") else 0
+        valid_until = datetime.strptime(data.get("valid_until"), "%Y-%m-%d").date()
+        price_with_loan = (
+            float(data.get("price_with_loan"))
+            if data.get("price_with_loan") not in {None, ""}
+            else None
+        )
+    except (ValueError, TypeError):
+        raise ValueError("Invalid data format for price, year, mileage, or valid_until.")
+
+    if price <= 0:
+        raise ValueError("Bid price must be positive.")
+
+    return {
+        "price": price,
+        "price_with_loan": price_with_loan,
+        "make": data.get("make"),
+        "model": data.get("model"),
+        "car_year": car_year,
+        "mileage": mileage,
+        "condition": data.get("condition"),
+        "availability": data.get("availability"),
+        "valid_until": valid_until,
+        "extras": data.get("extras"),
+        "message": data.get("message"),
+    }
+
+
+def _collect_bid_images_from_payload(data, car_request_id):
+    uploaded_images = []
+    if data.get("images_base64"):
+        for img_b64 in data["images_base64"]:
+            fname = save_base64_image(
+                img_b64, filename_prefix=f"dealer_bid_{car_request_id}"
+            )
+            if fname:
+                uploaded_images.append(fname)
+    elif data.get("image_base64"):
+        photo_filename = save_base64_image(
+            data["image_base64"], filename_prefix=f"dealer_bid_{car_request_id}"
+        )
+        if photo_filename:
+            uploaded_images.append(photo_filename)
+    elif data.get("image_url"):
+        uploaded_images.append(data["image_url"])
+    return uploaded_images
 
 
 class RequestAnswerForm(FlaskForm):
@@ -1368,18 +1429,10 @@ def api_place_dealer_bid(current_user, request_id):
             )
 
         try:
-            price = float(data.get("price"))
-            car_year = int(data.get("car_year"))
-            mileage = int(data.get("mileage")) if data.get("mileage") else 0
-            valid_until = datetime.strptime(data.get("valid_until"), "%Y-%m-%d")
-        except (ValueError, TypeError):
+            bid_payload = _parse_bid_payload(data)
+        except ValueError as exc:
             return (
-                jsonify(
-                    {
-                        "status": "error",
-                        "message": "Invalid data format for price, year, mileage, or valid_until.",
-                    }
-                ),
+                jsonify({"status": "error", "message": str(exc)}),
                 400,
             )
 
@@ -1395,41 +1448,10 @@ def api_place_dealer_bid(current_user, request_id):
                 400,
             )
 
-        if price <= 0:
-            return (
-                jsonify({"status": "error", "message": "Bid price must be positive."}),
-                400,
-            )
-
-        uploaded_images = []
-        if data.get("images_base64"):
-            for img_b64 in data["images_base64"]:
-                fname = save_base64_image(
-                    img_b64, filename_prefix=f"dealer_bid_{car_request.id}"
-                )
-                if fname:
-                    uploaded_images.append(fname)
-        elif data.get("image_base64"):
-            photo_filename = save_base64_image(
-                data["image_base64"], filename_prefix=f"dealer_bid_{car_request.id}"
-            )
-            if photo_filename:
-                uploaded_images.append(photo_filename)
-        elif data.get("image_url"):
-            uploaded_images.append(data["image_url"])
+        uploaded_images = _collect_bid_images_from_payload(data, car_request.id)
 
         new_bid = DealerBid(
-            price=price,
-            price_with_loan=data.get("price_with_loan"),
-            make=data.get("make"),
-            model=data.get("model"),
-            car_year=car_year,
-            mileage=mileage,
-            condition=data.get("condition"),
-            availability=data.get("availability"),
-            valid_until=valid_until,
-            extras=data.get("extras"),
-            message=data.get("message"),
+            **bid_payload,
             dealer_id=current_user.id,
             request_id=car_request.id,
         )
@@ -1521,6 +1543,89 @@ def api_place_dealer_bid(current_user, request_id):
             ),
             201,
         )
+
+
+@dealer_bp.route("/api/bids/<int:bid_id>", methods=["PUT"])
+@token_required
+def api_update_dealer_bid(current_user, bid_id):
+    bid = DealerBid.query.get_or_404(bid_id)
+
+    if bid.dealer_id != current_user.id and not current_user.is_admin:
+        return jsonify({"status": "error", "message": "Permission denied."}), 403
+
+    if bid.car_request.status != "active":
+        return (
+            jsonify(
+                {
+                    "status": "error",
+                    "message": "This request is closed and offers can no longer be edited.",
+                }
+            ),
+            400,
+        )
+
+    if bid.status != "pending":
+        return (
+            jsonify(
+                {
+                    "status": "error",
+                    "message": "Only pending offers can be edited.",
+                }
+            ),
+            400,
+        )
+
+    if not _bid_is_in_free_edit_window(bid):
+        return (
+            jsonify(
+                {
+                    "status": "error",
+                    "message": "The free edit window has expired.",
+                }
+            ),
+            400,
+        )
+
+    data = request.get_json()
+    if not data:
+        return jsonify({"status": "error", "message": "Invalid JSON payload."}), 400
+
+    required_fields = [
+        "price",
+        "make",
+        "model",
+        "car_year",
+        "condition",
+        "availability",
+        "valid_until",
+    ]
+    if not all(field in data for field in required_fields):
+        return (
+            jsonify({"status": "error", "message": "Missing required bid details."}),
+            400,
+        )
+
+    try:
+        bid_payload = _parse_bid_payload(data)
+    except ValueError as exc:
+        return jsonify({"status": "error", "message": str(exc)}), 400
+
+    for field, value in bid_payload.items():
+        setattr(bid, field, value)
+
+    uploaded_images = _collect_bid_images_from_payload(data, bid.request_id)
+    for img_url in uploaded_images:
+        bid.images.append(DealerBidImage(image_url=img_url))
+
+    db.session.commit()
+
+    return jsonify(
+        {
+            "status": "success",
+            "message": "Your offer has been updated.",
+            "bid": {**bid.to_dict(), "dealer_id": bid.dealer_id},
+        }
+    )
 
 
 @dealer_bp.route("/api/cars/<int:car_id>/update", methods=["PUT"])
@@ -1663,6 +1768,9 @@ def edit_bid(bid_id):
     if bid.car_request.status != "active":
         flash("This request is closed and offers can no longer be edited.", "warning")
         return redirect(url_for("dealer.dashboard"))
+    if not _bid_is_in_free_edit_window(bid):
+        flash("The free edit window for this offer has expired.", "warning")
+        return redirect(url_for("dealer.place_bid", request_id=bid.request_id))
 
     # Pre-populate the form with the existing bid's data
     form = DealerBidForm(obj=bid)

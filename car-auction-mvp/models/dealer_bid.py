@@ -1,4 +1,4 @@
-from datetime import datetime, date
+from datetime import datetime, date, timedelta
 from extensions import db
 from flask import url_for
 from .request_question import RequestQuestion
@@ -61,6 +61,12 @@ class DealerBid(db.Model):
             "price": self.price,
             "price_with_loan": self.price_with_loan,
             "timestamp": self.timestamp.isoformat() + "Z",
+            "free_edit_expires_at": (
+                (self.timestamp + timedelta(minutes=5))
+                .replace(microsecond=0)
+                .isoformat()
+                + "Z"
+            ),
             "status": self.status,
             "make": self.make,
             "model": self.model,

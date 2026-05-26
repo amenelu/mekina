@@ -21,7 +21,11 @@ import DateTimePicker from "@react-native-community/datetimepicker";
 import * as ImagePicker from "expo-image-picker";
 import { Ionicons } from "@expo/vector-icons";
 import { mediaUrl } from "@/lib/api/client";
-import { getDealerRequestBids, placeDealerBid } from "@/lib/api/dealer";
+import {
+  getDealerRequestBids,
+  placeDealerBid,
+  updateDealerBid,
+} from "@/lib/api/dealer";
 import { DEALER_ROUTES } from "@/lib/roleRoutes";
 import { showNativeFlowAlert } from "@/lib/nativeFlowAlert";
 import { isWebRuntime, replaceWebRoute } from "@/lib/webRouteReset";
@@ -63,7 +67,12 @@ interface DealerBid {
   condition: string;
   valid_until: string;
   image_url?: string;
+  image_urls?: string[];
   timestamp: string;
+  free_edit_expires_at?: string;
+  mileage?: number;
+  availability?: string;
+  message?: string;
 }
 
 const COLORS = {
@@ -191,7 +200,9 @@ const PlaceOfferScreen = () => {
   );
   const [existingBids, setExistingBids] = useState<DealerBid[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [editingBid, setEditingBid] = useState<DealerBid | null>(null);
   const isWideWeb = Platform.OS === "web" && width >= 1000;
+  const scrollRef = useRef<ScrollView>(null);
 
   const [make, setMake] = useState("");
   const [model, setModel] = useState("");
@@ -250,6 +261,39 @@ const PlaceOfferScreen = () => {
   }, [requestDetails]);
 
   const validUntilValue = validUntil.toISOString().split("T")[0];
+
+  const isBidInEditWindow = (bid: DealerBid) => {
+    if (!bid.free_edit_expires_at) return false;
+    const expiresAt = new Date(bid.free_edit_expires_at).getTime();
+    return Number.isFinite(expiresAt) && Date.now() <= expiresAt;
+  };
+
+  const startEditingBid = (bid: DealerBid) => {
+    setEditingBid(bid);
+    setMake(bid.make || "");
+    setModel(bid.model || "");
+    setCarYear(String(bid.car_year || ""));
+    setCondition(bid.condition || "New");
+    setMileage(bid.mileage ? String(bid.mileage) : "");
+    setPrice(String(Math.round(bid.price)));
+    setPriceWithLoan(
+      bid.price_with_loan ? String(Math.round(bid.price_with_loan)) : ""
+    );
+    setAvailability(bid.availability || "In Stock");
+    setMessage(bid.message || "");
+    setImage(null);
+    const nextValidUntil = new Date(`${bid.valid_until}T12:00:00`);
+    if (!Number.isNaN(nextValidUntil.getTime())) {
+      setValidUntil(nextValidUntil);
+    }
+    requestAnimationFrame(() => scrollRef.current?.scrollTo({ y: 0, animated: true }));
+  };
+
+  const cancelEditingBid = () => {
+    setEditingBid(null);
+    setImage(null);
+  };
+
   const handleSubmit = async () => {
     const missingFields = [
       !make.trim() ? "Make" : null,
@@ -289,6 +333,24 @@ const PlaceOfferScreen = () => {
     }
 
     try {
+      if (editingBid) {
+        const response = await updateDealerBid(editingBid.id, payload);
+        setExistingBids((current) =>
+          current.map((bid) =>
+            bid.id === editingBid.id
+              ? { ...bid, ...response.data.bid }
+              : bid
+          )
+        );
+        setEditingBid(null);
+        setImage(null);
+        showNativeFlowAlert(
+          "Offer Updated",
+          "Your offer has been updated successfully."
+        );
+        return;
+      }
+
       await placeDealerBid(request_id, payload);
 
       if (isWebRuntime()) {
@@ -394,11 +456,32 @@ const PlaceOfferScreen = () => {
         </Pressable>
       </View>
 
-      <ScrollView>
+      <ScrollView ref={scrollRef}>
         <View style={[styles.contentGrid, isWideWeb && styles.contentGridWide]}>
           <View style={[styles.formColumn, isWideWeb && styles.formColumnWide]}>
             <View style={styles.formCard}>
-              <Text style={styles.sectionTitle}>Your Offer Details</Text>
+              <View style={styles.formHeaderRow}>
+                <Text style={styles.sectionTitle}>
+                  {editingBid ? "Edit Your Offer" : "Your Offer Details"}
+                </Text>
+                {editingBid && (
+                  <Pressable onPress={cancelEditingBid}>
+                    <Text style={styles.cancelEditText}>Cancel</Text>
+                  </Pressable>
+                )}
+              </View>
+              {editingBid && (
+                <View style={styles.editWindowBanner}>
+                  <Ionicons
+                    name="time-outline"
+                    size={16}
+                    color={COLORS.accent}
+                  />
+                  <Text style={styles.editWindowText}>
+                    Free edits are available for 5 minutes after sending.
+                  </Text>
+                </View>
+              )}
               <View style={styles.inputGroup}>
                 <Text style={styles.label}>Make</Text>
                 <TextInput
@@ -583,7 +666,9 @@ const PlaceOfferScreen = () => {
               ) : (
                 <>
                   <Ionicons name="send" size={18} color="white" />
-                  <Text style={styles.submitButtonText}>Place an Offer</Text>
+                  <Text style={styles.submitButtonText}>
+                    {editingBid ? "Update Offer" : "Place an Offer"}
+                  </Text>
                 </>
               )}
             </TouchableOpacity>
@@ -722,6 +807,7 @@ const PlaceOfferScreen = () => {
                 {existingBids.map((bid) => {
                   const isMyBid = bid.dealer_id === user?.id;
                   const isCheapest = bid.id === cheapestBidId;
+                  const canEditBid = isMyBid && isBidInEditWindow(bid);
 
                   return (
                     <View
@@ -759,6 +845,21 @@ const PlaceOfferScreen = () => {
                           {new Date(bid.valid_until).toLocaleDateString()}
                         </Text>
                       </View>
+                      {canEditBid && (
+                        <Pressable
+                          style={styles.editBidButton}
+                          onPress={() => startEditingBid(bid)}
+                        >
+                          <Ionicons
+                            name="create-outline"
+                            size={16}
+                            color={COLORS.accent}
+                          />
+                          <Text style={styles.editBidButtonText}>
+                            Edit offer
+                          </Text>
+                        </Pressable>
+                      )}
                     </View>
                   );
                 })}
@@ -829,6 +930,35 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     color: COLORS.text,
     marginBottom: 15,
+  },
+  formHeaderRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 12,
+  },
+  cancelEditText: {
+    color: COLORS.accent,
+    fontSize: 14,
+    fontWeight: "700",
+    marginBottom: 15,
+  },
+  editWindowBanner: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    backgroundColor: "rgba(163, 112, 247, 0.12)",
+    borderWidth: 1,
+    borderColor: "rgba(163, 112, 247, 0.35)",
+    borderRadius: 10,
+    padding: 10,
+    marginBottom: 16,
+  },
+  editWindowText: {
+    color: COLORS.textSecondary,
+    flex: 1,
+    fontSize: 13,
+    lineHeight: 18,
   },
   inputGroup: { marginBottom: 20 },
   label: { fontSize: 14, color: COLORS.textSecondary, marginBottom: 8 },
@@ -989,6 +1119,23 @@ const styles = StyleSheet.create({
     borderBottomRightRadius: 6,
     fontSize: 12,
     fontWeight: "bold",
+  },
+  editBidButton: {
+    marginTop: 8,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: COLORS.accent,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+  },
+  editBidButtonText: {
+    color: COLORS.accent,
+    fontSize: 14,
+    fontWeight: "800",
   },
   requestTitle: {
     fontSize: 20,

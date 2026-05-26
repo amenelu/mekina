@@ -42,6 +42,10 @@ export function placeDealerBid(requestId: string | number, data: unknown) {
   return apiClient.post(`/dealer/api/requests/${requestId}/bids`, data);
 }
 
+export function updateDealerBid(bidId: string | number, data: unknown) {
+  return apiClient.put(`/dealer/api/bids/${bidId}`, data);
+}
+
 export function getDealerUnansweredRequestQuestions() {
   return apiClient.get("/dealer/api/request-questions/unanswered");
 }
