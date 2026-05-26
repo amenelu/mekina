@@ -265,15 +265,30 @@ const PlaceOfferScreen = () => {
   const validUntilValue = validUntil.toISOString().split("T")[0];
 
   const isBidInEditWindow = (bid: DealerBid) => {
-    if (typeof bid.can_edit_free === "boolean") {
-      return bid.can_edit_free;
-    }
     if (typeof bid.free_edit_seconds_remaining === "number") {
       return bid.free_edit_seconds_remaining > 0;
+    }
+    if (typeof bid.can_edit_free === "boolean") {
+      return bid.can_edit_free;
     }
     if (!bid.free_edit_expires_at) return false;
     const expiresAt = new Date(bid.free_edit_expires_at).getTime();
     return Number.isFinite(expiresAt) && Date.now() <= expiresAt;
+  };
+
+  const formatEditWindowRemaining = (seconds?: number) => {
+    if (typeof seconds !== "number" || seconds <= 0) {
+      return "Free edits are available for 5 minutes after sending.";
+    }
+
+    const minutes = Math.floor(seconds / 60);
+    const remainder = seconds % 60;
+    if (minutes <= 0) {
+      return `Free edit expires in ${remainder} seconds.`;
+    }
+    return `Free edit expires in ${minutes} min ${remainder
+      .toString()
+      .padStart(2, "0")} sec.`;
   };
 
   const isCurrentDealerBid = (bid: DealerBid) =>
@@ -362,7 +377,10 @@ const PlaceOfferScreen = () => {
         return;
       }
 
-      await placeDealerBid(request_id, payload);
+      const response = await placeDealerBid(request_id, payload);
+      if (response.data?.bid) {
+        setExistingBids((current) => [response.data.bid, ...current]);
+      }
 
       if (isWebRuntime()) {
         showNativeFlowAlert(
@@ -506,7 +524,9 @@ const PlaceOfferScreen = () => {
                   </Text>
                   <Text style={styles.editPromptText}>
                     {editableBid
-                      ? "Free edits are available for 5 minutes after sending."
+                      ? formatEditWindowRemaining(
+                          editableBid.free_edit_seconds_remaining
+                        )
                       : "The 5 minute free edit window has expired."}
                   </Text>
                 </View>

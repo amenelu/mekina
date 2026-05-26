@@ -144,6 +144,8 @@ BID_FREE_EDIT_WINDOW_SECONDS = 5 * 60
 
 
 def _bid_free_edit_expires_at(bid):
+    if not bid.timestamp:
+        return datetime.utcnow() - timedelta(seconds=1)
     return bid.timestamp + timedelta(seconds=BID_FREE_EDIT_WINDOW_SECONDS)
 
 
@@ -1307,6 +1309,7 @@ def place_bid(request_id):
         new_bid = DealerBid(
             price=form.price.data,
             price_with_loan=form.price_with_loan.data,
+            timestamp=datetime.utcnow(),
             make=form.make.data,
             model=form.model.data,
             car_year=form.car_year.data,
@@ -1465,6 +1468,7 @@ def api_place_dealer_bid(current_user, request_id):
 
         new_bid = DealerBid(
             **bid_payload,
+            timestamp=datetime.utcnow(),
             dealer_id=current_user.id,
             request_id=car_request.id,
         )
