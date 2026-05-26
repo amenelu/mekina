@@ -209,11 +209,28 @@ const DealSummaryScreen = () => {
   const handleRequestCompletion = async () => {
     if (!id || requestingCompletion) return;
 
+    const requestedAt = new Date().toISOString();
     setRequestingCompletion(true);
+    setDeal((currentDeal) =>
+      currentDeal
+        ? {
+            ...currentDeal,
+            completion_requested_at: requestedAt,
+            completion_requested_by_id:
+              Number(user?.id) || currentDeal.completion_requested_by_id,
+          }
+        : currentDeal
+    );
     try {
       const response = await requestDealCompletion(String(id));
       if (response.data?.deal) {
-        setDeal(response.data.deal);
+        setDeal({
+          ...response.data.deal,
+          completion_requested_at:
+            response.data.deal.completion_requested_at || requestedAt,
+          completion_requested_by_id:
+            response.data.deal.completion_requested_by_id || Number(user?.id),
+        });
       }
       Alert.alert(
         "Completion Requested",
@@ -221,6 +238,15 @@ const DealSummaryScreen = () => {
       );
     } catch (error: any) {
       console.error("Failed to request deal completion:", error);
+      setDeal((currentDeal) =>
+        currentDeal
+          ? {
+              ...currentDeal,
+              completion_requested_at: null,
+              completion_requested_by_id: null,
+            }
+          : currentDeal
+      );
       Alert.alert(
         "Request Failed",
         error.response?.data?.message ||
