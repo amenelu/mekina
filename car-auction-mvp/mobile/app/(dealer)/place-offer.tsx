@@ -70,6 +70,8 @@ interface DealerBid {
   image_urls?: string[];
   timestamp: string;
   free_edit_expires_at?: string;
+  can_edit_free?: boolean;
+  free_edit_seconds_remaining?: number;
   mileage?: number;
   availability?: string;
   message?: string;
@@ -263,6 +265,12 @@ const PlaceOfferScreen = () => {
   const validUntilValue = validUntil.toISOString().split("T")[0];
 
   const isBidInEditWindow = (bid: DealerBid) => {
+    if (typeof bid.can_edit_free === "boolean") {
+      return bid.can_edit_free;
+    }
+    if (typeof bid.free_edit_seconds_remaining === "number") {
+      return bid.free_edit_seconds_remaining > 0;
+    }
     if (!bid.free_edit_expires_at) return false;
     const expiresAt = new Date(bid.free_edit_expires_at).getTime();
     return Number.isFinite(expiresAt) && Date.now() <= expiresAt;
@@ -448,13 +456,15 @@ const PlaceOfferScreen = () => {
     .filter(isCurrentDealerBid)
     .sort(
       (a, b) =>
-        new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+        new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime() ||
+        b.id - a.id
     )[0];
   const editableBid = existingBids
     .filter((bid) => isCurrentDealerBid(bid) && isBidInEditWindow(bid))
     .sort(
       (a, b) =>
-        new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+        new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime() ||
+        b.id - a.id
     )[0];
 
   return (

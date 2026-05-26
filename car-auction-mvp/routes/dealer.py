@@ -147,8 +147,22 @@ def _bid_free_edit_expires_at(bid):
     return bid.timestamp + timedelta(seconds=BID_FREE_EDIT_WINDOW_SECONDS)
 
 
+def _bid_free_edit_seconds_remaining(bid):
+    remaining = (_bid_free_edit_expires_at(bid) - datetime.utcnow()).total_seconds()
+    return max(0, int(remaining))
+
+
 def _bid_is_in_free_edit_window(bid):
-    return datetime.utcnow() <= _bid_free_edit_expires_at(bid)
+    return _bid_free_edit_seconds_remaining(bid) > 0
+
+
+def _bid_to_api_dict(bid, **kwargs):
+    return {
+        **bid.to_dict(**kwargs),
+        "dealer_id": bid.dealer_id,
+        "can_edit_free": bid.status == "pending" and _bid_is_in_free_edit_window(bid),
+        "free_edit_seconds_remaining": _bid_free_edit_seconds_remaining(bid),
+    }
 
 
 def _parse_bid_payload(data):
@@ -1401,9 +1415,7 @@ def api_place_dealer_bid(current_user, request_id):
         existing_bids = car_request.dealer_bids.order_by(DealerBid.price.asc()).all()
         return jsonify(
             car_request=car_request.to_dict(),
-            existing_bids=[
-                {**bid.to_dict(), "dealer_id": bid.dealer_id} for bid in existing_bids
-            ],
+            existing_bids=[_bid_to_api_dict(bid) for bid in existing_bids],
         )
 
     elif request.method == "POST":
@@ -1536,10 +1548,7 @@ def api_place_dealer_bid(current_user, request_id):
                 {
                     "status": "success",
                     "message": "Your offer has been sent to the customer!",
-                    "bid": {
-                        **new_bid.to_dict(),
-                        "dealer_id": new_bid.dealer_id,
-                    },
+                    "bid": _bid_to_api_dict(new_bid),
                 }
             ),
             201,
@@ -1624,7 +1633,7 @@ def api_update_dealer_bid(current_user, bid_id):
         {
             "status": "success",
             "message": "Your offer has been updated.",
-            "bid": {**bid.to_dict(), "dealer_id": bid.dealer_id},
+            "bid": _bid_to_api_dict(bid),
         }
     )
 
