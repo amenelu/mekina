@@ -1228,12 +1228,27 @@ def _deal_to_api_dict(deal, current_user):
     is_completed = (deal.status or "").lower() == "completed"
     is_buyer = current_user.id == deal.customer_id
     is_dealer = current_user.id == deal.dealer_id
+    completion_request = (
+        Notification.query.filter(
+            Notification.user_id == deal.customer_id,
+            Notification.link == url_for("request.deal_summary", deal_id=deal.id),
+            Notification.message.ilike(f"%requested confirmation%deal #{deal.id}%"),
+        )
+        .order_by(Notification.timestamp.desc())
+        .first()
+    )
 
     existing_rating = None
     if is_buyer:
         existing_rating = DealerRating.query.filter_by(deal_id=deal.id).first()
         deal_data["has_rated"] = True if existing_rating else False
 
+    deal_data["completion_requested_at"] = (
+        completion_request.timestamp.isoformat() + "Z"
+        if completion_request and is_accepted
+        else None
+    )
+    deal_data["completion_requested_by_id"] = deal.dealer_id if completion_request else None
     deal_data["permissions"] = {
         "can_complete": is_accepted and (is_buyer or current_user.is_admin),
         "can_request_completion": is_accepted and is_dealer and not current_user.is_admin,
@@ -1314,8 +1329,6 @@ def api_request_deal_completion(current_user, deal_id):
         ),
         link=url_for("request.deal_summary", deal_id=deal.id),
     )
-    deal.completion_requested_at = datetime.utcnow()
-    deal.completion_requested_by_id = current_user.id
     db.session.add(notification)
     db.session.commit()
 

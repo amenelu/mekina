@@ -10,8 +10,6 @@ class Deal(db.Model):
     completed_at = db.Column(db.DateTime, nullable=True)
     reward_points_awarded = db.Column(db.Boolean, nullable=False, default=False)
     reward_points_amount = db.Column(db.Integer, nullable=False, default=0)
-    completion_requested_at = db.Column(db.DateTime, nullable=True)
-    completion_requested_by_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)
 
     customer_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     dealer_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
@@ -30,8 +28,6 @@ class Deal(db.Model):
             'deal_date': self.deal_date.isoformat() + 'Z',
             'status': self.status,
             'completed_at': self.completed_at.isoformat() + 'Z' if self.completed_at else None,
-            'completion_requested_at': self.completion_requested_at.isoformat() + 'Z' if self.completion_requested_at else None,
-            'completion_requested_by_id': self.completion_requested_by_id,
             'reward_points_awarded': self.reward_points_awarded,
             'reward_points_amount': self.reward_points_amount,
             'payment_method': self.payment_method,
