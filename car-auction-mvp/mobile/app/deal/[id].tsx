@@ -45,6 +45,8 @@ interface Deal {
   deal_date: string;
   status: "accepted" | "completed" | string;
   completed_at?: string | null;
+  completion_requested_at?: string | null;
+  completion_requested_by_id?: number | null;
   reward_points_awarded?: boolean;
   reward_points_amount?: number;
   customer: { id: number; username: string; email: string; phone_number: string };
@@ -82,18 +84,24 @@ const DealSummaryScreen = () => {
   const normalizedDealStatus = String(deal?.status || "").trim().toLowerCase();
   const isCompletedDeal = normalizedDealStatus === "completed";
   const isPendingDeal = !isCompletedDeal;
+  const completionRequested = Boolean(deal?.completion_requested_at) && isPendingDeal;
+  const currentUserId = Number(user?.id);
+  const isDealBuyer =
+    Boolean(deal?.customer?.id) && Number(deal?.customer?.id) === currentUserId;
+  const isDealDealer =
+    Boolean(deal?.dealer?.id) && Number(deal?.dealer?.id) === currentUserId;
   const canCompleteDeal =
     isPendingDeal &&
     (Boolean(deal?.permissions?.can_complete) ||
       Boolean(user?.is_admin) ||
-      !isDealer);
+      isDealBuyer);
   const canRequestCompletion =
     isPendingDeal &&
     !canCompleteDeal &&
-    (Boolean(deal?.permissions?.can_request_completion) || isDealer);
+    (Boolean(deal?.permissions?.can_request_completion) || isDealDealer || isDealer);
   const canRateDeal =
     deal?.permissions?.can_rate ??
-    (!isDealer && isCompletedDeal && deal?.has_rated === false);
+    (isDealBuyer && isCompletedDeal && deal?.has_rated === false);
   const showDealActions = canCompleteDeal || canRequestCompletion;
 
   const fetchDeal = useCallback(
@@ -181,9 +189,9 @@ const DealSummaryScreen = () => {
       const response = await completeDeal(String(id));
       setDeal(response.data.deal);
       Alert.alert(
-        "Deal Completed",
+        "Completion Confirmed",
         response.data.message ||
-          "The dealer has been rewarded for closing this deal."
+          "The dealer has been notified and rewarded for closing this deal."
       );
     } catch (error: any) {
       console.error("Failed to complete deal:", error);
@@ -204,6 +212,9 @@ const DealSummaryScreen = () => {
     setRequestingCompletion(true);
     try {
       const response = await requestDealCompletion(String(id));
+      if (response.data?.deal) {
+        setDeal(response.data.deal);
+      }
       Alert.alert(
         "Completion Requested",
         response.data?.message || "The buyer has been asked to confirm completion."
@@ -350,9 +361,9 @@ const DealSummaryScreen = () => {
                 {canCompleteDeal ? (
                   <>
                     <Text style={styles.completionHelp}>
-                      Mark this completed after payment, inspection, and
-                      handover are finalized. The dealer will receive a 1 point
-                      reward.
+                      {completionRequested
+                        ? "The dealer has requested confirmation. Mark this completed after payment, inspection, and handover are finalized."
+                        : "Mark this completed after payment, inspection, and handover are finalized. The dealer will receive a 1 point reward."}
                     </Text>
                     <Pressable
                       style={styles.completeButton}
@@ -371,20 +382,38 @@ const DealSummaryScreen = () => {
                 ) : null}
                 {canRequestCompletion ? (
                   <>
-                    <Text style={styles.completionHelp}>
-                      Ask the buyer to confirm completion once payment,
-                      inspection, and handover are finalized.
-                    </Text>
+                    {completionRequested ? (
+                      <View style={styles.pendingConfirmationBox}>
+                        <Ionicons
+                          name="time-outline"
+                          size={18}
+                          color={COLORS.accent}
+                        />
+                        <Text style={styles.pendingConfirmationText}>
+                          Waiting for buyer confirmation
+                        </Text>
+                      </View>
+                    ) : (
+                      <Text style={styles.completionHelp}>
+                        Ask the buyer to confirm completion once payment,
+                        inspection, and handover are finalized.
+                      </Text>
+                    )}
                     <Pressable
-                      style={styles.requestCompletionButton}
+                      style={[
+                        styles.requestCompletionButton,
+                        completionRequested && styles.requestCompletionButtonDisabled,
+                      ]}
                       onPress={handleRequestCompletion}
-                      disabled={requestingCompletion}
+                      disabled={requestingCompletion || completionRequested}
                     >
                       {requestingCompletion ? (
                         <ActivityIndicator color={COLORS.accent} size="small" />
                       ) : (
                         <Text style={styles.requestCompletionButtonText}>
-                          Ask Buyer to Confirm Completion
+                          {completionRequested
+                            ? "Waiting for Buyer Confirmation"
+                            : "Ask Buyer to Confirm Completion"}
                         </Text>
                       )}
                     </Pressable>
@@ -603,6 +632,9 @@ const styles = StyleSheet.create({
     alignItems: "center",
     backgroundColor: "rgba(163, 112, 247, 0.12)",
   },
+  requestCompletionButtonDisabled: {
+    opacity: 0.65,
+  },
   secondaryActionSpacing: {
     marginTop: 10,
   },
@@ -610,6 +642,22 @@ const styles = StyleSheet.create({
     color: COLORS.accent,
     fontSize: 16,
     fontWeight: "800",
+  },
+  pendingConfirmationBox: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    borderWidth: 1,
+    borderColor: "rgba(163, 112, 247, 0.45)",
+    backgroundColor: "rgba(163, 112, 247, 0.12)",
+    borderRadius: 10,
+    padding: 12,
+    marginBottom: 12,
+  },
+  pendingConfirmationText: {
+    color: COLORS.foreground,
+    fontSize: 14,
+    fontWeight: "700",
   },
   doneButton: {
     backgroundColor: COLORS.accent,

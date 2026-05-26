@@ -1025,15 +1025,24 @@ def _complete_deal_logic(deal):
 
     db.session.commit()
 
-    if reward_notification:
-        socketio.emit(
-            "new_notification",
-            reward_notification.to_dict(),
-            room=str(deal.dealer_id),
-        )
-        send_push_notification(deal.dealer_id, reward_notification.message)
-
     return deal, reward_notification
+
+
+def _emit_notification(notification):
+    unread_count = Notification.query.filter_by(
+        user_id=notification.user_id, is_read=False
+    ).count()
+    socketio.emit(
+        "new_notification",
+        {
+            "message": notification.message,
+            "link": notification.link,
+            "timestamp": notification.timestamp.isoformat() + "Z",
+            "count": unread_count,
+        },
+        room=str(notification.user_id),
+    )
+    send_push_notification(notification.user_id, notification.message)
 
 
 @request_bp.route("/offer/<int:bid_id>/accept", methods=["POST"])
@@ -1241,9 +1250,20 @@ def api_complete_deal(current_user, deal_id):
         return jsonify({"status": "error", "message": "Permission denied."}), 403
 
     try:
-        completed_deal, _ = _complete_deal_logic(deal)
+        completed_deal, reward_notification = _complete_deal_logic(deal)
     except ValueError as exc:
         return jsonify({"status": "error", "message": str(exc)}), 400
+
+    buyer_notification = Notification(
+        user_id=completed_deal.customer_id,
+        message=f"Deal #{completed_deal.id} has been marked completed.",
+        link=url_for("request.deal_summary", deal_id=completed_deal.id),
+    )
+    db.session.add(buyer_notification)
+    db.session.commit()
+    _emit_notification(buyer_notification)
+    if reward_notification:
+        _emit_notification(reward_notification)
 
     deal_data = _deal_to_api_dict(completed_deal, current_user)
 
@@ -1294,28 +1314,18 @@ def api_request_deal_completion(current_user, deal_id):
         ),
         link=url_for("request.deal_summary", deal_id=deal.id),
     )
+    deal.completion_requested_at = datetime.utcnow()
+    deal.completion_requested_by_id = current_user.id
     db.session.add(notification)
     db.session.commit()
 
-    unread_count = Notification.query.filter_by(
-        user_id=deal.customer_id, is_read=False
-    ).count()
-    socketio.emit(
-        "new_notification",
-        {
-            "message": notification.message,
-            "link": notification.link,
-            "timestamp": notification.timestamp.isoformat() + "Z",
-            "count": unread_count,
-        },
-        room=str(deal.customer_id),
-    )
-    send_push_notification(deal.customer_id, notification.message)
+    _emit_notification(notification)
 
     return jsonify(
         {
             "status": "success",
             "message": "The buyer has been asked to confirm completion.",
+            "deal": _deal_to_api_dict(deal, current_user),
         }
     )
 
