@@ -20,7 +20,12 @@ import {
 } from "expo-router";
 import { useAuth } from "@/hooks/useAuth";
 import { Ionicons } from "@expo/vector-icons";
-import { getDeal, rateDeal } from "@/lib/api/requests";
+import {
+  completeDeal,
+  getDeal,
+  rateDeal,
+  requestDealCompletion,
+} from "@/lib/api/requests";
 import { DEALER_ROUTES, getPostLoginRoute } from "@/lib/roleRoutes";
 
 const COLORS = {
@@ -40,6 +45,8 @@ interface Deal {
   deal_date: string;
   status: "accepted" | "completed" | string;
   completed_at?: string | null;
+  completion_requested_at?: string | null;
+  completion_requested_by_id?: number | null;
   reward_points_awarded?: boolean;
   reward_points_amount?: number;
   customer: { id: number; username: string; email: string; phone_number: string };
@@ -71,12 +78,26 @@ const DealSummaryScreen = () => {
   const [rating, setRating] = useState(0);
   const [reviewText, setReviewText] = useState("");
   const [submittingReview, setSubmittingReview] = useState(false);
+  const [completionActionLoading, setCompletionActionLoading] = useState(false);
+  const [completionMessage, setCompletionMessage] = useState<string | null>(null);
   const isWideWeb = Platform.OS === "web" && width >= 1000;
   const normalizedDealStatus = String(deal?.status || "").trim().toLowerCase();
   const isCompletedDeal = normalizedDealStatus === "completed";
+  const isAcceptedDeal = normalizedDealStatus === "accepted";
+  const completionRequested =
+    isAcceptedDeal && Boolean(deal?.completion_requested_at);
   const currentUserId = Number(user?.id);
   const isDealBuyer =
     Boolean(deal?.customer?.id) && Number(deal?.customer?.id) === currentUserId;
+  const isDealDealer =
+    Boolean(deal?.dealer?.id) && Number(deal?.dealer?.id) === currentUserId;
+  const canBuyerComplete =
+    isAcceptedDeal &&
+    (Boolean(deal?.permissions?.can_complete) || Boolean(user?.is_admin) || isDealBuyer);
+  const canDealerRequestCompletion =
+    isAcceptedDeal &&
+    !canBuyerComplete &&
+    (Boolean(deal?.permissions?.can_request_completion) || isDealDealer);
   const canRateDeal =
     deal?.permissions?.can_rate ??
     (isDealBuyer && isCompletedDeal && deal?.has_rated === false);
@@ -158,6 +179,67 @@ const DealSummaryScreen = () => {
     }
   };
 
+  const handleRequestCompletion = async () => {
+    if (!id || completionActionLoading) return;
+
+    setCompletionActionLoading(true);
+    setCompletionMessage(null);
+    try {
+      const response = await requestDealCompletion(String(id));
+      const requestedAt =
+        response.data?.deal?.completion_requested_at || new Date().toISOString();
+      const nextDeal = response.data?.deal || deal;
+      if (nextDeal) {
+        setDeal({
+          ...nextDeal,
+          completion_requested_at: requestedAt,
+          completion_requested_by_id:
+            response.data?.deal?.completion_requested_by_id || currentUserId,
+        });
+      }
+      const message =
+        response.data?.message || "The buyer has been asked to confirm completion.";
+      setCompletionMessage(message);
+      Alert.alert("Completion Requested", message);
+    } catch (error: any) {
+      console.error("Failed to request deal completion:", error);
+      Alert.alert(
+        "Request Failed",
+        error.response?.data?.message ||
+          error.userMessage ||
+          "Could not request completion."
+      );
+    } finally {
+      setCompletionActionLoading(false);
+    }
+  };
+
+  const handleCompleteDeal = async () => {
+    if (!id || completionActionLoading) return;
+
+    setCompletionActionLoading(true);
+    setCompletionMessage(null);
+    try {
+      const response = await completeDeal(String(id));
+      setDeal(response.data.deal);
+      const message =
+        response.data?.message ||
+        "The deal has been marked completed and the dealer has been notified.";
+      setCompletionMessage(message);
+      Alert.alert("Completion Confirmed", message);
+    } catch (error: any) {
+      console.error("Failed to complete deal:", error);
+      Alert.alert(
+        "Completion Failed",
+        error.response?.data?.message ||
+          error.userMessage ||
+          "Could not mark this deal completed."
+      );
+    } finally {
+      setCompletionActionLoading(false);
+    }
+  };
+
   if (loading && !refreshing) {
     return (
       <View style={styles.centered}>
@@ -236,6 +318,7 @@ const DealSummaryScreen = () => {
               style={[
                 styles.statusBadge,
                 isCompletedDeal && styles.statusBadgeCompleted,
+                completionRequested && styles.statusBadgePending,
               ]}
             >
               <Text style={styles.statusBadgeText}>
@@ -280,6 +363,80 @@ const DealSummaryScreen = () => {
                 Mileage: {deal.accepted_bid.mileage.toLocaleString()} km
               </Text>
             </View>
+
+            {(canDealerRequestCompletion || canBuyerComplete || completionMessage) && (
+              <View style={styles.section}>
+                <Text style={styles.sectionTitle}>Completion</Text>
+                {completionMessage ? (
+                  <View style={styles.completionNotice}>
+                    <Ionicons
+                      name="checkmark-circle-outline"
+                      size={18}
+                      color={COLORS.success}
+                    />
+                    <Text style={styles.completionNoticeText}>
+                      {completionMessage}
+                    </Text>
+                  </View>
+                ) : null}
+
+                {canDealerRequestCompletion ? (
+                  completionRequested ? (
+                    <View style={styles.completionNotice}>
+                      <Ionicons
+                        name="time-outline"
+                        size={18}
+                        color={COLORS.accent}
+                      />
+                      <Text style={styles.completionNoticeText}>
+                        Waiting for buyer confirmation.
+                      </Text>
+                    </View>
+                  ) : (
+                    <>
+                      <Text style={styles.completionHelp}>
+                        Ask the buyer to confirm completion after payment,
+                        inspection, and handover are finished.
+                      </Text>
+                      <Pressable
+                        style={styles.requestCompletionButton}
+                        onPress={handleRequestCompletion}
+                        disabled={completionActionLoading}
+                      >
+                        {completionActionLoading ? (
+                          <ActivityIndicator color={COLORS.accent} size="small" />
+                        ) : (
+                          <Text style={styles.requestCompletionButtonText}>
+                            Ask Buyer to Confirm Completion
+                          </Text>
+                        )}
+                      </Pressable>
+                    </>
+                  )
+                ) : null}
+
+                {canBuyerComplete ? (
+                  <>
+                    <Text style={styles.completionHelp}>
+                      Mark this deal completed after the transaction is finalized.
+                    </Text>
+                    <Pressable
+                      style={styles.completeButton}
+                      onPress={handleCompleteDeal}
+                      disabled={completionActionLoading}
+                    >
+                      {completionActionLoading ? (
+                        <ActivityIndicator color="#fff" size="small" />
+                      ) : (
+                        <Text style={styles.completeButtonText}>
+                          Mark Deal Completed
+                        </Text>
+                      )}
+                    </Pressable>
+                  </>
+                ) : null}
+              </View>
+            )}
 
             {canRateDeal && (
               <View style={styles.section}>
@@ -435,6 +592,10 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(40, 167, 69, 0.14)",
     borderColor: COLORS.success,
   },
+  statusBadgePending: {
+    backgroundColor: "rgba(163, 112, 247, 0.14)",
+    borderColor: COLORS.accent,
+  },
   statusBadgeText: {
     color: COLORS.foreground,
     fontSize: 13,
@@ -466,6 +627,53 @@ const styles = StyleSheet.create({
     marginBottom: 5,
   },
   carDetail: { fontSize: 16, color: COLORS.mutedForeground, marginTop: 2 },
+  completionHelp: {
+    color: COLORS.mutedForeground,
+    fontSize: 15,
+    lineHeight: 22,
+    marginBottom: 12,
+  },
+  completionNotice: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    borderWidth: 1,
+    borderColor: "rgba(163, 112, 247, 0.4)",
+    backgroundColor: "rgba(163, 112, 247, 0.1)",
+    borderRadius: 10,
+    padding: 12,
+    marginBottom: 12,
+  },
+  completionNoticeText: {
+    color: COLORS.foreground,
+    flex: 1,
+    fontSize: 14,
+    fontWeight: "700",
+  },
+  completeButton: {
+    backgroundColor: COLORS.success,
+    padding: 13,
+    borderRadius: 10,
+    alignItems: "center",
+  },
+  completeButtonText: {
+    color: "#fff",
+    fontSize: 16,
+    fontWeight: "800",
+  },
+  requestCompletionButton: {
+    borderWidth: 1,
+    borderColor: COLORS.accent,
+    padding: 13,
+    borderRadius: 10,
+    alignItems: "center",
+    backgroundColor: "rgba(163, 112, 247, 0.12)",
+  },
+  requestCompletionButtonText: {
+    color: COLORS.accent,
+    fontSize: 16,
+    fontWeight: "800",
+  },
   doneButton: {
     backgroundColor: COLORS.accent,
     padding: 15,
