@@ -121,7 +121,7 @@ const NotificationItem = ({ notification }: { notification: Notification }) => {
 
 const NotificationsScreen = () => {
   const { token, isLoading } = useAuth() as any;
-  const { socket } = useSocket();
+  const { socket, refreshCounts } = useSocket();
   const { width } = useWindowDimensions();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
@@ -133,13 +133,14 @@ const NotificationsScreen = () => {
     try {
       const response = await getNotifications();
       setNotifications(response.data.notifications);
+      await refreshCounts();
     } catch (error) {
       console.error("Failed to fetch notifications:", error);
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [token]);
+  }, [refreshCounts, token]);
 
   useFocusEffect(
     useCallback(() => {
