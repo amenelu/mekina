@@ -93,11 +93,13 @@ const DealSummaryScreen = () => {
     Boolean(deal?.dealer?.id) && Number(deal?.dealer?.id) === currentUserId;
   const canBuyerComplete =
     isAcceptedDeal &&
-    (Boolean(deal?.permissions?.can_complete) || Boolean(user?.is_admin) || isDealBuyer);
+    (Boolean(user?.is_admin) ||
+      isDealBuyer ||
+      (Boolean(deal?.permissions?.can_complete) && !isDealer && !isDealDealer));
   const canDealerRequestCompletion =
     isAcceptedDeal &&
     !canBuyerComplete &&
-    (Boolean(deal?.permissions?.can_request_completion) || isDealDealer);
+    (Boolean(deal?.permissions?.can_request_completion) || isDealDealer || isDealer);
   const canRateDeal =
     deal?.permissions?.can_rate ??
     (isDealBuyer && isCompletedDeal && deal?.has_rated === false);
