@@ -962,7 +962,6 @@ def _accept_offer_logic(bid_id, user_id, payment_method):
     for other_bid in car_request.dealer_bids.filter(DealerBid.id != bid_to_accept.id):
         other_bid.status = "rejected"
     car_request.status = "completed"
-    car_request.accepted_bid_id = bid_to_accept.id
 
     new_deal = Deal(
         final_price=final_price,
@@ -973,7 +972,8 @@ def _accept_offer_logic(bid_id, user_id, payment_method):
         payment_method=payment_method,
     )
     db.session.add(new_deal)
-    db.session.commit()  # Commit here to get new_deal.id
+    db.session.flush()  # Get new_deal.id before linking the request back to the bid.
+    car_request.accepted_bid_id = bid_to_accept.id
 
     # Notify the dealer
     notification_message = (
@@ -1189,6 +1189,7 @@ def api_accept_offer(current_user, bid_id):
         new_deal, deal_notification = _accept_offer_logic(
             bid_id, current_user.id, payment_method
         )
+        deal_payload = _deal_accepted_response(new_deal)
 
         # --- Real-time Notification for web client ---
         unread_count = Notification.query.filter_by(
@@ -1206,7 +1207,7 @@ def api_accept_offer(current_user, bid_id):
         send_push_notification(new_deal.dealer_id, deal_notification.message)
 
         return (
-            jsonify({"status": "success", "deal": _deal_accepted_response(new_deal)}),
+            jsonify({"status": "success", "deal": deal_payload}),
             200,
         )
 
