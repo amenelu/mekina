@@ -996,6 +996,19 @@ def _deal_summary_link(deal_id):
     return url_for("request.deal_summary", deal_id=deal_id)
 
 
+def _deal_accepted_response(deal):
+    return {
+        "id": deal.id,
+        "status": deal.status,
+        "final_price": deal.final_price,
+        "payment_method": deal.payment_method,
+        "customer_id": deal.customer_id,
+        "dealer_id": deal.dealer_id,
+        "car_request_id": deal.car_request_id,
+        "accepted_bid_id": deal.accepted_bid_id,
+    }
+
+
 def _find_completion_request_notification(deal):
     return (
         Notification.query.filter(
@@ -1192,11 +1205,16 @@ def api_accept_offer(current_user, bid_id):
         )
         send_push_notification(new_deal.dealer_id, deal_notification.message)
 
-        return jsonify({"status": "success", "deal": new_deal.to_dict()}), 200
+        return (
+            jsonify({"status": "success", "deal": _deal_accepted_response(new_deal)}),
+            200,
+        )
 
     except (PermissionError, ValueError) as e:
         return jsonify({"status": "error", "message": str(e)}), 400
     except Exception as e:
+        db.session.rollback()
+        current_app.logger.exception("Error accepting offer through API")
         return (
             jsonify({"status": "error", "message": "An internal error occurred."}),
             500,
