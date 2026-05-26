@@ -20,12 +20,7 @@ import {
 } from "expo-router";
 import { useAuth } from "@/hooks/useAuth";
 import { Ionicons } from "@expo/vector-icons";
-import {
-  completeDeal,
-  getDeal,
-  rateDeal,
-  requestDealCompletion,
-} from "@/lib/api/requests";
+import { getDeal, rateDeal } from "@/lib/api/requests";
 import { DEALER_ROUTES, getPostLoginRoute } from "@/lib/roleRoutes";
 
 const COLORS = {
@@ -45,8 +40,6 @@ interface Deal {
   deal_date: string;
   status: "accepted" | "completed" | string;
   completed_at?: string | null;
-  completion_requested_at?: string | null;
-  completion_requested_by_id?: number | null;
   reward_points_awarded?: boolean;
   reward_points_amount?: number;
   customer: { id: number; username: string; email: string; phone_number: string };
@@ -78,31 +71,15 @@ const DealSummaryScreen = () => {
   const [rating, setRating] = useState(0);
   const [reviewText, setReviewText] = useState("");
   const [submittingReview, setSubmittingReview] = useState(false);
-  const [completingDeal, setCompletingDeal] = useState(false);
-  const [requestingCompletion, setRequestingCompletion] = useState(false);
   const isWideWeb = Platform.OS === "web" && width >= 1000;
   const normalizedDealStatus = String(deal?.status || "").trim().toLowerCase();
   const isCompletedDeal = normalizedDealStatus === "completed";
-  const isPendingDeal = !isCompletedDeal;
-  const completionRequested = Boolean(deal?.completion_requested_at) && isPendingDeal;
   const currentUserId = Number(user?.id);
   const isDealBuyer =
     Boolean(deal?.customer?.id) && Number(deal?.customer?.id) === currentUserId;
-  const isDealDealer =
-    Boolean(deal?.dealer?.id) && Number(deal?.dealer?.id) === currentUserId;
-  const canCompleteDeal =
-    isPendingDeal &&
-    (Boolean(deal?.permissions?.can_complete) ||
-      Boolean(user?.is_admin) ||
-      isDealBuyer);
-  const canRequestCompletion =
-    isPendingDeal &&
-    !canCompleteDeal &&
-    (Boolean(deal?.permissions?.can_request_completion) || isDealDealer || isDealer);
   const canRateDeal =
     deal?.permissions?.can_rate ??
     (isDealBuyer && isCompletedDeal && deal?.has_rated === false);
-  const showDealActions = canCompleteDeal || canRequestCompletion;
 
   const fetchDeal = useCallback(
     async (isRefresh = false) => {
@@ -181,83 +158,6 @@ const DealSummaryScreen = () => {
     }
   };
 
-  const handleCompleteDeal = async () => {
-    if (!id || completingDeal) return;
-
-    setCompletingDeal(true);
-    try {
-      const response = await completeDeal(String(id));
-      setDeal(response.data.deal);
-      Alert.alert(
-        "Completion Confirmed",
-        response.data.message ||
-          "The dealer has been notified and rewarded for closing this deal."
-      );
-    } catch (error: any) {
-      console.error("Failed to complete deal:", error);
-      Alert.alert(
-        "Error",
-        error.response?.data?.message ||
-          error.userMessage ||
-          "Failed to complete deal."
-      );
-    } finally {
-      setCompletingDeal(false);
-    }
-  };
-
-  const handleRequestCompletion = async () => {
-    if (!id || requestingCompletion) return;
-
-    const requestedAt = new Date().toISOString();
-    setRequestingCompletion(true);
-    setDeal((currentDeal) =>
-      currentDeal
-        ? {
-            ...currentDeal,
-            completion_requested_at: requestedAt,
-            completion_requested_by_id:
-              Number(user?.id) || currentDeal.completion_requested_by_id,
-          }
-        : currentDeal
-    );
-    try {
-      const response = await requestDealCompletion(String(id));
-      if (response.data?.deal) {
-        setDeal({
-          ...response.data.deal,
-          completion_requested_at:
-            response.data.deal.completion_requested_at || requestedAt,
-          completion_requested_by_id:
-            response.data.deal.completion_requested_by_id || Number(user?.id),
-        });
-      }
-      Alert.alert(
-        "Completion Requested",
-        response.data?.message || "The buyer has been asked to confirm completion."
-      );
-    } catch (error: any) {
-      console.error("Failed to request deal completion:", error);
-      setDeal((currentDeal) =>
-        currentDeal
-          ? {
-              ...currentDeal,
-              completion_requested_at: null,
-              completion_requested_by_id: null,
-            }
-          : currentDeal
-      );
-      Alert.alert(
-        "Request Failed",
-        error.response?.data?.message ||
-          error.userMessage ||
-          "Could not request completion."
-      );
-    } finally {
-      setRequestingCompletion(false);
-    }
-  };
-
   if (loading && !refreshing) {
     return (
       <View style={styles.centered}>
@@ -315,7 +215,7 @@ const DealSummaryScreen = () => {
                 ? "This deal has been marked complete. The dealer reward is recorded."
                 : isDealer
                 ? "Your offer was accepted. Contact the customer to finalize the transaction."
-                : "Here are the details of your agreement. Mark the deal completed after the transaction is finalized."}
+                : "Here are the details of your agreement."}
             </Text>
           </View>
 
@@ -380,73 +280,6 @@ const DealSummaryScreen = () => {
                 Mileage: {deal.accepted_bid.mileage.toLocaleString()} km
               </Text>
             </View>
-
-            {showDealActions && (
-              <View style={styles.section}>
-                <Text style={styles.sectionTitle}>Deal Actions</Text>
-                {canCompleteDeal ? (
-                  <>
-                    <Text style={styles.completionHelp}>
-                      {completionRequested
-                        ? "The dealer has requested confirmation. Mark this completed after payment, inspection, and handover are finalized."
-                        : "Mark this completed after payment, inspection, and handover are finalized. The dealer will receive a 1 point reward."}
-                    </Text>
-                    <Pressable
-                      style={styles.completeButton}
-                      onPress={handleCompleteDeal}
-                      disabled={completingDeal}
-                    >
-                      {completingDeal ? (
-                        <ActivityIndicator color="#fff" size="small" />
-                      ) : (
-                        <Text style={styles.completeButtonText}>
-                          Mark Deal Completed
-                        </Text>
-                      )}
-                    </Pressable>
-                  </>
-                ) : null}
-                {canRequestCompletion ? (
-                  <>
-                    {completionRequested ? (
-                      <View style={styles.pendingConfirmationBox}>
-                        <Ionicons
-                          name="time-outline"
-                          size={18}
-                          color={COLORS.accent}
-                        />
-                        <Text style={styles.pendingConfirmationText}>
-                          Waiting for buyer confirmation
-                        </Text>
-                      </View>
-                    ) : (
-                      <Text style={styles.completionHelp}>
-                        Ask the buyer to confirm completion once payment,
-                        inspection, and handover are finalized.
-                      </Text>
-                    )}
-                    <Pressable
-                      style={[
-                        styles.requestCompletionButton,
-                        completionRequested && styles.requestCompletionButtonDisabled,
-                      ]}
-                      onPress={handleRequestCompletion}
-                      disabled={requestingCompletion || completionRequested}
-                    >
-                      {requestingCompletion ? (
-                        <ActivityIndicator color={COLORS.accent} size="small" />
-                      ) : (
-                        <Text style={styles.requestCompletionButtonText}>
-                          {completionRequested
-                            ? "Waiting for Buyer Confirmation"
-                            : "Ask Buyer to Confirm Completion"}
-                        </Text>
-                      )}
-                    </Pressable>
-                  </>
-                ) : null}
-              </View>
-            )}
 
             {canRateDeal && (
               <View style={styles.section}>
@@ -633,58 +466,6 @@ const styles = StyleSheet.create({
     marginBottom: 5,
   },
   carDetail: { fontSize: 16, color: COLORS.mutedForeground, marginTop: 2 },
-  completionHelp: {
-    color: COLORS.mutedForeground,
-    fontSize: 15,
-    lineHeight: 22,
-    marginBottom: 12,
-  },
-  completeButton: {
-    backgroundColor: COLORS.success,
-    padding: 13,
-    borderRadius: 10,
-    alignItems: "center",
-  },
-  completeButtonText: {
-    color: "#fff",
-    fontSize: 16,
-    fontWeight: "800",
-  },
-  requestCompletionButton: {
-    borderWidth: 1,
-    borderColor: COLORS.accent,
-    padding: 13,
-    borderRadius: 10,
-    alignItems: "center",
-    backgroundColor: "rgba(163, 112, 247, 0.12)",
-  },
-  requestCompletionButtonDisabled: {
-    opacity: 0.65,
-  },
-  secondaryActionSpacing: {
-    marginTop: 10,
-  },
-  requestCompletionButtonText: {
-    color: COLORS.accent,
-    fontSize: 16,
-    fontWeight: "800",
-  },
-  pendingConfirmationBox: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-    borderWidth: 1,
-    borderColor: "rgba(163, 112, 247, 0.45)",
-    backgroundColor: "rgba(163, 112, 247, 0.12)",
-    borderRadius: 10,
-    padding: 12,
-    marginBottom: 12,
-  },
-  pendingConfirmationText: {
-    color: COLORS.foreground,
-    fontSize: 14,
-    fontWeight: "700",
-  },
   doneButton: {
     backgroundColor: COLORS.accent,
     padding: 15,
