@@ -93,9 +93,10 @@ class RequestStep4_Notes(FlaskForm):
 
 # --- "Help me decide" Path ---
 GUIDED_PRICE_CHOICES = [
-    ("1_3m_to_3m", "1.3M - 3M ETB"),
-    ("3m_to_12m", "3M - 12M ETB"),
-    ("over_12m", "12M+ ETB"),
+    ("1_5m_to_3m", "1.5M - 3M ETB"),
+    ("3m_to_5m", "3M - 5M ETB"),
+    ("5m_to_10m", "5M - 10M ETB"),
+    ("over_10m", "10M+ ETB"),
 ]
 GUIDED_PRICE_LABELS = dict(GUIDED_PRICE_CHOICES)
 
