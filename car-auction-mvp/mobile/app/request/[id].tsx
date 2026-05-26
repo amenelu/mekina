@@ -167,6 +167,15 @@ const RequestDetailScreen = () => {
   const [questionText, setQuestionText] = useState("");
   const [isQuestionSubmitting, setQuestionSubmitting] = useState(false);
 
+  const handleBackPress = useCallback(() => {
+    if (router.canGoBack()) {
+      router.back();
+      return;
+    }
+
+    router.replace("/(tabs)/my-requests" as any);
+  }, [router]);
+
   const fetchRequestDetails = useCallback(async () => {
     if (!token || !id) {
       setLoading(false);
@@ -350,7 +359,21 @@ const RequestDetailScreen = () => {
 
   return (
     <>
-      <Stack.Screen options={{ title: `Request #${request.id}` }} />
+      <Stack.Screen options={{ headerShown: false }} />
+      <View style={styles.detailsHeader}>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Go back"
+          onPress={handleBackPress}
+          style={styles.detailsHeaderBackButton}
+        >
+          <Ionicons name="chevron-back" size={24} color={COLORS.foreground} />
+        </Pressable>
+        <Text style={styles.detailsHeaderTitle} numberOfLines={1}>
+          Request #{request.id}
+        </Text>
+        <View style={styles.detailsHeaderSpacer} />
+      </View>
       <ScrollView
         style={styles.container}
         refreshControl={
@@ -996,6 +1019,31 @@ const formatDistanceToNow = (
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.background },
+  detailsHeader: {
+    height: 56,
+    backgroundColor: COLORS.card,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.border,
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 12,
+  },
+  detailsHeaderBackButton: {
+    width: 44,
+    height: 44,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  detailsHeaderTitle: {
+    flex: 1,
+    color: COLORS.foreground,
+    fontSize: 18,
+    fontWeight: "700",
+    textAlign: "center",
+  },
+  detailsHeaderSpacer: {
+    width: 44,
+  },
   centered: {
     flex: 1,
     justifyContent: "center",
