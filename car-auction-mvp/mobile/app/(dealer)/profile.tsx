@@ -36,6 +36,7 @@ interface DealerProfile {
   phone_number?: string;
   tagline?: string;
   is_verified: boolean;
+  closed_deal_count?: number;
 }
 
 interface Review {
@@ -208,6 +209,19 @@ const ProfileScreen = () => {
                   {profileData.review_count} reviews)
                 </Text>
               </View>
+              <View style={styles.profileStats}>
+                <View style={styles.profileStatCard}>
+                  <Ionicons
+                    name="checkmark-circle"
+                    size={22}
+                    color={COLORS.accent}
+                  />
+                  <Text style={styles.profileStatValue}>
+                    {profileData.dealer.closed_deal_count || 0}
+                  </Text>
+                  <Text style={styles.profileStatLabel}>Closed deals</Text>
+                </View>
+              </View>
             </View>
 
             <View style={styles.section}>
@@ -362,6 +376,30 @@ const styles = StyleSheet.create({
   ratingText: {
     color: COLORS.textSecondary,
     fontSize: 14,
+  },
+  profileStats: {
+    width: "100%",
+    maxWidth: 360,
+    marginTop: 18,
+  },
+  profileStatCard: {
+    backgroundColor: COLORS.card,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    borderRadius: 12,
+    padding: 14,
+    alignItems: "center",
+    gap: 6,
+  },
+  profileStatValue: {
+    color: COLORS.text,
+    fontSize: 24,
+    fontWeight: "800",
+  },
+  profileStatLabel: {
+    color: COLORS.textSecondary,
+    fontSize: 13,
+    fontWeight: "700",
   },
   section: {
     padding: 20,
