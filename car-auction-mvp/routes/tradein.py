@@ -37,6 +37,7 @@ from routes.main import send_push_notification
 tradein_bp = Blueprint("tradein", __name__, url_prefix="/trade-in")
 
 TRADE_IN_UPLOAD_FOLDER = "static/uploads/trade_ins"
+MIN_TRADE_IN_PHOTOS = 10
 
 
 class TradeInForm(FlaskForm):
@@ -73,10 +74,10 @@ class TradeInForm(FlaskForm):
         validators=[Optional(), Length(max=1000)],
     )
     images = MultipleFileField(
-        "Upload Photos (up to 10)",
+        "Upload Photos (at least 10)",
         validators=[
             FileAllowed(["jpg", "png", "jpeg"], "Images only!"),
-            DataRequired(message="Please upload at least one photo of your car."),
+            DataRequired(message="Please upload at least 10 photos of your car."),
         ],
     )
     submit = SubmitField("Get My Trade-in Offer")
@@ -150,6 +151,20 @@ def submit_trade_in():
     """Displays and processes the trade-in submission form."""
     form = TradeInForm()
     if form.validate_on_submit():
+        selected_images = [
+            image_file
+            for image_file in (form.images.data or [])
+            if image_file and image_file.filename
+        ]
+        if len(selected_images) < MIN_TRADE_IN_PHOTOS:
+            flash(
+                f"Please upload at least {MIN_TRADE_IN_PHOTOS} photos of your car.",
+                "danger",
+            )
+            return render_template(
+                "trade_in_form.html", form=form, title="Trade-in Your Car"
+            )
+
         if get_recent_trade_in_count(current_user.id) >= 3:
             flash(
                 "You have reached the daily limit of 3 trade-in requests. Please try again later.",
@@ -175,13 +190,25 @@ def submit_trade_in():
         db.session.add(new_request)
         db.session.flush()  # To get the ID for the new_request
 
-        for image_file in form.images.data:
+        saved_photo_count = 0
+        for image_file in selected_images:
             image_url = save_trade_in_photo(image_file)
             if image_url:
                 new_photo = TradeInPhoto(
                     image_url=image_url, trade_in_request_id=new_request.id
                 )
                 db.session.add(new_photo)
+                saved_photo_count += 1
+
+        if saved_photo_count < MIN_TRADE_IN_PHOTOS:
+            db.session.rollback()
+            flash(
+                f"Please upload at least {MIN_TRADE_IN_PHOTOS} valid photos of your car.",
+                "danger",
+            )
+            return render_template(
+                "trade_in_form.html", form=form, title="Trade-in Your Car"
+            )
 
         db.session.commit()
 
@@ -218,9 +245,14 @@ def api_submit_trade_in(current_user):
     if not all(field in data for field in required_fields):
         return jsonify({"status": "error", "message": "Missing required fields."}), 400
 
-    if not isinstance(data["images"], list) or not data["images"]:
+    if not isinstance(data["images"], list) or len(data["images"]) < MIN_TRADE_IN_PHOTOS:
         return (
-            jsonify({"status": "error", "message": "At least one image is required."}),
+            jsonify(
+                {
+                    "status": "error",
+                    "message": f"At least {MIN_TRADE_IN_PHOTOS} photos are required.",
+                }
+            ),
             400,
         )
 
@@ -241,6 +273,7 @@ def api_submit_trade_in(current_user):
     db.session.flush()
 
     # In a real API, you'd decode base64 images and save them.
+    saved_photo_count = 0
     for image_data in data["images"]:
         image_url = save_base64_image(image_data)  # A helper function to handle base64
         if image_url:
@@ -248,6 +281,19 @@ def api_submit_trade_in(current_user):
                 image_url=image_url, trade_in_request_id=new_request.id
             )
             db.session.add(new_photo)
+            saved_photo_count += 1
+
+    if saved_photo_count < MIN_TRADE_IN_PHOTOS:
+        db.session.rollback()
+        return (
+            jsonify(
+                {
+                    "status": "error",
+                    "message": f"At least {MIN_TRADE_IN_PHOTOS} valid photos are required.",
+                }
+            ),
+            400,
+        )
 
     db.session.commit()
 

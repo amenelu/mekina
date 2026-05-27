@@ -28,6 +28,9 @@ const COLORS = {
   mutedForeground: "#8A94A3",
 };
 
+const MIN_TRADE_IN_PHOTOS = 10;
+const MAX_TRADE_IN_PHOTOS = 20;
+
 const TradeInScreen = () => {
   const router = useRouter();
   const { token } = useAuth();
@@ -46,8 +49,11 @@ const TradeInScreen = () => {
   const isWideWeb = Platform.OS === "web" && width >= 1000;
 
   const handleImagePick = async () => {
-    if (images.length >= 6) {
-      Alert.alert("Image Limit", "You can upload up to 6 photos for a trade-in.");
+    if (images.length >= MAX_TRADE_IN_PHOTOS) {
+      Alert.alert(
+        "Image Limit",
+        `You can upload up to ${MAX_TRADE_IN_PHOTOS} photos for a trade-in.`
+      );
       return;
     }
 
@@ -56,7 +62,7 @@ const TradeInScreen = () => {
       allowsMultipleSelection: true,
       quality: 0.7,
       base64: true,
-      selectionLimit: 6 - images.length,
+      selectionLimit: MAX_TRADE_IN_PHOTOS - images.length,
     });
 
     if (!result.canceled) {
@@ -80,10 +86,18 @@ const TradeInScreen = () => {
       return;
     }
 
-    if (!make || !model || !year || !mileage || base64Images.length === 0) {
+    if (!make || !model || !year || !mileage) {
       Alert.alert(
         "Missing Information",
-        "Please fill in all required fields (Make, Model, Year, Mileage) and upload at least one photo."
+        "Please fill in all required fields (Make, Model, Year, Mileage)."
+      );
+      return;
+    }
+
+    if (base64Images.length < MIN_TRADE_IN_PHOTOS) {
+      Alert.alert(
+        "More Photos Required",
+        `Please upload at least ${MIN_TRADE_IN_PHOTOS} photos of your car before submitting.`
       );
       return;
     }
@@ -205,8 +219,14 @@ const TradeInScreen = () => {
 
             <Pressable style={styles.imagePickerButton} onPress={handleImagePick}>
               <Ionicons name="camera" size={20} color={COLORS.accent} />
-              <Text style={styles.imagePickerText}>Upload Photos</Text>
+              <Text style={styles.imagePickerText}>
+                Upload Photos ({images.length}/{MIN_TRADE_IN_PHOTOS} minimum)
+              </Text>
             </Pressable>
+            <Text style={styles.photoRequirementText}>
+              Add at least {MIN_TRADE_IN_PHOTOS} clear photos: front, back, both
+              sides, interior, dashboard, engine bay, tires, and any damage.
+            </Text>
 
             <ScrollView horizontal style={styles.imagePreviewContainer}>
               {images.map((uri, index) => (
@@ -317,6 +337,12 @@ const styles = StyleSheet.create({
     borderStyle: "dashed",
   },
   imagePickerText: { color: COLORS.accent, fontSize: 16, fontWeight: "600" },
+  photoRequirementText: {
+    color: COLORS.mutedForeground,
+    fontSize: 13,
+    lineHeight: 19,
+    marginTop: -6,
+  },
   imagePreviewContainer: {
     flexDirection: "row",
     marginTop: 10,
