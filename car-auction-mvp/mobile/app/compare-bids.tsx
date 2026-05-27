@@ -44,7 +44,11 @@ interface ComparisonBid {
   extras?: string;
   dealer_id: number;
   dealer_username?: string; // Depends on backend serialization
-  dealer?: { username: string; avg_rating: number };
+  dealer?: {
+    username: string;
+    avg_rating: number;
+    closed_deal_count?: number;
+  };
   image_url?: string;
   image_urls?: string[];
   // Comparison flags
@@ -121,22 +125,52 @@ const CompareBidsScreen = () => {
           decelerationRate="fast"
           snapToInterval={CARD_WIDTH + 15} // Card width + margin
         >
-          {bids.map((bid) => (
-            <View key={bid.id} style={styles.card}>
+          {bids.map((bid) => {
+            const rating = bid.dealer?.avg_rating || 0;
+            const closedDeals = bid.dealer?.closed_deal_count || 0;
+            const isTrustedDealer = rating >= 4.5 || closedDeals >= 3;
+
+            return (
+            <View
+              key={bid.id}
+              style={[styles.card, isTrustedDealer && styles.trustedCard]}
+            >
               {(() => {
                 const imageUrl = bid.image_url || bid.image_urls?.[0];
                 return (
                   <>
               {/* Header / Dealer Info */}
               <View style={styles.cardHeader}>
-                <Text style={styles.dealerName}>
-                  {bid.dealer?.username || "Dealer"}
-                </Text>
-                <View style={styles.ratingBadge}>
-                  <Ionicons name="star" size={12} color="#FFD700" />
-                  <Text style={styles.ratingText}>
-                    {bid.dealer?.avg_rating?.toFixed(1) || "N/A"}
+                <View style={styles.dealerTitleBlock}>
+                  <Text style={styles.dealerName}>
+                    {bid.dealer?.username || "Dealer"}
                   </Text>
+                  {isTrustedDealer ? (
+                    <View style={styles.trustedBadge}>
+                      <Ionicons
+                        name="shield-checkmark"
+                        size={12}
+                        color={COLORS.success}
+                      />
+                      <Text style={styles.trustedBadgeText}>Trusted dealer</Text>
+                    </View>
+                  ) : null}
+                </View>
+                <View style={styles.dealerMetrics}>
+                  <View style={styles.ratingBadge}>
+                    <Ionicons name="star" size={12} color="#FFD700" />
+                    <Text style={styles.ratingText}>
+                      {rating ? rating.toFixed(1) : "New"}
+                    </Text>
+                  </View>
+                  <View style={styles.closedDealsBadge}>
+                    <Ionicons
+                      name="checkmark-circle"
+                      size={12}
+                      color={COLORS.success}
+                    />
+                    <Text style={styles.ratingText}>{closedDeals}</Text>
+                  </View>
                 </View>
               </View>
 
@@ -247,7 +281,8 @@ const CompareBidsScreen = () => {
                 );
               })()}
             </View>
-          ))}
+          );
+          })}
         </ScrollView>
       </ScrollView>
     </SafeAreaView>
@@ -308,13 +343,35 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: COLORS.border,
   },
+  trustedCard: {
+    borderColor: COLORS.success,
+    shadowColor: COLORS.success,
+    shadowOpacity: 0.18,
+    shadowRadius: 10,
+  },
   cardHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
     marginBottom: 10,
   },
+  dealerTitleBlock: { flex: 1, paddingRight: 8 },
   dealerName: { fontSize: 16, fontWeight: "bold", color: COLORS.text },
+  trustedBadge: {
+    marginTop: 6,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+  },
+  trustedBadgeText: {
+    color: COLORS.success,
+    fontSize: 11,
+    fontWeight: "800",
+  },
+  dealerMetrics: {
+    alignItems: "flex-end",
+    gap: 6,
+  },
   ratingBadge: {
     flexDirection: "row",
     alignItems: "center",
@@ -328,6 +385,14 @@ const styles = StyleSheet.create({
     fontSize: 12,
     marginLeft: 4,
     fontWeight: "bold",
+  },
+  closedDealsBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "rgba(40, 167, 69, 0.12)",
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
   },
   imageContainer: {
     height: 140,

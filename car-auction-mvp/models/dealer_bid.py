@@ -91,6 +91,7 @@ class DealerBid(db.Model):
                     "username": self.dealer.username,
                     "is_verified": self.dealer.is_verified,
                     "avg_rating": self.dealer.get_average_rating(),
+                    "closed_deal_count": self.dealer.get_closed_deal_count(),
                 }
                 if self.dealer
                 else None
