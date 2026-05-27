@@ -24,6 +24,8 @@ export default function DealerTabsLayoutWeb() {
     "/submit",
     "/dealer-points",
     "/points",
+    "/dealer-closed-deals",
+    "/closed-deals",
   ].some((route) => pathname.includes(route));
 
   return (
@@ -94,6 +96,7 @@ export default function DealerTabsLayoutWeb() {
       <Tabs.Screen name="dealer-edit-listing" options={{ href: null }} />
       <Tabs.Screen name="dealer-submit" options={{ href: null }} />
       <Tabs.Screen name="dealer-points" options={{ href: null }} />
+      <Tabs.Screen name="dealer-closed-deals" options={{ href: null }} />
       <Tabs.Screen name="dashboard" options={{ href: null }} />
       <Tabs.Screen name="analytics" options={{ href: null }} />
       <Tabs.Screen name="messages" options={{ href: null }} />
@@ -103,6 +106,7 @@ export default function DealerTabsLayoutWeb() {
       <Tabs.Screen name="edit-listing" options={{ href: null }} />
       <Tabs.Screen name="submit" options={{ href: null }} />
       <Tabs.Screen name="points" options={{ href: null }} />
+      <Tabs.Screen name="closed-deals" options={{ href: null }} />
       </Tabs>
     </AuthGate>
   );

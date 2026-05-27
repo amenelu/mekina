@@ -13,13 +13,9 @@ from werkzeug.urls import url_parse
 from sqlalchemy import func, or_
 from extensions import db
 from models.user import User
-from models.password_reset_token import PasswordResetToken
-from services.email import send_email
 import jwt
-import os
 from datetime import datetime, timedelta
 from functools import wraps
-from urllib.parse import urlencode
 from flask_wtf import FlaskForm
 from wtforms import StringField, PasswordField, BooleanField, SubmitField
 from wtforms.validators import DataRequired, Email, EqualTo, ValidationError, Optional
@@ -92,19 +88,11 @@ def _password_reset_response():
     return jsonify(
         {
             "message": (
-                "If an account exists for that email, a password reset link has "
-                "been sent."
+                "Password reset is handled by an admin. Contact support or an "
+                "administrator to receive a temporary password."
             )
         }
     )
-
-
-def _build_password_reset_link(raw_token):
-    base_url = (
-        current_app.config.get("PASSWORD_RESET_BASE_URL")
-        or request.host_url.rstrip("/")
-    )
-    return f"{base_url.rstrip('/')}/reset-password?{urlencode({'token': raw_token})}"
 
 
 def token_required(f):
@@ -292,82 +280,12 @@ def api_register():  # Removed the extra redirect and render_template lines
 
 @auth_bp.route("/api/password-reset/request", methods=["POST"])
 def api_password_reset_request():
-    data = request.get_json() or {}
-    email = (data.get("email") or "").strip().lower()
-
-    if not email:
-        return jsonify({"message": "Email is required."}), 400
-
-    user = User.query.filter(func.lower(User.email) == email).first()
-    if not user:
-        return _password_reset_response(), 200
-
-    PasswordResetToken.query.filter_by(user_id=user.id, used_at=None).update(
-        {"used_at": datetime.utcnow()}
-    )
-    raw_token, reset_token = PasswordResetToken.create_for_user(
-        user,
-        expires_in_minutes=current_app.config.get(
-            "PASSWORD_RESET_EXPIRATION_MINUTES", 30
-        ),
-    )
-    db.session.add(reset_token)
-    db.session.commit()
-
-    reset_link = _build_password_reset_link(raw_token)
-    body = (
-        f"Hi {user.username},\n\n"
-        "Use this link to reset your Mekina password:\n"
-        f"{reset_link}\n\n"
-        "This link expires soon. If you did not request it, you can ignore this email."
-    )
-    email_sent = False
-    try:
-        email_sent = send_email(user.email, "Reset your Mekina password", body)
-    except Exception:
-        current_app.logger.exception("Failed to send password reset email.")
-
-    if not email_sent and os.environ.get("APP_ENV") != "production":
-        response = {
-            "message": (
-                "Password reset email is not configured yet. Configure SMTP to "
-                "send reset links."
-            ),
-            "email_sent": False,
-        }
-        if current_app.config.get("FLASK_DEBUG", False):
-            response["reset_link"] = reset_link
-        return jsonify(response), 200
-
-    return _password_reset_response(), 200
+    return _password_reset_response(), 410
 
 
 @auth_bp.route("/api/password-reset/confirm", methods=["POST"])
 def api_password_reset_confirm():
-    data = request.get_json() or {}
-    raw_token = (data.get("token") or "").strip()
-    password = data.get("password") or ""
-    password2 = data.get("password2") or ""
-
-    if not raw_token:
-        return jsonify({"message": "Reset token is required."}), 400
-    if not password:
-        return jsonify({"message": "Password is required."}), 400
-    if password != password2:
-        return jsonify({"message": "Passwords must match."}), 400
-    if len(password) < 8:
-        return jsonify({"message": "Password must be at least 8 characters."}), 400
-
-    token_hash = PasswordResetToken.hash_token(raw_token)
-    reset_token = PasswordResetToken.query.filter_by(token_hash=token_hash).first()
-    if not reset_token or reset_token.is_used or reset_token.is_expired:
-        return jsonify({"message": "This reset link is invalid or expired."}), 400
-
-    reset_token.user.set_password(password)
-    reset_token.used_at = datetime.utcnow()
-    db.session.commit()
-
-    return jsonify({"message": "Password reset successful."}), 200
+    return _password_reset_response(), 410
 
 
 @auth_bp.route("/api/change-password", methods=["POST"])

@@ -39,6 +39,9 @@ export const DEALER_ROUTES = {
     ? "/(dealer)/dealer-place-offer"
     : "/(dealer)/place-offer",
   points: isWeb ? "/(dealer)/dealer-points" : "/(dealer)/points",
+  closedDeals: isWeb
+    ? "/(dealer)/dealer-closed-deals"
+    : "/(dealer)/closed-deals",
 } as const;
 
 export const RENTAL_ROUTES = {

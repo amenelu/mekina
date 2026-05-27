@@ -24,18 +24,6 @@ export function register(payload: {
   return apiClient.post("/auth/api/register", payload);
 }
 
-export function requestPasswordReset(email: string) {
-  return apiClient.post("/auth/api/password-reset/request", { email });
-}
-
-export function confirmPasswordReset(payload: {
-  token: string;
-  password: string;
-  password2: string;
-}) {
-  return apiClient.post("/auth/api/password-reset/confirm", payload);
-}
-
 export function changePassword(payload: {
   current_password: string;
   new_password: string;

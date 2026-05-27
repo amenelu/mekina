@@ -210,7 +210,15 @@ const ProfileScreen = () => {
                 </Text>
               </View>
               <View style={styles.profileStats}>
-                <View style={styles.profileStatCard}>
+                <Pressable
+                  style={({ pressed }) => [
+                    styles.profileStatCard,
+                    pressed && styles.profileStatCardPressed,
+                  ]}
+                  onPress={() => router.push(DEALER_ROUTES.closedDeals as any)}
+                  accessibilityRole="button"
+                  accessibilityLabel="Open closed deals"
+                >
                   <Ionicons
                     name="checkmark-circle"
                     size={22}
@@ -220,7 +228,12 @@ const ProfileScreen = () => {
                     {profileData.dealer.closed_deal_count || 0}
                   </Text>
                   <Text style={styles.profileStatLabel}>Closed deals</Text>
-                </View>
+                  <Ionicons
+                    name="chevron-forward"
+                    size={18}
+                    color={COLORS.textSecondary}
+                  />
+                </Pressable>
               </View>
             </View>
 
@@ -390,6 +403,10 @@ const styles = StyleSheet.create({
     padding: 14,
     alignItems: "center",
     gap: 6,
+  },
+  profileStatCardPressed: {
+    opacity: 0.82,
+    borderColor: COLORS.accent,
   },
   profileStatValue: {
     color: COLORS.text,

@@ -13,6 +13,7 @@ from flask_login import login_required, current_user, AnonymousUserMixin
 from models.car_request import CarRequest
 from werkzeug.utils import secure_filename
 from models.dealer_bid import DealerBid
+from models.deal import Deal
 from models.car import Car
 from models.car_image import CarImage
 from models.dealer_bid_image import DealerBidImage
@@ -58,6 +59,7 @@ from routes.main import mark_notification_as_read
 from routes.seller import save_base64_image, token_required
 from routes.main import send_push_notification
 from routes.auth import verify_jwt
+import re
 
 dealer_bp = Blueprint("dealer", __name__, url_prefix="/dealer")
 
@@ -885,11 +887,43 @@ def api_advanced_analytics(current_user):
             }
         )
 
-    # --- Analytics Generation (Existing Code) ---
+    # --- Analytics Generation ---
     # 1. Market Demand (Budget Distribution from Requests)
-    budget_counts = {"Under 1M": 0, "1M - 3M": 0, "3M - 5M": 0, "Over 5M": 0}
+    budget_patterns = {
+        "1.5M - 3M": [
+            r"1\.?5\s*m\s*-\s*3\s*m",
+            r"1\.?5\s*-\s*3",
+            r"1,?500,?000\s*-\s*3,?000,?000",
+            r"1_5m_to_3m",
+        ],
+        "3M - 5M": [
+            r"3\s*m\s*-\s*5\s*m",
+            r"3\s*-\s*5",
+            r"3,?000,?000\s*-\s*5,?000,?000",
+            r"3m_to_5m",
+        ],
+        "5M - 10M": [
+            r"5\s*m\s*-\s*10\s*m",
+            r"5\s*-\s*10",
+            r"5,?000,?000\s*-\s*10,?000,?000",
+            r"5m_to_10m",
+        ],
+        "10M+": [
+            r"10\s*m\s*\+",
+            r"10\s*\+",
+            r"10,?000,?000\s*\+",
+            r"over\s+10\s*m",
+            r"over_10m",
+        ],
+    }
+    legacy_budget_patterns = {
+        "1.5M - 3M": [r"1\s*m\s*-\s*3\s*m", r"1,?000,?000\s*-\s*3,?000,?000"],
+        "3M - 5M": [r"3\s*m\s*-\s*5\s*m", r"3,?000,?000\s*-\s*5,?000,?000"],
+        "5M - 10M": [r"over\s+5\s*m", r"over\s+5,?000,?000"],
+    }
+    budget_counts = {label: 0 for label in budget_patterns}
 
-    # Analyze last 100 requests for budget trends
+    # Analyze last 100 requests for budget trends.
     recent_requests = (
         CarRequest.query.order_by(CarRequest.created_at.desc()).limit(100).all()
     )
@@ -898,14 +932,17 @@ def api_advanced_analytics(current_user):
         if not req.notes:
             continue
         note_lower = req.notes.lower()
-        if "under 1,000,000" in note_lower or "under 1m" in note_lower:
-            budget_counts["Under 1M"] += 1
-        elif "1m - 3m" in note_lower or "1,000,000 - 3,000,000" in note_lower:
-            budget_counts["1M - 3M"] += 1
-        elif "3m - 5m" in note_lower or "3,000,000 - 5,000,000" in note_lower:
-            budget_counts["3M - 5M"] += 1
-        elif "over 5,000,000" in note_lower or "over 5m" in note_lower:
-            budget_counts["Over 5M"] += 1
+        matched = False
+        for label, patterns in budget_patterns.items():
+            if any(re.search(pattern, note_lower) for pattern in patterns):
+                budget_counts[label] += 1
+                matched = True
+                break
+        if not matched:
+            for label, patterns in legacy_budget_patterns.items():
+                if any(re.search(pattern, note_lower) for pattern in patterns):
+                    budget_counts[label] += 1
+                    break
 
     market_demand = [{"label": k, "value": v} for k, v in budget_counts.items()]
 
@@ -947,26 +984,65 @@ def api_advanced_analytics(current_user):
     total_wins = DealerBid.query.filter_by(status="accepted").count()
     global_win_rate = (total_wins / total_bids * 100) if total_bids > 0 else 0
 
-    # 5. Buyer Behaviour (Body Types from Search)
-    body_types = ["suv", "sedan", "hatchback", "pickup", "coupe"]
-    buyer_behaviour = []
-    for bt in body_types:
-        count = SearchQuery.query.filter(
-            SearchQuery.query_text.ilike(f"%{bt}%")
-        ).count()
-        buyer_behaviour.append({"type": bt.capitalize(), "count": count})
+    request_notes = [
+        (req.notes or "").lower()
+        for req in recent_requests
+        if req.notes
+    ]
 
+    def _count_signal_terms(terms, listing_column):
+        counts = {label: 0 for label in terms}
+
+        listing_counts = (
+            db.session.query(listing_column, func.count(Car.id))
+            .filter(listing_column.isnot(None), listing_column != "")
+            .group_by(listing_column)
+            .all()
+        )
+        for raw_value, count in listing_counts:
+            normalized_value = str(raw_value).strip().lower()
+            for label, aliases in terms.items():
+                if normalized_value in aliases:
+                    counts[label] += count
+                    break
+
+        for label, aliases in terms.items():
+            for alias in aliases:
+                counts[label] += SearchQuery.query.filter(
+                    SearchQuery.query_text.ilike(f"%{alias}%")
+                ).count()
+                counts[label] += sum(1 for note in request_notes if alias in note)
+
+        return counts
+
+    # 5. Buyer Behaviour (Body Types from requests, searches, and listing fields)
+    body_type_terms = {
+        "SUV": ["suv", "sport utility"],
+        "Sedan": ["sedan"],
+        "Hatchback": ["hatchback", "hatch"],
+        "Pickup": ["pickup", "pickup truck", "truck"],
+        "Coupe": ["coupe"],
+        "Minivan": ["minivan", "van"],
+    }
+    body_type_counts = _count_signal_terms(body_type_terms, Car.body_type)
+    buyer_behaviour = [
+        {"type": label, "count": int(count)}
+        for label, count in body_type_counts.items()
+    ]
     buyer_behaviour.sort(key=lambda x: x["count"], reverse=True)
 
-    # 6. Drivetrain Preferences (from SearchQuery)
-    drivetrain_types = ["awd", "fwd", "rwd", "4wd"]
-    drivetrain_demand = []
-    for dt in drivetrain_types:
-        count = SearchQuery.query.filter(
-            SearchQuery.query_text.ilike(f"%{dt}%")
-        ).count()
-        drivetrain_demand.append({"type": dt.upper(), "count": count})
-
+    # 6. Drivetrain Preferences (from requests, searches, and listing fields)
+    drivetrain_terms = {
+        "FWD": ["fwd", "front wheel", "front-wheel"],
+        "RWD": ["rwd", "rear wheel", "rear-wheel"],
+        "AWD": ["awd", "all wheel", "all-wheel"],
+        "4WD": ["4wd", "4x4", "four wheel", "four-wheel"],
+    }
+    drivetrain_counts = _count_signal_terms(drivetrain_terms, Car.drivetrain)
+    drivetrain_demand = [
+        {"type": label, "count": int(count)}
+        for label, count in drivetrain_counts.items()
+    ]
     drivetrain_demand.sort(key=lambda x: x["count"], reverse=True)
 
     return jsonify(
@@ -1036,6 +1112,31 @@ def api_dealer_profile(dealer_id):
         ratings=[r.to_dict() for r in ratings],
         avg_rating=round(avg_rating, 2),
         review_count=len(ratings),
+    )
+
+
+@dealer_bp.route("/api/closed-deals")
+@token_required
+def api_dealer_closed_deals(current_user):
+    """Returns confirmed closed deals for the logged-in dealer."""
+    if not current_user.is_dealer and not current_user.is_admin:
+        abort(403)
+
+    dealer_id = request.args.get("dealer_id", type=int)
+    if current_user.is_admin and dealer_id:
+        target_dealer_id = dealer_id
+    else:
+        target_dealer_id = current_user.id
+
+    deals = (
+        Deal.query.filter_by(dealer_id=target_dealer_id, status="completed")
+        .order_by(Deal.completed_at.desc(), Deal.deal_date.desc())
+        .all()
+    )
+
+    return jsonify(
+        deals=[deal.to_dict() for deal in deals],
+        count=len(deals),
     )
 
 

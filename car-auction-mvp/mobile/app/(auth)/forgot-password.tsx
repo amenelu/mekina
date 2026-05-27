@@ -1,179 +1,149 @@
-import React, { useState } from "react";
+import React from "react";
 import {
-  ActivityIndicator,
-  Alert,
-  KeyboardAvoidingView,
-  Platform,
+  Pressable,
+  SafeAreaView,
   ScrollView,
   StyleSheet,
   Text,
-  TextInput,
-  TouchableOpacity,
   View,
 } from "react-native";
 import { Link } from "expo-router";
-import { SafeAreaView } from "react-native-safe-area-context";
-import { requestPasswordReset } from "@/lib/api/auth";
+import { Ionicons } from "@expo/vector-icons";
+
+const COLORS = {
+  background: "#14181F",
+  card: "#1C212B",
+  text: "#F8F8F8",
+  textSecondary: "#A8B0BD",
+  accent: "#A370F7",
+  border: "#313843",
+};
 
 export default function ForgotPasswordScreen() {
-  const [email, setEmail] = useState("");
-  const [message, setMessage] = useState("");
-  const [errorMessage, setErrorMessage] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
-
-  const handleSubmit = async () => {
-    if (!email.trim()) {
-      setErrorMessage("Enter the email address on your account.");
-      return;
-    }
-
-    setIsLoading(true);
-    setErrorMessage("");
-    setMessage("");
-    try {
-      const response = await requestPasswordReset(email.trim());
-      const nextMessage =
-        response.data?.message ||
-        "If an account exists for that email, a password reset link has been sent.";
-      setMessage(nextMessage);
-      if (Platform.OS !== "web") Alert.alert("Check your email", nextMessage);
-    } catch (error: any) {
-      setErrorMessage(
-        error.userMessage || error.message || "Unable to request password reset."
-      );
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
   return (
     <SafeAreaView style={styles.container}>
-      <KeyboardAvoidingView
-        behavior={Platform.OS === "ios" ? "padding" : "height"}
-        style={{ flex: 1 }}
-      >
-        <ScrollView contentContainerStyle={{ flexGrow: 1 }}>
-          <View style={styles.content}>
-            <Text style={styles.title}>Forgot Password</Text>
-            <Text style={styles.subtitle}>
-              Enter your account email. If email reset is unavailable, contact
-              an admin and they can generate a temporary password for you.
-            </Text>
-
-            <View style={styles.formGroup}>
-              <Text style={styles.label}>Email</Text>
-              <TextInput
-                style={styles.input}
-                value={email}
-                onChangeText={(value) => {
-                  setEmail(value);
-                  setErrorMessage("");
-                  setMessage("");
-                }}
-                keyboardType="email-address"
-                autoCapitalize="none"
-                autoComplete="email"
-                textContentType="emailAddress"
-              />
-            </View>
-
-            {errorMessage ? (
-              <View style={[styles.banner, styles.errorBanner]}>
-                <Text style={styles.errorText}>{errorMessage}</Text>
-              </View>
-            ) : null}
-
-            {message ? (
-              <View style={[styles.banner, styles.successBanner]}>
-                <Text style={styles.successText}>{message}</Text>
-              </View>
-            ) : null}
-
-            <TouchableOpacity
-              style={styles.primaryButton}
-              onPress={handleSubmit}
-              disabled={isLoading}
-            >
-              {isLoading ? (
-                <ActivityIndicator color="#fff" />
-              ) : (
-                <Text style={styles.primaryButtonText}>Send Reset Link</Text>
-              )}
-            </TouchableOpacity>
-
-            <View style={styles.footerLinkRow}>
-              <Link href="/login" asChild>
-                <TouchableOpacity>
-                  <Text style={styles.linkText}>Back to login</Text>
-                </TouchableOpacity>
-              </Link>
-            </View>
+      <ScrollView contentContainerStyle={styles.scrollContent}>
+        <View style={styles.card}>
+          <View style={styles.iconCircle}>
+            <Ionicons name="shield-checkmark" size={34} color={COLORS.accent} />
           </View>
-        </ScrollView>
-      </KeyboardAvoidingView>
+
+          <Text style={styles.title}>Password Help</Text>
+          <Text style={styles.subtitle}>
+            Password recovery is handled by an admin. Email reset links are not
+            enabled for this version of Mekina.
+          </Text>
+
+          <View style={styles.stepCard}>
+            <Text style={styles.stepNumber}>1</Text>
+            <Text style={styles.stepText}>
+              Contact an admin and provide the email or username on your account.
+            </Text>
+          </View>
+          <View style={styles.stepCard}>
+            <Text style={styles.stepNumber}>2</Text>
+            <Text style={styles.stepText}>
+              The admin will generate a temporary password for you.
+            </Text>
+          </View>
+          <View style={styles.stepCard}>
+            <Text style={styles.stepNumber}>3</Text>
+            <Text style={styles.stepText}>
+              Log in with the temporary password, then change it from your
+              profile.
+            </Text>
+          </View>
+
+          <Link href="/login" asChild>
+            <Pressable style={styles.primaryButton}>
+              <Text style={styles.primaryButtonText}>Back to login</Text>
+            </Pressable>
+          </Link>
+        </View>
+      </ScrollView>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#F8F9FA" },
-  content: { flex: 1, justifyContent: "center", paddingHorizontal: 24 },
+  container: { flex: 1, backgroundColor: COLORS.background },
+  scrollContent: {
+    flexGrow: 1,
+    justifyContent: "center",
+    padding: 24,
+  },
+  card: {
+    width: "100%",
+    maxWidth: 460,
+    alignSelf: "center",
+    backgroundColor: COLORS.card,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    borderRadius: 16,
+    padding: 24,
+    gap: 14,
+  },
+  iconCircle: {
+    width: 68,
+    height: 68,
+    borderRadius: 34,
+    alignSelf: "center",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "rgba(163, 112, 247, 0.14)",
+    marginBottom: 4,
+  },
   title: {
-    fontSize: 34,
-    fontWeight: "bold",
-    color: "#343a40",
-    marginBottom: 12,
+    color: COLORS.text,
+    fontSize: 30,
+    fontWeight: "900",
     textAlign: "center",
   },
   subtitle: {
-    fontSize: 16,
-    color: "#6c757d",
+    color: COLORS.textSecondary,
+    fontSize: 15,
+    lineHeight: 22,
     textAlign: "center",
-    marginBottom: 34,
-  },
-  formGroup: { marginBottom: 20 },
-  label: {
-    fontSize: 16,
-    fontWeight: "500",
-    color: "#343a40",
     marginBottom: 8,
   },
-  input: {
-    backgroundColor: "#fff",
-    padding: 10,
-    borderRadius: 6,
-    fontSize: 16,
+  stepCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
     borderWidth: 1,
-    borderColor: "#ced4da",
-    color: "#343a40",
+    borderColor: COLORS.border,
+    borderRadius: 12,
+    padding: 12,
+    backgroundColor: "#171C25",
   },
-  banner: {
-    borderRadius: 6,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    marginBottom: 16,
-    borderWidth: 1,
+  stepNumber: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    textAlign: "center",
+    lineHeight: 28,
+    overflow: "hidden",
+    color: COLORS.text,
+    backgroundColor: COLORS.accent,
+    fontWeight: "900",
   },
-  errorBanner: { backgroundColor: "#f8d7da", borderColor: "#f1aeb5" },
-  successBanner: { backgroundColor: "#d1e7dd", borderColor: "#a3cfbb" },
-  errorText: { color: "#842029", fontSize: 14, fontWeight: "500" },
-  successText: { color: "#0f5132", fontSize: 14, fontWeight: "500" },
+  stepText: {
+    flex: 1,
+    color: COLORS.text,
+    fontSize: 14,
+    lineHeight: 20,
+    fontWeight: "600",
+  },
   primaryButton: {
-    backgroundColor: "#6118d7ff",
-    paddingVertical: 12,
-    borderRadius: 6,
+    marginTop: 8,
+    backgroundColor: COLORS.accent,
+    borderRadius: 12,
+    paddingVertical: 14,
     alignItems: "center",
   },
-  primaryButtonText: { color: "#fff", fontSize: 16, fontWeight: "600" },
-  footerLinkRow: {
-    flexDirection: "row",
-    justifyContent: "center",
-    marginTop: 24,
-  },
-  linkText: {
+  primaryButtonText: {
+    color: "#FFFFFF",
     fontSize: 16,
-    color: "#0d6efd",
-    fontWeight: "bold",
-    textDecorationLine: "underline",
+    fontWeight: "800",
   },
 });

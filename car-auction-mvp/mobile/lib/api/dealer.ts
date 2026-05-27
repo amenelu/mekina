@@ -20,6 +20,10 @@ export function getDealerAdvancedAnalytics() {
   return apiClient.get("/dealer/api/analytics/advanced");
 }
 
+export function getDealerClosedDeals() {
+  return apiClient.get("/dealer/api/closed-deals");
+}
+
 export function requestDealerPoints(requestedPoints: number) {
   return apiClient.post("/dealer/api/points/request", {
     requested_points: requestedPoints,
