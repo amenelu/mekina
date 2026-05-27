@@ -21,6 +21,7 @@ from wtforms.validators import DataRequired, Length, NumberRange, Optional, Vali
 from routes.auth import token_required
 
 seller_bp = Blueprint('seller', __name__, url_prefix='/seller')
+MIN_SELLER_LISTING_PHOTOS = 10
 
 class CarSubmissionForm(FlaskForm):
     make = StringField('Make', validators=[DataRequired()])
@@ -327,6 +328,12 @@ def api_submit_car(current_user):
     if listing_type == 'sale' and not data.get('fixed_price'):
         return jsonify({'status': 'error', 'message': 'Fixed price sale requires a price.'}), 400
 
+    if len(files) < MIN_SELLER_LISTING_PHOTOS:
+        return jsonify({
+            'status': 'error',
+            'message': f'At least {MIN_SELLER_LISTING_PHOTOS} photos are required for seller listings.'
+        }), 400
+
     try:
         new_car = Car(
             make=data.get('make'),
@@ -360,10 +367,6 @@ def api_submit_car(current_user):
             equipment_item = Equipment.query.filter_by(name=item_name).first()
             if equipment_item:
                 new_car.equipment.append(equipment_item)
-
-    # Handle images
-    if not files:
-        return jsonify({'status': 'error', 'message': 'At least one image is required.'}), 400
 
     try:
         primary_image_index = int(data.get('primary_image_index', 0))

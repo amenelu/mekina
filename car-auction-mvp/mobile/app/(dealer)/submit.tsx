@@ -45,6 +45,8 @@ const BODY_TYPE_OPTIONS = [
 const TRANSMISSION_OPTIONS = ["Automatic", "Manual"] as const;
 const DRIVETRAIN_OPTIONS = ["FWD", "RWD", "AWD", "4WD"] as const;
 const FUEL_TYPE_OPTIONS = ["Gasoline", "Diesel", "Electric", "Hybrid"] as const;
+const MIN_SELLER_LISTING_PHOTOS = 10;
+const MAX_SELLER_LISTING_PHOTOS = 20;
 
 const ChoiceGroup = ({
   label,
@@ -175,8 +177,10 @@ const CarSubmissionForm = () => {
       return;
     }
 
-    if (images.length === 0) {
-      showRequiredAlert("Please upload at least one photo of the car.");
+    if (images.length < MIN_SELLER_LISTING_PHOTOS) {
+      showRequiredAlert(
+        `Please upload at least ${MIN_SELLER_LISTING_PHOTOS} photos of the car.`
+      );
       return;
     }
 
@@ -250,7 +254,7 @@ const CarSubmissionForm = () => {
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
       allowsMultipleSelection: true,
       quality: 0.7,
-      selectionLimit: 8,
+      selectionLimit: MAX_SELLER_LISTING_PHOTOS,
     });
     if (!result.canceled) {
       setImages(result.assets);
@@ -431,9 +435,16 @@ const CarSubmissionForm = () => {
           <Pressable style={styles.imagePickerButton} onPress={handleImagePick}>
             <Ionicons name="camera" size={20} color={COLORS.accent} />
             <Text style={styles.imagePickerText}>
-              {images.length > 0 ? "Reselect Images" : "Select Images"}
+              {images.length > 0
+                ? `Reselect Images (${images.length}/${MIN_SELLER_LISTING_PHOTOS} min)`
+                : `Select Images (${MIN_SELLER_LISTING_PHOTOS} min)`}
             </Text>
           </Pressable>
+          <Text style={styles.imageRequirementText}>
+            Sellers must upload at least {MIN_SELLER_LISTING_PHOTOS} clear photos:
+            front, back, both sides, interior, dashboard, engine bay, tires, and
+            any damage.
+          </Text>
         </View>
 
         <Pressable
@@ -583,6 +594,12 @@ const styles = StyleSheet.create({
     color: COLORS.accent,
     fontSize: 16,
     fontWeight: "600",
+  },
+  imageRequirementText: {
+    color: COLORS.textSecondary,
+    fontSize: 12,
+    lineHeight: 18,
+    marginTop: 10,
   },
 });
 
