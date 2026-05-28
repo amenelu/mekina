@@ -30,6 +30,7 @@ interface ClosedDeal {
   final_price: number;
   payment_method?: string;
   deal_date: string;
+  status?: string;
   completed_at?: string | null;
   customer?: {
     username?: string;
@@ -101,7 +102,7 @@ export default function ClosedDealsScreen() {
         >
           <Ionicons name="chevron-back" size={28} color={COLORS.text} />
         </Pressable>
-        <Text style={styles.headerTitle}>Closed Deals</Text>
+        <Text style={styles.headerTitle}>Deals Won</Text>
         <View style={styles.headerSpacer} />
       </View>
 
@@ -123,7 +124,7 @@ export default function ClosedDealsScreen() {
         >
           <View style={[styles.pageShell, isWideWeb && styles.pageShellWide]}>
             <Text style={styles.subtitle}>
-              Deals confirmed as completed by the buyer.
+              Accepted and completed deals won by your offers.
             </Text>
 
             {deals.length === 0 ? (
@@ -133,9 +134,9 @@ export default function ClosedDealsScreen() {
                   size={42}
                   color={COLORS.textSecondary}
                 />
-                <Text style={styles.emptyTitle}>No closed deals yet</Text>
+                <Text style={styles.emptyTitle}>No won deals yet</Text>
                 <Text style={styles.emptyText}>
-                  Completed deals will appear here after the buyer confirms them.
+                  Deals will appear here after a buyer accepts one of your offers.
                 </Text>
               </View>
             ) : (
@@ -149,6 +150,8 @@ export default function ClosedDealsScreen() {
                   ]
                     .filter(Boolean)
                     .join(" ");
+                  const isCompleted =
+                    String(deal.status || "").toLowerCase() === "completed";
 
                   return (
                     <Pressable
@@ -168,13 +171,27 @@ export default function ClosedDealsScreen() {
                     >
                       <View style={styles.dealTopRow}>
                         <Text style={styles.dealTitle}>Deal #{deal.id}</Text>
-                        <View style={styles.statusPill}>
+                        <View
+                          style={[
+                            styles.statusPill,
+                            !isCompleted && styles.acceptedStatusPill,
+                          ]}
+                        >
                           <Ionicons
-                            name="checkmark-circle"
+                            name={
+                              isCompleted ? "checkmark-circle" : "time-outline"
+                            }
                             size={14}
-                            color={COLORS.success}
+                            color={isCompleted ? COLORS.success : COLORS.accent}
                           />
-                          <Text style={styles.statusText}>Closed</Text>
+                          <Text
+                            style={[
+                              styles.statusText,
+                              !isCompleted && styles.acceptedStatusText,
+                            ]}
+                          >
+                            {isCompleted ? "Closed" : "Accepted"}
+                          </Text>
                         </View>
                       </View>
 
@@ -193,7 +210,9 @@ export default function ClosedDealsScreen() {
                           </Text>
                         </View>
                         <View style={styles.metaItem}>
-                          <Text style={styles.metaLabel}>Completed</Text>
+                          <Text style={styles.metaLabel}>
+                            {isCompleted ? "Completed" : "Accepted"}
+                          </Text>
                           <Text style={styles.metaValue}>
                             {formatDate(deal.completed_at || deal.deal_date)}
                           </Text>
@@ -207,9 +226,11 @@ export default function ClosedDealsScreen() {
                         <View style={styles.metaItem}>
                           <Text style={styles.metaLabel}>Reward</Text>
                           <Text style={styles.metaValue}>
-                            {deal.reward_points_awarded
+                            {isCompleted && deal.reward_points_awarded
                               ? `${deal.reward_points_amount || 1} point`
-                              : "Pending"}
+                              : isCompleted
+                                ? "Pending"
+                                : "After completion"}
                           </Text>
                         </View>
                       </View>
@@ -319,10 +340,16 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 5,
   },
+  acceptedStatusPill: {
+    borderColor: COLORS.accent,
+  },
   statusText: {
     color: COLORS.success,
     fontSize: 12,
     fontWeight: "800",
+  },
+  acceptedStatusText: {
+    color: COLORS.accent,
   },
   price: {
     color: COLORS.accent,

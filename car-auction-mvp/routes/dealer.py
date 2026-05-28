@@ -1118,7 +1118,7 @@ def api_dealer_profile(dealer_id):
 @dealer_bp.route("/api/closed-deals")
 @token_required
 def api_dealer_closed_deals(current_user):
-    """Returns confirmed closed deals for the logged-in dealer."""
+    """Returns deals won by the logged-in dealer."""
     if not current_user.is_dealer and not current_user.is_admin:
         abort(403)
 
@@ -1129,8 +1129,11 @@ def api_dealer_closed_deals(current_user):
         target_dealer_id = current_user.id
 
     deals = (
-        Deal.query.filter_by(dealer_id=target_dealer_id, status="completed")
-        .order_by(Deal.completed_at.desc(), Deal.deal_date.desc())
+        Deal.query.filter(
+            Deal.dealer_id == target_dealer_id,
+            Deal.status.in_(("accepted", "completed")),
+        )
+        .order_by(Deal.deal_date.desc())
         .all()
     )
 

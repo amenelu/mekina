@@ -227,7 +227,7 @@ const ProfileScreen = () => {
                   <Text style={styles.profileStatValue}>
                     {profileData.dealer.closed_deal_count || 0}
                   </Text>
-                  <Text style={styles.profileStatLabel}>Closed deals</Text>
+                  <Text style={styles.profileStatLabel}>Deals won</Text>
                   <Ionicons
                     name="chevron-forward"
                     size={18}
