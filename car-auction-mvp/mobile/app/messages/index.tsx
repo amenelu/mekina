@@ -8,13 +8,12 @@ import {
   RefreshControl,
   Pressable,
 } from "react-native";
-import { Stack, router, useFocusEffect } from "expo-router";
-import { Ionicons } from "@expo/vector-icons";
+import { router, useFocusEffect } from "expo-router";
 import { useAuth } from "@/hooks/useAuth";
 import { useSocket } from "../../contexts/SocketContext";
 import ConversationItem from "@/components/_components/ConversationItem";
 import { getMyMessages } from "@/lib/api/messages";
-import { LOGIN_ROUTE, PUBLIC_HOME_ROUTE } from "@/lib/roleRoutes";
+import { LOGIN_ROUTE } from "@/lib/roleRoutes";
 
 const COLORS = {
   background: "#14181F",
@@ -83,14 +82,6 @@ const MessagesScreen = () => {
     fetchConversations({ refreshBadges: true });
   };
 
-  const handleBack = () => {
-    if (router.canGoBack()) {
-      router.back();
-    } else {
-      router.replace(PUBLIC_HOME_ROUTE as any);
-    }
-  };
-
   if (!hasHydrated || isLoading) {
     return (
       <View style={styles.centered}>
@@ -102,25 +93,6 @@ const MessagesScreen = () => {
   if (!token) {
     return (
       <>
-        <Stack.Screen
-          options={{
-            title: "My Messages",
-            headerLeft: () => (
-              <Pressable
-                onPress={handleBack}
-                style={styles.backButton}
-                accessibilityRole="button"
-                accessibilityLabel="Go back"
-              >
-                <Ionicons
-                  name="chevron-back"
-                  size={28}
-                  color={COLORS.foreground}
-                />
-              </Pressable>
-            ),
-          }}
-        />
         <View style={styles.loginPrompt}>
           <Text style={styles.loginPromptText}>
             Please log in to view your messages.
@@ -139,21 +111,6 @@ const MessagesScreen = () => {
 
   return (
     <>
-      <Stack.Screen
-        options={{
-          title: "My Messages",
-          headerLeft: () => (
-            <Pressable
-              onPress={() => router.back()}
-              style={styles.backButton}
-              accessibilityRole="button"
-              accessibilityLabel="Go back"
-            >
-              <Ionicons name="chevron-back" size={28} color={COLORS.foreground} />
-            </Pressable>
-          ),
-        }}
-      />
       <ScrollView
         style={styles.container}
         refreshControl={
@@ -190,12 +147,6 @@ const styles = StyleSheet.create({
   },
   content: { padding: 20 },
   notificationList: { gap: 10 },
-  backButton: {
-    width: 44,
-    height: 44,
-    alignItems: "flex-start",
-    justifyContent: "center",
-  },
   noItemsText: {
     color: COLORS.mutedForeground,
     textAlign: "center",

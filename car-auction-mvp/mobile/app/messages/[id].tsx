@@ -12,13 +12,13 @@ import {
   Platform,
   useWindowDimensions,
 } from "react-native";
-import { Stack, router, useLocalSearchParams } from "expo-router";
+import { router, useLocalSearchParams } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "@/hooks/useAuth";
 import { useSocket } from "../../contexts/SocketContext";
 import { getConversation, sendChatMessage } from "@/lib/api/messages";
 import { unlockDealerConversation } from "@/lib/api/dealer";
-import { LOGIN_ROUTE, PUBLIC_HOME_ROUTE } from "@/lib/roleRoutes";
+import { LOGIN_ROUTE } from "@/lib/roleRoutes";
 
 const COLORS = {
   background: "#14181F",
@@ -175,14 +175,6 @@ const ConversationDetailScreen = () => {
     }
   };
 
-  const handleBack = () => {
-    if (router.canGoBack()) {
-      router.back();
-    } else {
-      router.replace("/messages");
-    }
-  };
-
   if (!hasHydrated || isLoading) {
     return (
       <View style={styles.centered}>
@@ -194,25 +186,6 @@ const ConversationDetailScreen = () => {
   if (!token) {
     return (
       <>
-        <Stack.Screen
-          options={{
-            title: "Chat",
-            headerLeft: () => (
-              <Pressable
-                onPress={() => router.replace(PUBLIC_HOME_ROUTE as any)}
-                style={styles.headerBackButton}
-                accessibilityRole="button"
-                accessibilityLabel="Go back"
-              >
-                <Ionicons
-                  name="chevron-back"
-                  size={28}
-                  color={COLORS.foreground}
-                />
-              </Pressable>
-            ),
-          }}
-        />
         <View style={styles.loginPrompt}>
           <Text style={styles.loginPromptText}>
             Please log in to view this conversation.
@@ -249,21 +222,6 @@ const ConversationDetailScreen = () => {
 
   return (
     <>
-      <Stack.Screen
-        options={{
-          title: conversation?.other_party?.username || "Chat",
-          headerLeft: () => (
-            <Pressable
-              onPress={() => router.back()}
-              style={styles.headerBackButton}
-              accessibilityRole="button"
-              accessibilityLabel="Go back"
-            >
-              <Ionicons name="chevron-back" size={28} color={COLORS.foreground} />
-            </Pressable>
-          ),
-        }}
-      />
       <KeyboardAvoidingView
         style={styles.container}
         behavior={Platform.OS === "ios" ? "padding" : "height"}
@@ -403,12 +361,6 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     backgroundColor: COLORS.background,
-  },
-  headerBackButton: {
-    width: 44,
-    height: 44,
-    alignItems: "flex-start",
-    justifyContent: "center",
   },
   loginPrompt: {
     flex: 1,
