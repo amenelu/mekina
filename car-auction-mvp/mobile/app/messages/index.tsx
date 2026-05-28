@@ -14,6 +14,7 @@ import { useSocket } from "../../contexts/SocketContext";
 import ConversationItem from "@/components/_components/ConversationItem";
 import { getMyMessages } from "@/lib/api/messages";
 import { LOGIN_ROUTE } from "@/lib/roleRoutes";
+import { resetMessagesHeaderTitle } from "@/lib/messagesHeaderTitle";
 
 const COLORS = {
   background: "#14181F",
@@ -55,6 +56,7 @@ const MessagesScreen = () => {
 
   useFocusEffect(
     useCallback(() => {
+      resetMessagesHeaderTitle();
       fetchConversations({ refreshBadges: true });
     }, [fetchConversations])
   );

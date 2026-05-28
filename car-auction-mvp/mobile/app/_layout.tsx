@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useSyncExternalStore } from "react";
 import {
   ActivityIndicator,
   Platform,
@@ -17,6 +17,10 @@ import {
 } from "@react-navigation/native";
 import { SocketProvider } from "../contexts/SocketContext";
 import { PUBLIC_HOME_ROUTE } from "@/lib/roleRoutes";
+import {
+  getMessagesHeaderTitle,
+  subscribeMessagesHeaderTitle,
+} from "@/lib/messagesHeaderTitle";
 
 const COLORS = {
   background: "#14181F",
@@ -413,6 +417,12 @@ function MessagesHeaderBackButton() {
 }
 
 export default function RootLayout() {
+  const messagesHeaderTitle = useSyncExternalStore(
+    subscribeMessagesHeaderTitle,
+    getMessagesHeaderTitle,
+    getMessagesHeaderTitle
+  );
+
   return (
     <RootErrorBoundary>
       <WebRuntimeMonitor>
@@ -458,7 +468,7 @@ export default function RootLayout() {
               <Stack.Screen
                 name="messages"
                 options={{
-                  title: "messages",
+                  title: messagesHeaderTitle,
                   headerLeft: () => <MessagesHeaderBackButton />,
                 }}
               />

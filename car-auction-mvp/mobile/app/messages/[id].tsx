@@ -19,6 +19,10 @@ import { useSocket } from "../../contexts/SocketContext";
 import { getConversation, sendChatMessage } from "@/lib/api/messages";
 import { unlockDealerConversation } from "@/lib/api/dealer";
 import { LOGIN_ROUTE } from "@/lib/roleRoutes";
+import {
+  resetMessagesHeaderTitle,
+  setMessagesHeaderTitle,
+} from "@/lib/messagesHeaderTitle";
 
 const COLORS = {
   background: "#14181F",
@@ -27,6 +31,25 @@ const COLORS = {
   accent: "#A370F7",
   mutedForeground: "#8A94A3",
   border: "#313843",
+};
+
+const buildConversationHeaderTitle = (conversation: any) => {
+  const car = conversation?.car;
+  const carTitle = [car?.year, car?.make, car?.model]
+    .filter((part) => part !== undefined && part !== null && String(part).trim())
+    .join(" ");
+  const dealerName =
+    conversation?.dealer?.username ||
+    (conversation?.other_party?.is_dealer
+      ? conversation?.other_party?.username
+      : "");
+  const otherPartyName = conversation?.other_party?.username;
+
+  if (dealerName && carTitle) {
+    return `${dealerName} - ${carTitle}`;
+  }
+
+  return dealerName || carTitle || otherPartyName || "Chat";
 };
 
 const ConversationDetailScreen = () => {
@@ -51,6 +74,9 @@ const ConversationDetailScreen = () => {
     try {
       const response = await getConversation(String(id));
       setConversation(response.data.conversation);
+      setMessagesHeaderTitle(
+        buildConversationHeaderTitle(response.data.conversation)
+      );
       setMessages(response.data.messages);
       refreshCounts();
     } catch (error) {
@@ -62,7 +88,9 @@ const ConversationDetailScreen = () => {
   }, [id, refreshCounts, token]);
 
   useEffect(() => {
+    setMessagesHeaderTitle("Chat");
     fetchConversation();
+    let cleanupSocket: (() => void) | undefined;
 
     if (socket && id) {
       const conversationRoom = `conversation_${id}`;
@@ -79,11 +107,15 @@ const ConversationDetailScreen = () => {
 
       socket.on("new_chat_message", handleNewMessage);
 
-      // Cleanup on unmount or when id/socket changes
-      return () => {
+      cleanupSocket = () => {
         socket.off("new_chat_message", handleNewMessage);
       };
     }
+
+    return () => {
+      cleanupSocket?.();
+      resetMessagesHeaderTitle();
+    };
   }, [fetchConversation, id, refreshCounts, socket, user?.id]);
 
   const handleSend = async () => {
