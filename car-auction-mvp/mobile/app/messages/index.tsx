@@ -105,19 +105,26 @@ const MessagesScreen = () => {
 
   if (!token) {
     return (
-      <View style={styles.container}>
-        <View style={styles.screenHeader}>
-          <Pressable
-            onPress={handleBack}
-            style={styles.backButton}
-            accessibilityRole="button"
-            accessibilityLabel="Go back"
-          >
-            <Ionicons name="chevron-back" size={28} color={COLORS.foreground} />
-          </Pressable>
-          <Text style={styles.screenHeaderTitle}>My Messages</Text>
-          <View style={styles.headerSpacer} />
-        </View>
+      <>
+        <Stack.Screen
+          options={{
+            title: "My Messages",
+            headerLeft: () => (
+              <Pressable
+                onPress={handleBack}
+                style={styles.backButton}
+                accessibilityRole="button"
+                accessibilityLabel="Go back"
+              >
+                <Ionicons
+                  name="chevron-back"
+                  size={28}
+                  color={COLORS.foreground}
+                />
+              </Pressable>
+            ),
+          }}
+        />
         <View style={styles.loginPrompt}>
           <Text style={styles.loginPromptText}>
             Please log in to view your messages.
@@ -130,7 +137,7 @@ const MessagesScreen = () => {
             <Text style={styles.loginButtonText}>Login</Text>
           </Pressable>
         </View>
-      </View>
+      </>
     );
   }
 
@@ -157,18 +164,6 @@ const MessagesScreen = () => {
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }
       >
-        <View style={styles.screenHeader}>
-          <Pressable
-            onPress={handleBack}
-            style={styles.backButton}
-            accessibilityRole="button"
-            accessibilityLabel="Go back"
-          >
-            <Ionicons name="chevron-back" size={28} color={COLORS.foreground} />
-          </Pressable>
-          <Text style={styles.screenHeaderTitle}>My Messages</Text>
-          <View style={styles.headerSpacer} />
-        </View>
         <View style={[styles.content, isWideWeb && styles.contentWide]}>
           {isWideWeb && (
             <View style={styles.pageIntro}>
@@ -204,24 +199,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: COLORS.background,
-  },
-  screenHeader: {
-    minHeight: 60,
-    paddingHorizontal: 16,
-    flexDirection: "row",
-    alignItems: "center",
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.border,
-  },
-  screenHeaderTitle: {
-    flex: 1,
-    color: COLORS.foreground,
-    fontSize: 20,
-    fontWeight: "800",
-    textAlign: "center",
-  },
-  headerSpacer: {
-    width: 44,
   },
   content: { padding: 20 },
   contentWide: {

@@ -193,19 +193,26 @@ const ConversationDetailScreen = () => {
 
   if (!token) {
     return (
-      <View style={styles.container}>
-        <View style={styles.screenHeader}>
-          <Pressable
-            onPress={() => router.replace(PUBLIC_HOME_ROUTE as any)}
-            style={styles.headerBackButton}
-            accessibilityRole="button"
-            accessibilityLabel="Go back"
-          >
-            <Ionicons name="chevron-back" size={28} color={COLORS.foreground} />
-          </Pressable>
-          <Text style={styles.screenHeaderTitle}>Chat</Text>
-          <View style={styles.headerSpacer} />
-        </View>
+      <>
+        <Stack.Screen
+          options={{
+            title: "Chat",
+            headerLeft: () => (
+              <Pressable
+                onPress={() => router.replace(PUBLIC_HOME_ROUTE as any)}
+                style={styles.headerBackButton}
+                accessibilityRole="button"
+                accessibilityLabel="Go back"
+              >
+                <Ionicons
+                  name="chevron-back"
+                  size={28}
+                  color={COLORS.foreground}
+                />
+              </Pressable>
+            ),
+          }}
+        />
         <View style={styles.loginPrompt}>
           <Text style={styles.loginPromptText}>
             Please log in to view this conversation.
@@ -218,7 +225,7 @@ const ConversationDetailScreen = () => {
             <Text style={styles.loginButtonText}>Login</Text>
           </Pressable>
         </View>
-      </View>
+      </>
     );
   }
 
@@ -262,20 +269,6 @@ const ConversationDetailScreen = () => {
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         keyboardVerticalOffset={Platform.OS === "ios" ? 100 : 0}
       >
-        <View style={styles.screenHeader}>
-          <Pressable
-            onPress={handleBack}
-            style={styles.headerBackButton}
-            accessibilityRole="button"
-            accessibilityLabel="Go back"
-          >
-            <Ionicons name="chevron-back" size={28} color={COLORS.foreground} />
-          </Pressable>
-          <Text style={styles.screenHeaderTitle}>
-            {conversation?.other_party?.username || "Chat"}
-          </Text>
-          <View style={styles.headerSpacer} />
-        </View>
         <ScrollView
           style={[styles.chatHistory, isWideWeb && styles.chatHistoryWide]}
           ref={scrollViewRef}
@@ -416,25 +409,6 @@ const styles = StyleSheet.create({
     height: 44,
     alignItems: "flex-start",
     justifyContent: "center",
-  },
-  screenHeader: {
-    minHeight: 60,
-    paddingHorizontal: 16,
-    flexDirection: "row",
-    alignItems: "center",
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.border,
-    backgroundColor: COLORS.background,
-  },
-  screenHeaderTitle: {
-    flex: 1,
-    color: COLORS.foreground,
-    fontSize: 20,
-    fontWeight: "800",
-    textAlign: "center",
-  },
-  headerSpacer: {
-    width: 44,
   },
   loginPrompt: {
     flex: 1,
