@@ -18,6 +18,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useSocket } from "../../contexts/SocketContext";
 import { getConversation, sendChatMessage } from "@/lib/api/messages";
 import { unlockDealerConversation } from "@/lib/api/dealer";
+import { LOGIN_ROUTE, PUBLIC_HOME_ROUTE } from "@/lib/roleRoutes";
 
 const COLORS = {
   background: "#14181F",
@@ -30,7 +31,7 @@ const COLORS = {
 
 const ConversationDetailScreen = () => {
   const { id } = useLocalSearchParams();
-  const { token, user, login } = useAuth() as any;
+  const { token, user, login, isLoading, hasHydrated } = useAuth() as any;
   const { socket, refreshCounts } = useSocket();
   const { width } = useWindowDimensions();
   const [conversation, setConversation] = useState<any>(null);
@@ -43,7 +44,10 @@ const ConversationDetailScreen = () => {
   const isWideWeb = Platform.OS === "web" && width >= 1000;
 
   const fetchConversation = useCallback(async () => {
-    if (!token || !id) return;
+    if (!token || !id) {
+      setLoading(false);
+      return;
+    }
     try {
       const response = await getConversation(String(id));
       setConversation(response.data.conversation);
@@ -171,6 +175,53 @@ const ConversationDetailScreen = () => {
     }
   };
 
+  const handleBack = () => {
+    if (router.canGoBack()) {
+      router.back();
+    } else {
+      router.replace("/messages");
+    }
+  };
+
+  if (!hasHydrated || isLoading) {
+    return (
+      <View style={styles.centered}>
+        <ActivityIndicator size="large" color={COLORS.accent} />
+      </View>
+    );
+  }
+
+  if (!token) {
+    return (
+      <View style={styles.container}>
+        <View style={styles.screenHeader}>
+          <Pressable
+            onPress={() => router.replace(PUBLIC_HOME_ROUTE as any)}
+            style={styles.headerBackButton}
+            accessibilityRole="button"
+            accessibilityLabel="Go back"
+          >
+            <Ionicons name="chevron-back" size={28} color={COLORS.foreground} />
+          </Pressable>
+          <Text style={styles.screenHeaderTitle}>Chat</Text>
+          <View style={styles.headerSpacer} />
+        </View>
+        <View style={styles.loginPrompt}>
+          <Text style={styles.loginPromptText}>
+            Please log in to view this conversation.
+          </Text>
+          <Pressable
+            testID="message-detail-login-button"
+            style={styles.loginButton}
+            onPress={() => router.push(LOGIN_ROUTE as any)}
+          >
+            <Text style={styles.loginButtonText}>Login</Text>
+          </Pressable>
+        </View>
+      </View>
+    );
+  }
+
   if (loading) {
     return (
       <View style={styles.centered}>
@@ -211,6 +262,20 @@ const ConversationDetailScreen = () => {
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         keyboardVerticalOffset={Platform.OS === "ios" ? 100 : 0}
       >
+        <View style={styles.screenHeader}>
+          <Pressable
+            onPress={handleBack}
+            style={styles.headerBackButton}
+            accessibilityRole="button"
+            accessibilityLabel="Go back"
+          >
+            <Ionicons name="chevron-back" size={28} color={COLORS.foreground} />
+          </Pressable>
+          <Text style={styles.screenHeaderTitle}>
+            {conversation?.other_party?.username || "Chat"}
+          </Text>
+          <View style={styles.headerSpacer} />
+        </View>
         <ScrollView
           style={[styles.chatHistory, isWideWeb && styles.chatHistoryWide]}
           ref={scrollViewRef}
@@ -351,6 +416,50 @@ const styles = StyleSheet.create({
     height: 44,
     alignItems: "flex-start",
     justifyContent: "center",
+  },
+  screenHeader: {
+    minHeight: 60,
+    paddingHorizontal: 16,
+    flexDirection: "row",
+    alignItems: "center",
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.border,
+    backgroundColor: COLORS.background,
+  },
+  screenHeaderTitle: {
+    flex: 1,
+    color: COLORS.foreground,
+    fontSize: 20,
+    fontWeight: "800",
+    textAlign: "center",
+  },
+  headerSpacer: {
+    width: 44,
+  },
+  loginPrompt: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    padding: 24,
+  },
+  loginPromptText: {
+    color: COLORS.mutedForeground,
+    fontSize: 16,
+    textAlign: "center",
+    marginBottom: 18,
+  },
+  loginButton: {
+    minWidth: 180,
+    alignItems: "center",
+    borderRadius: 12,
+    backgroundColor: COLORS.accent,
+    paddingVertical: 13,
+    paddingHorizontal: 20,
+  },
+  loginButtonText: {
+    color: COLORS.foreground,
+    fontSize: 16,
+    fontWeight: "800",
   },
   chatHistory: {
     flex: 1,
