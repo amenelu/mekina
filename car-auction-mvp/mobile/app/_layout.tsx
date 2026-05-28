@@ -8,7 +8,7 @@ import {
   Text,
   View,
 } from "react-native";
-import { Stack } from "expo-router";
+import { Stack, usePathname } from "expo-router";
 import {
   getFocusedRouteNameFromRoute,
   ThemeProvider,
@@ -203,11 +203,19 @@ function WebInputFocusStyles() {
 }
 
 function WebGlobalPullToRefresh() {
+  const pathname = usePathname();
   const [pullDistance, setPullDistance] = useState(0);
   const [refreshing, setRefreshing] = useState(false);
+  const pullRefreshDisabled =
+    pathname.includes("/place-offer") ||
+    pathname.includes("/dealer-place-offer");
 
   useEffect(() => {
     if (Platform.OS !== "web" || typeof window === "undefined") {
+      return;
+    }
+    if (pullRefreshDisabled) {
+      setPullDistance(0);
       return;
     }
 
@@ -356,9 +364,9 @@ function WebGlobalPullToRefresh() {
       window.removeEventListener("touchend", onTouchEnd);
       window.removeEventListener("touchcancel", onTouchEnd);
     };
-  }, [refreshing]);
+  }, [pullRefreshDisabled, refreshing]);
 
-  if (Platform.OS !== "web") {
+  if (Platform.OS !== "web" || pullRefreshDisabled) {
     return null;
   }
 

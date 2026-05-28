@@ -8,8 +8,10 @@ import {
   RefreshControl,
   Platform,
   useWindowDimensions,
+  Pressable,
 } from "react-native";
-import { Stack, useFocusEffect } from "expo-router";
+import { Stack, router, useFocusEffect } from "expo-router";
+import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "@/hooks/useAuth";
 import { useSocket } from "../../contexts/SocketContext";
 import ConversationItem from "@/components/_components/ConversationItem";
@@ -81,7 +83,21 @@ const MessagesScreen = () => {
 
   return (
     <>
-      <Stack.Screen options={{ title: "My Messages" }} />
+      <Stack.Screen
+        options={{
+          title: "My Messages",
+          headerLeft: () => (
+            <Pressable
+              onPress={() => router.back()}
+              style={styles.backButton}
+              accessibilityRole="button"
+              accessibilityLabel="Go back"
+            >
+              <Ionicons name="chevron-back" size={28} color={COLORS.foreground} />
+            </Pressable>
+          ),
+        }}
+      />
       <ScrollView
         style={styles.container}
         refreshControl={
@@ -142,6 +158,12 @@ const styles = StyleSheet.create({
     textAlign: "center",
   },
   notificationList: { gap: 10 },
+  backButton: {
+    width: 44,
+    height: 44,
+    alignItems: "flex-start",
+    justifyContent: "center",
+  },
   noItemsText: {
     color: COLORS.mutedForeground,
     textAlign: "center",

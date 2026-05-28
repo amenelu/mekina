@@ -12,7 +12,7 @@ import {
   Platform,
   useWindowDimensions,
 } from "react-native";
-import { Stack, useLocalSearchParams } from "expo-router";
+import { Stack, router, useLocalSearchParams } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "@/hooks/useAuth";
 import { useSocket } from "../../contexts/SocketContext";
@@ -194,6 +194,16 @@ const ConversationDetailScreen = () => {
       <Stack.Screen
         options={{
           title: conversation?.other_party?.username || "Chat",
+          headerLeft: () => (
+            <Pressable
+              onPress={() => router.back()}
+              style={styles.headerBackButton}
+              accessibilityRole="button"
+              accessibilityLabel="Go back"
+            >
+              <Ionicons name="chevron-back" size={28} color={COLORS.foreground} />
+            </Pressable>
+          ),
         }}
       />
       <KeyboardAvoidingView
@@ -335,6 +345,12 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     backgroundColor: COLORS.background,
+  },
+  headerBackButton: {
+    width: 44,
+    height: 44,
+    alignItems: "flex-start",
+    justifyContent: "center",
   },
   chatHistory: {
     flex: 1,

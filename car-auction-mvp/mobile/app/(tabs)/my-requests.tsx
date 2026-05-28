@@ -183,6 +183,8 @@ const RequestCard = ({
   const isImageBased = Boolean(firstRequestImage);
   const requestSource = getRequestSource(request);
   const requestDetailLabel = getRequestDetailLabel(request);
+  const canDeleteRequest =
+    request.status.toLowerCase() === "active" && !request.deal_id;
 
   const handlePress = () => {
     if (isTradeIn) {
@@ -244,13 +246,15 @@ const RequestCard = ({
             <Text style={[styles.statusTag, { backgroundColor: statusColor }]}>
               {statusText}
             </Text>
-            <Pressable onPress={handleDelete} hitSlop={10}>
-              <Ionicons
-                name="trash-outline"
-                size={20}
-                color={COLORS.mutedForeground}
-              />
-            </Pressable>
+            {canDeleteRequest ? (
+              <Pressable onPress={handleDelete} hitSlop={10}>
+                <Ionicons
+                  name="trash-outline"
+                  size={20}
+                  color={COLORS.mutedForeground}
+                />
+              </Pressable>
+            ) : null}
           </View>
         </View>
         <View style={styles.cardBody}>
@@ -385,6 +389,14 @@ const MyRequestsScreen = () => {
   };
 
   const handleDeleteRequest = async (req: CarRequest) => {
+    if (req.status.toLowerCase() !== "active" || req.deal_id) {
+      showNativeFlowAlert(
+        "Deal accepted",
+        "This request cannot be deleted after a deal has been accepted."
+      );
+      return;
+    }
+
     try {
       setLoading(true);
       if (req.type === "trade-in") {
