@@ -63,15 +63,10 @@ class User(UserMixin, db.Model):
         return float(avg_rating) if avg_rating is not None else 0
 
     def get_closed_deal_count(self):
-        """Returns deals this dealer has won, including accepted and completed deals."""
-        from models.deal import Deal
+        """Returns the number of offers this dealer has won."""
+        from models.dealer_bid import DealerBid
 
-        return (
-            Deal.query.filter(
-                Deal.dealer_id == self.id,
-                Deal.status.in_(("accepted", "completed")),
-            ).count()
-        )
+        return DealerBid.query.filter_by(dealer_id=self.id, status="accepted").count()
 
     def get_analytics_status(self):
         """

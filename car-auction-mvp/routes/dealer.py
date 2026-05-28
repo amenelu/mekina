@@ -1118,7 +1118,7 @@ def api_dealer_profile(dealer_id):
 @dealer_bp.route("/api/closed-deals")
 @token_required
 def api_dealer_closed_deals(current_user):
-    """Returns deals won by the logged-in dealer."""
+    """Returns accepted offers won by the logged-in dealer."""
     if not current_user.is_dealer and not current_user.is_admin:
         abort(403)
 
@@ -1128,18 +1128,55 @@ def api_dealer_closed_deals(current_user):
     else:
         target_dealer_id = current_user.id
 
-    deals = (
-        Deal.query.filter(
-            Deal.dealer_id == target_dealer_id,
-            Deal.status.in_(("accepted", "completed")),
-        )
-        .order_by(Deal.deal_date.desc())
+    won_bids = (
+        DealerBid.query.filter_by(dealer_id=target_dealer_id, status="accepted")
+        .order_by(DealerBid.timestamp.desc())
         .all()
     )
 
+    def _won_bid_to_dict(bid):
+        deal = bid.deal
+        car_request = bid.car_request
+        customer = User.query.get(car_request.user_id) if car_request else None
+        deal_status = getattr(deal, "status", None) if deal else "accepted"
+        deal_date = deal.deal_date if deal else bid.timestamp
+        final_price = deal.final_price if deal else bid.price
+
+        return {
+            "id": deal.id if deal else f"bid-{bid.id}",
+            "deal_id": deal.id if deal else None,
+            "bid_id": bid.id,
+            "request_id": bid.request_id,
+            "final_price": final_price,
+            "payment_method": deal.payment_method if deal else None,
+            "deal_date": deal_date.isoformat() + "Z" if deal_date else None,
+            "status": deal_status or "accepted",
+            "completed_at": (
+                deal.completed_at.isoformat() + "Z"
+                if deal and getattr(deal, "completed_at", None)
+                else None
+            ),
+            "reward_points_awarded": (
+                bool(deal.reward_points_awarded) if deal else False
+            ),
+            "reward_points_amount": deal.reward_points_amount if deal else 0,
+            "customer": (
+                customer.to_dict(detail_level="owner") if customer else None
+            ),
+            "accepted_bid": {
+                "id": bid.id,
+                "car_year": bid.car_year,
+                "make": bid.make,
+                "model": bid.model,
+                "condition": bid.condition,
+                "mileage": bid.mileage,
+                "timestamp": bid.timestamp.isoformat() + "Z",
+            },
+        }
+
     return jsonify(
-        deals=[deal.to_dict() for deal in deals],
-        count=len(deals),
+        deals=[_won_bid_to_dict(bid) for bid in won_bids],
+        count=len(won_bids),
     )
 
 

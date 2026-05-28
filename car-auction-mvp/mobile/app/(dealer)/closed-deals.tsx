@@ -26,7 +26,9 @@ const COLORS = {
 };
 
 interface ClosedDeal {
-  id: number;
+  id: number | string;
+  deal_id?: number | null;
+  bid_id?: number;
   final_price: number;
   payment_method?: string;
   deal_date: string;
@@ -160,17 +162,22 @@ export default function ClosedDealsScreen() {
                         styles.dealCard,
                         pressed && styles.dealCardPressed,
                       ]}
-                      onPress={() =>
+                      onPress={() => {
+                        if (!deal.deal_id) return;
                         router.push({
                           pathname: "/deal/[id]" as any,
-                          params: { id: String(deal.id) },
-                        })
-                      }
+                          params: { id: String(deal.deal_id) },
+                        });
+                      }}
                       accessibilityRole="button"
                       accessibilityLabel={`Open deal ${deal.id}`}
                     >
                       <View style={styles.dealTopRow}>
-                        <Text style={styles.dealTitle}>Deal #{deal.id}</Text>
+                        <Text style={styles.dealTitle}>
+                          {deal.deal_id
+                            ? `Deal #${deal.deal_id}`
+                            : `Accepted offer #${deal.bid_id || deal.id}`}
+                        </Text>
                         <View
                           style={[
                             styles.statusPill,
