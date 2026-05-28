@@ -8,13 +8,15 @@ import {
   Text,
   View,
 } from "react-native";
-import { Stack, usePathname } from "expo-router";
+import { Stack, router, usePathname } from "expo-router";
+import { Ionicons } from "@expo/vector-icons";
 import {
   getFocusedRouteNameFromRoute,
   ThemeProvider,
   DarkTheme,
 } from "@react-navigation/native";
 import { SocketProvider } from "../contexts/SocketContext";
+import { PUBLIC_HOME_ROUTE } from "@/lib/roleRoutes";
 
 const COLORS = {
   background: "#14181F",
@@ -391,6 +393,25 @@ function WebGlobalPullToRefresh() {
   );
 }
 
+function MessagesHeaderBackButton() {
+  return (
+    <Pressable
+      onPress={() => {
+        if (router.canGoBack()) {
+          router.back();
+        } else {
+          router.replace(PUBLIC_HOME_ROUTE as any);
+        }
+      }}
+      style={styles.rootHeaderBackButton}
+      accessibilityRole="button"
+      accessibilityLabel="Go back"
+    >
+      <Ionicons name="chevron-back" size={28} color={COLORS.foreground} />
+    </Pressable>
+  );
+}
+
 export default function RootLayout() {
   return (
     <RootErrorBoundary>
@@ -433,6 +454,13 @@ export default function RootLayout() {
               <Stack.Screen
                 name="dealer-points"
                 options={{ headerShown: false }}
+              />
+              <Stack.Screen
+                name="messages"
+                options={{
+                  title: "messages",
+                  headerLeft: () => <MessagesHeaderBackButton />,
+                }}
               />
               <Stack.Screen name="deal/[id]" options={{ title: "Deal Summary" }} />
               <Stack.Screen
@@ -548,5 +576,11 @@ const styles = StyleSheet.create({
     color: COLORS.mutedForeground,
     fontSize: 12,
     fontWeight: "700",
+  },
+  rootHeaderBackButton: {
+    width: 44,
+    height: 44,
+    alignItems: "flex-start",
+    justifyContent: "center",
   },
 });
