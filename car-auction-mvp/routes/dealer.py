@@ -1135,31 +1135,21 @@ def api_dealer_closed_deals(current_user):
     )
 
     def _won_bid_to_dict(bid):
-        deal = bid.deal
         car_request = bid.car_request
         customer = User.query.get(car_request.user_id) if car_request else None
-        deal_status = getattr(deal, "status", None) if deal else "accepted"
-        deal_date = deal.deal_date if deal else bid.timestamp
-        final_price = deal.final_price if deal else bid.price
 
         return {
-            "id": deal.id if deal else f"bid-{bid.id}",
-            "deal_id": deal.id if deal else None,
+            "id": f"bid-{bid.id}",
+            "deal_id": None,
             "bid_id": bid.id,
             "request_id": bid.request_id,
-            "final_price": final_price,
-            "payment_method": deal.payment_method if deal else None,
-            "deal_date": deal_date.isoformat() + "Z" if deal_date else None,
-            "status": deal_status or "accepted",
-            "completed_at": (
-                deal.completed_at.isoformat() + "Z"
-                if deal and getattr(deal, "completed_at", None)
-                else None
-            ),
-            "reward_points_awarded": (
-                bool(deal.reward_points_awarded) if deal else False
-            ),
-            "reward_points_amount": deal.reward_points_amount if deal else 0,
+            "final_price": bid.price,
+            "payment_method": None,
+            "deal_date": bid.timestamp.isoformat() + "Z" if bid.timestamp else None,
+            "status": "accepted",
+            "completed_at": None,
+            "reward_points_awarded": False,
+            "reward_points_amount": 0,
             "customer": (
                 customer.to_dict(detail_level="owner") if customer else None
             ),
