@@ -37,6 +37,7 @@ const groupIcons: Record<string, keyof typeof Ionicons.glyphMap> = {
   "Requests & Offers": "document-text",
   Deals: "checkmark-done-circle",
   Points: "diamond",
+  "Dealer Analytics": "briefcase",
   Messages: "chatbubbles",
   Inventory: "car-sport",
   "Trade-ins": "swap-horizontal",

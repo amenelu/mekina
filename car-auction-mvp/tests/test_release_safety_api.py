@@ -617,6 +617,7 @@ def test_admin_dashboard_counters_reflect_release_queues(client):
         "Requests & Offers",
         "Deals",
         "Points",
+        "Dealer Analytics",
         "Messages",
         "Inventory",
         "Trade-ins",
@@ -635,6 +636,21 @@ def test_admin_dashboard_counters_reflect_release_queues(client):
     }
     assert points_metrics["Pending point requests"] == 1
     assert points_metrics["Pending requested points"] == 4
+
+    dealer_analytics = groups["Dealer Analytics"]
+    dealer_metrics = {
+        metric["label"]: metric["value"] for metric in dealer_analytics["metrics"]
+    }
+    assert dealer_metrics["Registered dealers"] == 1
+    assert dealer_metrics["Dealers with active listings"] == 1
+
+    dealer_breakdowns = {
+        breakdown["title"]: breakdown["items"]
+        for breakdown in dealer_analytics["breakdowns"]
+    }
+    assert dealer_breakdowns["Most points requested"][0]["label"] == dealer.username
+    assert dealer_breakdowns["Most points requested"][0]["value"] == 4
+    assert dealer_breakdowns["Most active dealers"][0]["label"] == dealer.username
 
     inventory_breakdowns = {
         breakdown["title"]: breakdown["items"]

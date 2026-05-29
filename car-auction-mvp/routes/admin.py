@@ -225,6 +225,88 @@ def _admin_analytics_payload():
         .limit(5)
         .all()
     )
+    top_point_requesters = (
+        db.session.query(
+            User.username,
+            func.sum(DealerPointRequest.requested_points).label("requested_points"),
+            func.count(DealerPointRequest.id).label("request_count"),
+        )
+        .join(User, User.id == DealerPointRequest.dealer_id)
+        .group_by(User.id, User.username)
+        .order_by(
+            func.sum(DealerPointRequest.requested_points).desc(),
+            func.count(DealerPointRequest.id).desc(),
+        )
+        .limit(5)
+        .all()
+    )
+    top_point_spenders = (
+        db.session.query(
+            User.username,
+            func.sum(func.abs(PointTransaction.amount)).label("points_spent"),
+            func.count(PointTransaction.id).label("transaction_count"),
+        )
+        .join(User, User.id == PointTransaction.user_id)
+        .filter(PointTransaction.amount < 0)
+        .group_by(User.id, User.username)
+        .order_by(
+            func.sum(func.abs(PointTransaction.amount)).desc(),
+            func.count(PointTransaction.id).desc(),
+        )
+        .limit(5)
+        .all()
+    )
+    dealer_activity_rows = (
+        db.session.query(
+            User.id,
+            User.username,
+            func.count(func.distinct(DealerBid.id)).label("offers_submitted"),
+            func.count(func.distinct(Car.id)).label("active_listings"),
+            func.count(func.distinct(Deal.id)).label("completed_deals"),
+            func.count(func.distinct(Conversation.id)).label("conversations"),
+        )
+        .outerjoin(DealerBid, DealerBid.dealer_id == User.id)
+        .outerjoin(
+            Car,
+            db.and_(
+                Car.owner_id == User.id,
+                Car.is_active.is_(True),
+                Car.is_approved.is_(True),
+            ),
+        )
+        .outerjoin(
+            Deal,
+            db.and_(Deal.dealer_id == User.id, Deal.status == "completed"),
+        )
+        .outerjoin(Conversation, Conversation.dealer_id == User.id)
+        .filter(User.is_dealer.is_(True))
+        .group_by(User.id, User.username)
+        .all()
+    )
+    dealer_activity = []
+    for row in dealer_activity_rows:
+        activity_score = (
+            (row.offers_submitted or 0)
+            + (row.active_listings or 0)
+            + (row.completed_deals or 0) * 3
+            + (row.conversations or 0)
+        )
+        dealer_activity.append(
+            {
+                "username": row.username,
+                "activity_score": activity_score,
+                "helper": (
+                    f"{row.offers_submitted or 0} offers, "
+                    f"{row.active_listings or 0} listings, "
+                    f"{row.completed_deals or 0} closed"
+                ),
+            }
+        )
+    dealer_activity = sorted(
+        dealer_activity,
+        key=lambda item: item["activity_score"],
+        reverse=True,
+    )[:5]
 
     return {
         "groups": [
@@ -306,6 +388,86 @@ def _admin_analytics_payload():
                             limit=5,
                         ),
                     }
+                ],
+            },
+            {
+                "title": "Dealer Analytics",
+                "metrics": [
+                    _metric("Registered dealers", dealers_count),
+                    _metric(
+                        "Dealers with offers",
+                        DealerBid.query.with_entities(DealerBid.dealer_id)
+                        .distinct()
+                        .count(),
+                    ),
+                    _metric(
+                        "Dealers with active listings",
+                        db.session.query(Car.owner_id)
+                        .join(User, User.id == Car.owner_id)
+                        .filter(
+                            User.is_dealer.is_(True),
+                            Car.is_active.is_(True),
+                            Car.is_approved.is_(True),
+                        )
+                        .distinct()
+                        .count(),
+                    ),
+                    _metric(
+                        "Dealers with completed deals",
+                        Deal.query.filter_by(status="completed")
+                        .with_entities(Deal.dealer_id)
+                        .distinct()
+                        .count(),
+                    ),
+                    _metric(
+                        "Average dealer rating",
+                        round(
+                            float(
+                                db.session.query(func.avg(DealerRating.rating)).scalar()
+                                or 0
+                            ),
+                            1,
+                        ),
+                    ),
+                    _metric(
+                        "Dealer offer volume",
+                        total_offers,
+                    ),
+                ],
+                "breakdowns": [
+                    {
+                        "title": "Most active dealers",
+                        "items": [
+                            {
+                                "label": item["username"],
+                                "value": item["activity_score"],
+                                "helper": item["helper"],
+                            }
+                            for item in dealer_activity
+                        ],
+                    },
+                    {
+                        "title": "Most points requested",
+                        "items": [
+                            {
+                                "label": row.username,
+                                "value": row.requested_points,
+                                "helper": f"{row.request_count} request(s)",
+                            }
+                            for row in top_point_requesters
+                        ],
+                    },
+                    {
+                        "title": "Most points spent",
+                        "items": [
+                            {
+                                "label": row.username,
+                                "value": row.points_spent,
+                                "helper": f"{row.transaction_count} transaction(s)",
+                            }
+                            for row in top_point_spenders
+                        ],
+                    },
                 ],
             },
             {
