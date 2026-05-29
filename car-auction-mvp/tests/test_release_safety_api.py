@@ -304,6 +304,8 @@ def test_specific_car_request_prefills_target_car_for_dealer_offer(client):
     assert dealer_request["target_car"]["fixed_price"] == 2_700_000
     assert dealer_request["lead_quality"]["label"] in {"Medium", "High"}
     assert dealer_request["dealer_match"]["score"] > 0
+    assert dealer_request["response_health"]["offer_count"] == 0
+    assert dealer_request["expiry_risk"]["score"] > 0
 
 
 def test_image_based_request_is_visible_to_dealer_with_images(client):
@@ -353,6 +355,13 @@ def test_image_based_request_is_visible_to_dealer_with_images(client):
 def test_request_detail_returns_offer_ranking_and_lead_quality(client):
     buyer = create_user("rank_buyer", "rank-buyer@example.com")
     dealer = create_user("rank_dealer", "rank-dealer@example.com", is_dealer=True)
+    create_car(
+        dealer,
+        make="Toyota",
+        model="RAV4",
+        fixed_price=2_800_000,
+        body_type="SUV",
+    )
     car_request, bid = create_request_with_bid(buyer, dealer)
     db.session.commit()
 
@@ -364,10 +373,47 @@ def test_request_detail_returns_offer_ranking_and_lead_quality(client):
     assert response.status_code == 200
     payload = response.get_json()
     assert payload["request"]["lead_quality"]["score"] > 0
+    assert payload["request"]["response_health"]["offer_count"] == 1
+    assert payload["request"]["expiry_risk"]["valid_offer_count"] == 1
     assert payload["bids"][0]["id"] == bid.id
     assert payload["bids"][0]["offer_rank"]["score"] > 0
     assert payload["bids"][0]["offer_rank"]["dealer_quality"]["score"] > 0
+    assert payload["bids"][0]["price_position"]["sample_count"] > 0
     assert payload["bids"][0]["is_best_deal"] is True
+
+
+def test_dealer_dashboard_returns_response_health(client):
+    dealer = create_user(
+        "health_dealer",
+        "health-dealer@example.com",
+        is_dealer=True,
+        points=5,
+    )
+    buyer = create_user("health_buyer", "health-buyer@example.com")
+    car_request = CarRequest(
+        make="Toyota",
+        model="RAV4",
+        min_year=2020,
+        notes="Looking for a clean SUV with inspection history.",
+        user_id=buyer.id,
+    )
+    db.session.add(car_request)
+    db.session.commit()
+
+    response = client.get(
+        "/dealer/api/dashboard",
+        headers=login_headers(client, dealer.username),
+    )
+
+    assert response.status_code == 200
+    data = response.get_json()
+    assert "dealer_response_health" in data
+    assert data["point_economy"]["current_points"] == 5
+    request_card = next(req for req in data["requests"] if req["id"] == car_request.id)
+    assert request_card["lead_quality"]["score"] > 0
+    assert request_card["dealer_match"]["score"] > 0
+    assert request_card["response_health"]["label"] == "No offers yet"
+    assert request_card["expiry_risk"]["reasons"]
 
 
 def test_compare_bids_includes_dealer_submitted_image(client):

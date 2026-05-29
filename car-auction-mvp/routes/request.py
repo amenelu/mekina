@@ -27,7 +27,10 @@ from routes.seller import save_base64_image
 from routes.main import send_push_notification
 from routes.auth import token_required
 from services.marketplace_intelligence import (
+    get_offer_price_position,
+    get_request_expiry_risk,
     get_request_lead_quality,
+    get_request_response_health,
     rank_dealer_offers,
 )
 from flask_wtf import FlaskForm
@@ -674,6 +677,8 @@ def api_request_detail(current_user, request_id):
 
     req_data = car_request.to_dict()
     req_data["lead_quality"] = get_request_lead_quality(car_request)
+    req_data["response_health"] = get_request_response_health(car_request)
+    req_data["expiry_risk"] = get_request_expiry_risk(car_request)
     if "images" not in req_data:
         req_data["images"] = [
             {"image_url": img.image_url} for img in car_request.images
@@ -718,6 +723,7 @@ def api_request_detail(current_user, request_id):
             is_best_deal=(best_deal_bid_id is not None and bid.id == best_deal_bid_id),
         )
         bid_payload["offer_rank"] = offer_rankings.get(bid.id)
+        bid_payload["price_position"] = get_offer_price_position(bid)
         bids_payload.append(bid_payload)
 
     return jsonify(
@@ -844,6 +850,7 @@ def api_compare_bids(current_user):
         b_dict["is_best_price"] = bid.id in best_values["price"]["ids"]
         b_dict["is_best_mileage"] = bid.id in best_values["mileage"]["ids"]
         b_dict["is_best_year"] = bid.id in best_values["year"]["ids"]
+        b_dict["price_position"] = get_offer_price_position(bid)
         bids_data.append(b_dict)
 
     return jsonify({"bids": bids_data, "best_values": best_values})

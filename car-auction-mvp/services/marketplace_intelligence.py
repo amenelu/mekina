@@ -350,3 +350,265 @@ def get_point_economy_summary(user):
         "spent_points": abs(int(spent or 0)),
         "spent_points_30d": abs(int(recent_spend or 0)),
     }
+
+
+def get_offer_price_position(bid):
+    """Compare an offer price against similar listings and offers."""
+    if not bid or not bid.price:
+        return {"label": "Unknown", "sample_count": 0, "average_price": None}
+
+    make = (bid.make or "").strip().lower()
+    model = (bid.model or "").strip().lower()
+    if not make:
+        return {"label": "Unknown", "sample_count": 0, "average_price": None}
+
+    listing_query = Car.query.filter(
+        db.func.lower(Car.make) == make,
+        Car.fixed_price.isnot(None),
+        Car.is_approved.is_(True),
+        Car.is_active.is_(True),
+    )
+    offer_query = DealerBid.query.filter(
+        DealerBid.price.isnot(None),
+        db.func.lower(DealerBid.make) == make,
+        DealerBid.id != bid.id,
+    )
+    if model:
+        listing_query = listing_query.filter(db.func.lower(Car.model) == model)
+        offer_query = offer_query.filter(db.func.lower(DealerBid.model) == model)
+
+    listing_prices = [price for (price,) in listing_query.with_entities(Car.fixed_price).all()]
+    offer_prices = [price for (price,) in offer_query.with_entities(DealerBid.price).all()]
+    comparison_prices = [float(price) for price in listing_prices + offer_prices if price]
+
+    if not comparison_prices:
+        return {
+            "label": "No market sample",
+            "sample_count": 0,
+            "average_price": None,
+            "difference_percent": None,
+            "is_below_market": False,
+            "is_above_market": False,
+        }
+
+    average_price = sum(comparison_prices) / len(comparison_prices)
+    difference_percent = ((float(bid.price) - average_price) / average_price) * 100
+    if difference_percent <= -8:
+        label = "Below market"
+    elif difference_percent >= 12:
+        label = "Above market"
+    else:
+        label = "Near market"
+
+    return {
+        "label": label,
+        "sample_count": len(comparison_prices),
+        "average_price": round(average_price, 2),
+        "difference_percent": round(difference_percent, 1),
+        "is_below_market": difference_percent <= -8,
+        "is_above_market": difference_percent >= 12,
+    }
+
+
+def get_request_response_health(car_request):
+    """Summarize how much dealer response a request is getting."""
+    if not car_request:
+        return {"label": "Unknown", "offer_count": 0}
+
+    bids = car_request.dealer_bids.order_by(DealerBid.timestamp.asc()).all()
+    offer_count = len(bids)
+    first_response_minutes = None
+    latest_response_at = None
+    if bids and car_request.created_at:
+        first_response_minutes = round(
+            (bids[0].timestamp - car_request.created_at).total_seconds() / 60
+        )
+        latest_response_at = bids[-1].timestamp.isoformat() + "Z"
+
+    unanswered_questions = (
+        RequestQuestion.query.join(DealerBid)
+        .filter(
+            DealerBid.request_id == car_request.id,
+            RequestQuestion.answer_text.is_(None),
+        )
+        .count()
+    )
+
+    if offer_count >= 3:
+        label = "Competitive"
+    elif first_response_minutes is not None and first_response_minutes <= 24 * 60:
+        label = "Responded"
+    elif offer_count == 0:
+        label = "No offers yet"
+    else:
+        label = "Light response"
+
+    reasons = []
+    if offer_count:
+        reasons.append(f"{offer_count} offer(s)")
+    else:
+        reasons.append("no dealer offers")
+    if first_response_minutes is not None:
+        if first_response_minutes < 60:
+            reasons.append(f"first response in {first_response_minutes} min")
+        else:
+            reasons.append(f"first response in {round(first_response_minutes / 60, 1)} hr")
+    if unanswered_questions:
+        reasons.append(f"{unanswered_questions} unanswered question(s)")
+
+    return {
+        "label": label,
+        "offer_count": offer_count,
+        "first_response_minutes": first_response_minutes,
+        "latest_response_at": latest_response_at,
+        "unanswered_questions": unanswered_questions,
+        "reasons": reasons,
+    }
+
+
+def get_request_expiry_risk(car_request):
+    """Estimate whether an active request is becoming stale or underserved."""
+    if not car_request:
+        return {"score": 0, "label": "Low", "reasons": []}
+    if car_request.status != "active":
+        return {"score": 0, "label": "Low", "reasons": ["request is not active"]}
+
+    now = datetime.utcnow()
+    today = now.date()
+    age_days = (now - car_request.created_at).days if car_request.created_at else 0
+    bids = car_request.dealer_bids.order_by(DealerBid.timestamp.desc()).all()
+    valid_offer_count = sum(1 for bid in bids if bid.valid_until and bid.valid_until >= today)
+    expired_offer_count = sum(1 for bid in bids if bid.valid_until and bid.valid_until < today)
+    days_since_last_offer = None
+    if bids and bids[0].timestamp:
+        days_since_last_offer = (now - bids[0].timestamp).days
+
+    score = min(35, age_days * 3)
+    reasons = [f"{age_days} day(s) old"]
+    if not bids:
+        score += 35
+        reasons.append("no offers yet")
+    if bids and valid_offer_count == 0:
+        score += 30
+        reasons.append("no valid offers remaining")
+    if days_since_last_offer is not None and days_since_last_offer >= 7:
+        score += 20
+        reasons.append(f"{days_since_last_offer} day(s) since last offer")
+    if expired_offer_count:
+        score += min(10, expired_offer_count * 2)
+        reasons.append(f"{expired_offer_count} expired offer(s)")
+
+    final_score = _clamp(score)
+    return {
+        "score": final_score,
+        "label": _label_for_score(final_score),
+        "age_days": age_days,
+        "valid_offer_count": valid_offer_count,
+        "expired_offer_count": expired_offer_count,
+        "days_since_last_offer": days_since_last_offer,
+        "reasons": reasons[:5],
+    }
+
+
+def get_dealer_response_health(dealer):
+    """Score whether a dealer is responding quickly and keeping questions handled."""
+    if not dealer:
+        return {"score": 0, "label": "Unknown", "reasons": []}
+
+    bids = (
+        DealerBid.query.join(CarRequest, DealerBid.request_id == CarRequest.id)
+        .filter(DealerBid.dealer_id == dealer.id)
+        .all()
+    )
+    response_minutes = [
+        (bid.timestamp - bid.car_request.created_at).total_seconds() / 60
+        for bid in bids
+        if bid.timestamp and bid.car_request and bid.car_request.created_at
+    ]
+    avg_first_response_minutes = (
+        sum(response_minutes) / len(response_minutes) if response_minutes else None
+    )
+    unanswered_questions = (
+        RequestQuestion.query.join(DealerBid)
+        .filter(
+            DealerBid.dealer_id == dealer.id,
+            RequestQuestion.answer_text.is_(None),
+        )
+        .count()
+    )
+    recent_cutoff = datetime.utcnow() - timedelta(days=30)
+    recent_offers = DealerBid.query.filter(
+        DealerBid.dealer_id == dealer.id,
+        DealerBid.timestamp >= recent_cutoff,
+    ).count()
+
+    score = 45
+    if avg_first_response_minutes is None:
+        score -= 10
+    elif avg_first_response_minutes <= 6 * 60:
+        score += 30
+    elif avg_first_response_minutes <= 24 * 60:
+        score += 20
+    elif avg_first_response_minutes <= 72 * 60:
+        score += 8
+    else:
+        score -= 10
+    score += min(15, recent_offers)
+    score -= min(30, unanswered_questions * 5)
+
+    reasons = [f"{recent_offers} offer(s) in last 30 days"]
+    if avg_first_response_minutes is not None:
+        reasons.append(
+            f"{round(avg_first_response_minutes / 60, 1)} hr average first response"
+        )
+    else:
+        reasons.append("no response-time sample yet")
+    if unanswered_questions:
+        reasons.append(f"{unanswered_questions} unanswered question(s)")
+
+    final_score = _clamp(score)
+    return {
+        "score": final_score,
+        "label": _label_for_score(final_score),
+        "avg_first_response_minutes": (
+            round(avg_first_response_minutes) if avg_first_response_minutes is not None else None
+        ),
+        "recent_offers_30d": recent_offers,
+        "unanswered_questions": unanswered_questions,
+        "reasons": reasons,
+    }
+
+
+def get_marketplace_health_summary():
+    """Admin-level summary of request and response health."""
+    active_requests = CarRequest.query.filter_by(status="active").all()
+    active_count = len(active_requests)
+    no_offer_count = sum(1 for req in active_requests if req.dealer_bids.count() == 0)
+    stale_count = sum(
+        1
+        for req in active_requests
+        if req.created_at and (datetime.utcnow() - req.created_at).days >= 14
+    )
+    total_offers = sum(req.dealer_bids.count() for req in active_requests)
+    avg_offers = round(total_offers / active_count, 1) if active_count else 0
+    high_expiry_risk = sum(
+        1 for req in active_requests if get_request_expiry_risk(req)["score"] >= 80
+    )
+    contact_risk_messages = ChatMessage.query.filter(
+        db.or_(
+            ChatMessage.has_contact_risk.is_(True),
+            db.and_(
+                ChatMessage.original_body.isnot(None),
+                ChatMessage.original_body != ChatMessage.body,
+            ),
+        )
+    ).count()
+
+    return {
+        "active_requests": active_count,
+        "no_offer_requests": no_offer_count,
+        "stale_requests": stale_count,
+        "high_expiry_risk_requests": high_expiry_risk,
+        "avg_offers_per_active_request": avg_offers,
+        "contact_risk_messages": contact_risk_messages,
+    }

@@ -33,6 +33,7 @@ from models.chat_message import ChatMessage
 from routes.seller import CarSubmissionForm, save_seller_document
 from routes.auth import admin_token_required
 from routes.main import send_push_notification
+from services.marketplace_intelligence import get_marketplace_health_summary
 from functools import wraps
 
 from flask_wtf import FlaskForm
@@ -136,6 +137,7 @@ def _count_by_column(model, column, filters=None, limit=6):
 
 
 def _admin_analytics_payload():
+    marketplace_health = get_marketplace_health_summary()
     buyers_count = User.query.filter(
         User.is_admin.is_(False),
         User.is_dealer.is_(False),
@@ -350,6 +352,26 @@ def _admin_analytics_payload():
                         "title": "Top requested makes",
                         "items": _count_by_column(CarRequest, CarRequest.make),
                     },
+                ],
+            },
+            {
+                "title": "Marketplace Health",
+                "metrics": [
+                    _metric("Active requests", marketplace_health["active_requests"]),
+                    _metric("No-offer requests", marketplace_health["no_offer_requests"]),
+                    _metric("Stale requests", marketplace_health["stale_requests"]),
+                    _metric(
+                        "High expiry risk",
+                        marketplace_health["high_expiry_risk_requests"],
+                    ),
+                    _metric(
+                        "Avg offers per active request",
+                        marketplace_health["avg_offers_per_active_request"],
+                    ),
+                    _metric(
+                        "Contact-risk messages",
+                        marketplace_health["contact_risk_messages"],
+                    ),
                 ],
             },
             {

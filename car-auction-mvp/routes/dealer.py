@@ -60,10 +60,14 @@ from routes.seller import save_base64_image, token_required
 from routes.main import send_push_notification
 from routes.auth import verify_jwt
 from services.marketplace_intelligence import (
+    get_dealer_response_health,
     get_dealer_quality_score,
     get_dealer_request_match,
+    get_offer_price_position,
     get_point_economy_summary,
+    get_request_expiry_risk,
     get_request_lead_quality,
+    get_request_response_health,
 )
 import re
 
@@ -171,6 +175,7 @@ def _bid_to_api_dict(bid, **kwargs):
         **bid.to_dict(**kwargs),
         "dealer_id": bid.dealer_id,
         "dealer_quality": get_dealer_quality_score(bid.dealer),
+        "price_position": get_offer_price_position(bid),
         "can_edit_free": bid.status == "pending" and _bid_is_in_free_edit_window(bid),
         "free_edit_seconds_remaining": _bid_free_edit_seconds_remaining(bid),
     }
@@ -452,6 +457,8 @@ def api_dealer_dashboard(current_user):
         req_dict["detail_score"] = calculate_request_score(req)
         req_dict["lead_quality"] = get_request_lead_quality(req)
         req_dict["dealer_match"] = get_dealer_request_match(current_user, req)
+        req_dict["response_health"] = get_request_response_health(req)
+        req_dict["expiry_risk"] = get_request_expiry_risk(req)
         active_requests_data.append(req_dict)
 
     my_cars = (
@@ -501,6 +508,7 @@ def api_dealer_dashboard(current_user):
         now=datetime.utcnow().isoformat() + "Z",
         user_points=current_user.points,
         dealer_quality=get_dealer_quality_score(current_user),
+        dealer_response_health=get_dealer_response_health(current_user),
         point_economy=get_point_economy_summary(current_user),
         pending_approval_count=len(pending_approvals),
         pending_approvals=[car.to_dict() for car in pending_approvals],
@@ -1120,6 +1128,7 @@ def api_dealer_profile(dealer_id):
             **dealer.to_dict(detail_level="owner" if can_view_phone else "public"),
             "closed_deal_count": dealer.get_closed_deal_count(),
             "dealer_quality": get_dealer_quality_score(dealer),
+            "response_health": get_dealer_response_health(dealer),
         },
         listings=[car.to_dict() for car in active_listings],
         ratings=[r.to_dict() for r in ratings],
@@ -1565,6 +1574,8 @@ def api_place_dealer_bid(current_user, request_id):
         car_request_payload["dealer_match"] = get_dealer_request_match(
             current_user, car_request
         )
+        car_request_payload["response_health"] = get_request_response_health(car_request)
+        car_request_payload["expiry_risk"] = get_request_expiry_risk(car_request)
         return jsonify(
             car_request=car_request_payload,
             existing_bids=[_bid_to_api_dict(bid) for bid in existing_bids],
