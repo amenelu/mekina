@@ -175,6 +175,7 @@ const TradeInRow = ({ request }: { request: AdminTradeInRequest }) => {
 const AdminDashboardScreen = () => {
   const [stats, setStats] = useState<AdminDashboardStats | null>(null);
   const [analytics, setAnalytics] = useState<AdminAnalyticsPayload | null>(null);
+  const [showAnalytics, setShowAnalytics] = useState(false);
   const [pendingCars, setPendingCars] = useState<AdminPendingListing[]>([]);
   const [pendingTradeIns, setPendingTradeIns] = useState<AdminTradeInRequest[]>([]);
   const [loading, setLoading] = useState(true);
@@ -270,6 +271,16 @@ const AdminDashboardScreen = () => {
         readyToRefresh={pullToRefresh.readyToRefresh}
         refreshing={refreshing}
       />
+      <View style={styles.quickActions}>
+        <Pressable
+          style={styles.analyticsButton}
+          onPress={() => setShowAnalytics((current) => !current)}
+        >
+          <Text style={styles.analyticsButtonText}>
+            {showAnalytics ? "Hide Analytics" : "View Analytics"}
+          </Text>
+        </Pressable>
+      </View>
       {/* Stats */}
       {stats && (
         <View style={styles.statsGrid}>
@@ -286,7 +297,7 @@ const AdminDashboardScreen = () => {
         </View>
       )}
 
-      {analytics?.groups?.length ? (
+      {showAnalytics && analytics?.groups?.length ? (
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Admin Analytics</Text>
           <View style={styles.analyticsGrid}>
@@ -337,6 +348,22 @@ const AdminDashboardScreen = () => {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.background },
+  quickActions: {
+    paddingHorizontal: 20,
+    paddingTop: 18,
+    alignItems: "flex-end",
+  },
+  analyticsButton: {
+    backgroundColor: COLORS.accent,
+    borderRadius: 12,
+    paddingHorizontal: 18,
+    paddingVertical: 12,
+  },
+  analyticsButtonText: {
+    color: COLORS.foreground,
+    fontSize: 14,
+    fontWeight: "800",
+  },
   statsGrid: {
     flexDirection: "row",
     flexWrap: "wrap",
