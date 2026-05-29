@@ -30,6 +30,12 @@ interface DealerProfile {
   username: string;
   is_verified: boolean;
   closed_deal_count?: number;
+  dealer_quality?: {
+    score: number;
+    label: string;
+    reasons?: string[];
+    metrics?: Record<string, number>;
+  };
 }
 
 interface CarListing {
@@ -55,6 +61,12 @@ interface ProfileData {
   ratings: DealerReview[];
   avg_rating: number;
   review_count: number;
+  dealer_quality?: {
+    score: number;
+    label: string;
+    reasons?: string[];
+    metrics?: Record<string, number>;
+  };
 }
 
 const fetchDealerProfile = async (
@@ -152,7 +164,9 @@ const DealerPublicProfilePage: React.FC = () => {
     return <Text style={styles.centered}>Dealer not found.</Text>;
   }
 
-  const { dealer, listings, ratings, avg_rating, review_count } = profileData;
+  const { dealer, listings, ratings, avg_rating, review_count, dealer_quality } =
+    profileData;
+  const dealerQuality = dealer.dealer_quality || dealer_quality;
   const profileContent = (
     <ScrollView
       style={[styles.container, isModal && styles.modalScroll]}
@@ -178,6 +192,21 @@ const DealerPublicProfilePage: React.FC = () => {
             {dealer.closed_deal_count || 0} closed deals
           </Text>
         </View>
+        {dealerQuality ? (
+          <View style={styles.qualityCard}>
+            <View style={styles.qualityHeader}>
+              <Ionicons name="shield-checkmark" size={18} color={COLORS.accent} />
+              <Text style={styles.qualityTitle}>Dealer quality</Text>
+              <Text style={styles.qualityScore}>{dealerQuality.score}</Text>
+            </View>
+            <Text style={styles.qualityLabel}>{dealerQuality.label}</Text>
+            {dealerQuality.reasons?.length ? (
+              <Text style={styles.qualityReasons}>
+                {dealerQuality.reasons.join(" | ")}
+              </Text>
+            ) : null}
+          </View>
+        ) : null}
       </View>
 
       <View style={styles.section}>
@@ -349,6 +378,43 @@ const styles = StyleSheet.create({
   verifiedText: { color: COLORS.accent, marginLeft: 6, fontWeight: "600" },
   ratingSummary: { flexDirection: "row", alignItems: "center", marginTop: 12 },
   ratingText: { color: COLORS.mutedForeground, fontSize: 16, marginLeft: 8 },
+  qualityCard: {
+    width: "100%",
+    backgroundColor: COLORS.background,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    padding: 12,
+    marginTop: 12,
+  },
+  qualityHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  qualityTitle: {
+    flex: 1,
+    color: COLORS.foreground,
+    fontSize: 14,
+    fontWeight: "800",
+  },
+  qualityScore: {
+    color: COLORS.accent,
+    fontSize: 18,
+    fontWeight: "900",
+  },
+  qualityLabel: {
+    color: COLORS.foreground,
+    fontSize: 13,
+    fontWeight: "700",
+    marginTop: 8,
+  },
+  qualityReasons: {
+    color: COLORS.mutedForeground,
+    fontSize: 12,
+    lineHeight: 17,
+    marginTop: 4,
+  },
   section: { padding: 20 },
   sectionTitle: {
     fontSize: 20,

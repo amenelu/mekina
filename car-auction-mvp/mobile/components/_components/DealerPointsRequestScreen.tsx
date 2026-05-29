@@ -36,6 +36,11 @@ export default function DealerPointsRequestScreen() {
   const [transactions, setTransactions] = useState<any[]>([]);
   const [loadingHistory, setLoadingHistory] = useState(true);
   const [currentPoints, setCurrentPoints] = useState<number | null>(null);
+  const [pointEconomy, setPointEconomy] = useState<{
+    earned_points?: number;
+    spent_points?: number;
+    spent_points_30d?: number;
+  } | null>(null);
 
   const fetchHistory = useCallback(async () => {
     if (!token) return;
@@ -56,6 +61,9 @@ export default function DealerPointsRequestScreen() {
       }
       if (data.transactions) {
         setTransactions(data.transactions);
+      }
+      if (data.point_economy) {
+        setPointEconomy(data.point_economy);
       }
     } catch (error) {
       console.error("Failed to fetch point history:", error);
@@ -175,6 +183,28 @@ export default function DealerPointsRequestScreen() {
           <Text style={styles.summarySubtitle}>
             Need more points to keep responding to requests or placing offers?
           </Text>
+          {pointEconomy ? (
+            <View style={styles.economyGrid}>
+              <View style={styles.economyItem}>
+                <Text style={styles.economyValue}>
+                  {pointEconomy.earned_points ?? 0}
+                </Text>
+                <Text style={styles.economyLabel}>Earned</Text>
+              </View>
+              <View style={styles.economyItem}>
+                <Text style={styles.economyValue}>
+                  {pointEconomy.spent_points ?? 0}
+                </Text>
+                <Text style={styles.economyLabel}>Spent</Text>
+              </View>
+              <View style={styles.economyItem}>
+                <Text style={styles.economyValue}>
+                  {pointEconomy.spent_points_30d ?? 0}
+                </Text>
+                <Text style={styles.economyLabel}>30 days</Text>
+              </View>
+            </View>
+          ) : null}
         </View>
 
         <View style={styles.formCard}>
@@ -370,6 +400,31 @@ const styles = StyleSheet.create({
     color: COLORS.textSecondary,
     fontSize: 14,
     lineHeight: 20,
+  },
+  economyGrid: {
+    flexDirection: "row",
+    gap: 10,
+    marginTop: 16,
+  },
+  economyItem: {
+    flex: 1,
+    backgroundColor: COLORS.background,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    paddingVertical: 10,
+    paddingHorizontal: 8,
+    alignItems: "center",
+  },
+  economyValue: {
+    color: COLORS.accent,
+    fontSize: 18,
+    fontWeight: "900",
+  },
+  economyLabel: {
+    color: COLORS.textSecondary,
+    fontSize: 11,
+    marginTop: 3,
   },
   formCard: {
     backgroundColor: COLORS.card,

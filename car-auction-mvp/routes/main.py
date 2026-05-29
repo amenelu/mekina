@@ -1174,17 +1174,22 @@ def send_chat_message():
 
     # --- Contact Info Masking & Filtering ---
     original_message = message_body
-    is_serious = False
+    contact_risk = {
+        "masked_message": original_message,
+        "has_contact_risk": False,
+        "contact_risk_score": 0,
+        "contact_risk_categories": [],
+    }
     # Only mask if the conversation is not already unlocked
     if not conversation.is_unlocked:
         # Mask for both buyer and dealer before unlock
-        masked_body, is_serious = mask_contact_info(original_message)
-        message_body = masked_body
+        contact_risk = detect_contact_risk(original_message)
+        message_body = contact_risk["masked_message"]
         # Increment message count only for free messages
         conversation.message_count += 1
 
     # --- Lead Scoring Logic ---
-    if is_serious:
+    if contact_risk["has_contact_risk"]:
         # Buyer attempted to share contact info
         conversation.lead_score.score += 30
 
@@ -1234,7 +1239,12 @@ def send_chat_message():
     # Create and save the new message
     # We store the (potentially masked) body for display, and the original for when it's unlocked
     new_message = ChatMessage(
-        body=message_body, original_body=original_message, sender_id=user.id
+        body=message_body,
+        original_body=original_message,
+        sender_id=user.id,
+        has_contact_risk=contact_risk["has_contact_risk"],
+        contact_risk_score=contact_risk["contact_risk_score"],
+        contact_risk_categories=",".join(contact_risk["contact_risk_categories"]),
     )
     conversation.messages.append(new_message)
     # Flush the session to get the new_message.id and timestamp before creating the payload
@@ -1244,6 +1254,10 @@ def send_chat_message():
     chat_message_data = {
         "id": new_message.id,
         "body": new_message.body,
+        "was_masked": new_message.original_body != new_message.body,
+        "has_contact_risk": new_message.has_contact_risk,
+        "contact_risk_score": new_message.contact_risk_score,
+        "contact_risk_categories": contact_risk["contact_risk_categories"],
         "timestamp": new_message.timestamp.isoformat() + "Z",
         "is_read": False,
         "sender": {"id": user.id, "username": user.username},
@@ -1325,7 +1339,7 @@ def send_chat_message():
         )
 
     # If contact info was found, emit a special event to the dealer's room
-    if is_serious:
+    if contact_risk["has_contact_risk"]:
         socketio.emit(
             "serious_buyer_detected",
             {"conversation_id": conversation.id},
@@ -1340,7 +1354,7 @@ def send_chat_message():
         "conversation": conversation.to_dict(user.id),
     }
     # If the buyer's message was masked, add a flag to the response for the UI
-    if is_serious and user.id == conversation.buyer_id:
+    if contact_risk["has_contact_risk"] and user.id == conversation.buyer_id:
         response_data["buyer_action_required"] = "request_call"
 
     return jsonify(response_data)

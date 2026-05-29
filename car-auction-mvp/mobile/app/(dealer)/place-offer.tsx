@@ -54,6 +54,17 @@ interface CustomerRequest {
     mileage?: number;
     fixed_price?: number;
   } | null;
+  lead_quality?: {
+    score: number;
+    label: string;
+    reasons?: string[];
+    age_days?: number;
+  };
+  dealer_match?: {
+    score: number;
+    label: string;
+    reasons?: string[];
+  };
 }
 
 interface DealerBid {
@@ -468,6 +479,12 @@ const PlaceOfferScreen = () => {
     );
   }, [requestDetails]);
 
+  const getInsightColor = (score?: number) => {
+    if ((score || 0) >= 80) return "#31D0AA";
+    if ((score || 0) >= 50) return "#ffc107";
+    return COLORS.textSecondary;
+  };
+
   if (loading) {
     return (
       <View style={styles.centered}>
@@ -777,6 +794,59 @@ const PlaceOfferScreen = () => {
                     ? `${requestDetails.min_year || requestDetails.year}+`
                     : "Any"}
                 </Text>
+
+                {(requestDetails.lead_quality || requestDetails.dealer_match) && (
+                  <View style={styles.insightPanel}>
+                    {requestDetails.lead_quality && (
+                      <View style={styles.insightBlock}>
+                        <View style={styles.insightHeader}>
+                          <Ionicons
+                            name="flame-outline"
+                            size={16}
+                            color={getInsightColor(requestDetails.lead_quality.score)}
+                          />
+                          <Text style={styles.insightTitle}>Lead quality</Text>
+                          <Text
+                            style={[
+                              styles.insightScore,
+                              { color: getInsightColor(requestDetails.lead_quality.score) },
+                            ]}
+                          >
+                            {requestDetails.lead_quality.score}
+                          </Text>
+                        </View>
+                        <Text style={styles.insightText}>
+                          {requestDetails.lead_quality.reasons?.join(", ") ||
+                            requestDetails.lead_quality.label}
+                        </Text>
+                      </View>
+                    )}
+                    {requestDetails.dealer_match && (
+                      <View style={styles.insightBlock}>
+                        <View style={styles.insightHeader}>
+                          <Ionicons
+                            name="locate-outline"
+                            size={16}
+                            color={getInsightColor(requestDetails.dealer_match.score)}
+                          />
+                          <Text style={styles.insightTitle}>Your fit</Text>
+                          <Text
+                            style={[
+                              styles.insightScore,
+                              { color: getInsightColor(requestDetails.dealer_match.score) },
+                            ]}
+                          >
+                            {requestDetails.dealer_match.score}
+                          </Text>
+                        </View>
+                        <Text style={styles.insightText}>
+                          {requestDetails.dealer_match.reasons?.join(", ") ||
+                            requestDetails.dealer_match.label}
+                        </Text>
+                      </View>
+                    )}
+                  </View>
+                )}
 
                 {requestDetails.image_urls?.length ? (
                   <ScrollView
@@ -1286,6 +1356,38 @@ const styles = StyleSheet.create({
     color: "white",
     fontSize: 12,
     fontWeight: "700",
+  },
+  insightPanel: {
+    backgroundColor: COLORS.input,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    padding: 12,
+    marginBottom: 14,
+    gap: 10,
+  },
+  insightBlock: {
+    gap: 5,
+  },
+  insightHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 7,
+  },
+  insightTitle: {
+    color: COLORS.text,
+    fontSize: 13,
+    fontWeight: "800",
+    flex: 1,
+  },
+  insightScore: {
+    fontSize: 15,
+    fontWeight: "900",
+  },
+  insightText: {
+    color: COLORS.textSecondary,
+    fontSize: 12,
+    lineHeight: 17,
   },
   requestImages: {
     marginBottom: 14,

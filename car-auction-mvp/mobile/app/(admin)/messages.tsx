@@ -44,6 +44,9 @@ type AdminMessage = {
   body: string;
   original_body: string;
   was_masked: boolean;
+  has_contact_risk?: boolean;
+  contact_risk_score?: number;
+  contact_risk_categories?: string[];
   timestamp: string;
   sender?: { id: number; username: string; email?: string } | null;
 };
@@ -195,6 +198,17 @@ export default function AdminMessagesScreen() {
                   </Text>
                 </View>
                 <Text style={styles.messageText}>{message.body}</Text>
+                {message.has_contact_risk ? (
+                  <View style={styles.riskRow}>
+                    <Ionicons name="warning" size={14} color={COLORS.warning} />
+                    <Text style={styles.riskText}>
+                      Contact risk {message.contact_risk_score ?? 0}
+                      {message.contact_risk_categories?.length
+                        ? ` - ${message.contact_risk_categories.join(", ")}`
+                        : ""}
+                    </Text>
+                  </View>
+                ) : null}
                 {message.was_masked ? (
                   <View style={styles.originalBox}>
                     <Text style={styles.originalLabel}>Original captured text</Text>
@@ -366,6 +380,18 @@ const styles = StyleSheet.create({
   senderText: { color: COLORS.accent, fontWeight: "800", fontSize: 14 },
   timestampText: { color: COLORS.textSecondary, fontSize: 12 },
   messageText: { color: COLORS.text, fontSize: 15, lineHeight: 21 },
+  riskRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    marginTop: 8,
+  },
+  riskText: {
+    color: COLORS.warning,
+    fontSize: 12,
+    fontWeight: "800",
+    textTransform: "capitalize",
+  },
   originalBox: {
     marginTop: 10,
     backgroundColor: "#321D22",

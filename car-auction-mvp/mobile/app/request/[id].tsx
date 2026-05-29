@@ -58,6 +58,12 @@ interface CarRequest {
   equipment: string | null; // e.g., "sunroof,leather_seats"
   bid_count: number;
   images?: { image_url: string }[];
+  lead_quality?: {
+    score: number;
+    label: string;
+    reasons?: string[];
+    age_days?: number;
+  };
 }
 
 interface QuestionAnswer {
@@ -92,6 +98,16 @@ interface DealerBid {
     username: string;
     avg_rating: number;
   };
+  offer_rank?: {
+    score: number;
+    label: string;
+    reasons?: string[];
+    dealer_quality?: {
+      score: number;
+      label: string;
+      reasons?: string[];
+    };
+  };
 }
 
 interface DealerProfileListing {
@@ -120,11 +136,21 @@ interface DealerProfileData {
     avg_rating?: number;
     closed_deal_count?: number;
     phone?: string | null;
+    dealer_quality?: {
+      score: number;
+      label: string;
+      reasons?: string[];
+    };
   };
   listings?: DealerProfileListing[];
   ratings?: DealerProfileRating[];
   avg_rating?: number;
   review_count?: number;
+  dealer_quality?: {
+    score: number;
+    label: string;
+    reasons?: string[];
+  };
 }
 
 // New interface for comparison data
@@ -406,6 +432,12 @@ const RequestDetailScreen = () => {
     }
   };
 
+  const getInsightColor = (score?: number) => {
+    if ((score || 0) >= 80) return COLORS.success;
+    if ((score || 0) >= 50) return "#ffc107";
+    return COLORS.mutedForeground;
+  };
+
   if (loading) {
     return (
       <View style={styles.centered}>
@@ -481,6 +513,33 @@ const RequestDetailScreen = () => {
               <Text style={styles.detailLabel}>Notes:</Text>
             </View>
             <Text style={styles.notesText}>{request.notes}</Text>
+
+            {request.lead_quality ? (
+              <View style={styles.requestInsightBox}>
+                <View style={styles.requestInsightHeader}>
+                  <Ionicons
+                    name="flame-outline"
+                    size={16}
+                    color={getInsightColor(request.lead_quality.score)}
+                  />
+                  <Text style={styles.requestInsightTitle}>
+                    Request strength
+                  </Text>
+                  <Text
+                    style={[
+                      styles.requestInsightScore,
+                      { color: getInsightColor(request.lead_quality.score) },
+                    ]}
+                  >
+                    {request.lead_quality.score}
+                  </Text>
+                </View>
+                <Text style={styles.requestInsightText}>
+                  {request.lead_quality.reasons?.join(", ") ||
+                    request.lead_quality.label}
+                </Text>
+              </View>
+            ) : null}
 
             {request.images && request.images.length > 0 && (
               <View style={styles.requestImagesContainer}>
@@ -636,6 +695,37 @@ const RequestDetailScreen = () => {
                         </View>
                       )}
                     </View>
+
+                    {bid.offer_rank ? (
+                      <View style={styles.offerRankPanel}>
+                        <View style={styles.offerRankHeader}>
+                          <Ionicons
+                            name="analytics-outline"
+                            size={16}
+                            color={getInsightColor(bid.offer_rank.score)}
+                          />
+                          <Text style={styles.offerRankTitle}>Offer score</Text>
+                          <Text
+                            style={[
+                              styles.offerRankScore,
+                              { color: getInsightColor(bid.offer_rank.score) },
+                            ]}
+                          >
+                            {bid.offer_rank.score}
+                          </Text>
+                        </View>
+                        <Text style={styles.offerRankText}>
+                          {bid.offer_rank.reasons?.join(", ") ||
+                            bid.offer_rank.label}
+                        </Text>
+                        {bid.offer_rank.dealer_quality ? (
+                          <Text style={styles.offerRankText}>
+                            Dealer quality: {bid.offer_rank.dealer_quality.score} (
+                            {bid.offer_rank.dealer_quality.label})
+                          </Text>
+                        ) : null}
+                      </View>
+                    ) : null}
 
                     {bid.image_urls && bid.image_urls.length > 0 && (
                       <FlatList
@@ -917,6 +1007,38 @@ const RequestDetailScreen = () => {
                     <Text style={styles.dealerModalStatLabel}>Deals</Text>
                   </View>
                 </View>
+
+                {(dealerProfile?.dealer?.dealer_quality ||
+                  dealerProfile?.dealer_quality) ? (
+                  <View style={styles.dealerModalQualityBox}>
+                    <View style={styles.dealerModalQualityHeader}>
+                      <Ionicons
+                        name="shield-checkmark"
+                        size={16}
+                        color={COLORS.accent}
+                      />
+                      <Text style={styles.dealerModalQualityTitle}>
+                        Dealer quality
+                      </Text>
+                      <Text style={styles.dealerModalQualityScore}>
+                        {(
+                          dealerProfile?.dealer?.dealer_quality ||
+                          dealerProfile.dealer_quality
+                        )?.score}
+                      </Text>
+                    </View>
+                    <Text style={styles.dealerModalQualityText}>
+                      {(
+                        dealerProfile?.dealer?.dealer_quality ||
+                        dealerProfile.dealer_quality
+                      )?.reasons?.join(", ") ||
+                        (
+                          dealerProfile?.dealer?.dealer_quality ||
+                          dealerProfile.dealer_quality
+                        )?.label}
+                    </Text>
+                  </View>
+                ) : null}
 
                 <View style={styles.dealerModalSection}>
                   <Text style={styles.dealerModalSectionTitle}>
@@ -1394,6 +1516,35 @@ const styles = StyleSheet.create({
     borderTopColor: COLORS.border,
     paddingTop: 10,
   },
+  requestInsightBox: {
+    marginTop: 12,
+    backgroundColor: COLORS.background,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    padding: 12,
+  },
+  requestInsightHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 7,
+  },
+  requestInsightTitle: {
+    flex: 1,
+    color: COLORS.foreground,
+    fontSize: 13,
+    fontWeight: "800",
+  },
+  requestInsightScore: {
+    fontSize: 15,
+    fontWeight: "900",
+  },
+  requestInsightText: {
+    color: COLORS.mutedForeground,
+    fontSize: 12,
+    lineHeight: 17,
+    marginTop: 5,
+  },
   requestImagesScroll: { flexDirection: "row" },
   requestImage: {
     width: 100,
@@ -1464,6 +1615,35 @@ const styles = StyleSheet.create({
   },
   offerImageContainer: {
     marginVertical: 10,
+  },
+  offerRankPanel: {
+    backgroundColor: COLORS.background,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    padding: 12,
+    marginBottom: 12,
+  },
+  offerRankHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 7,
+  },
+  offerRankTitle: {
+    flex: 1,
+    color: COLORS.foreground,
+    fontSize: 13,
+    fontWeight: "800",
+  },
+  offerRankScore: {
+    fontSize: 15,
+    fontWeight: "900",
+  },
+  offerRankText: {
+    color: COLORS.mutedForeground,
+    fontSize: 12,
+    lineHeight: 17,
+    marginTop: 5,
   },
   offerImage: {
     width: 120,
@@ -1765,6 +1945,36 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     gap: 10,
     marginBottom: 20,
+  },
+  dealerModalQualityBox: {
+    backgroundColor: COLORS.background,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    padding: 12,
+    marginBottom: 18,
+  },
+  dealerModalQualityHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 7,
+  },
+  dealerModalQualityTitle: {
+    flex: 1,
+    color: COLORS.foreground,
+    fontSize: 13,
+    fontWeight: "800",
+  },
+  dealerModalQualityScore: {
+    color: COLORS.accent,
+    fontSize: 16,
+    fontWeight: "900",
+  },
+  dealerModalQualityText: {
+    color: COLORS.mutedForeground,
+    fontSize: 12,
+    lineHeight: 17,
+    marginTop: 6,
   },
   dealerModalStat: {
     flex: 1,

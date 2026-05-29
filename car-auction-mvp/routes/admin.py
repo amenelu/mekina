@@ -195,8 +195,13 @@ def _admin_analytics_payload():
     unlocked_conversations = Conversation.query.filter_by(is_unlocked=True).count()
     total_messages = ChatMessage.query.count()
     masked_messages = ChatMessage.query.filter(
-        ChatMessage.original_body.isnot(None),
-        ChatMessage.original_body != ChatMessage.body,
+        db.or_(
+            ChatMessage.has_contact_risk.is_(True),
+            db.and_(
+                ChatMessage.original_body.isnot(None),
+                ChatMessage.original_body != ChatMessage.body,
+            ),
+        )
     ).count()
 
     total_listings = Car.query.count()
@@ -745,8 +750,13 @@ def _admin_conversation_summary(conversation):
     last_message = conversation.messages.order_by(ChatMessage.timestamp.desc()).first()
     message_count = conversation.messages.count()
     flagged_count = conversation.messages.filter(
-        ChatMessage.original_body.isnot(None),
-        ChatMessage.original_body != ChatMessage.body,
+        db.or_(
+            ChatMessage.has_contact_risk.is_(True),
+            db.and_(
+                ChatMessage.original_body.isnot(None),
+                ChatMessage.original_body != ChatMessage.body,
+            ),
+        )
     ).count()
 
     return {
@@ -774,11 +784,19 @@ def _admin_conversation_summary(conversation):
 
 def _admin_message_payload(message):
     original_body = message.original_body or message.body
+    contact_risk_categories = (
+        message.contact_risk_categories.split(",")
+        if message.contact_risk_categories
+        else []
+    )
     return {
         "id": message.id,
         "body": message.body,
         "original_body": original_body,
         "was_masked": original_body != message.body,
+        "has_contact_risk": message.has_contact_risk,
+        "contact_risk_score": message.contact_risk_score,
+        "contact_risk_categories": contact_risk_categories,
         "timestamp": message.timestamp.isoformat() + "Z",
         "is_read": message.is_read,
         "sender": message.sender.to_dict(detail_level="owner")

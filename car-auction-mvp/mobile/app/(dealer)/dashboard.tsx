@@ -86,6 +86,17 @@ interface CustomerRequest {
   request_source?: "image_based" | "specific" | "general";
   image_urls?: string[];
   offer_count?: number;
+  lead_quality?: {
+    score: number;
+    label: string;
+    reasons?: string[];
+    age_days?: number;
+  };
+  dealer_match?: {
+    score: number;
+    label: string;
+    reasons?: string[];
+  };
 }
 
 interface RequestQuestion {
@@ -250,6 +261,29 @@ const RequestItem = ({ item }: { item: CustomerRequest }) => {
     if (score >= 50) return COLORS.warning;
     return COLORS.textSecondary;
   };
+  const intelligenceChips = [
+    item.lead_quality
+      ? {
+          icon: "flame-outline",
+          label: `Lead ${item.lead_quality.score}`,
+          helper: item.lead_quality.label,
+          score: item.lead_quality.score,
+        }
+      : null,
+    item.dealer_match
+      ? {
+          icon: "locate-outline",
+          label: `Match ${item.dealer_match.score}`,
+          helper: item.dealer_match.label,
+          score: item.dealer_match.score,
+        }
+      : null,
+  ].filter(Boolean) as Array<{
+    icon: keyof typeof Ionicons.glyphMap;
+    label: string;
+    helper: string;
+    score: number;
+  }>;
   const requestTypeLabel =
     isTradeIn
       ? "Trade-in"
@@ -313,6 +347,27 @@ const RequestItem = ({ item }: { item: CustomerRequest }) => {
       </View>
       {submittedDate ? (
         <Text style={styles.submittedDateText}>Submitted {submittedDate}</Text>
+      ) : null}
+      {intelligenceChips.length ? (
+        <View style={styles.intelligenceRow}>
+          {intelligenceChips.map((chip) => (
+            <View
+              key={chip.label}
+              style={[
+                styles.intelligenceChip,
+                { borderColor: getScoreColor(chip.score) },
+              ]}
+            >
+              <Ionicons
+                name={chip.icon}
+                size={14}
+                color={getScoreColor(chip.score)}
+              />
+              <Text style={styles.intelligenceChipText}>{chip.label}</Text>
+              <Text style={styles.intelligenceChipHelper}>{chip.helper}</Text>
+            </View>
+          ))}
+        </View>
       ) : null}
 
       {item.image_urls?.length ? (
@@ -1117,6 +1172,31 @@ const styles = StyleSheet.create({
   requestStatLabel: {
     color: COLORS.textSecondary,
     fontSize: 12,
+  },
+  intelligenceRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+    marginBottom: 12,
+  },
+  intelligenceChip: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+    borderWidth: 1,
+    backgroundColor: "rgba(255,255,255,0.03)",
+    borderRadius: 999,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+  },
+  intelligenceChipText: {
+    color: COLORS.text,
+    fontSize: 12,
+    fontWeight: "800",
+  },
+  intelligenceChipHelper: {
+    color: COLORS.textSecondary,
+    fontSize: 11,
   },
   questionFooter: {
     flexDirection: "row",
