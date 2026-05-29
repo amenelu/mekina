@@ -59,6 +59,12 @@ from routes.main import mark_notification_as_read
 from routes.seller import save_base64_image, token_required
 from routes.main import send_push_notification
 from routes.auth import verify_jwt
+from services.marketplace_intelligence import (
+    get_dealer_quality_score,
+    get_dealer_request_match,
+    get_point_economy_summary,
+    get_request_lead_quality,
+)
 import re
 
 dealer_bp = Blueprint("dealer", __name__, url_prefix="/dealer")
@@ -164,6 +170,7 @@ def _bid_to_api_dict(bid, **kwargs):
     return {
         **bid.to_dict(**kwargs),
         "dealer_id": bid.dealer_id,
+        "dealer_quality": get_dealer_quality_score(bid.dealer),
         "can_edit_free": bid.status == "pending" and _bid_is_in_free_edit_window(bid),
         "free_edit_seconds_remaining": _bid_free_edit_seconds_remaining(bid),
     }
@@ -443,6 +450,8 @@ def api_dealer_dashboard(current_user):
         req_dict["lowest_offer"] = lowest_offer
         req_dict["has_been_viewed"] = has_been_viewed
         req_dict["detail_score"] = calculate_request_score(req)
+        req_dict["lead_quality"] = get_request_lead_quality(req)
+        req_dict["dealer_match"] = get_dealer_request_match(current_user, req)
         active_requests_data.append(req_dict)
 
     my_cars = (
@@ -491,6 +500,8 @@ def api_dealer_dashboard(current_user):
         conversations=[conv.to_dict(current_user.id) for conv in recent_conversations],
         now=datetime.utcnow().isoformat() + "Z",
         user_points=current_user.points,
+        dealer_quality=get_dealer_quality_score(current_user),
+        point_economy=get_point_economy_summary(current_user),
         pending_approval_count=len(pending_approvals),
         pending_approvals=[car.to_dict() for car in pending_approvals],
     )
@@ -824,6 +835,7 @@ def api_points_history(current_user):
     return jsonify(
         {
             "current_points": current_user.points or 0,
+            "point_economy": get_point_economy_summary(current_user),
             "transactions": [
                 {
                     "id": t.id,
@@ -1107,6 +1119,7 @@ def api_dealer_profile(dealer_id):
         dealer={
             **dealer.to_dict(detail_level="owner" if can_view_phone else "public"),
             "closed_deal_count": dealer.get_closed_deal_count(),
+            "dealer_quality": get_dealer_quality_score(dealer),
         },
         listings=[car.to_dict() for car in active_listings],
         ratings=[r.to_dict() for r in ratings],
@@ -1547,8 +1560,13 @@ def api_place_dealer_bid(current_user, request_id):
 
     if request.method == "GET":
         existing_bids = car_request.dealer_bids.order_by(DealerBid.price.asc()).all()
+        car_request_payload = car_request.to_dict()
+        car_request_payload["lead_quality"] = get_request_lead_quality(car_request)
+        car_request_payload["dealer_match"] = get_dealer_request_match(
+            current_user, car_request
+        )
         return jsonify(
-            car_request=car_request.to_dict(),
+            car_request=car_request_payload,
             existing_bids=[_bid_to_api_dict(bid) for bid in existing_bids],
         )
 

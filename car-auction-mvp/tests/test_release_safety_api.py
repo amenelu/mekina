@@ -302,6 +302,8 @@ def test_specific_car_request_prefills_target_car_for_dealer_offer(client):
     dealer_request = dealer_response.get_json()["car_request"]
     assert dealer_request["target_car"]["condition"] == "New"
     assert dealer_request["target_car"]["fixed_price"] == 2_700_000
+    assert dealer_request["lead_quality"]["label"] in {"Medium", "High"}
+    assert dealer_request["dealer_match"]["score"] > 0
 
 
 def test_image_based_request_is_visible_to_dealer_with_images(client):
@@ -346,6 +348,26 @@ def test_image_based_request_is_visible_to_dealer_with_images(client):
     details_request = details_response.get_json()["car_request"]
     assert details_request["request_source"] == "image_based"
     assert details_request["image_urls"]
+
+
+def test_request_detail_returns_offer_ranking_and_lead_quality(client):
+    buyer = create_user("rank_buyer", "rank-buyer@example.com")
+    dealer = create_user("rank_dealer", "rank-dealer@example.com", is_dealer=True)
+    car_request, bid = create_request_with_bid(buyer, dealer)
+    db.session.commit()
+
+    response = client.get(
+        f"/requests/api/requests/{car_request.id}",
+        headers=login_headers(client, buyer.username),
+    )
+
+    assert response.status_code == 200
+    payload = response.get_json()
+    assert payload["request"]["lead_quality"]["score"] > 0
+    assert payload["bids"][0]["id"] == bid.id
+    assert payload["bids"][0]["offer_rank"]["score"] > 0
+    assert payload["bids"][0]["offer_rank"]["dealer_quality"]["score"] > 0
+    assert payload["bids"][0]["is_best_deal"] is True
 
 
 def test_compare_bids_includes_dealer_submitted_image(client):
@@ -693,10 +715,14 @@ def test_dealer_dashboard_returns_release_payload_for_dealers(client):
     assert response.status_code == 200
     payload = response.get_json()
     assert payload["user_points"] == 11
+    assert payload["dealer_quality"]["score"] > 0
+    assert payload["point_economy"]["current_points"] == 11
     assert payload["pending_approval_count"] == 1
     assert payload["pending_approvals"][0]["id"] == pending_car.id
     assert len(payload["requests"]) == 1
     assert payload["requests"][0]["make"] == "Toyota"
+    assert payload["requests"][0]["lead_quality"]["score"] > 0
+    assert payload["requests"][0]["dealer_match"]["score"] > 0
 
 
 def test_dealer_advanced_analytics_locked_and_unlocked_states(client):

@@ -26,6 +26,10 @@ from routes.main import mark_notification_as_read
 from routes.seller import save_base64_image
 from routes.main import send_push_notification
 from routes.auth import token_required
+from services.marketplace_intelligence import (
+    get_request_lead_quality,
+    rank_dealer_offers,
+)
 from flask_wtf import FlaskForm
 from wtforms import (
     StringField,
@@ -669,6 +673,7 @@ def api_request_detail(current_user, request_id):
     all_bids = car_request.dealer_bids.all()
 
     req_data = car_request.to_dict()
+    req_data["lead_quality"] = get_request_lead_quality(car_request)
     if "images" not in req_data:
         req_data["images"] = [
             {"image_url": img.image_url} for img in car_request.images
@@ -680,47 +685,12 @@ def api_request_detail(current_user, request_id):
     # Find the lowest priced and newest bids
     lowest_bid = min(all_bids, key=lambda b: b.price)
     newest_bid = max(all_bids, key=lambda b: b.timestamp)
-
-    # --- Calculate "Best Deal" Score ---
-    # Factors: Price (40%), Year (30%), Mileage (20%), Dealer Rating (10%)
-    best_deal_bid = None
-    if all_bids:
-        prices = [b.price for b in all_bids]
-        years = [b.car_year for b in all_bids]
-        mileages = [b.mileage for b in all_bids]
-
-        min_price, max_price = min(prices), max(prices)
-        min_year, max_year = min(years), max(years)
-        min_mileage, max_mileage = min(mileages), max(mileages)
-
-        highest_score = -1
-
-        for bid in all_bids:
-            score = 0
-            # Price (Lower is better)
-            if max_price > min_price:
-                score += (1 - ((bid.price - min_price) / (max_price - min_price))) * 40
-            else:
-                score += 40
-            # Year (Higher is better)
-            if max_year > min_year:
-                score += ((bid.car_year - min_year) / (max_year - min_year)) * 30
-            else:
-                score += 30
-            # Mileage (Lower is better)
-            if max_mileage > min_mileage:
-                score += (
-                    1 - ((bid.mileage - min_mileage) / (max_mileage - min_mileage))
-                ) * 20
-            else:
-                score += 20
-            # Rating (Higher is better)
-            rating = bid.dealer.get_average_rating() or 0
-            score += (rating / 5) * 10
-
-            if score > highest_score:
-                highest_score = score
-                best_deal_bid = bid
+    offer_rankings = rank_dealer_offers(all_bids)
+    best_deal_bid_id = None
+    if offer_rankings:
+        best_deal_bid_id = max(
+            offer_rankings.items(), key=lambda item: item[1]["score"]
+        )[0]
 
     # Create a sorted list
     sorted_bids = []
@@ -741,16 +711,19 @@ def api_request_detail(current_user, request_id):
     )
     sorted_bids.extend(remaining_bids)
 
+    bids_payload = []
+    for bid in sorted_bids:
+        bid_payload = bid.to_dict(
+            is_newest=(bid.id == newest_bid.id),
+            is_best_deal=(best_deal_bid_id is not None and bid.id == best_deal_bid_id),
+        )
+        bid_payload["offer_rank"] = offer_rankings.get(bid.id)
+        bids_payload.append(bid_payload)
+
     return jsonify(
         {
             "request": req_data,
-            "bids": [
-                bid.to_dict(
-                    is_newest=(bid.id == newest_bid.id),
-                    is_best_deal=(best_deal_bid and bid.id == best_deal_bid.id),
-                )
-                for bid in sorted_bids
-            ],
+            "bids": bids_payload,
         }
     )
 

@@ -27,6 +27,7 @@ from flask import current_app
 from models.search_query import SearchQuery
 from sqlalchemy import String, and_, cast, or_, func
 from datetime import datetime, timedelta
+from services.marketplace_intelligence import detect_contact_risk
 
 
 def mark_notification_as_read(f):
@@ -207,22 +208,8 @@ def mask_contact_info(message):
     Detects and masks phone numbers in a message.
     Returns the masked message and a boolean indicating if contact info was found.
     """
-    # A list of patterns to detect various forms of contact information.
-    patterns = [
-        r"(?:\+251\s?|0)?9\d{2}\s?\d{3}\s?\d{3}",  # Ethiopian phone numbers with optional spaces
-        r"https?://\S+",  # URLs (http, https)
-        r"\b(WhatsApp|Telegram|Instagram|Facebook|fb\.com|t\.me)\b",  # Social media keywords
-    ]
-
-    # Combine all patterns into a single regex, separated by '|' (OR)
-    combined_regex = "|".join(patterns)
-
-    # Use re.IGNORECASE to catch variations like 'whatsapp' or 'FACEBOOK'
-    masked_message, count = re.subn(
-        combined_regex, "[Contact Info Hidden]", message, flags=re.IGNORECASE
-    )
-    found_contact_info = count > 0
-    return masked_message, found_contact_info
+    risk = detect_contact_risk(message)
+    return risk["masked_message"], risk["has_contact_risk"]
 
 
 def send_push_notification(user_id, message_body, data=None):
