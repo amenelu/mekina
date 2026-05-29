@@ -81,9 +81,12 @@ function BreakdownChart({ breakdown }: { breakdown: AdminAnalyticsBreakdown }) {
                   {item.label}
                 </Text>
                 <Text style={styles.chartValue}>
-                  {formatMetricValue(item.value, item.helper)}
+                  {formatMetricValue(item.value)}
                 </Text>
               </View>
+              {item.helper ? (
+                <Text style={styles.chartHelper}>{item.helper}</Text>
+              ) : null}
               <View style={styles.chartTrack}>
                 <View style={[styles.chartFill, { width: `${widthPercent}%` }]} />
               </View>
@@ -350,6 +353,12 @@ const styles = StyleSheet.create({
     color: COLORS.text,
     fontSize: 12,
     fontWeight: "800",
+  },
+  chartHelper: {
+    color: COLORS.textSecondary,
+    fontSize: 11,
+    lineHeight: 15,
+    marginBottom: 6,
   },
   chartTrack: {
     height: 9,

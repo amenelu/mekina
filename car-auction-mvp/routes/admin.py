@@ -296,9 +296,11 @@ def _admin_analytics_payload():
                 "username": row.username,
                 "activity_score": activity_score,
                 "helper": (
+                    "activity score from "
                     f"{row.offers_submitted or 0} offers, "
-                    f"{row.active_listings or 0} listings, "
-                    f"{row.completed_deals or 0} closed"
+                    f"{row.active_listings or 0} active listings, "
+                    f"{row.completed_deals or 0} completed deals, "
+                    f"{row.conversations or 0} chats"
                 ),
             }
         )
@@ -436,7 +438,7 @@ def _admin_analytics_payload():
                 ],
                 "breakdowns": [
                     {
-                        "title": "Most active dealers",
+                        "title": "Most active dealers - activity score",
                         "items": [
                             {
                                 "label": item["username"],
@@ -447,23 +449,23 @@ def _admin_analytics_payload():
                         ],
                     },
                     {
-                        "title": "Most points requested",
+                        "title": "Dealers requesting the most points",
                         "items": [
                             {
                                 "label": row.username,
                                 "value": row.requested_points,
-                                "helper": f"{row.request_count} request(s)",
+                                "helper": f"total points across {row.request_count} request(s)",
                             }
                             for row in top_point_requesters
                         ],
                     },
                     {
-                        "title": "Most points spent",
+                        "title": "Dealers spending the most points",
                         "items": [
                             {
                                 "label": row.username,
                                 "value": row.points_spent,
-                                "helper": f"{row.transaction_count} transaction(s)",
+                                "helper": f"spent across {row.transaction_count} transaction(s)",
                             }
                             for row in top_point_spenders
                         ],
