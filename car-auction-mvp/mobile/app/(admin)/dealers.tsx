@@ -60,6 +60,10 @@ const AdminDealersScreen = () => {
           active_listings: dealer.active_listings ?? 0,
           avg_rating: dealer.avg_rating ?? 0,
           review_count: dealer.review_count ?? 0,
+          activity_score: dealer.activity_score ?? 0,
+          activity_score_detail:
+            dealer.activity_score_detail ||
+            "0 offers, 0 active listings, 0 completed deals, 0 chats",
         }))
       );
     } catch (error) {
@@ -202,6 +206,14 @@ const AdminDealersScreen = () => {
           {item.active_listings} listings · ★ {item.avg_rating.toFixed(1)} (
           {item.review_count} reviews)
         </Text>
+        <View style={styles.activityScoreBox}>
+          <Text style={styles.activityScoreValue}>
+            Activity score: {item.activity_score ?? 0}
+          </Text>
+          <Text style={styles.activityScoreDetail}>
+            {item.activity_score_detail}
+          </Text>
+        </View>
         {item.pending_point_request ? (
           <View style={styles.pointRequestActions}>
             <Pressable
@@ -404,6 +416,25 @@ const styles = StyleSheet.create({
   },
   email: { fontSize: 14, color: COLORS.mutedForeground, marginTop: 4 },
   stats: { fontSize: 12, color: COLORS.accent, marginTop: 8 },
+  activityScoreBox: {
+    backgroundColor: "#252A35",
+    borderColor: COLORS.border,
+    borderWidth: 1,
+    borderRadius: 10,
+    padding: 10,
+    marginTop: 10,
+  },
+  activityScoreValue: {
+    color: COLORS.foreground,
+    fontSize: 13,
+    fontWeight: "800",
+  },
+  activityScoreDetail: {
+    color: COLORS.mutedForeground,
+    fontSize: 11,
+    lineHeight: 15,
+    marginTop: 3,
+  },
   buttonContainer: {
     flexDirection: "row",
     justifyContent: "flex-end",

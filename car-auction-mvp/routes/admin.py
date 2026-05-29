@@ -1038,7 +1038,6 @@ def dealer_management():
         .group_by(DealerRating.dealer_id)
         .subquery()
     )
-
     dealers_with_stats = (
         db.session.query(
             User,
@@ -1086,6 +1085,31 @@ def api_admin_list_dealers(current_user):
         .group_by(DealerRating.dealer_id)
         .subquery()
     )
+    offers_sub = (
+        db.session.query(
+            DealerBid.dealer_id,
+            func.count(DealerBid.id).label("offers_submitted"),
+        )
+        .group_by(DealerBid.dealer_id)
+        .subquery()
+    )
+    completed_deals_sub = (
+        db.session.query(
+            Deal.dealer_id,
+            func.count(Deal.id).label("completed_deals"),
+        )
+        .filter(Deal.status == "completed")
+        .group_by(Deal.dealer_id)
+        .subquery()
+    )
+    conversations_sub = (
+        db.session.query(
+            Conversation.dealer_id,
+            func.count(Conversation.id).label("conversations"),
+        )
+        .group_by(Conversation.dealer_id)
+        .subquery()
+    )
 
     # Base query for businesses that can spend/request points.
     dealers_query = (
@@ -1096,9 +1120,21 @@ def api_admin_list_dealers(current_user):
             ),
             func.coalesce(review_stats_sub.c.avg_rating, 0).label("avg_rating"),
             func.coalesce(review_stats_sub.c.review_count, 0).label("review_count"),
+            func.coalesce(offers_sub.c.offers_submitted, 0).label(
+                "offers_submitted"
+            ),
+            func.coalesce(completed_deals_sub.c.completed_deals, 0).label(
+                "completed_deals"
+            ),
+            func.coalesce(conversations_sub.c.conversations, 0).label(
+                "conversations"
+            ),
         )
         .outerjoin(active_listings_sub, User.id == active_listings_sub.c.owner_id)
         .outerjoin(review_stats_sub, User.id == review_stats_sub.c.dealer_id)
+        .outerjoin(offers_sub, User.id == offers_sub.c.dealer_id)
+        .outerjoin(completed_deals_sub, User.id == completed_deals_sub.c.dealer_id)
+        .outerjoin(conversations_sub, User.id == conversations_sub.c.dealer_id)
         .filter(or_(User.is_dealer == True, User.is_rental_company == True))
     )
 
@@ -1112,24 +1148,46 @@ def api_admin_list_dealers(current_user):
         page=page, per_page=per_page, error_out=False
     )
 
-    dealers_data = [
-        {
-            "id": dealer.id,
-            "username": dealer.username,
-            "email": dealer.email,
-            "is_dealer": dealer.is_dealer,
-            "is_rental_company": dealer.is_rental_company,
-            "account_type": (
-                "Rental Company" if dealer.is_rental_company else "Dealer"
-            ),
-            "active_listings": active_listings,
-            "avg_rating": float(avg_rating) if avg_rating else 0,
-            "review_count": review_count,
-            "pending_point_request": pending_point_requests.get(dealer.id),
-            "profile_url": url_for("dealer.profile", dealer_id=dealer.id),
-        }
-        for dealer, active_listings, avg_rating, review_count in paginated_dealers.items
-    ]
+    dealers_data = []
+    for (
+        dealer,
+        active_listings,
+        avg_rating,
+        review_count,
+        offers_submitted,
+        completed_deals,
+        conversations,
+    ) in paginated_dealers.items:
+        activity_score = (
+            (offers_submitted or 0)
+            + (active_listings or 0)
+            + (completed_deals or 0) * 3
+            + (conversations or 0)
+        )
+        dealers_data.append(
+            {
+                "id": dealer.id,
+                "username": dealer.username,
+                "email": dealer.email,
+                "is_dealer": dealer.is_dealer,
+                "is_rental_company": dealer.is_rental_company,
+                "account_type": (
+                    "Rental Company" if dealer.is_rental_company else "Dealer"
+                ),
+                "active_listings": active_listings,
+                "avg_rating": float(avg_rating) if avg_rating else 0,
+                "review_count": review_count,
+                "activity_score": activity_score,
+                "activity_score_detail": (
+                    f"{offers_submitted or 0} offers, "
+                    f"{active_listings or 0} active listings, "
+                    f"{completed_deals or 0} completed deals, "
+                    f"{conversations or 0} chats"
+                ),
+                "pending_point_request": pending_point_requests.get(dealer.id),
+                "profile_url": url_for("dealer.profile", dealer_id=dealer.id),
+            }
+        )
 
     return jsonify(
         {

@@ -85,6 +85,8 @@ export interface AdminDealer {
   active_listings: number;
   avg_rating: number;
   review_count: number;
+  activity_score?: number;
+  activity_score_detail?: string;
   pending_point_request?: PendingPointRequestSummary | null;
 }
 

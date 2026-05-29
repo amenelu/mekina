@@ -648,9 +648,15 @@ def test_admin_dashboard_counters_reflect_release_queues(client):
         breakdown["title"]: breakdown["items"]
         for breakdown in dealer_analytics["breakdowns"]
     }
-    assert dealer_breakdowns["Most points requested"][0]["label"] == dealer.username
-    assert dealer_breakdowns["Most points requested"][0]["value"] == 4
-    assert dealer_breakdowns["Most active dealers"][0]["label"] == dealer.username
+    assert (
+        dealer_breakdowns["Dealers requesting the most points"][0]["label"]
+        == dealer.username
+    )
+    assert dealer_breakdowns["Dealers requesting the most points"][0]["value"] == 4
+    assert (
+        dealer_breakdowns["Most active dealers - activity score"][0]["label"]
+        == dealer.username
+    )
 
     inventory_breakdowns = {
         breakdown["title"]: breakdown["items"]
@@ -1182,6 +1188,10 @@ def test_admin_list_apis_return_paginated_results(client):
     assert len(rental_companies["dealers"]) == 1
     assert rental_companies["pagination"]["total"] == 1
     assert rental_companies["dealers"][0]["account_type"] == "Rental Company"
+    assert rental_companies["dealers"][0]["activity_score"] == 3
+    assert "3 active listings" in rental_companies["dealers"][0][
+        "activity_score_detail"
+    ]
     assert rental_companies["dealers"][0]["pending_point_request"][
         "requested_points"
     ] == 5
