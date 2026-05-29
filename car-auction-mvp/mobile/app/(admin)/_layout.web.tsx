@@ -41,6 +41,7 @@ export default function AdminLayoutWeb() {
           ),
         }}
       />
+      <Tabs.Screen name="admin-analytics" options={{ href: null }} />
       <Tabs.Screen
         name="admin-users"
         options={{
@@ -92,6 +93,7 @@ export default function AdminLayoutWeb() {
         }}
       />
       <Tabs.Screen name="dashboard" options={{ href: null }} />
+      <Tabs.Screen name="analytics" options={{ href: null }} />
       <Tabs.Screen name="users" options={{ href: null }} />
       <Tabs.Screen name="listings" options={{ href: null }} />
       <Tabs.Screen name="dealers" options={{ href: null }} />

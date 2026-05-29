@@ -9,6 +9,7 @@ export const LOGIN_ROUTE = "/(auth)/login";
 export const ADMIN_ROUTES = {
   root: isWeb ? "/(admin)/admin-dashboard" : "/(admin)/dashboard",
   dashboard: isWeb ? "/(admin)/admin-dashboard" : "/(admin)/dashboard",
+  analytics: isWeb ? "/(admin)/admin-analytics" : "/(admin)/analytics",
   users: isWeb ? "/(admin)/admin-users" : "/(admin)/users",
   listings: isWeb ? "/(admin)/admin-listings" : "/(admin)/listings",
   dealers: isWeb ? "/(admin)/admin-dealers" : "/(admin)/dealers",
