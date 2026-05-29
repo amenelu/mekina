@@ -97,6 +97,20 @@ interface CustomerRequest {
     label: string;
     reasons?: string[];
   };
+  response_health?: {
+    label: string;
+    offer_count: number;
+    first_response_minutes?: number | null;
+    unanswered_questions?: number;
+    reasons?: string[];
+  };
+  expiry_risk?: {
+    score: number;
+    label: string;
+    reasons?: string[];
+    valid_offer_count?: number;
+    expired_offer_count?: number;
+  };
 }
 
 interface RequestQuestion {
@@ -276,6 +290,27 @@ const RequestItem = ({ item }: { item: CustomerRequest }) => {
           label: `Match ${item.dealer_match.score}`,
           helper: item.dealer_match.label,
           score: item.dealer_match.score,
+        }
+      : null,
+    item.response_health
+      ? {
+          icon: "pulse-outline",
+          label: item.response_health.label,
+          helper: `${item.response_health.offer_count} offers`,
+          score:
+            item.response_health.label === "Competitive"
+              ? 85
+              : item.response_health.label === "Responded"
+                ? 65
+                : 30,
+        }
+      : null,
+    item.expiry_risk
+      ? {
+          icon: "timer-outline",
+          label: `Risk ${item.expiry_risk.score}`,
+          helper: item.expiry_risk.label,
+          score: 100 - item.expiry_risk.score,
         }
       : null,
   ].filter(Boolean) as Array<{

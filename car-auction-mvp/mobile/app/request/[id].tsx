@@ -64,6 +64,20 @@ interface CarRequest {
     reasons?: string[];
     age_days?: number;
   };
+  response_health?: {
+    label: string;
+    offer_count: number;
+    first_response_minutes?: number | null;
+    unanswered_questions?: number;
+    reasons?: string[];
+  };
+  expiry_risk?: {
+    score: number;
+    label: string;
+    reasons?: string[];
+    valid_offer_count?: number;
+    expired_offer_count?: number;
+  };
 }
 
 interface QuestionAnswer {
@@ -107,6 +121,14 @@ interface DealerBid {
       label: string;
       reasons?: string[];
     };
+  };
+  price_position?: {
+    label: string;
+    sample_count: number;
+    average_price?: number | null;
+    difference_percent?: number | null;
+    is_below_market?: boolean;
+    is_above_market?: boolean;
   };
 }
 
@@ -178,6 +200,12 @@ interface ComparisonBid {
   is_best_price?: boolean;
   is_best_mileage?: boolean;
   is_best_year?: boolean;
+  price_position?: {
+    label: string;
+    sample_count: number;
+    average_price?: number | null;
+    difference_percent?: number | null;
+  };
 }
 
 /**
@@ -541,6 +569,56 @@ const RequestDetailScreen = () => {
               </View>
             ) : null}
 
+            {(request.response_health || request.expiry_risk) ? (
+              <View style={styles.requestHealthGrid}>
+                {request.response_health ? (
+                  <View style={styles.requestHealthBox}>
+                    <View style={styles.requestInsightHeader}>
+                      <Ionicons
+                        name="pulse-outline"
+                        size={16}
+                        color={COLORS.accent}
+                      />
+                      <Text style={styles.requestInsightTitle}>
+                        Response health
+                      </Text>
+                    </View>
+                    <Text style={styles.requestHealthValue}>
+                      {request.response_health.label}
+                    </Text>
+                    <Text style={styles.requestInsightText}>
+                      {request.response_health.reasons?.join(", ") ||
+                        `${request.response_health.offer_count} offers`}
+                    </Text>
+                  </View>
+                ) : null}
+                {request.expiry_risk ? (
+                  <View style={styles.requestHealthBox}>
+                    <View style={styles.requestInsightHeader}>
+                      <Ionicons
+                        name="timer-outline"
+                        size={16}
+                        color={getInsightColor(100 - request.expiry_risk.score)}
+                      />
+                      <Text style={styles.requestInsightTitle}>Expiry risk</Text>
+                      <Text
+                        style={[
+                          styles.requestInsightScore,
+                          { color: getInsightColor(100 - request.expiry_risk.score) },
+                        ]}
+                      >
+                        {request.expiry_risk.score}
+                      </Text>
+                    </View>
+                    <Text style={styles.requestInsightText}>
+                      {request.expiry_risk.reasons?.join(", ") ||
+                        request.expiry_risk.label}
+                    </Text>
+                  </View>
+                ) : null}
+              </View>
+            ) : null}
+
             {request.images && request.images.length > 0 && (
               <View style={styles.requestImagesContainer}>
                 <Text style={[styles.detailLabel, { marginBottom: 8 }]}>
@@ -724,6 +802,37 @@ const RequestDetailScreen = () => {
                             {bid.offer_rank.dealer_quality.label})
                           </Text>
                         ) : null}
+                      </View>
+                    ) : null}
+
+                    {bid.price_position ? (
+                      <View style={styles.pricePositionPanel}>
+                        <View style={styles.offerRankHeader}>
+                          <Ionicons
+                            name="pricetag-outline"
+                            size={16}
+                            color={
+                              bid.price_position.is_below_market
+                                ? COLORS.success
+                                : bid.price_position.is_above_market
+                                  ? "#ffc107"
+                                  : COLORS.accent
+                            }
+                          />
+                          <Text style={styles.offerRankTitle}>
+                            Market position
+                          </Text>
+                          <Text style={styles.offerRankScore}>
+                            {bid.price_position.label}
+                          </Text>
+                        </View>
+                        <Text style={styles.offerRankText}>
+                          {bid.price_position.sample_count > 0
+                            ? `${bid.price_position.difference_percent ?? 0}% vs ${Math.round(
+                                bid.price_position.average_price || 0
+                              ).toLocaleString()} ETB market average`
+                            : "Not enough similar offers or listings yet."}
+                        </Text>
                       </View>
                     ) : null}
 
@@ -1315,6 +1424,20 @@ const RequestDetailScreen = () => {
                       )}
                     </View>
 
+                    {bid.price_position ? (
+                      <View style={styles.compareRow}>
+                        <Text style={styles.compareLabel}>Market</Text>
+                        <Text style={styles.compareValue}>
+                          {bid.price_position.label}
+                          {bid.price_position.sample_count > 0 &&
+                          bid.price_position.difference_percent !== null &&
+                          bid.price_position.difference_percent !== undefined
+                            ? ` (${bid.price_position.difference_percent}%)`
+                            : ""}
+                        </Text>
+                      </View>
+                    ) : null}
+
                     {/* Other comparison rows... */}
                   </View>
 
@@ -1524,6 +1647,27 @@ const styles = StyleSheet.create({
     borderColor: COLORS.border,
     padding: 12,
   },
+  requestHealthGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 10,
+    marginTop: 12,
+  },
+  requestHealthBox: {
+    flexGrow: 1,
+    flexBasis: 160,
+    backgroundColor: COLORS.background,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    padding: 12,
+  },
+  requestHealthValue: {
+    color: COLORS.foreground,
+    fontSize: 14,
+    fontWeight: "800",
+    marginTop: 7,
+  },
   requestInsightHeader: {
     flexDirection: "row",
     alignItems: "center",
@@ -1617,6 +1761,14 @@ const styles = StyleSheet.create({
     marginVertical: 10,
   },
   offerRankPanel: {
+    backgroundColor: COLORS.background,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    padding: 12,
+    marginBottom: 12,
+  },
+  pricePositionPanel: {
     backgroundColor: COLORS.background,
     borderRadius: 10,
     borderWidth: 1,

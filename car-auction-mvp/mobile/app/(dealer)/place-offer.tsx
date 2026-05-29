@@ -65,6 +65,20 @@ interface CustomerRequest {
     label: string;
     reasons?: string[];
   };
+  response_health?: {
+    label: string;
+    offer_count: number;
+    first_response_minutes?: number | null;
+    unanswered_questions?: number;
+    reasons?: string[];
+  };
+  expiry_risk?: {
+    score: number;
+    label: string;
+    reasons?: string[];
+    valid_offer_count?: number;
+    expired_offer_count?: number;
+  };
 }
 
 interface DealerBid {
@@ -86,6 +100,14 @@ interface DealerBid {
   mileage?: number;
   availability?: string;
   message?: string;
+  price_position?: {
+    label: string;
+    sample_count: number;
+    average_price?: number | null;
+    difference_percent?: number | null;
+    is_below_market?: boolean;
+    is_above_market?: boolean;
+  };
 }
 
 const COLORS = {
@@ -795,7 +817,10 @@ const PlaceOfferScreen = () => {
                     : "Any"}
                 </Text>
 
-                {(requestDetails.lead_quality || requestDetails.dealer_match) && (
+                {(requestDetails.lead_quality ||
+                  requestDetails.dealer_match ||
+                  requestDetails.response_health ||
+                  requestDetails.expiry_risk) && (
                   <View style={styles.insightPanel}>
                     {requestDetails.lead_quality && (
                       <View style={styles.insightBlock}>
@@ -842,6 +867,49 @@ const PlaceOfferScreen = () => {
                         <Text style={styles.insightText}>
                           {requestDetails.dealer_match.reasons?.join(", ") ||
                             requestDetails.dealer_match.label}
+                        </Text>
+                      </View>
+                    )}
+                    {requestDetails.response_health && (
+                      <View style={styles.insightBlock}>
+                        <View style={styles.insightHeader}>
+                          <Ionicons
+                            name="pulse-outline"
+                            size={16}
+                            color={COLORS.accent}
+                          />
+                          <Text style={styles.insightTitle}>Response health</Text>
+                          <Text style={styles.insightScore}>
+                            {requestDetails.response_health.offer_count}
+                          </Text>
+                        </View>
+                        <Text style={styles.insightText}>
+                          {requestDetails.response_health.reasons?.join(", ") ||
+                            requestDetails.response_health.label}
+                        </Text>
+                      </View>
+                    )}
+                    {requestDetails.expiry_risk && (
+                      <View style={styles.insightBlock}>
+                        <View style={styles.insightHeader}>
+                          <Ionicons
+                            name="timer-outline"
+                            size={16}
+                            color={getInsightColor(100 - requestDetails.expiry_risk.score)}
+                          />
+                          <Text style={styles.insightTitle}>Expiry risk</Text>
+                          <Text
+                            style={[
+                              styles.insightScore,
+                              { color: getInsightColor(100 - requestDetails.expiry_risk.score) },
+                            ]}
+                          >
+                            {requestDetails.expiry_risk.score}
+                          </Text>
+                        </View>
+                        <Text style={styles.insightText}>
+                          {requestDetails.expiry_risk.reasons?.join(", ") ||
+                            requestDetails.expiry_risk.label}
                         </Text>
                       </View>
                     )}
@@ -979,6 +1047,20 @@ const PlaceOfferScreen = () => {
                           {bid.price.toLocaleString()} ETB
                         </Text>
                       </View>
+                      {bid.price_position && (
+                        <View style={styles.pricePositionBox}>
+                          <Text style={styles.pricePositionTitle}>
+                            {bid.price_position.label}
+                          </Text>
+                          <Text style={styles.pricePositionText}>
+                            {bid.price_position.sample_count > 0
+                              ? `${bid.price_position.difference_percent ?? 0}% vs ${Math.round(
+                                  bid.price_position.average_price || 0
+                                ).toLocaleString()} ETB market average`
+                              : "Not enough similar offers or listings yet."}
+                          </Text>
+                        </View>
+                      )}
                       <View style={styles.detailRow}>
                         <Text style={styles.detailLabel}>Car:</Text>
                         <Text style={styles.detailValue}>
@@ -1291,6 +1373,25 @@ const styles = StyleSheet.create({
     height: 150,
     borderRadius: 8,
     marginBottom: 10,
+  },
+  pricePositionBox: {
+    backgroundColor: COLORS.card,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    padding: 10,
+    marginBottom: 10,
+  },
+  pricePositionTitle: {
+    color: COLORS.accent,
+    fontSize: 13,
+    fontWeight: "800",
+    marginBottom: 3,
+  },
+  pricePositionText: {
+    color: COLORS.textSecondary,
+    fontSize: 12,
+    lineHeight: 17,
   },
   myBidHighlight: {
     borderColor: COLORS.accent,
