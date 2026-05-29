@@ -14,6 +14,33 @@ export interface AdminDashboardStats {
   pending_trade_in_count: number;
 }
 
+export interface AdminAnalyticsMetric {
+  label: string;
+  value: number | string;
+  helper?: string | null;
+}
+
+export interface AdminAnalyticsBreakdownItem {
+  label: string;
+  value: number | string;
+  helper?: string | null;
+}
+
+export interface AdminAnalyticsBreakdown {
+  title: string;
+  items: AdminAnalyticsBreakdownItem[];
+}
+
+export interface AdminAnalyticsGroup {
+  title: string;
+  metrics: AdminAnalyticsMetric[];
+  breakdowns?: AdminAnalyticsBreakdown[];
+}
+
+export interface AdminAnalyticsPayload {
+  groups: AdminAnalyticsGroup[];
+}
+
 export interface AdminPendingListing {
   id: number;
   year: number;

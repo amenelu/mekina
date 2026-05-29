@@ -21,6 +21,7 @@ import {
   getAdminDashboard,
 } from "@/lib/api/admin";
 import type {
+  AdminAnalyticsPayload,
   AdminDashboardStats,
   AdminPendingListing,
   AdminTradeInRequest,
@@ -57,6 +58,58 @@ const StatButton = ({
     <Text style={styles.statValue}>{value}</Text>
     <Text style={styles.statLabel}>{label}</Text>
   </Pressable>
+);
+
+const formatMetricValue = (value: number | string, helper?: string | null) => {
+  const text =
+    typeof value === "number"
+      ? Number.isInteger(value)
+        ? value.toLocaleString()
+        : value.toLocaleString(undefined, { maximumFractionDigits: 1 })
+      : value;
+  return helper ? `${text} ${helper}` : text;
+};
+
+const AnalyticsGroupCard = ({
+  group,
+}: {
+  group: AdminAnalyticsPayload["groups"][number];
+}) => (
+  <View style={styles.analyticsGroup}>
+    <Text style={styles.analyticsGroupTitle}>{group.title}</Text>
+    <View style={styles.analyticsMetricGrid}>
+      {group.metrics.map((metric) => (
+        <View key={`${group.title}-${metric.label}`} style={styles.analyticsMetric}>
+          <Text style={styles.analyticsValue}>
+            {formatMetricValue(metric.value, metric.helper)}
+          </Text>
+          <Text style={styles.analyticsLabel}>{metric.label}</Text>
+        </View>
+      ))}
+    </View>
+    {group.breakdowns?.map((breakdown) => (
+      <View key={`${group.title}-${breakdown.title}`} style={styles.breakdownBox}>
+        <Text style={styles.breakdownTitle}>{breakdown.title}</Text>
+        {breakdown.items.length > 0 ? (
+          breakdown.items.map((item) => (
+            <View
+              key={`${group.title}-${breakdown.title}-${item.label}`}
+              style={styles.breakdownRow}
+            >
+              <Text style={styles.breakdownLabel} numberOfLines={1}>
+                {item.label}
+              </Text>
+              <Text style={styles.breakdownValue}>
+                {formatMetricValue(item.value, item.helper)}
+              </Text>
+            </View>
+          ))
+        ) : (
+          <Text style={styles.breakdownEmpty}>No data yet.</Text>
+        )}
+      </View>
+    ))}
+  </View>
 );
 
 const PendingListingRow = ({
@@ -121,6 +174,7 @@ const TradeInRow = ({ request }: { request: AdminTradeInRequest }) => {
 
 const AdminDashboardScreen = () => {
   const [stats, setStats] = useState<AdminDashboardStats | null>(null);
+  const [analytics, setAnalytics] = useState<AdminAnalyticsPayload | null>(null);
   const [pendingCars, setPendingCars] = useState<AdminPendingListing[]>([]);
   const [pendingTradeIns, setPendingTradeIns] = useState<AdminTradeInRequest[]>([]);
   const [loading, setLoading] = useState(true);
@@ -144,6 +198,7 @@ const AdminDashboardScreen = () => {
     try {
       const response = await getAdminDashboard();
       setStats(response.data.stats);
+      setAnalytics(response.data.analytics || null);
       setPendingCars(response.data.pending_approvals);
       setPendingTradeIns(response.data.pending_trade_ins);
     } catch (err) {
@@ -231,6 +286,17 @@ const AdminDashboardScreen = () => {
         </View>
       )}
 
+      {analytics?.groups?.length ? (
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Admin Analytics</Text>
+          <View style={styles.analyticsGrid}>
+            {analytics.groups.map((group) => (
+              <AnalyticsGroupCard key={group.title} group={group} />
+            ))}
+          </View>
+        </View>
+      ) : null}
+
       {/* Pending Listings */}
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Listings Pending Approval</Text>
@@ -295,6 +361,81 @@ const styles = StyleSheet.create({
     color: COLORS.mutedForeground,
     marginTop: 4,
     textAlign: "center",
+  },
+  analyticsGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 14,
+  },
+  analyticsGroup: {
+    flexGrow: 1,
+    flexBasis: 320,
+    backgroundColor: COLORS.card,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    padding: 14,
+  },
+  analyticsGroupTitle: {
+    color: COLORS.foreground,
+    fontSize: 17,
+    fontWeight: "800",
+    marginBottom: 12,
+  },
+  analyticsMetricGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 10,
+  },
+  analyticsMetric: {
+    flexGrow: 1,
+    flexBasis: 132,
+    backgroundColor: "#252A35",
+    borderRadius: 10,
+    padding: 12,
+  },
+  analyticsValue: {
+    color: COLORS.accent,
+    fontSize: 18,
+    fontWeight: "900",
+  },
+  analyticsLabel: {
+    color: COLORS.mutedForeground,
+    fontSize: 12,
+    marginTop: 4,
+  },
+  breakdownBox: {
+    marginTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: COLORS.border,
+    paddingTop: 12,
+    gap: 8,
+  },
+  breakdownTitle: {
+    color: COLORS.foreground,
+    fontSize: 13,
+    fontWeight: "800",
+    marginBottom: 2,
+  },
+  breakdownRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 10,
+  },
+  breakdownLabel: {
+    flex: 1,
+    color: COLORS.mutedForeground,
+    fontSize: 12,
+  },
+  breakdownValue: {
+    color: COLORS.foreground,
+    fontSize: 12,
+    fontWeight: "800",
+  },
+  breakdownEmpty: {
+    color: COLORS.mutedForeground,
+    fontSize: 12,
   },
   section: {
     paddingHorizontal: 20,

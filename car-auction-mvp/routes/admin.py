@@ -23,8 +23,11 @@ from models.dealer_point_request import DealerPointRequest
 from models.point_transaction import PointTransaction
 from models.equipment import Equipment
 from models.dealer_rating import DealerRating
+from models.car_request import CarRequest
+from models.deal import Deal
+from models.dealer_bid import DealerBid
 from models.car_image import CarImage
-from models.trade_in import TradeInRequest
+from models.trade_in import TradeInOffer, TradeInRequest
 from models.conversation import Conversation
 from models.chat_message import ChatMessage
 from routes.seller import CarSubmissionForm, save_seller_document
@@ -103,6 +106,252 @@ def _pagination_meta(pagination):
     }
 
 
+def _metric(label, value, helper=None):
+    return {"label": label, "value": value or 0, "helper": helper}
+
+
+def _format_rate(numerator, denominator):
+    if not denominator:
+        return 0
+    return round((float(numerator or 0) / float(denominator)) * 100, 1)
+
+
+def _format_money(value):
+    return round(float(value or 0), 2)
+
+
+def _count_by_column(model, column, filters=None, limit=6):
+    query = db.session.query(column, func.count(model.id))
+    if filters:
+        for filter_clause in filters:
+            query = query.filter(filter_clause)
+    rows = (
+        query.filter(column.isnot(None), column != "")
+        .group_by(column)
+        .order_by(func.count(model.id).desc())
+        .limit(limit)
+        .all()
+    )
+    return [{"label": str(label), "value": count} for label, count in rows]
+
+
+def _admin_analytics_payload():
+    buyers_count = User.query.filter(
+        User.is_admin.is_(False),
+        User.is_dealer.is_(False),
+        User.is_rental_company.is_(False),
+    ).count()
+    dealers_count = User.query.filter_by(is_dealer=True).count()
+    rental_company_count = User.query.filter_by(is_rental_company=True).count()
+    admin_count = User.query.filter_by(is_admin=True).count()
+
+    total_requests = CarRequest.query.count()
+    active_requests = CarRequest.query.filter_by(status="active").count()
+    completed_requests = CarRequest.query.filter_by(status="completed").count()
+    image_requests = CarRequest.query.filter_by(request_source="image_based").count()
+    specific_requests = CarRequest.query.filter(CarRequest.target_car_id.isnot(None)).count()
+    general_requests = CarRequest.query.filter_by(request_source="general").count()
+
+    total_offers = DealerBid.query.count()
+    accepted_offers = DealerBid.query.filter_by(status="accepted").count()
+    pending_offers = DealerBid.query.filter_by(status="pending").count()
+
+    total_deals = Deal.query.count()
+    completed_deals = Deal.query.filter_by(status="completed").count()
+    accepted_deals = Deal.query.filter_by(status="accepted").count()
+    total_deal_value = (
+        db.session.query(func.sum(Deal.final_price)).filter(Deal.final_price.isnot(None)).scalar()
+    )
+    average_deal_value = (
+        db.session.query(func.avg(Deal.final_price)).filter(Deal.final_price.isnot(None)).scalar()
+    )
+    reward_points_awarded = (
+        db.session.query(func.sum(Deal.reward_points_amount))
+        .filter(Deal.reward_points_awarded.is_(True))
+        .scalar()
+    )
+
+    pending_point_requests = DealerPointRequest.query.filter_by(status="pending").count()
+    approved_point_requests = DealerPointRequest.query.filter_by(status="accepted").count()
+    denied_point_requests = DealerPointRequest.query.filter_by(status="denied").count()
+    points_requested_pending = (
+        db.session.query(func.sum(DealerPointRequest.requested_points))
+        .filter_by(status="pending")
+        .scalar()
+    )
+    points_added = (
+        db.session.query(func.sum(PointTransaction.amount))
+        .filter(PointTransaction.amount > 0)
+        .scalar()
+    )
+    points_spent = (
+        db.session.query(func.sum(PointTransaction.amount))
+        .filter(PointTransaction.amount < 0)
+        .scalar()
+    )
+    live_point_balances = db.session.query(func.sum(User.points)).scalar()
+
+    total_conversations = Conversation.query.count()
+    unlocked_conversations = Conversation.query.filter_by(is_unlocked=True).count()
+    total_messages = ChatMessage.query.count()
+    masked_messages = ChatMessage.query.filter(
+        ChatMessage.original_body.isnot(None),
+        ChatMessage.original_body != ChatMessage.body,
+    ).count()
+
+    total_listings = Car.query.count()
+    active_listings = Car.query.filter_by(is_active=True, is_approved=True).count()
+    pending_listings = Car.query.filter_by(is_approved=False).count()
+    featured_listings = Car.query.filter_by(is_featured=True).count()
+    sale_listings = Car.query.filter_by(listing_type="sale", is_approved=True).count()
+    rental_listings = Car.query.filter_by(listing_type="rental", is_approved=True).count()
+
+    trade_in_requests = TradeInRequest.query.count()
+    pending_trade_ins = TradeInRequest.query.filter_by(status="pending").count()
+    trade_in_offers = TradeInOffer.query.count()
+    accepted_trade_in_offers = TradeInOffer.query.filter_by(status="accepted").count()
+
+    top_dealers = (
+        db.session.query(
+            User.id,
+            User.username,
+            func.count(Deal.id).label("completed_count"),
+            func.sum(Deal.final_price).label("deal_value"),
+        )
+        .join(Deal, Deal.dealer_id == User.id)
+        .filter(Deal.status == "completed")
+        .group_by(User.id, User.username)
+        .order_by(func.count(Deal.id).desc(), func.sum(Deal.final_price).desc())
+        .limit(5)
+        .all()
+    )
+
+    return {
+        "groups": [
+            {
+                "title": "Users",
+                "metrics": [
+                    _metric("Total users", User.query.count()),
+                    _metric("Buyers", buyers_count),
+                    _metric("Dealers", dealers_count),
+                    _metric("Rental companies", rental_company_count),
+                    _metric("Admins", admin_count),
+                ],
+            },
+            {
+                "title": "Requests & Offers",
+                "metrics": [
+                    _metric("Requests sent", total_requests),
+                    _metric("Active requests", active_requests),
+                    _metric("Completed requests", completed_requests),
+                    _metric("Dealer offers", total_offers),
+                    _metric("Accepted offers", accepted_offers),
+                    _metric("Offer acceptance", _format_rate(accepted_offers, total_offers), "%"),
+                ],
+                "breakdowns": [
+                    {
+                        "title": "Request types",
+                        "items": [
+                            {"label": "General", "value": general_requests},
+                            {"label": "Specific car", "value": specific_requests},
+                            {"label": "Image based", "value": image_requests},
+                        ],
+                    },
+                    {
+                        "title": "Top requested makes",
+                        "items": _count_by_column(CarRequest, CarRequest.make),
+                    },
+                ],
+            },
+            {
+                "title": "Deals",
+                "metrics": [
+                    _metric("Deals accepted", accepted_deals),
+                    _metric("Deals completed", completed_deals),
+                    _metric("Completion rate", _format_rate(completed_deals, total_deals), "%"),
+                    _metric("Total deal value", _format_money(total_deal_value), "ETB"),
+                    _metric("Average deal value", _format_money(average_deal_value), "ETB"),
+                    _metric("Reward points awarded", reward_points_awarded),
+                ],
+                "breakdowns": [
+                    {
+                        "title": "Top closing dealers",
+                        "items": [
+                            {
+                                "label": dealer.username,
+                                "value": dealer.completed_count,
+                                "helper": f"{_format_money(dealer.deal_value):,.0f} ETB",
+                            }
+                            for dealer in top_dealers
+                        ],
+                    }
+                ],
+            },
+            {
+                "title": "Points",
+                "metrics": [
+                    _metric("Live point balances", live_point_balances),
+                    _metric("Points added", points_added),
+                    _metric("Points spent", abs(points_spent or 0)),
+                    _metric("Pending point requests", pending_point_requests),
+                    _metric("Pending requested points", points_requested_pending),
+                    _metric("Approved / denied", f"{approved_point_requests} / {denied_point_requests}"),
+                ],
+                "breakdowns": [
+                    {
+                        "title": "Point transaction types",
+                        "items": _count_by_column(
+                            PointTransaction,
+                            PointTransaction.transaction_type,
+                            limit=5,
+                        ),
+                    }
+                ],
+            },
+            {
+                "title": "Messages",
+                "metrics": [
+                    _metric("Conversations", total_conversations),
+                    _metric("Unlocked conversations", unlocked_conversations),
+                    _metric("Unlock rate", _format_rate(unlocked_conversations, total_conversations), "%"),
+                    _metric("Messages sent", total_messages),
+                    _metric("Masked messages", masked_messages),
+                    _metric("Contact-risk rate", _format_rate(masked_messages, total_messages), "%"),
+                ],
+            },
+            {
+                "title": "Inventory",
+                "metrics": [
+                    _metric("Total listings", total_listings),
+                    _metric("Active listings", active_listings),
+                    _metric("Pending approval", pending_listings),
+                    _metric("Featured listings", featured_listings),
+                    _metric("For sale", sale_listings),
+                    _metric("For rent", rental_listings),
+                ],
+                "breakdowns": [
+                    {"title": "Body type", "items": _count_by_column(Car, Car.body_type)},
+                    {"title": "Drivetrain", "items": _count_by_column(Car, Car.drivetrain)},
+                ],
+            },
+            {
+                "title": "Trade-ins",
+                "metrics": [
+                    _metric("Trade-in requests", trade_in_requests),
+                    _metric("Pending trade-ins", pending_trade_ins),
+                    _metric("Dealer trade-in offers", trade_in_offers),
+                    _metric("Accepted trade-in offers", accepted_trade_in_offers),
+                    _metric(
+                        "Trade-in offer acceptance",
+                        _format_rate(accepted_trade_in_offers, trade_in_offers),
+                        "%",
+                    ),
+                ],
+            },
+        ]
+    }
+
+
 @admin_bp.route("/dashboard")
 @login_required
 @admin_required
@@ -175,6 +424,7 @@ def api_admin_dashboard(current_user):
     )
     return jsonify(
         stats=stats,
+        analytics=_admin_analytics_payload(),
         pending_approvals=[
             car.to_dict(include_owner=True) for car in cars_pending_approval
         ],

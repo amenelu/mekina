@@ -610,6 +610,38 @@ def test_admin_dashboard_counters_reflect_release_queues(client):
     assert stats["pending_trade_in_count"] == 1
     assert stats["pending_point_request_count"] == 1
 
+    analytics = response.get_json()["analytics"]
+    groups = {group["title"]: group for group in analytics["groups"]}
+    assert {
+        "Users",
+        "Requests & Offers",
+        "Deals",
+        "Points",
+        "Messages",
+        "Inventory",
+        "Trade-ins",
+    }.issubset(groups.keys())
+
+    users_metrics = {
+        metric["label"]: metric["value"] for metric in groups["Users"]["metrics"]
+    }
+    assert users_metrics["Total users"] == 4
+    assert users_metrics["Buyers"] == 1
+    assert users_metrics["Dealers"] == 1
+    assert users_metrics["Rental companies"] == 1
+
+    points_metrics = {
+        metric["label"]: metric["value"] for metric in groups["Points"]["metrics"]
+    }
+    assert points_metrics["Pending point requests"] == 1
+    assert points_metrics["Pending requested points"] == 4
+
+    inventory_breakdowns = {
+        breakdown["title"]: breakdown["items"]
+        for breakdown in groups["Inventory"]["breakdowns"]
+    }
+    assert inventory_breakdowns["Body type"][0]["label"] == "Sedan"
+
 
 def test_dealer_dashboard_returns_release_payload_for_dealers(client):
     buyer = create_user("dash_buyer", "dash-buyer@example.com")

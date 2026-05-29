@@ -1,6 +1,7 @@
 import { apiClient } from "./client";
 import type {
   AdminDashboardStats,
+  AdminAnalyticsPayload,
   AdminDealer,
   AdminListing,
   AdminPendingListing,
@@ -10,6 +11,7 @@ import type {
 
 export interface AdminDashboardResponse {
   stats: AdminDashboardStats;
+  analytics: AdminAnalyticsPayload;
   pending_approvals: AdminPendingListing[];
   pending_trade_ins: AdminTradeInRequest[];
 }
