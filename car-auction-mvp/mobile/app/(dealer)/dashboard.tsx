@@ -24,6 +24,7 @@ import { DEALER_ROUTES, LOGIN_ROUTE } from "@/lib/roleRoutes";
 import {
   answerDealerRequestQuestion,
   getDealerDashboard,
+  getDealerPipeline,
 } from "@/lib/api/dealer";
 import { mediaUrl } from "@/lib/api/client";
 import { getActiveTradeIns } from "@/lib/api/tradeIn";
@@ -50,6 +51,7 @@ interface DashboardStats {
   new_requests_count?: number;
   pending_approval_count?: number;
   unanswered_questions_count?: number;
+  pipeline_count?: number;
 }
 
 interface Listing {
@@ -110,6 +112,11 @@ interface CustomerRequest {
     reasons?: string[];
     valid_offer_count?: number;
     expired_offer_count?: number;
+  };
+  intent_verification?: {
+    score: number;
+    level: string;
+    reasons?: string[];
   };
 }
 
@@ -276,6 +283,19 @@ const RequestItem = ({ item }: { item: CustomerRequest }) => {
     return COLORS.textSecondary;
   };
   const intelligenceChips = [
+    item.intent_verification
+      ? {
+          icon: "checkmark-done-circle-outline",
+          label:
+            item.intent_verification.level === "high_intent"
+              ? "High intent"
+              : item.intent_verification.level === "verified"
+                ? "Verified"
+                : "Basic intent",
+          helper: `Intent ${item.intent_verification.score}`,
+          score: item.intent_verification.score,
+        }
+      : null,
     item.lead_quality
       ? {
           icon: "flame-outline",
@@ -589,6 +609,13 @@ const DealerDashboard = () => {
   const [pendingListings, setPendingListings] = useState<Listing[]>([]);
   const [requests, setRequests] = useState<CustomerRequest[]>([]);
   const [questions, setQuestions] = useState<RequestQuestion[]>([]);
+  const [dealerSla, setDealerSla] = useState<{
+    enabled?: boolean;
+    label?: string;
+    meets_commitment?: boolean;
+    avg_first_response_minutes?: number | null;
+    badge?: string | null;
+  } | null>(null);
   const [activeTab, setActiveTab] = useState<DealerDashboardTab>("requests");
   const [selectedQuestion, setSelectedQuestion] =
     useState<RequestQuestion | null>(null);
@@ -670,9 +697,10 @@ const DealerDashboard = () => {
     }
 
     try {
-      const [response, activeTradeInsResponse] = await Promise.all([
+      const [response, activeTradeInsResponse, pipelineResponse] = await Promise.all([
         getDealerDashboard(),
         getActiveTradeIns().catch(() => ({ data: { requests: [] } })),
+        getDealerPipeline().catch(() => ({ data: { pipeline: [] } })),
       ]);
       const data = response.data;
       const activeTradeIns: CustomerRequest[] = (
@@ -707,6 +735,7 @@ const DealerDashboard = () => {
         unanswered_questions_count: (data.unanswered_request_questions || [])
           .length,
         pending_approval_count: data.pending_approval_count ?? 0,
+        pipeline_count: (pipelineResponse.data.pipeline || []).length,
       };
 
       setStats(newStats);
@@ -720,6 +749,7 @@ const DealerDashboard = () => {
       );
       setRequests(sortedRequests);
       setQuestions(data.unanswered_request_questions || []);
+      setDealerSla(data.dealer_sla || null);
     } catch (error) {
       console.error("Failed to fetch dealer dashboard data:", error);
     } finally {
@@ -845,8 +875,36 @@ const DealerDashboard = () => {
               onPress={() => setActiveTab("questions")}
               pulse={(stats.unanswered_questions_count ?? 0) > 0}
             />
+            <StatCard
+              label="Pipeline"
+              value={stats.pipeline_count ?? 0}
+              onPress={() => router.push(DEALER_ROUTES.pipeline as any)}
+            />
           </View>
         )}
+
+        {dealerSla ? (
+          <Pressable
+            style={styles.slaCard}
+            onPress={() => router.push(DEALER_ROUTES.profile as any)}
+          >
+            <Ionicons
+              name={dealerSla.meets_commitment ? "flash" : "time-outline"}
+              size={22}
+              color={dealerSla.meets_commitment ? COLORS.success : COLORS.accent}
+            />
+            <View style={styles.slaCopy}>
+              <Text style={styles.slaTitle}>
+                {dealerSla.badge || "Response commitment"}
+              </Text>
+              <Text style={styles.slaText}>
+                {dealerSla.enabled
+                  ? `Committed to ${dealerSla.label || "a response window"}`
+                  : "Set a response commitment to earn a faster-dealer badge."}
+              </Text>
+            </View>
+          </Pressable>
+        ) : null}
 
         <ScrollView
           horizontal
@@ -1038,6 +1096,21 @@ const styles = StyleSheet.create({
     marginTop: 5,
     textAlign: "center",
   },
+  slaCard: {
+    marginHorizontal: 20,
+    marginBottom: 18,
+    padding: 14,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    backgroundColor: COLORS.card,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+  },
+  slaCopy: { flex: 1 },
+  slaTitle: { color: COLORS.text, fontWeight: "800", fontSize: 15 },
+  slaText: { color: COLORS.textSecondary, marginTop: 3, fontSize: 12 },
   tabScrollView: {
     marginHorizontal: 20,
     marginBottom: 20,

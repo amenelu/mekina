@@ -43,6 +43,7 @@ export const DEALER_ROUTES = {
   closedDeals: isWeb
     ? "/(dealer)/dealer-closed-deals"
     : "/(dealer)/closed-deals",
+  pipeline: isWeb ? "/(dealer)/dealer-pipeline" : "/(dealer)/pipeline",
 } as const;
 
 export const RENTAL_ROUTES = {

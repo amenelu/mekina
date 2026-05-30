@@ -1,0 +1,296 @@
+import React, { useCallback, useEffect, useState } from "react";
+import {
+  ActivityIndicator,
+  Alert,
+  Pressable,
+  RefreshControl,
+  SafeAreaView,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
+import { Ionicons } from "@expo/vector-icons";
+import { router } from "expo-router";
+import { getDealerPipeline, updateDealerPipeline } from "@/lib/api/dealer";
+import { DEALER_ROUTES } from "@/lib/roleRoutes";
+
+const COLORS = {
+  background: "#14181F",
+  card: "#1C212B",
+  text: "#F8F8F8",
+  textSecondary: "#8A94A3",
+  accent: "#A370F7",
+  success: "#28a745",
+  warning: "#ffc107",
+  border: "#313843",
+};
+
+interface PipelineEntry {
+  id: number;
+  dealer_bid_id: number;
+  request_id: number;
+  stage: string;
+  last_activity_at?: string | null;
+  next_follow_up_at?: string | null;
+  follow_up_due?: boolean;
+  notes?: string | null;
+  bid?: {
+    price: number;
+    make: string;
+    model: string;
+    car_year: number;
+    status: string;
+  } | null;
+}
+
+const STAGE_LABELS: Record<string, string> = {
+  offer_sent: "Offer sent",
+  buyer_viewed: "Buyer viewed",
+  question_received: "Question received",
+  follow_up_needed: "Follow-up needed",
+  deal_accepted: "Deal accepted",
+  deal_completed: "Deal completed",
+  lost: "Lost",
+};
+
+export default function DealerPipelineScreen() {
+  const [entries, setEntries] = useState<PipelineEntry[]>([]);
+  const [stage, setStage] = useState<string | undefined>();
+  const [stages, setStages] = useState<string[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+
+  const fetchPipeline = useCallback(async (isRefresh = false) => {
+    if (!isRefresh) setLoading(true);
+    try {
+      const response = await getDealerPipeline(stage);
+      setEntries(response.data.pipeline || []);
+      setStages(response.data.stages || []);
+    } catch (error) {
+      console.error("Failed to load dealer pipeline:", error);
+      Alert.alert("Pipeline Error", "Could not load your follow-up pipeline.");
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  }, [stage]);
+
+  useEffect(() => {
+    fetchPipeline();
+  }, [fetchPipeline]);
+
+  const markFollowUpNeeded = async (entry: PipelineEntry) => {
+    try {
+      await updateDealerPipeline(entry.dealer_bid_id, {
+        stage: "follow_up_needed",
+      });
+      fetchPipeline(true);
+    } catch (error) {
+      console.error("Failed to update pipeline:", error);
+      Alert.alert("Update Failed", "Could not update this lead.");
+    }
+  };
+
+  if (loading) {
+    return (
+      <View style={styles.centered}>
+        <ActivityIndicator color={COLORS.accent} />
+      </View>
+    );
+  }
+
+  return (
+    <SafeAreaView style={styles.container}>
+      <View style={styles.header}>
+        <Pressable onPress={() => router.replace(DEALER_ROUTES.dashboard as any)}>
+          <Ionicons name="chevron-back" size={28} color={COLORS.text} />
+        </Pressable>
+        <Text style={styles.headerTitle}>Lead Pipeline</Text>
+        <View style={{ width: 28 }} />
+      </View>
+      <ScrollView
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={() => {
+              setRefreshing(true);
+              fetchPipeline(true);
+            }}
+            tintColor={COLORS.accent}
+          />
+        }
+      >
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.stageRow}
+        >
+          <Pressable
+            style={[styles.stageChip, !stage && styles.stageChipActive]}
+            onPress={() => setStage(undefined)}
+          >
+            <Text style={styles.stageText}>All</Text>
+          </Pressable>
+          {stages.map((item) => (
+            <Pressable
+              key={item}
+              style={[styles.stageChip, stage === item && styles.stageChipActive]}
+              onPress={() => setStage(item)}
+            >
+              <Text style={styles.stageText}>{STAGE_LABELS[item] || item}</Text>
+            </Pressable>
+          ))}
+        </ScrollView>
+
+        <View style={styles.list}>
+          {entries.length ? (
+            entries.map((entry) => (
+              <View key={entry.id} style={styles.card}>
+                <View style={styles.cardHeader}>
+                  <View>
+                    <Text style={styles.cardTitle}>
+                      {entry.bid
+                        ? `${entry.bid.car_year} ${entry.bid.make} ${entry.bid.model}`
+                        : `Request #${entry.request_id}`}
+                    </Text>
+                    <Text style={styles.cardMeta}>
+                      {entry.bid
+                        ? `${Number(entry.bid.price || 0).toLocaleString()} ETB`
+                        : "Offer details unavailable"}
+                    </Text>
+                  </View>
+                  <View
+                    style={[
+                      styles.statusBadge,
+                      entry.follow_up_due && styles.statusBadgeDue,
+                    ]}
+                  >
+                    <Text style={styles.statusText}>
+                      {entry.follow_up_due
+                        ? "Due"
+                        : STAGE_LABELS[entry.stage] || entry.stage}
+                    </Text>
+                  </View>
+                </View>
+                <Text style={styles.helperText}>
+                  Last activity{" "}
+                  {entry.last_activity_at
+                    ? new Date(entry.last_activity_at).toLocaleString()
+                    : "not recorded"}
+                </Text>
+                {entry.next_follow_up_at ? (
+                  <Text style={styles.helperText}>
+                    Follow up {new Date(entry.next_follow_up_at).toLocaleString()}
+                  </Text>
+                ) : null}
+                {entry.notes ? <Text style={styles.notes}>{entry.notes}</Text> : null}
+                <View style={styles.actions}>
+                  <Pressable
+                    style={styles.secondaryButton}
+                    onPress={() =>
+                      router.push({
+                        pathname: DEALER_ROUTES.placeOffer as any,
+                        params: { request_id: String(entry.request_id) },
+                      })
+                    }
+                  >
+                    <Text style={styles.secondaryText}>Open request</Text>
+                  </Pressable>
+                  {!["deal_completed", "lost"].includes(entry.stage) ? (
+                    <Pressable
+                      style={styles.primaryButton}
+                      onPress={() => markFollowUpNeeded(entry)}
+                    >
+                      <Text style={styles.primaryText}>Mark follow-up</Text>
+                    </Pressable>
+                  ) : null}
+                </View>
+              </View>
+            ))
+          ) : (
+            <Text style={styles.emptyText}>No leads in this pipeline yet.</Text>
+          )}
+        </View>
+      </ScrollView>
+    </SafeAreaView>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: { flex: 1, backgroundColor: COLORS.background },
+  centered: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: COLORS.background,
+  },
+  header: {
+    height: 56,
+    paddingHorizontal: 16,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.border,
+  },
+  headerTitle: { color: COLORS.text, fontSize: 18, fontWeight: "800" },
+  stageRow: { gap: 8, padding: 16 },
+  stageChip: {
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    borderRadius: 999,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    backgroundColor: COLORS.card,
+  },
+  stageChipActive: { borderColor: COLORS.accent },
+  stageText: { color: COLORS.text, fontWeight: "700" },
+  list: { padding: 16, paddingTop: 0 },
+  card: {
+    backgroundColor: COLORS.card,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    borderRadius: 8,
+    padding: 14,
+    marginBottom: 12,
+  },
+  cardHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    gap: 12,
+  },
+  cardTitle: { color: COLORS.text, fontSize: 16, fontWeight: "800" },
+  cardMeta: { color: COLORS.textSecondary, marginTop: 4 },
+  statusBadge: {
+    alignSelf: "flex-start",
+    borderRadius: 999,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    backgroundColor: "rgba(163,112,247,0.16)",
+  },
+  statusBadgeDue: { backgroundColor: "rgba(255,193,7,0.18)" },
+  statusText: { color: COLORS.text, fontSize: 12, fontWeight: "800" },
+  helperText: { color: COLORS.textSecondary, marginTop: 8, fontSize: 12 },
+  notes: { color: COLORS.text, marginTop: 10 },
+  actions: { flexDirection: "row", gap: 10, marginTop: 14 },
+  primaryButton: {
+    flex: 1,
+    backgroundColor: COLORS.accent,
+    borderRadius: 8,
+    paddingVertical: 11,
+    alignItems: "center",
+  },
+  primaryText: { color: "white", fontWeight: "800" },
+  secondaryButton: {
+    flex: 1,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    borderRadius: 8,
+    paddingVertical: 11,
+    alignItems: "center",
+  },
+  secondaryText: { color: COLORS.text, fontWeight: "800" },
+  emptyText: { color: COLORS.textSecondary, textAlign: "center", marginTop: 40 },
+});
+

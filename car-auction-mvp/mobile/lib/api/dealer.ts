@@ -24,6 +24,24 @@ export function getDealerClosedDeals() {
   return apiClient.get("/dealer/api/closed-deals");
 }
 
+export function getDealerPipeline(stage?: string) {
+  return apiClient.get("/dealer/api/pipeline", {
+    params: stage ? { stage } : undefined,
+  });
+}
+
+export function updateDealerPipeline(bidId: string | number, data: unknown) {
+  return apiClient.put(`/dealer/api/pipeline/${bidId}`, data);
+}
+
+export function getDealerSla() {
+  return apiClient.get("/dealer/api/sla");
+}
+
+export function updateDealerSla(data: unknown) {
+  return apiClient.put("/dealer/api/sla", data);
+}
+
 export function requestDealerPoints(requestedPoints: number) {
   return apiClient.post("/dealer/api/points/request", {
     requested_points: requestedPoints,

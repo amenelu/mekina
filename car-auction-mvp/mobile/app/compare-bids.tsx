@@ -55,6 +55,11 @@ interface ComparisonBid {
   is_best_price?: boolean;
   is_best_mileage?: boolean;
   is_best_year?: boolean;
+  offer_explanation?: {
+    primary_label?: string;
+    labels?: string[];
+    reasons?: string[];
+  };
 }
 
 const CompareBidsScreen = () => {
@@ -197,6 +202,18 @@ const CompareBidsScreen = () => {
                 <Text style={styles.carTitle}>
                   {bid.car_year} {bid.make} {bid.model}
                 </Text>
+                {bid.offer_explanation ? (
+                  <View style={styles.explanationBox}>
+                    <Text style={styles.explanationTitle}>
+                      {bid.offer_explanation.primary_label || "Offer insight"}
+                    </Text>
+                    <Text style={styles.explanationText}>
+                      {bid.offer_explanation.reasons?.join(", ") ||
+                        bid.offer_explanation.labels?.join(", ") ||
+                        "This offer is ready for buyer comparison."}
+                    </Text>
+                  </View>
+                ) : null}
 
                 <View
                   style={[styles.row, bid.is_best_price && styles.highlightRow]}
@@ -412,6 +429,24 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     color: COLORS.text,
     marginBottom: 5,
+  },
+  explanationBox: {
+    borderWidth: 1,
+    borderColor: "rgba(163,112,247,0.45)",
+    backgroundColor: "rgba(163,112,247,0.08)",
+    borderRadius: 8,
+    padding: 10,
+  },
+  explanationTitle: {
+    color: COLORS.text,
+    fontWeight: "800",
+    fontSize: 13,
+  },
+  explanationText: {
+    color: COLORS.textSecondary,
+    marginTop: 4,
+    fontSize: 12,
+    lineHeight: 17,
   },
   row: {
     flexDirection: "row",

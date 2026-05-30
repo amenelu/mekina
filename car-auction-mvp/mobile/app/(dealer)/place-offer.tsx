@@ -79,6 +79,11 @@ interface CustomerRequest {
     valid_offer_count?: number;
     expired_offer_count?: number;
   };
+  intent_verification?: {
+    score: number;
+    level: string;
+    reasons?: string[];
+  };
 }
 
 interface DealerBid {
@@ -108,6 +113,16 @@ interface DealerBid {
     is_below_market?: boolean;
     is_above_market?: boolean;
   };
+  offer_explanation?: {
+    primary_label?: string;
+    labels?: string[];
+    reasons?: string[];
+  };
+  pipeline?: {
+    stage: string;
+    buyer_viewed_at?: string | null;
+    follow_up_due?: boolean;
+  } | null;
 }
 
 const COLORS = {
@@ -819,9 +834,48 @@ const PlaceOfferScreen = () => {
 
                 {(requestDetails.lead_quality ||
                   requestDetails.dealer_match ||
+                  requestDetails.intent_verification ||
                   requestDetails.response_health ||
                   requestDetails.expiry_risk) && (
                   <View style={styles.insightPanel}>
+                    {requestDetails.intent_verification && (
+                      <View style={styles.insightBlock}>
+                        <View style={styles.insightHeader}>
+                          <Ionicons
+                            name="checkmark-done-circle-outline"
+                            size={16}
+                            color={getInsightColor(
+                              requestDetails.intent_verification.score
+                            )}
+                          />
+                          <Text style={styles.insightTitle}>Buyer intent</Text>
+                          <Text
+                            style={[
+                              styles.insightScore,
+                              {
+                                color: getInsightColor(
+                                  requestDetails.intent_verification.score
+                                ),
+                              },
+                            ]}
+                          >
+                            {requestDetails.intent_verification.score}
+                          </Text>
+                        </View>
+                        <Text style={styles.insightText}>
+                          {requestDetails.intent_verification.level
+                            .replace(/_/g, " ")
+                            .replace(/\b\w/g, (letter) =>
+                              letter.toUpperCase()
+                            )}
+                          {requestDetails.intent_verification.reasons?.length
+                            ? `: ${requestDetails.intent_verification.reasons.join(
+                                ", "
+                              )}`
+                            : ""}
+                        </Text>
+                      </View>
+                    )}
                     {requestDetails.lead_quality && (
                       <View style={styles.insightBlock}>
                         <View style={styles.insightHeader}>
@@ -1061,6 +1115,44 @@ const PlaceOfferScreen = () => {
                           </Text>
                         </View>
                       )}
+                      {bid.offer_explanation && (
+                        <View style={styles.pricePositionBox}>
+                          <Text style={styles.pricePositionTitle}>
+                            {bid.offer_explanation.primary_label ||
+                              "Offer insight"}
+                          </Text>
+                          <Text style={styles.pricePositionText}>
+                            {bid.offer_explanation.reasons?.join(", ") ||
+                              bid.offer_explanation.labels?.join(", ") ||
+                              "This offer is ready for buyer comparison."}
+                          </Text>
+                        </View>
+                      )}
+                      {bid.pipeline ? (
+                        <View style={styles.pipelineStatusBox}>
+                          <Ionicons
+                            name={
+                              bid.pipeline.follow_up_due
+                                ? "alert-circle-outline"
+                                : "git-branch-outline"
+                            }
+                            size={14}
+                            color={
+                              bid.pipeline.follow_up_due
+                                ? "#ffc107"
+                                : COLORS.accent
+                            }
+                          />
+                          <Text style={styles.pipelineStatusText}>
+                            Pipeline:{" "}
+                            {bid.pipeline.stage
+                              .replace(/_/g, " ")
+                              .replace(/\b\w/g, (letter) =>
+                                letter.toUpperCase()
+                              )}
+                          </Text>
+                        </View>
+                      ) : null}
                       <View style={styles.detailRow}>
                         <Text style={styles.detailLabel}>Car:</Text>
                         <Text style={styles.detailValue}>
@@ -1392,6 +1484,22 @@ const styles = StyleSheet.create({
     color: COLORS.textSecondary,
     fontSize: 12,
     lineHeight: 17,
+  },
+  pipelineStatusBox: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    backgroundColor: COLORS.card,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    padding: 10,
+    marginBottom: 10,
+  },
+  pipelineStatusText: {
+    color: COLORS.textSecondary,
+    fontSize: 12,
+    fontWeight: "700",
   },
   myBidHighlight: {
     borderColor: COLORS.accent,

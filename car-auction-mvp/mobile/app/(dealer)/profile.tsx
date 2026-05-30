@@ -16,7 +16,7 @@ import { router } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import VehicleCard from "@/components/_components/VehicleCard";
 import { DEALER_ROUTES, PUBLIC_HOME_ROUTE } from "@/lib/roleRoutes";
-import { getDealerProfile } from "@/lib/api/dealer";
+import { getDealerProfile, updateDealerSla } from "@/lib/api/dealer";
 import ChangePasswordCard from "@/components/_components/ChangePasswordCard";
 
 const COLORS = {
@@ -25,6 +25,7 @@ const COLORS = {
   text: "#F8F8F8",
   textSecondary: "#8A94A3",
   accent: "#A370F7",
+  success: "#28a745",
   destructive: "#dc3545",
   warning: "#ffc107",
   border: "#313843",
@@ -37,6 +38,18 @@ interface DealerProfile {
   tagline?: string;
   is_verified: boolean;
   closed_deal_count?: number;
+  response_sla?: {
+    enabled: boolean;
+    minutes: number;
+  };
+  dealer_sla?: {
+    enabled: boolean;
+    minutes: number;
+    label: string;
+    meets_commitment?: boolean;
+    badge?: string | null;
+    avg_first_response_minutes?: number | null;
+  };
 }
 
 interface Review {
@@ -109,6 +122,7 @@ const ProfileScreen = () => {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [showPasswordForm, setShowPasswordForm] = useState(false);
+  const [slaSaving, setSlaSaving] = useState(false);
   const isWideWeb = Platform.OS === "web" && width >= 1000;
   const [profileData, setProfileData] = useState<{
     dealer: DealerProfile;
@@ -147,6 +161,33 @@ const ProfileScreen = () => {
   const handleLogout = () => {
     logout();
     router.replace(PUBLIC_HOME_ROUTE as any);
+  };
+
+  const toggleSla = async () => {
+    if (!profileData?.dealer) return;
+    const current = profileData.dealer.dealer_sla;
+    try {
+      setSlaSaving(true);
+      const response = await updateDealerSla({
+        enabled: !current?.enabled,
+        minutes: current?.minutes || 1440,
+      });
+      setProfileData((prev) =>
+        prev
+          ? {
+              ...prev,
+              dealer: {
+                ...prev.dealer,
+                dealer_sla: response.data.sla,
+              },
+            }
+          : prev
+      );
+    } catch (error) {
+      console.error("Failed to update SLA:", error);
+    } finally {
+      setSlaSaving(false);
+    }
   };
 
   if (loading && !refreshing) {
@@ -233,6 +274,47 @@ const ProfileScreen = () => {
                     size={18}
                     color={COLORS.textSecondary}
                   />
+                </Pressable>
+              </View>
+              <View style={styles.slaCard}>
+                <View style={styles.slaHeader}>
+                  <Ionicons
+                    name={
+                      profileData.dealer.dealer_sla?.meets_commitment
+                        ? "flash"
+                        : "time-outline"
+                    }
+                    size={22}
+                    color={
+                      profileData.dealer.dealer_sla?.meets_commitment
+                        ? COLORS.success
+                        : COLORS.accent
+                    }
+                  />
+                  <View style={styles.slaCopy}>
+                    <Text style={styles.slaTitle}>
+                      {profileData.dealer.dealer_sla?.badge ||
+                        "Response commitment"}
+                    </Text>
+                    <Text style={styles.slaText}>
+                      {profileData.dealer.dealer_sla?.enabled
+                        ? `Committed to ${profileData.dealer.dealer_sla.label}`
+                        : "Turn this on to show buyers you respond within a clear window."}
+                    </Text>
+                  </View>
+                </View>
+                <Pressable
+                  style={styles.slaButton}
+                  onPress={toggleSla}
+                  disabled={slaSaving}
+                >
+                  {slaSaving ? (
+                    <ActivityIndicator color="white" />
+                  ) : (
+                    <Text style={styles.slaButtonText}>
+                      {profileData.dealer.dealer_sla?.enabled ? "Turn off" : "Turn on"}
+                    </Text>
+                  )}
                 </Pressable>
               </View>
             </View>
@@ -418,6 +500,29 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: "700",
   },
+  slaCard: {
+    width: "100%",
+    maxWidth: 420,
+    marginTop: 16,
+    padding: 14,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    backgroundColor: COLORS.card,
+    gap: 12,
+  },
+  slaHeader: { flexDirection: "row", gap: 12, alignItems: "center" },
+  slaCopy: { flex: 1 },
+  slaTitle: { color: COLORS.text, fontWeight: "800", fontSize: 15 },
+  slaText: { color: COLORS.textSecondary, fontSize: 13, marginTop: 3 },
+  slaButton: {
+    backgroundColor: COLORS.accent,
+    borderRadius: 8,
+    minHeight: 42,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  slaButtonText: { color: "white", fontWeight: "800" },
   section: {
     padding: 20,
   },

@@ -58,6 +58,10 @@ interface CarRequest {
   images?: { image_url: string }[];
   image_urls?: string[];
   detail_score?: number;
+  intent_verification?: {
+    score: number;
+    level: string;
+  };
 }
 
 const formatDate = (dateString: string) => {
@@ -238,6 +242,11 @@ const RequestCard = ({
               {request.detail_score !== undefined ? (
                 <Text style={styles.scoreText}>
                   Strength: {request.detail_score}%
+                </Text>
+              ) : null}
+              {!isTradeIn && request.intent_verification ? (
+                <Text style={styles.scoreText}>
+                  Intent: {request.intent_verification.score}
                 </Text>
               ) : null}
             </View>

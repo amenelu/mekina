@@ -24,6 +24,7 @@ import {
   askDealerQuestion,
   compareSelectedBids,
   getRequestDetail,
+  updateRequestIntent,
 } from "@/lib/api/requests";
 import { getDealerProfile } from "@/lib/api/dealer";
 import {
@@ -78,6 +79,16 @@ interface CarRequest {
     valid_offer_count?: number;
     expired_offer_count?: number;
   };
+  intent_verification?: {
+    score: number;
+    level: string;
+    reasons?: string[];
+    contact_confirmed?: boolean;
+    budget_confirmed?: boolean;
+    financing_ready?: boolean;
+    trade_in_ready?: boolean;
+    purchase_timeline?: string | null;
+  };
 }
 
 interface QuestionAnswer {
@@ -129,6 +140,11 @@ interface DealerBid {
     difference_percent?: number | null;
     is_below_market?: boolean;
     is_above_market?: boolean;
+  };
+  offer_explanation?: {
+    primary_label?: string;
+    labels?: string[];
+    reasons?: string[];
   };
 }
 
@@ -263,6 +279,7 @@ const RequestDetailScreen = () => {
     null
   );
   const [isDealerProfileLoading, setDealerProfileLoading] = useState(false);
+  const [intentSaving, setIntentSaving] = useState(false);
 
   const handleBackPress = useCallback(() => {
     if (router.canGoBack()) {
@@ -355,6 +372,37 @@ const RequestDetailScreen = () => {
   const closeDealerProfileModal = () => {
     setDealerProfileVisible(false);
     setDealerProfile(null);
+  };
+
+  const markHighIntent = async () => {
+    if (!request || intentSaving) return;
+    try {
+      setIntentSaving(true);
+      const response = await updateRequestIntent(request.id, {
+        contact_confirmed: true,
+        budget_confirmed: true,
+        financing_ready: false,
+        trade_in_ready: false,
+        purchase_timeline: "immediate",
+      });
+      setRequest((current) =>
+        current
+          ? { ...current, intent_verification: response.data.intent }
+          : current
+      );
+      showNativeFlowAlert(
+        "Request Verified",
+        "Dealers will now see this as a stronger buyer request."
+      );
+    } catch (error: any) {
+      const message =
+        error?.response?.data?.message ||
+        error?.userMessage ||
+        "Could not update buyer intent.";
+      showNativeFlowAlert("Update Failed", message);
+    } finally {
+      setIntentSaving(false);
+    }
   };
 
   const toggleQA = (bidId: number) => {
@@ -569,6 +617,55 @@ const RequestDetailScreen = () => {
               </View>
             ) : null}
 
+            {request.intent_verification ? (
+              <View style={styles.intentPanel}>
+                <View style={styles.requestInsightHeader}>
+                  <Ionicons
+                    name="checkmark-done-circle-outline"
+                    size={16}
+                    color={getInsightColor(request.intent_verification.score)}
+                  />
+                  <Text style={styles.requestInsightTitle}>Buyer intent</Text>
+                  <Text
+                    style={[
+                      styles.requestInsightScore,
+                      {
+                        color: getInsightColor(
+                          request.intent_verification.score
+                        ),
+                      },
+                    ]}
+                  >
+                    {request.intent_verification.score}
+                  </Text>
+                </View>
+                <Text style={styles.intentLevelText}>
+                  {request.intent_verification.level
+                    .replace(/_/g, " ")
+                    .replace(/\b\w/g, (letter) => letter.toUpperCase())}
+                </Text>
+                <Text style={styles.requestInsightText}>
+                  {request.intent_verification.reasons?.join(", ") ||
+                    "Confirm your request details to help dealers prioritize it."}
+                </Text>
+                {request.intent_verification.level !== "high_intent" ? (
+                  <Pressable
+                    style={styles.verifyIntentButton}
+                    onPress={markHighIntent}
+                    disabled={intentSaving}
+                  >
+                    {intentSaving ? (
+                      <ActivityIndicator color="white" />
+                    ) : (
+                      <Text style={styles.verifyIntentText}>
+                        Mark as ready to buy
+                      </Text>
+                    )}
+                  </Pressable>
+                ) : null}
+              </View>
+            ) : null}
+
             {(request.response_health || request.expiry_risk) ? (
               <View style={styles.requestHealthGrid}>
                 {request.response_health ? (
@@ -773,6 +870,36 @@ const RequestDetailScreen = () => {
                         </View>
                       )}
                     </View>
+
+                    {bid.offer_explanation ? (
+                      <View style={styles.offerExplanationPanel}>
+                        <View style={styles.offerRankHeader}>
+                          <Ionicons
+                            name="sparkles-outline"
+                            size={16}
+                            color={COLORS.accent}
+                          />
+                          <Text style={styles.offerRankTitle}>
+                            {bid.offer_explanation.primary_label ||
+                              "Offer insight"}
+                          </Text>
+                        </View>
+                        {bid.offer_explanation.labels?.length ? (
+                          <View style={styles.offerLabelRow}>
+                            {bid.offer_explanation.labels.map((label) => (
+                              <Text key={label} style={styles.offerLabelChip}>
+                                {label}
+                              </Text>
+                            ))}
+                          </View>
+                        ) : null}
+                        {bid.offer_explanation.reasons?.length ? (
+                          <Text style={styles.offerRankText}>
+                            {bid.offer_explanation.reasons.join(", ")}
+                          </Text>
+                        ) : null}
+                      </View>
+                    ) : null}
 
                     {bid.offer_rank ? (
                       <View style={styles.offerRankPanel}>
@@ -1647,6 +1774,28 @@ const styles = StyleSheet.create({
     borderColor: COLORS.border,
     padding: 12,
   },
+  intentPanel: {
+    marginTop: 12,
+    backgroundColor: "rgba(163,112,247,0.08)",
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: "rgba(163,112,247,0.45)",
+    padding: 12,
+  },
+  intentLevelText: {
+    color: COLORS.foreground,
+    fontWeight: "800",
+    marginTop: 8,
+  },
+  verifyIntentButton: {
+    marginTop: 10,
+    backgroundColor: COLORS.accent,
+    borderRadius: 8,
+    minHeight: 40,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  verifyIntentText: { color: "white", fontWeight: "800" },
   requestHealthGrid: {
     flexDirection: "row",
     flexWrap: "wrap",
@@ -1767,6 +1916,30 @@ const styles = StyleSheet.create({
     borderColor: COLORS.border,
     padding: 12,
     marginBottom: 12,
+  },
+  offerExplanationPanel: {
+    backgroundColor: "rgba(163,112,247,0.08)",
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: "rgba(163,112,247,0.45)",
+    padding: 12,
+    marginBottom: 12,
+  },
+  offerLabelRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 6,
+    marginTop: 9,
+  },
+  offerLabelChip: {
+    color: COLORS.foreground,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    borderRadius: 999,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    fontSize: 11,
+    overflow: "hidden",
   },
   pricePositionPanel: {
     backgroundColor: COLORS.background,

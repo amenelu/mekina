@@ -30,6 +30,14 @@ export function getRequestDetail(requestId: string | number) {
   return apiClient.get(`/requests/api/requests/${requestId}`);
 }
 
+export function getRequestIntent(requestId: string | number) {
+  return apiClient.get(`/requests/api/requests/${requestId}/intent`);
+}
+
+export function updateRequestIntent(requestId: string | number, data: unknown) {
+  return apiClient.post(`/requests/api/requests/${requestId}/intent`, data);
+}
+
 export function compareBids(requestId?: string | number) {
   return apiClient.get("/requests/api/bids/compare", {
     params: requestId ? { request_id: requestId } : undefined,
