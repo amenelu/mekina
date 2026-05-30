@@ -1,5 +1,5 @@
 from extensions import db
-from datetime import date
+from datetime import date, datetime, timedelta
 from models.car import Car
 from models.car_image import CarImage
 from models.car_request import CarRequest
@@ -8,10 +8,12 @@ from models.chat_message import ChatMessage
 from models.conversation import Conversation
 from models.dealer_bid import DealerBid
 from models.dealer_bid_image import DealerBidImage
+from models.dealer_lead_pipeline import DealerLeadPipeline
 from models.dealer_point_request import DealerPointRequest
 from models.notification import Notification
 from models.point_transaction import PointTransaction
 from models.request_question import RequestQuestion
+from models.request_intent_verification import RequestIntentVerification
 from models.rental_listing import RentalListing
 from models.trade_in import TradeInRequest
 from models.user import User
@@ -414,6 +416,166 @@ def test_dealer_dashboard_returns_response_health(client):
     assert request_card["dealer_match"]["score"] > 0
     assert request_card["response_health"]["label"] == "No offers yet"
     assert request_card["expiry_risk"]["reasons"]
+
+
+def test_dealer_dashboard_soft_expires_stale_requests(client):
+    dealer = create_user(
+        "stale_request_dealer",
+        "stale-request-dealer@example.com",
+        is_dealer=True,
+        points=5,
+    )
+    buyer = create_user("stale_request_buyer", "stale-request-buyer@example.com")
+    stale_request = CarRequest(
+        make="Toyota",
+        model="Hilux",
+        notes="This request should age out.",
+        status="active",
+        created_at=datetime.utcnow() - timedelta(days=31),
+        user_id=buyer.id,
+    )
+    active_request = CarRequest(
+        make="Toyota",
+        model="RAV4",
+        notes="This request should stay visible.",
+        status="active",
+        created_at=datetime.utcnow(),
+        user_id=buyer.id,
+    )
+    db.session.add_all([stale_request, active_request])
+    db.session.commit()
+
+    response = client.get(
+        "/dealer/api/dashboard",
+        headers=login_headers(client, dealer.username),
+    )
+
+    assert response.status_code == 200
+    request_ids = {req["id"] for req in response.get_json()["requests"]}
+    assert active_request.id in request_ids
+    assert stale_request.id not in request_ids
+    assert db.session.get(CarRequest, stale_request.id).status == "expired"
+
+
+def test_buyer_cannot_accept_expired_dealer_offer(client):
+    buyer = create_user("expired_offer_buyer", "expired-offer-buyer@example.com")
+    dealer = create_user(
+        "expired_offer_dealer",
+        "expired-offer-dealer@example.com",
+        is_dealer=True,
+    )
+    car_request = CarRequest(
+        make="Toyota",
+        model="Corolla",
+        user_id=buyer.id,
+    )
+    db.session.add(car_request)
+    db.session.flush()
+    bid = DealerBid(
+        price=2_100_000,
+        make="Toyota",
+        model="Corolla",
+        car_year=2022,
+        mileage=22000,
+        condition="Used",
+        availability="In Stock",
+        valid_until=date.today() - timedelta(days=1),
+        dealer_id=dealer.id,
+        request_id=car_request.id,
+        message="This offer expired yesterday.",
+    )
+    db.session.add(bid)
+    db.session.commit()
+
+    response = client.post(
+        f"/requests/api/offer/{bid.id}/accept",
+        headers=login_headers(client, buyer.username),
+        json={"payment_method": "cash"},
+    )
+
+    assert response.status_code == 400
+    assert response.get_json()["message"] == "This offer has expired."
+    assert db.session.get(DealerBid, bid.id).status == "expired"
+    assert db.session.get(CarRequest, car_request.id).status == "active"
+
+
+def test_buyer_intent_offer_explanation_and_dealer_pipeline(client):
+    buyer = create_user("growth_buyer", "growth-buyer@example.com")
+    dealer = create_user(
+        "growth_dealer",
+        "growth-dealer@example.com",
+        is_dealer=True,
+        points=5,
+    )
+    car_request, bid = create_request_with_bid(buyer, dealer)
+    db.session.commit()
+
+    intent_response = client.post(
+        f"/requests/api/requests/{car_request.id}/intent",
+        headers=login_headers(client, buyer.username),
+        json={
+            "contact_confirmed": True,
+            "budget_confirmed": True,
+            "financing_ready": True,
+            "purchase_timeline": "immediate",
+        },
+    )
+    assert intent_response.status_code == 200
+    assert intent_response.get_json()["intent"]["level"] == "high_intent"
+    assert RequestIntentVerification.query.filter_by(
+        request_id=car_request.id
+    ).first()
+
+    detail_response = client.get(
+        f"/requests/api/requests/{car_request.id}",
+        headers=login_headers(client, buyer.username),
+    )
+    assert detail_response.status_code == 200
+    detail_payload = detail_response.get_json()
+    assert detail_payload["request"]["intent_verification"]["level"] == "high_intent"
+    assert detail_payload["bids"][0]["offer_explanation"]["primary_label"]
+
+    pipeline = DealerLeadPipeline.query.filter_by(dealer_bid_id=bid.id).first()
+    assert pipeline is not None
+    assert pipeline.stage == "buyer_viewed"
+    assert pipeline.buyer_viewed_at is not None
+
+    pipeline_response = client.get(
+        "/dealer/api/pipeline",
+        headers=login_headers(client, dealer.username),
+    )
+    assert pipeline_response.status_code == 200
+    assert pipeline_response.get_json()["pipeline"][0]["dealer_bid_id"] == bid.id
+
+    update_response = client.put(
+        f"/dealer/api/pipeline/{bid.id}",
+        headers=login_headers(client, dealer.username),
+        json={"stage": "follow_up_needed", "notes": "Call after inspection."},
+    )
+    assert update_response.status_code == 200
+    assert update_response.get_json()["pipeline"]["stage"] == "follow_up_needed"
+
+
+def test_dealer_sla_api_updates_response_commitment(client):
+    dealer = create_user(
+        "sla_dealer",
+        "sla-dealer@example.com",
+        is_dealer=True,
+    )
+    db.session.commit()
+
+    response = client.put(
+        "/dealer/api/sla",
+        headers=login_headers(client, dealer.username),
+        json={"enabled": True, "minutes": 120},
+    )
+
+    assert response.status_code == 200
+    payload = response.get_json()
+    assert payload["sla"]["enabled"] is True
+    assert payload["sla"]["minutes"] == 120
+    assert payload["sla"]["label"] == "2 hrs"
+    assert db.session.get(User, dealer.id).response_sla_minutes == 120
 
 
 def test_compare_bids_includes_dealer_submitted_image(client):

@@ -69,6 +69,16 @@ from services.marketplace_intelligence import (
     get_request_lead_quality,
     get_request_response_health,
 )
+from services.marketplace_lifecycle import refresh_marketplace_lifecycle
+from services.marketplace_growth import (
+    ensure_pipeline_for_bid,
+    explain_offer,
+    get_dealer_sla_status,
+    list_dealer_pipeline,
+    serialize_request_intent,
+    update_dealer_sla,
+    update_pipeline_stage_for_bid,
+)
 import re
 
 dealer_bp = Blueprint("dealer", __name__, url_prefix="/dealer")
@@ -171,11 +181,14 @@ def _bid_is_in_free_edit_window(bid):
 
 
 def _bid_to_api_dict(bid, **kwargs):
+    pipeline = bid.pipeline_entry
     return {
         **bid.to_dict(**kwargs),
         "dealer_id": bid.dealer_id,
         "dealer_quality": get_dealer_quality_score(bid.dealer),
         "price_position": get_offer_price_position(bid),
+        "offer_explanation": explain_offer(bid),
+        "pipeline": pipeline.to_dict() if pipeline else None,
         "can_edit_free": bid.status == "pending" and _bid_is_in_free_edit_window(bid),
         "free_edit_seconds_remaining": _bid_free_edit_seconds_remaining(bid),
     }
@@ -403,6 +416,8 @@ def api_dealer_dashboard(current_user):
     if not (current_user.is_dealer or current_user.is_admin):
         return jsonify({"message": "Dealer access required."}), 403
 
+    refresh_marketplace_lifecycle()
+
     filter_new = request.args.get("filter_new", "false").lower() == "true"
 
     bid_count_subquery = (
@@ -459,6 +474,7 @@ def api_dealer_dashboard(current_user):
         req_dict["dealer_match"] = get_dealer_request_match(current_user, req)
         req_dict["response_health"] = get_request_response_health(req)
         req_dict["expiry_risk"] = get_request_expiry_risk(req)
+        req_dict["intent_verification"] = serialize_request_intent(req)
         active_requests_data.append(req_dict)
 
     my_cars = (
@@ -509,6 +525,7 @@ def api_dealer_dashboard(current_user):
         user_points=current_user.points,
         dealer_quality=get_dealer_quality_score(current_user),
         dealer_response_health=get_dealer_response_health(current_user),
+        dealer_sla=get_dealer_sla_status(current_user),
         point_economy=get_point_economy_summary(current_user),
         pending_approval_count=len(pending_approvals),
         pending_approvals=[car.to_dict() for car in pending_approvals],
@@ -1129,6 +1146,7 @@ def api_dealer_profile(dealer_id):
             "closed_deal_count": dealer.get_closed_deal_count(),
             "dealer_quality": get_dealer_quality_score(dealer),
             "response_health": get_dealer_response_health(dealer),
+            "dealer_sla": get_dealer_sla_status(dealer),
         },
         listings=[car.to_dict() for car in active_listings],
         ratings=[r.to_dict() for r in ratings],
@@ -1190,6 +1208,98 @@ def api_dealer_closed_deals(current_user):
         deals=[_won_bid_to_dict(bid) for bid in won_bids],
         count=len(won_bids),
     )
+
+
+@dealer_bp.route("/api/pipeline")
+@token_required
+def api_dealer_pipeline(current_user):
+    """Return the dealer's follow-up pipeline for submitted offers."""
+    if not current_user.is_dealer and not current_user.is_admin:
+        return jsonify({"message": "Dealer access required."}), 403
+
+    stage = request.args.get("stage") or None
+    dealer_id = request.args.get("dealer_id", type=int)
+    dealer = (
+        User.query.filter_by(id=dealer_id, is_dealer=True).first_or_404()
+        if current_user.is_admin and dealer_id
+        else current_user
+    )
+
+    return jsonify(
+        stages=[
+            "offer_sent",
+            "buyer_viewed",
+            "question_received",
+            "follow_up_needed",
+            "deal_accepted",
+            "deal_completed",
+            "lost",
+        ],
+        pipeline=list_dealer_pipeline(dealer, stage),
+    )
+
+
+@dealer_bp.route("/api/pipeline/<int:bid_id>", methods=["PUT"])
+@token_required
+def api_update_dealer_pipeline(current_user, bid_id):
+    """Update a dealer pipeline stage, notes, or follow-up date."""
+    bid = DealerBid.query.get_or_404(bid_id)
+    if bid.dealer_id != current_user.id and not current_user.is_admin:
+        return jsonify({"status": "error", "message": "Permission denied."}), 403
+
+    data = request.get_json() or {}
+    follow_up = data.get("next_follow_up_at")
+    next_follow_up_at = None
+    if follow_up:
+        try:
+            next_follow_up_at = datetime.fromisoformat(
+                str(follow_up).replace("Z", "+00:00")
+            ).replace(tzinfo=None)
+        except ValueError:
+            return (
+                jsonify(
+                    {
+                        "status": "error",
+                        "message": "next_follow_up_at must be an ISO date.",
+                    }
+                ),
+                400,
+            )
+
+    try:
+        pipeline = update_pipeline_stage_for_bid(
+            bid,
+            data.get("stage", "follow_up_needed"),
+            notes=data.get("notes"),
+            next_follow_up_at=next_follow_up_at,
+        )
+        db.session.commit()
+    except ValueError as exc:
+        return jsonify({"status": "error", "message": str(exc)}), 400
+
+    return jsonify(
+        status="success",
+        message="Pipeline updated.",
+        pipeline=pipeline.to_dict(),
+    )
+
+
+@dealer_bp.route("/api/sla", methods=["GET", "PUT"])
+@token_required
+def api_dealer_sla(current_user):
+    """Read or update a dealer response-time commitment."""
+    if not current_user.is_dealer and not current_user.is_admin:
+        return jsonify({"message": "Dealer access required."}), 403
+
+    if request.method == "GET":
+        return jsonify(sla=get_dealer_sla_status(current_user))
+
+    try:
+        sla = update_dealer_sla(current_user, request.get_json() or {})
+    except (TypeError, ValueError) as exc:
+        return jsonify({"status": "error", "message": str(exc)}), 400
+
+    return jsonify(status="success", message="Response commitment updated.", sla=sla)
 
 
 @dealer_bp.route("/messages")
@@ -1483,6 +1593,9 @@ def place_bid(request_id):
             new_image = DealerBidImage(image_url=img_url)
             new_bid.images.append(new_image)
 
+        db.session.flush()
+        ensure_pipeline_for_bid(new_bid)
+
         # Deduct one point from the dealer's account
         current_user.points -= 1
         # Log Transaction
@@ -1555,6 +1668,7 @@ def place_bid(request_id):
 @token_required
 def api_place_dealer_bid(current_user, request_id):
     """API endpoint for getting existing bids or placing a new bid on a car request."""
+    refresh_marketplace_lifecycle()
     car_request = CarRequest.query.get_or_404(request_id)
 
     view_exists = DealerRequestView.query.filter_by(
@@ -1576,12 +1690,24 @@ def api_place_dealer_bid(current_user, request_id):
         )
         car_request_payload["response_health"] = get_request_response_health(car_request)
         car_request_payload["expiry_risk"] = get_request_expiry_risk(car_request)
+        car_request_payload["intent_verification"] = serialize_request_intent(car_request)
         return jsonify(
             car_request=car_request_payload,
             existing_bids=[_bid_to_api_dict(bid) for bid in existing_bids],
         )
 
     elif request.method == "POST":
+        if car_request.status != "active":
+            return (
+                jsonify(
+                    {
+                        "status": "error",
+                        "message": "This request is no longer active.",
+                    }
+                ),
+                400,
+            )
+
         data = request.get_json()
         if not data:
             return jsonify({"status": "error", "message": "Invalid JSON payload."}), 400
@@ -1638,6 +1764,9 @@ def api_place_dealer_bid(current_user, request_id):
         for img_url in uploaded_images:
             new_image = DealerBidImage(image_url=img_url)
             new_bid.images.append(new_image)
+
+        db.session.flush()
+        ensure_pipeline_for_bid(new_bid)
 
         current_user.points -= 1  # Deduct point
         # Log Transaction
@@ -1722,6 +1851,7 @@ def api_place_dealer_bid(current_user, request_id):
 @dealer_bp.route("/api/bids/<int:bid_id>", methods=["PUT"])
 @token_required
 def api_update_dealer_bid(current_user, bid_id):
+    refresh_marketplace_lifecycle()
     bid = DealerBid.query.get_or_404(bid_id)
 
     if bid.dealer_id != current_user.id and not current_user.is_admin:

@@ -33,6 +33,20 @@ from services.marketplace_intelligence import (
     get_request_response_health,
     rank_dealer_offers,
 )
+from services.marketplace_lifecycle import (
+    bid_has_expired,
+    refresh_marketplace_lifecycle,
+)
+from services.marketplace_growth import (
+    explain_offers,
+    mark_bid_accepted,
+    mark_bid_lost,
+    mark_buyer_viewed_request,
+    mark_dealer_pipeline_completed,
+    mark_question_received,
+    serialize_request_intent,
+    update_request_intent,
+)
 from flask_wtf import FlaskForm
 from wtforms import (
     StringField,
@@ -586,6 +600,7 @@ def api_my_requests(current_user):
         for req in buy_requests:
             d = req.to_dict()
             d["type"] = "buy"
+            d["intent_verification"] = serialize_request_intent(req)
             if "images" not in d:
                 d["images"] = [{"image_url": img.image_url} for img in req.images]
             d["detail_score"] = calculate_request_score(req)
@@ -640,6 +655,24 @@ def api_delete_request(current_user, request_id):
     return jsonify({"status": "success", "message": "Request deleted successfully."})
 
 
+@request_bp.route("/api/requests/<int:request_id>/intent", methods=["GET", "POST"])
+@token_required
+def api_request_intent(current_user, request_id):
+    """Read or update buyer intent verification for a request."""
+    req = CarRequest.query.get_or_404(request_id)
+    if req.user_id != current_user.id and not current_user.is_admin:
+        return jsonify({"status": "error", "message": "Permission denied."}), 403
+
+    if request.method == "GET":
+        return jsonify(intent=serialize_request_intent(req))
+
+    return jsonify(
+        status="success",
+        message="Buyer intent updated.",
+        intent=update_request_intent(req, request.get_json() or {}),
+    )
+
+
 @request_bp.route("/<int:request_id>")
 @login_required
 @mark_notification_as_read
@@ -667,6 +700,7 @@ def request_detail(request_id):
 @token_required
 def api_request_detail(current_user, request_id):
     """API endpoint to get a single car request with all bids."""
+    refresh_marketplace_lifecycle()
     car_request = CarRequest.query.get_or_404(request_id)
 
     # Security check
@@ -674,8 +708,11 @@ def api_request_detail(current_user, request_id):
         return jsonify({"error": "Permission denied"}), 403
 
     all_bids = car_request.dealer_bids.all()
+    if current_user.id == car_request.user_id and mark_buyer_viewed_request(car_request):
+        db.session.commit()
 
     req_data = car_request.to_dict()
+    req_data["intent_verification"] = serialize_request_intent(car_request)
     req_data["lead_quality"] = get_request_lead_quality(car_request)
     req_data["response_health"] = get_request_response_health(car_request)
     req_data["expiry_risk"] = get_request_expiry_risk(car_request)
@@ -717,6 +754,7 @@ def api_request_detail(current_user, request_id):
     sorted_bids.extend(remaining_bids)
 
     bids_payload = []
+    offer_explanations = explain_offers(sorted_bids)
     for bid in sorted_bids:
         bid_payload = bid.to_dict(
             is_newest=(bid.id == newest_bid.id),
@@ -724,6 +762,7 @@ def api_request_detail(current_user, request_id):
         )
         bid_payload["offer_rank"] = offer_rankings.get(bid.id)
         bid_payload["price_position"] = get_offer_price_position(bid)
+        bid_payload["offer_explanation"] = offer_explanations.get(bid.id)
         bids_payload.append(bid_payload)
 
     return jsonify(
@@ -845,12 +884,14 @@ def api_compare_bids(current_user):
             best_values[k]["value"] = None
 
     bids_data = []
+    offer_explanations = explain_offers(bids)
     for bid in bids:
         b_dict = bid.to_dict()
         b_dict["is_best_price"] = bid.id in best_values["price"]["ids"]
         b_dict["is_best_mileage"] = bid.id in best_values["mileage"]["ids"]
         b_dict["is_best_year"] = bid.id in best_values["year"]["ids"]
         b_dict["price_position"] = get_offer_price_position(bid)
+        b_dict["offer_explanation"] = offer_explanations.get(bid.id)
         bids_data.append(b_dict)
 
     return jsonify({"bids": bids_data, "best_values": best_values})
@@ -875,6 +916,7 @@ def ask_dealer_question(bid_id):
             dealer_bid_id=bid.id,
         )
         db.session.add(new_question)
+        mark_question_received(bid)
         db.session.commit()
 
         # Notify the dealer
@@ -920,6 +962,7 @@ def _accept_offer_logic(bid_id, user_id, payment_method):
     Core service logic for accepting a dealer's offer.
     This is shared between the web route and the API route.
     """
+    refresh_marketplace_lifecycle()
     bid_to_accept = DealerBid.query.get_or_404(bid_id)
     car_request = bid_to_accept.car_request
 
@@ -927,7 +970,13 @@ def _accept_offer_logic(bid_id, user_id, payment_method):
     if car_request.user_id != user_id:
         raise PermissionError("User does not own this request.")
     if car_request.status != "active":
-        raise ValueError("This request is already closed.")
+        raise ValueError("This request is no longer active.")
+    if bid_has_expired(bid_to_accept):
+        bid_to_accept.status = "expired"
+        db.session.commit()
+        raise ValueError("This offer has expired.")
+    if bid_to_accept.status != "pending":
+        raise ValueError("Only pending offers can be accepted.")
     if payment_method == "loan" and not bid_to_accept.price_with_loan:
         raise ValueError("Invalid payment method for this offer.")
 
@@ -939,8 +988,10 @@ def _accept_offer_logic(bid_id, user_id, payment_method):
 
     # Transactional Logic
     bid_to_accept.status = "accepted"
+    mark_bid_accepted(bid_to_accept)
     for other_bid in car_request.dealer_bids.filter(DealerBid.id != bid_to_accept.id):
         other_bid.status = "rejected"
+        mark_bid_lost(other_bid)
     car_request.status = "completed"
 
     new_deal = Deal(
@@ -1011,6 +1062,7 @@ def _complete_deal_logic(deal):
     reward_points = 1
     deal.status = "completed"
     deal.completed_at = datetime.utcnow()
+    mark_dealer_pipeline_completed(deal)
 
     reward_notification = None
     if not deal.reward_points_awarded and deal.dealer:
@@ -1125,6 +1177,7 @@ def api_ask_dealer_question(current_user, bid_id):
         dealer_bid_id=bid.id,
     )
     db.session.add(new_question)
+    mark_question_received(bid)
     db.session.commit()
 
     # Notify the dealer
@@ -1507,12 +1560,14 @@ def api_create_request(current_user):
             db.session.add(new_img)
 
     db.session.commit()
+    request_payload = new_req.to_dict()
+    request_payload["intent_verification"] = serialize_request_intent(new_req)
     return (
         jsonify(
             {
                 "status": "success",
                 "message": "Your request has been submitted successfully!",
-                "request": new_req.to_dict(),
+                "request": request_payload,
             }
         ),
         201,

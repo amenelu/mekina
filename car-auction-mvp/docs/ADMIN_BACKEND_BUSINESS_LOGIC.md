@@ -8,6 +8,258 @@ Location: `services/marketplace_intelligence.py`
 
 Most new marketplace scoring logic lives in this service so it can be reused by dealer APIs, buyer request APIs, admin review tools, and future ranking screens.
 
+## Request and Offer Expiry
+
+Location: `services/marketplace_lifecycle.py`
+
+Buyer requests and dealer offers are now soft-expired instead of deleted. This keeps admin history and analytics intact while preventing stale marketplace items from staying actionable.
+
+Lifecycle rules:
+
+- Active buyer requests expire after `30` days by default.
+- The expiry window can be changed with the backend environment variable `CAR_REQUEST_EXPIRY_DAYS`.
+- Expired buyer requests keep their database row and change `status` from `active` to `expired`.
+- Dealer bids expire when their `valid_until` date is in the past.
+- Expired dealer bids keep their database row and change `status` from `pending` to `expired`.
+
+What happens after expiry:
+
+- Expired buyer requests are removed from the dealer dashboard active request feed.
+- Dealers cannot submit new offers to expired requests.
+- Buyers cannot accept expired offers.
+- Expired offers still remain visible in historical request detail data, but they are not valid offers.
+- Completed requests and accepted deals are not expired by this lifecycle pass.
+
+Where expiry is enforced:
+
+- Dealer dashboard API refreshes expiry before loading active requests.
+- Dealer place-offer API refreshes expiry before showing or accepting a bid submission.
+- Buyer request detail API refreshes expiry before returning bids and request health.
+- Offer acceptance refreshes expiry before creating a deal.
+- Admin analytics refreshes expiry before counting active, stale, and risk metrics.
+
+## Buyer Intent Verification
+
+Location: `services/marketplace_growth.py`
+
+Buyer intent verification separates casual requests from stronger marketplace leads.
+
+Data model:
+
+- `request_intent_verifications`
+- One verification row per buyer request.
+
+API:
+
+- `GET /requests/api/requests/<request_id>/intent`
+- `POST /requests/api/requests/<request_id>/intent`
+
+The buyer or admin can update:
+
+- `contact_confirmed`
+- `budget_confirmed`
+- `financing_ready`
+- `trade_in_ready`
+- `purchase_timeline`
+- `notes`
+
+Scoring inputs:
+
+- Specific listing requested
+- Make/model provided
+- Detailed notes
+- Uploaded request images
+- Contact confirmation
+- Budget confirmation
+- Financing readiness
+- Trade-in readiness
+- Purchase timeline
+
+Intent levels:
+
+- `basic`: lower-intent or incomplete request
+- `verified`: useful request with enough confirmation
+- `high_intent`: strong buyer signal, especially immediate timeline plus confirmed contact/budget
+
+Where it appears:
+
+- Buyer request list payload
+- Buyer request detail payload
+- Dealer dashboard request cards
+- Dealer place-offer request payload
+- Admin marketplace health metrics
+
+## Dealer Follow-Up Pipeline
+
+Location: `services/marketplace_growth.py`
+
+The dealer pipeline tracks what should happen after a dealer submits an offer.
+
+Data model:
+
+- `dealer_lead_pipeline`
+- One pipeline row per dealer bid.
+
+Stages:
+
+- `offer_sent`
+- `buyer_viewed`
+- `question_received`
+- `follow_up_needed`
+- `deal_accepted`
+- `deal_completed`
+- `lost`
+
+Automatic stage changes:
+
+- New dealer offer creates `offer_sent`.
+- Buyer opening request details marks pending offers as `buyer_viewed`.
+- Buyer asking a question marks that offer as `question_received`.
+- Buyer accepting an offer marks the winning offer `deal_accepted`.
+- Competing offers on the accepted request are marked `lost`.
+- Buyer/admin completing a deal marks the accepted offer `deal_completed`.
+
+Dealer APIs:
+
+- `GET /dealer/api/pipeline`
+- `PUT /dealer/api/pipeline/<bid_id>`
+
+The update API supports:
+
+- `stage`
+- `notes`
+- `next_follow_up_at`
+
+Admin impact:
+
+- Admin analytics counts pipeline follow-ups that are due.
+
+## Offer Explanation Engine
+
+Location: `services/marketplace_growth.py`
+
+The offer explanation engine turns existing ranking/scoring data into buyer-friendly labels.
+
+It uses:
+
+- Dealer offer ranking
+- Offer price position
+- Dealer quality score
+- Loan availability
+- Submitted offer photos
+- Mileage
+- Offer status
+
+Possible labels include:
+
+- `Best overall value`
+- `Strong price`
+- `Loan option`
+- `Photos included`
+- `Reliable dealer`
+- `Low mileage`
+- `Expired`
+
+Where it appears:
+
+- Buyer request detail offer payloads
+- Bid comparison payloads
+- Dealer bid API payloads
+
+The frontend can use `primary_label`, `labels`, and `reasons` to explain why an offer is worth attention.
+
+## Dealer Response SLA
+
+Location: `services/marketplace_growth.py`
+
+Dealers can make a response-time commitment. The backend compares that commitment against observed first response time.
+
+Data fields on `user`:
+
+- `response_sla_enabled`
+- `response_sla_minutes`
+
+API:
+
+- `GET /dealer/api/sla`
+- `PUT /dealer/api/sla`
+
+Valid SLA range:
+
+- Minimum: `30` minutes
+- Maximum: `10080` minutes, or `7` days
+
+SLA payload includes:
+
+- `enabled`
+- `minutes`
+- `label`
+- `avg_first_response_minutes`
+- `meets_commitment`
+- `badge`
+
+If the dealer enabled SLA and their average first response is within the commitment, the backend returns the `Fast responder` badge.
+
+Where it appears:
+
+- Dealer dashboard payload
+- Dealer public profile payload
+- Dealer API owner payload through `User.to_dict()`
+- Admin marketplace health metrics count dealers with enabled SLA
+
+## Second Marketplace Health Pass
+
+This pass added the second half of the backend intelligence layer. The first pass focused on lead quality, dealer quality, dealer/request fit, offer ranking, point economy, and contact-risk detection. The second pass focuses on marketplace operations: whether requests are getting responses, whether offers are still valid, whether a dealer responds well, and whether offer prices are competitive.
+
+The main goal is to help admins and dealers answer operational questions quickly:
+
+- Which buyer requests are not receiving offers?
+- Which active requests are going stale?
+- Which offers are priced below, near, or above the visible market?
+- Which dealers are responsive versus just active?
+- Where is marketplace liquidity weak?
+
+New backend functions added in this pass:
+
+- `get_offer_price_position(bid)`
+- `get_request_response_health(car_request)`
+- `get_request_expiry_risk(car_request)`
+- `get_dealer_response_health(dealer)`
+- `get_marketplace_health_summary()`
+
+New API surfaces:
+
+- Dealer dashboard request cards now receive `response_health` and `expiry_risk`.
+- Dealer place-offer request payload now receives `response_health` and `expiry_risk`.
+- Dealer existing bids now receive `price_position`.
+- Buyer request detail payload now receives `response_health`, `expiry_risk`, and offer-level `price_position`.
+- Bid comparison API now receives offer-level `price_position`.
+- Dealer profile API now receives `response_health`.
+- Admin analytics now receives a `Marketplace Health` group.
+
+Frontend surfaces added:
+
+- Dealer dashboard shows compact chips for response health and expiry risk.
+- Dealer place-offer page shows response health and expiry risk in the customer request panel.
+- Dealer place-offer previous-offer cards show market price position.
+- Buyer request detail page shows response health, expiry risk, and market position on offer cards.
+- Buyer comparison cards show market position.
+- Admin analytics shows the new `Marketplace Health` group through the existing analytics page.
+
+Migration added:
+
+- `migrations/versions/d4e5f6a7b8c9_add_marketplace_intelligence_indexes.py`
+
+This migration does not add new business fields. It adds indexes that support the intelligence queries:
+
+- `car_requests(status, created_at)` for active/stale request checks
+- `dealer_bid(request_id, status, valid_until)` for valid/expired offer checks
+- `dealer_bid(dealer_id, timestamp)` for dealer response/activity checks
+- `chat_messages(has_contact_risk)` for moderation/contact-risk counts
+- `point_transactions(user_id, created_at)` for point economy summaries
+
+Because this migration adds indexes, production behavior should remain the same after upgrade, but analytics and request-health queries should be easier for SQLite to execute as data grows.
+
 ### Score Labels
 
 Scores are clamped between `0` and `100`.

@@ -52,6 +52,12 @@ class CarRequest(db.Model):
         nullable=True,
     )
     accepted_bid = db.relationship("DealerBid", foreign_keys=[accepted_bid_id])
+    intent_verification = db.relationship(
+        "RequestIntentVerification",
+        backref="car_request",
+        uselist=False,
+        cascade="all, delete-orphan",
+    )
 
     def to_dict(self):
         """Serializes the CarRequest object to a dictionary."""

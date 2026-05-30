@@ -17,6 +17,8 @@ class User(UserMixin, db.Model):
         db.Integer, nullable=False, default=5
     )  # Points for dealers to bid
     fcm_token = db.Column(db.String(255), nullable=True)
+    response_sla_enabled = db.Column(db.Boolean, nullable=False, default=False)
+    response_sla_minutes = db.Column(db.Integer, nullable=False, default=1440)
 
     # Relationships
     cars = db.relationship("Car", backref="owner", lazy="dynamic")
@@ -128,6 +130,11 @@ class User(UserMixin, db.Model):
             "is_rental_company": self.is_rental_company,
             "is_admin": self.is_admin,
         }
+        if self.is_dealer:
+            data["response_sla"] = {
+                "enabled": bool(self.response_sla_enabled),
+                "minutes": self.response_sla_minutes,
+            }
         if detail_level == "owner":
             data["email"] = self.email
             data["phone_number"] = self.phone_number

@@ -24,3 +24,5 @@ from .search_query import SearchQuery
 from .point_transaction import PointTransaction
 from .dealer_point_request import DealerPointRequest
 from .password_reset_token import PasswordResetToken
+from .request_intent_verification import RequestIntentVerification
+from .dealer_lead_pipeline import DealerLeadPipeline

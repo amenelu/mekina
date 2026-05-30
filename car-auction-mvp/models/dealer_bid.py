@@ -40,6 +40,12 @@ class DealerBid(db.Model):
         "DealerBidImage", backref="dealer_bid", lazy=True, cascade="all, delete-orphan"
     )
     questions = db.relationship("RequestQuestion", backref="dealer_bid", lazy="dynamic")
+    pipeline_entry = db.relationship(
+        "DealerLeadPipeline",
+        back_populates="dealer_bid",
+        uselist=False,
+        cascade="all, delete-orphan",
+    )
 
     def to_dict(self, is_newest=False, is_best_deal=False):
         """Serializes the DealerBid object to a dictionary, with optional flags."""

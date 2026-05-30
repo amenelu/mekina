@@ -30,10 +30,13 @@ from models.car_image import CarImage
 from models.trade_in import TradeInOffer, TradeInRequest
 from models.conversation import Conversation
 from models.chat_message import ChatMessage
+from models.request_intent_verification import RequestIntentVerification
+from models.dealer_lead_pipeline import DealerLeadPipeline
 from routes.seller import CarSubmissionForm, save_seller_document
 from routes.auth import admin_token_required
 from routes.main import send_push_notification
 from services.marketplace_intelligence import get_marketplace_health_summary
+from services.marketplace_lifecycle import refresh_marketplace_lifecycle
 from functools import wraps
 
 from flask_wtf import FlaskForm
@@ -137,6 +140,7 @@ def _count_by_column(model, column, filters=None, limit=6):
 
 
 def _admin_analytics_payload():
+    refresh_marketplace_lifecycle()
     marketplace_health = get_marketplace_health_summary()
     buyers_count = User.query.filter(
         User.is_admin.is_(False),
@@ -157,6 +161,20 @@ def _admin_analytics_payload():
     total_offers = DealerBid.query.count()
     accepted_offers = DealerBid.query.filter_by(status="accepted").count()
     pending_offers = DealerBid.query.filter_by(status="pending").count()
+    verified_intent_requests = RequestIntentVerification.query.filter(
+        RequestIntentVerification.level.in_(["verified", "high_intent"])
+    ).count()
+    high_intent_requests = RequestIntentVerification.query.filter_by(
+        level="high_intent"
+    ).count()
+    pipeline_follow_ups_due = DealerLeadPipeline.query.filter(
+        DealerLeadPipeline.next_follow_up_at.isnot(None),
+        DealerLeadPipeline.next_follow_up_at <= datetime.utcnow(),
+        DealerLeadPipeline.stage.notin_(["deal_completed", "lost"]),
+    ).count()
+    sla_dealers = User.query.filter_by(
+        is_dealer=True, response_sla_enabled=True
+    ).count()
 
     total_deals = Deal.query.count()
     completed_deals = Deal.query.filter_by(status="completed").count()
@@ -372,6 +390,10 @@ def _admin_analytics_payload():
                         "Contact-risk messages",
                         marketplace_health["contact_risk_messages"],
                     ),
+                    _metric("Verified intent requests", verified_intent_requests),
+                    _metric("High-intent requests", high_intent_requests),
+                    _metric("Pipeline follow-ups due", pipeline_follow_ups_due),
+                    _metric("Dealers with SLA", sla_dealers),
                 ],
             },
             {

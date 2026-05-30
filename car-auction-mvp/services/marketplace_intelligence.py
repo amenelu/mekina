@@ -1,5 +1,5 @@
 import re
-from datetime import datetime, timedelta
+from datetime import date, datetime, timedelta
 
 from extensions import db
 from models.car import Car
@@ -474,11 +474,19 @@ def get_request_expiry_risk(car_request):
         return {"score": 0, "label": "Low", "reasons": ["request is not active"]}
 
     now = datetime.utcnow()
-    today = now.date()
+    today = date.today()
     age_days = (now - car_request.created_at).days if car_request.created_at else 0
     bids = car_request.dealer_bids.order_by(DealerBid.timestamp.desc()).all()
-    valid_offer_count = sum(1 for bid in bids if bid.valid_until and bid.valid_until >= today)
-    expired_offer_count = sum(1 for bid in bids if bid.valid_until and bid.valid_until < today)
+    valid_offer_count = sum(
+        1
+        for bid in bids
+        if bid.status == "pending" and bid.valid_until and bid.valid_until >= today
+    )
+    expired_offer_count = sum(
+        1
+        for bid in bids
+        if bid.status == "expired" or (bid.valid_until and bid.valid_until < today)
+    )
     days_since_last_offer = None
     if bids and bids[0].timestamp:
         days_since_last_offer = (now - bids[0].timestamp).days
