@@ -734,20 +734,34 @@ def api_request_detail(current_user, request_id):
             offer_rankings.items(), key=lambda item: item[1]["score"]
         )[0]
 
-    # Create a sorted list
+    def bid_is_actively_boosted(bid):
+        return bool(
+            bid.is_boosted and bid.boosted_until and bid.boosted_until > datetime.utcnow()
+        )
+
+    boosted_bids = sorted(
+        [bid for bid in all_bids if bid_is_actively_boosted(bid)],
+        key=lambda bid: (bid.price, bid.timestamp),
+    )
     sorted_bids = []
     processed_bid_ids = set()
 
-    # 1. Add the lowest bid
-    sorted_bids.append(lowest_bid)
-    processed_bid_ids.add(lowest_bid.id)
+    # 1. Boosted offers get visibility, but still show their pricing/scores honestly.
+    for bid in boosted_bids:
+        sorted_bids.append(bid)
+        processed_bid_ids.add(bid.id)
 
-    # 2. Add the newest bid if it's not the same as the lowest
+    # 2. Add the lowest bid if it was not already boosted.
+    if lowest_bid.id not in processed_bid_ids:
+        sorted_bids.append(lowest_bid)
+        processed_bid_ids.add(lowest_bid.id)
+
+    # 3. Add the newest bid if it's not already listed.
     if newest_bid.id not in processed_bid_ids:
         sorted_bids.append(newest_bid)
         processed_bid_ids.add(newest_bid.id)
 
-    # 3. Add the rest of the bids, sorted by price
+    # 4. Add the rest of the bids, sorted by price.
     remaining_bids = sorted(
         [b for b in all_bids if b.id not in processed_bid_ids], key=lambda b: b.price
     )

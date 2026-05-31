@@ -26,6 +26,7 @@ import os  # Import the os module
 from models.chat_message import ChatMessage
 from models.notification import Notification
 from models.dealer_point_request import DealerPointRequest
+from models.dealer_request_unlock import DealerRequestUnlock
 from models.dealer_rating import DealerRating
 from models.dealer_request_view import DealerRequestView
 from models.search_query import SearchQuery
@@ -165,6 +166,11 @@ class DealerBidForm(FlaskForm):
 EDIT_GRACE_PERIOD_MINUTES = 30
 BID_PHOTO_UPLOAD_FOLDER = "static/uploads/dealer_bids"  # Define upload folder
 BID_FREE_EDIT_WINDOW_SECONDS = 5 * 60
+BASE_OFFER_POINT_COST = 1
+EXTRA_OFFER_POINT_COST = 1
+HIGH_INTENT_UNLOCK_POINT_COST = 1
+BOOST_OFFER_POINT_COST = 1
+BOOST_OFFER_DURATION_HOURS = 48
 
 
 def _bid_free_edit_expires_at(bid):
@@ -180,6 +186,106 @@ def _bid_free_edit_seconds_remaining(bid):
 
 def _bid_is_in_free_edit_window(bid):
     return _bid_free_edit_seconds_remaining(bid) > 0
+
+
+def _dealer_has_request_unlock(dealer, car_request, unlock_type="high_intent"):
+    return (
+        DealerRequestUnlock.query.filter_by(
+            dealer_id=dealer.id,
+            request_id=car_request.id,
+            unlock_type=unlock_type,
+        ).first()
+        is not None
+    )
+
+
+def _dealer_existing_offer_count(dealer, car_request):
+    return DealerBid.query.filter(
+        DealerBid.dealer_id == dealer.id,
+        DealerBid.request_id == car_request.id,
+        DealerBid.status.in_(["pending", "accepted"]),
+    ).count()
+
+
+def _get_dealer_request_point_rules(dealer, car_request):
+    intent = serialize_request_intent(car_request)
+    high_intent_required = intent.get("level") == "high_intent"
+    high_intent_unlocked = _dealer_has_request_unlock(dealer, car_request)
+    existing_offer_count = _dealer_existing_offer_count(dealer, car_request)
+
+    return {
+        "base_offer_cost": BASE_OFFER_POINT_COST,
+        "extra_offer_cost": (
+            EXTRA_OFFER_POINT_COST if existing_offer_count > 0 else 0
+        ),
+        "requires_high_intent_unlock": high_intent_required,
+        "high_intent_unlocked": high_intent_unlocked,
+        "high_intent_unlock_cost": (
+            HIGH_INTENT_UNLOCK_POINT_COST
+            if high_intent_required and not high_intent_unlocked
+            else 0
+        ),
+        "boost_offer_cost": BOOST_OFFER_POINT_COST,
+        "boost_duration_hours": BOOST_OFFER_DURATION_HOURS,
+        "existing_offer_count": existing_offer_count,
+        "intent": intent,
+    }
+
+
+def _record_point_spend(user, amount, transaction_type, description):
+    user.points = (user.points or 0) - amount
+    db.session.add(
+        PointTransaction(
+            user_id=user.id,
+            amount=-amount,
+            transaction_type=transaction_type,
+            description=description,
+        )
+    )
+
+
+def _apply_offer_point_charges(dealer, car_request):
+    rules = _get_dealer_request_point_rules(dealer, car_request)
+    total_cost = (
+        rules["base_offer_cost"]
+        + rules["extra_offer_cost"]
+        + rules["high_intent_unlock_cost"]
+    )
+
+    if (dealer.points or 0) < total_cost:
+        raise ValueError(f"You need {total_cost} point(s) to place this offer.")
+
+    if rules["high_intent_unlock_cost"]:
+        db.session.add(
+            DealerRequestUnlock(
+                dealer_id=dealer.id,
+                request_id=car_request.id,
+                unlock_type="high_intent",
+                points_spent=HIGH_INTENT_UNLOCK_POINT_COST,
+            )
+        )
+        _record_point_spend(
+            dealer,
+            HIGH_INTENT_UNLOCK_POINT_COST,
+            "high_intent_request_unlock",
+            f"Unlocked high-intent request #{car_request.id}",
+        )
+
+    if rules["extra_offer_cost"]:
+        _record_point_spend(
+            dealer,
+            EXTRA_OFFER_POINT_COST,
+            "extra_offer_slot",
+            f"Extra offer slot on request #{car_request.id}",
+        )
+
+    _record_point_spend(
+        dealer,
+        BASE_OFFER_POINT_COST,
+        "bid",
+        f"Bid on request #{car_request.id}",
+    )
+    return rules, total_cost
 
 
 def _bid_to_api_dict(bid, **kwargs):
@@ -1567,10 +1673,13 @@ def place_bid(request_id):
                 )  # Store relative path for web access, ensure forward slashes
                 uploaded_images.append(photo_filename)
 
-        # Check if the dealer has enough points to place a bid.
-        if current_user.points <= 0:
+        try:
+            point_rules, points_charged = _apply_offer_point_charges(
+                current_user, car_request
+            )
+        except ValueError as exc:
             flash(
-                "You do not have enough points to place an offer. Please purchase more points.",
+                str(exc),
                 "danger",
             )
             return redirect(url_for("dealer.dashboard"))
@@ -1601,17 +1710,6 @@ def place_bid(request_id):
 
         db.session.flush()
         ensure_pipeline_for_bid(new_bid)
-
-        # Deduct one point from the dealer's account
-        current_user.points -= 1
-        # Log Transaction
-        txn = PointTransaction(
-            user_id=current_user.id,
-            amount=-1,
-            transaction_type="bid",
-            description=f"Bid on request #{car_request.id}",
-        )
-        db.session.add(txn)
 
         # --- Notify the customer who made the request ---
         request_description = (
@@ -1656,7 +1754,8 @@ def place_bid(request_id):
         send_push_notification(car_request.user_id, notification.message)
 
         flash(
-            f"Your offer of {form.price.data:,.2f} ETB has been sent to the customer!",
+            f"Your offer of {form.price.data:,.2f} ETB has been sent. "
+            f"{points_charged} point(s) were deducted.",
             "success",
         )
         return redirect(url_for("dealer.dashboard"))
@@ -1697,6 +1796,9 @@ def api_place_dealer_bid(current_user, request_id):
         car_request_payload["response_health"] = get_request_response_health(car_request)
         car_request_payload["expiry_risk"] = get_request_expiry_risk(car_request)
         car_request_payload["intent_verification"] = serialize_request_intent(car_request)
+        car_request_payload["point_rules"] = _get_dealer_request_point_rules(
+            current_user, car_request
+        )
         return jsonify(
             car_request=car_request_payload,
             existing_bids=[_bid_to_api_dict(bid) for bid in existing_bids],
@@ -1744,16 +1846,19 @@ def api_place_dealer_bid(current_user, request_id):
                 400,
             )
 
-        # Check if the dealer has enough points
-        if current_user.points <= 0:
+        try:
+            point_rules, points_charged = _apply_offer_point_charges(
+                current_user, car_request
+            )
+        except ValueError as exc:
             return (
                 jsonify(
                     {
                         "status": "error",
-                        "message": "You do not have enough points to place an offer.",
+                        "message": str(exc),
                     }
                 ),
-                400,
+                402,
             )
 
         uploaded_images = _collect_bid_images_from_payload(data, car_request.id)
@@ -1774,15 +1879,6 @@ def api_place_dealer_bid(current_user, request_id):
         db.session.flush()
         ensure_pipeline_for_bid(new_bid)
 
-        current_user.points -= 1  # Deduct point
-        # Log Transaction
-        txn = PointTransaction(
-            user_id=current_user.id,
-            amount=-1,
-            transaction_type="bid",
-            description=f"Bid on request #{car_request.id}",
-        )
-        db.session.add(txn)
         db.session.commit()
 
         # Notify the customer
@@ -1847,11 +1943,132 @@ def api_place_dealer_bid(current_user, request_id):
                 {
                     "status": "success",
                     "message": "Your offer has been sent to the customer!",
+                    "points_charged": points_charged,
+                    "point_rules": point_rules,
+                    "dealer_points": current_user.points,
                     "bid": _bid_to_api_dict(new_bid),
                 }
             ),
             201,
         )
+
+
+@dealer_bp.route("/api/requests/<int:request_id>/unlock-high-intent", methods=["POST"])
+@token_required
+def api_unlock_high_intent_request(current_user, request_id):
+    if not current_user.is_dealer:
+        return jsonify({"status": "error", "message": "Dealer access required."}), 403
+
+    car_request = CarRequest.query.get_or_404(request_id)
+    rules = _get_dealer_request_point_rules(current_user, car_request)
+
+    if not rules["requires_high_intent_unlock"]:
+        return jsonify(
+            {
+                "status": "info",
+                "message": "This request does not require a high-intent unlock.",
+                "point_rules": rules,
+            }
+        )
+
+    if rules["high_intent_unlocked"]:
+        return jsonify(
+            {
+                "status": "info",
+                "message": "This request is already unlocked.",
+                "point_rules": rules,
+            }
+        )
+
+    if (current_user.points or 0) < HIGH_INTENT_UNLOCK_POINT_COST:
+        return (
+            jsonify(
+                {
+                    "status": "error",
+                    "message": "You do not have enough points to unlock this request.",
+                }
+            ),
+            402,
+        )
+
+    db.session.add(
+        DealerRequestUnlock(
+            dealer_id=current_user.id,
+            request_id=car_request.id,
+            unlock_type="high_intent",
+            points_spent=HIGH_INTENT_UNLOCK_POINT_COST,
+        )
+    )
+    _record_point_spend(
+        current_user,
+        HIGH_INTENT_UNLOCK_POINT_COST,
+        "high_intent_request_unlock",
+        f"Unlocked high-intent request #{car_request.id}",
+    )
+    db.session.commit()
+
+    updated_rules = _get_dealer_request_point_rules(current_user, car_request)
+    return jsonify(
+        {
+            "status": "success",
+            "message": "High-intent request unlocked.",
+            "dealer_points": current_user.points,
+            "point_rules": updated_rules,
+        }
+    )
+
+
+@dealer_bp.route("/api/bids/<int:bid_id>/boost", methods=["POST"])
+@token_required
+def api_boost_dealer_bid(current_user, bid_id):
+    if not current_user.is_dealer:
+        return jsonify({"status": "error", "message": "Dealer access required."}), 403
+
+    bid = DealerBid.query.get_or_404(bid_id)
+    if bid.dealer_id != current_user.id:
+        return jsonify({"status": "error", "message": "Permission denied."}), 403
+    if bid.status != "pending":
+        return (
+            jsonify(
+                {
+                    "status": "error",
+                    "message": "Only active pending offers can be boosted.",
+                }
+            ),
+            400,
+        )
+    if (current_user.points or 0) < BOOST_OFFER_POINT_COST:
+        return (
+            jsonify(
+                {
+                    "status": "error",
+                    "message": "You do not have enough points to boost this offer.",
+                }
+            ),
+            402,
+        )
+
+    now = datetime.utcnow()
+    boost_start = max(now, bid.boosted_until) if bid.boosted_until else now
+    bid.is_boosted = True
+    bid.boosted_until = boost_start + timedelta(hours=BOOST_OFFER_DURATION_HOURS)
+    bid.boost_points_spent = (bid.boost_points_spent or 0) + BOOST_OFFER_POINT_COST
+    _record_point_spend(
+        current_user,
+        BOOST_OFFER_POINT_COST,
+        "offer_boost",
+        f"Boosted offer #{bid.id} on request #{bid.request_id}",
+    )
+    db.session.commit()
+
+    return jsonify(
+        {
+            "status": "success",
+            "message": "Offer boosted.",
+            "dealer_points": current_user.points,
+            "bid": _bid_to_api_dict(bid),
+        }
+    )
 
 
 @dealer_bp.route("/api/bids/<int:bid_id>", methods=["PUT"])

@@ -270,7 +270,15 @@ Staging prep note: repo-level staging support is implemented in `config.py`, `ap
 
 ## Payments And Points
 
-- [ ] Define the business rules for dealer points and pricing.
+- [x] Define the first-version dealer point spending rules: base offer cost, extra-offer surcharge, high-intent request unlock, offer boost, late edit, chat unlock, and closed-deal reward.
+- [ ] Build frontend controls for the new dealer point spending rules:
+  - Show point cost before offer submission, including extra-offer and high-intent unlock costs.
+  - Add a high-intent unlock CTA for dealers before responding to premium requests.
+  - Add a boost-offer CTA on dealer offers and show boosted status/expiry.
+  - Show boosted offer badges to buyers without hiding price, dealer rating, offer score, or market position.
+  - Explain that boosted/pinned placement is paid visibility, not a quality guarantee.
+- [ ] Add admin controls for point economy tuning: boost cost, boost duration, high-intent unlock threshold, extra-offer cost, and late-edit cost.
+- [ ] Add abuse guardrails for paid visibility: max boosted offers per request, minimum dealer quality/rating to boost, and admin disable switch.
 - [ ] Decide whether points are purchased, manually granted, or both.
 - [ ] Integrate payment provider if points are paid.
 - [ ] Add payment success/failure webhooks.

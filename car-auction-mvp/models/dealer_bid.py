@@ -26,6 +26,9 @@ class DealerBid(db.Model):
     message = db.Column(db.Text, nullable=True)
 
     edit_point_deducted = db.Column(db.Boolean, default=False, nullable=False)
+    is_boosted = db.Column(db.Boolean, default=False, nullable=False)
+    boosted_until = db.Column(db.DateTime, nullable=True)
+    boost_points_spent = db.Column(db.Integer, default=0, nullable=False)
     dealer_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False)
     request_id = db.Column(db.Integer, db.ForeignKey("car_requests.id"), nullable=False)
 
@@ -85,6 +88,15 @@ class DealerBid(db.Model):
             "message": self.message,
             "image_urls": image_urls,
             "image_url": image_urls[0] if image_urls else None,
+            "is_boosted": bool(
+                self.is_boosted
+                and self.boosted_until
+                and self.boosted_until > datetime.utcnow()
+            ),
+            "boosted_until": (
+                self.boosted_until.isoformat() + "Z" if self.boosted_until else None
+            ),
+            "boost_points_spent": self.boost_points_spent or 0,
             "is_newest": is_newest,
             "is_best_deal": is_best_deal,
             "questions": [
