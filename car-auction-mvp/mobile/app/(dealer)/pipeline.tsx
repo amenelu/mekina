@@ -285,14 +285,17 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     backgroundColor: COLORS.card,
     minWidth: 108,
+    alignItems: "center",
+    justifyContent: "center",
   },
   stageChipActive: { borderColor: COLORS.accent },
-  stageText: { color: COLORS.text, fontWeight: "700" },
+  stageText: { color: COLORS.text, fontWeight: "700", textAlign: "center" },
   stageCountText: {
     color: COLORS.accent,
     fontSize: 18,
     fontWeight: "900",
     marginTop: 4,
+    textAlign: "center",
   },
   list: { padding: 16, paddingTop: 0 },
   listLoading: {
