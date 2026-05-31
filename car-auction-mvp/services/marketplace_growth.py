@@ -277,6 +277,17 @@ def serialize_pipeline_entry(entry):
     return payload
 
 
+def _is_winning_dealer_alternate_entry(entry):
+    """Hide rejected alternate bids when the same dealer won the request."""
+    car_request = entry.car_request
+    accepted_bid = car_request.accepted_bid if car_request else None
+    return bool(
+        accepted_bid
+        and accepted_bid.dealer_id == entry.dealer_id
+        and accepted_bid.id != entry.dealer_bid_id
+    )
+
+
 def list_dealer_pipeline(dealer, stage=None):
     query = DealerLeadPipeline.query.filter_by(dealer_id=dealer.id)
     if stage:
@@ -287,19 +298,17 @@ def list_dealer_pipeline(dealer, stage=None):
             DealerLeadPipeline.last_activity_at.desc(),
             DealerLeadPipeline.created_at.desc(),
         ).all()
+        if not _is_winning_dealer_alternate_entry(entry)
     ]
 
 
 def get_dealer_pipeline_stage_counts(dealer):
     counts = {stage: 0 for stage in PIPELINE_STAGES}
-    rows = (
-        db.session.query(DealerLeadPipeline.stage, db.func.count(DealerLeadPipeline.id))
-        .filter(DealerLeadPipeline.dealer_id == dealer.id)
-        .group_by(DealerLeadPipeline.stage)
-        .all()
-    )
-    for stage, count in rows:
-        counts[stage] = int(count or 0)
+    entries = DealerLeadPipeline.query.filter_by(dealer_id=dealer.id).all()
+    for entry in entries:
+        if _is_winning_dealer_alternate_entry(entry):
+            continue
+        counts[entry.stage] = counts.get(entry.stage, 0) + 1
     counts["all"] = sum(counts.values())
     return counts
 
