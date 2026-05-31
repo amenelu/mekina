@@ -30,9 +30,11 @@ class DealerLeadPipeline(db.Model):
 
     def to_dict(self):
         bid = self.dealer_bid
+        deal = bid.deal if bid else None
         return {
             "id": self.id,
             "dealer_bid_id": self.dealer_bid_id,
+            "deal_id": deal.id if deal else None,
             "dealer_id": self.dealer_id,
             "buyer_id": self.buyer_id,
             "request_id": self.request_id,
@@ -51,4 +53,3 @@ class DealerLeadPipeline(db.Model):
             "updated_at": self.updated_at.isoformat() + "Z" if self.updated_at else None,
             "bid": bid.to_dict() if bid else None,
         }
-

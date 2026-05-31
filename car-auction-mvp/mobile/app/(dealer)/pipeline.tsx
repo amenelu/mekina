@@ -29,6 +29,7 @@ const COLORS = {
 interface PipelineEntry {
   id: number;
   dealer_bid_id: number;
+  deal_id?: number | null;
   request_id: number;
   stage: string;
   last_activity_at?: string | null;
@@ -117,6 +118,38 @@ export default function DealerPipelineScreen() {
     }
   };
 
+  const getEntryAction = (entry: PipelineEntry) => {
+    if (["deal_accepted", "deal_completed"].includes(entry.stage)) {
+      return {
+        label: "View deal",
+        disabled: !entry.deal_id,
+        onPress: () => {
+          if (entry.deal_id) {
+            router.push(`/deal/${entry.deal_id}` as any);
+          }
+        },
+      };
+    }
+
+    if (entry.stage === "lost") {
+      return {
+        label: "Closed by another dealer",
+        disabled: true,
+        onPress: () => {},
+      };
+    }
+
+    return {
+      label: "Open request",
+      disabled: false,
+      onPress: () =>
+        router.push({
+          pathname: DEALER_ROUTES.placeOffer as any,
+          params: { request_id: String(entry.request_id) },
+        }),
+    };
+  };
+
   if (loading) {
     return (
       <View style={styles.centered}>
@@ -188,6 +221,10 @@ export default function DealerPipelineScreen() {
           ) : entries.length ? (
             entries.map((entry) => (
               <View key={entry.id} style={styles.card}>
+                {(() => {
+                  const entryAction = getEntryAction(entry);
+                  return (
+                    <>
                 <View style={styles.cardHeader}>
                   <View>
                     <Text style={styles.cardTitle}>
@@ -228,15 +265,21 @@ export default function DealerPipelineScreen() {
                 {entry.notes ? <Text style={styles.notes}>{entry.notes}</Text> : null}
                 <View style={styles.actions}>
                   <Pressable
-                    style={styles.secondaryButton}
-                    onPress={() =>
-                      router.push({
-                        pathname: DEALER_ROUTES.placeOffer as any,
-                        params: { request_id: String(entry.request_id) },
-                      })
-                    }
+                    style={[
+                      styles.secondaryButton,
+                      entryAction.disabled && styles.disabledActionButton,
+                    ]}
+                    onPress={entryAction.onPress}
+                    disabled={entryAction.disabled}
                   >
-                    <Text style={styles.secondaryText}>Open request</Text>
+                    <Text
+                      style={[
+                        styles.secondaryText,
+                        entryAction.disabled && styles.disabledActionText,
+                      ]}
+                    >
+                      {entryAction.label}
+                    </Text>
                   </Pressable>
                   {!["deal_completed", "lost"].includes(entry.stage) ? (
                     <Pressable
@@ -247,6 +290,9 @@ export default function DealerPipelineScreen() {
                     </Pressable>
                   ) : null}
                 </View>
+                    </>
+                  );
+                })()}
               </View>
             ))
           ) : (
@@ -367,5 +413,12 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   secondaryText: { color: COLORS.text, fontWeight: "800" },
+  disabledActionButton: {
+    opacity: 0.62,
+    backgroundColor: COLORS.background,
+  },
+  disabledActionText: {
+    color: COLORS.textSecondary,
+  },
   emptyText: { color: COLORS.textSecondary, textAlign: "center", marginTop: 40 },
 });
