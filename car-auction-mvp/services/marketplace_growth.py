@@ -166,17 +166,37 @@ def ensure_pipeline_for_bid(bid):
         return bid.pipeline_entry
 
     car_request = bid.car_request
+    stage = "offer_sent"
+    if bid.status == "accepted":
+        stage = (
+            "deal_completed"
+            if bid.deal and bid.deal.status == "completed"
+            else "deal_accepted"
+        )
+    elif bid.status in {"rejected", "expired"}:
+        stage = "lost"
+
     pipeline = DealerLeadPipeline(
         dealer_bid_id=bid.id,
         dealer_id=bid.dealer_id,
         buyer_id=car_request.user_id,
         request_id=bid.request_id,
-        stage="offer_sent",
+        stage=stage,
         last_activity_at=bid.timestamp or datetime.utcnow(),
     )
     db.session.add(pipeline)
     db.session.flush()
     return pipeline
+
+
+def ensure_dealer_pipeline_entries(dealer):
+    created = 0
+    bids = DealerBid.query.filter_by(dealer_id=dealer.id).all()
+    for bid in bids:
+        if not bid.pipeline_entry:
+            ensure_pipeline_for_bid(bid)
+            created += 1
+    return created
 
 
 def update_pipeline_stage_for_bid(bid, stage, notes=None, next_follow_up_at=None):
@@ -257,6 +277,20 @@ def list_dealer_pipeline(dealer, stage=None):
             DealerLeadPipeline.created_at.desc(),
         ).all()
     ]
+
+
+def get_dealer_pipeline_stage_counts(dealer):
+    counts = {stage: 0 for stage in PIPELINE_STAGES}
+    rows = (
+        db.session.query(DealerLeadPipeline.stage, db.func.count(DealerLeadPipeline.id))
+        .filter(DealerLeadPipeline.dealer_id == dealer.id)
+        .group_by(DealerLeadPipeline.stage)
+        .all()
+    )
+    for stage, count in rows:
+        counts[stage] = int(count or 0)
+    counts["all"] = sum(counts.values())
+    return counts
 
 
 def explain_offer(bid, offer_rank=None):

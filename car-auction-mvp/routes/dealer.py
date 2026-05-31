@@ -72,7 +72,9 @@ from services.marketplace_intelligence import (
 from services.marketplace_lifecycle import refresh_marketplace_lifecycle
 from services.marketplace_growth import (
     ensure_pipeline_for_bid,
+    ensure_dealer_pipeline_entries,
     explain_offer,
+    get_dealer_pipeline_stage_counts,
     get_dealer_sla_status,
     list_dealer_pipeline,
     serialize_request_intent,
@@ -1225,6 +1227,9 @@ def api_dealer_pipeline(current_user):
         else current_user
     )
 
+    if ensure_dealer_pipeline_entries(dealer):
+        db.session.commit()
+
     return jsonify(
         stages=[
             "offer_sent",
@@ -1235,6 +1240,7 @@ def api_dealer_pipeline(current_user):
             "deal_completed",
             "lost",
         ],
+        stage_counts=get_dealer_pipeline_stage_counts(dealer),
         pipeline=list_dealer_pipeline(dealer, stage),
     )
 

@@ -58,34 +58,51 @@ export default function DealerPipelineScreen() {
   const [entries, setEntries] = useState<PipelineEntry[]>([]);
   const [stage, setStage] = useState<string | undefined>();
   const [stages, setStages] = useState<string[]>([]);
+  const [stageCounts, setStageCounts] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(true);
+  const [listLoading, setListLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
 
-  const fetchPipeline = useCallback(async (isRefresh = false) => {
-    if (!isRefresh) setLoading(true);
+  const fetchPipeline = useCallback(async (
+    selectedStage = stage,
+    options: { isRefresh?: boolean; initial?: boolean } = {}
+  ) => {
+    const { isRefresh = false, initial = false } = options;
+    if (initial) {
+      setLoading(true);
+    } else if (!isRefresh) {
+      setListLoading(true);
+    }
     try {
-      const response = await getDealerPipeline(stage);
+      const response = await getDealerPipeline(selectedStage);
       setEntries(response.data.pipeline || []);
       setStages(response.data.stages || []);
+      setStageCounts(response.data.stage_counts || {});
     } catch (error) {
       console.error("Failed to load dealer pipeline:", error);
       Alert.alert("Pipeline Error", "Could not load your follow-up pipeline.");
     } finally {
       setLoading(false);
+      setListLoading(false);
       setRefreshing(false);
     }
   }, [stage]);
 
   useEffect(() => {
-    fetchPipeline();
-  }, [fetchPipeline]);
+    fetchPipeline(undefined, { initial: true });
+  }, []);
+
+  const selectStage = (nextStage?: string) => {
+    setStage(nextStage);
+    fetchPipeline(nextStage);
+  };
 
   const markFollowUpNeeded = async (entry: PipelineEntry) => {
     try {
       await updateDealerPipeline(entry.dealer_bid_id, {
         stage: "follow_up_needed",
       });
-      fetchPipeline(true);
+      fetchPipeline(stage, { isRefresh: true });
     } catch (error) {
       console.error("Failed to update pipeline:", error);
       Alert.alert("Update Failed", "Could not update this lead.");
@@ -115,7 +132,7 @@ export default function DealerPipelineScreen() {
             refreshing={refreshing}
             onRefresh={() => {
               setRefreshing(true);
-              fetchPipeline(true);
+              fetchPipeline(stage, { isRefresh: true });
             }}
             tintColor={COLORS.accent}
           />
@@ -128,23 +145,30 @@ export default function DealerPipelineScreen() {
         >
           <Pressable
             style={[styles.stageChip, !stage && styles.stageChipActive]}
-            onPress={() => setStage(undefined)}
+            onPress={() => selectStage(undefined)}
           >
             <Text style={styles.stageText}>All</Text>
+            <Text style={styles.stageCountText}>{stageCounts.all || 0}</Text>
           </Pressable>
           {stages.map((item) => (
             <Pressable
               key={item}
               style={[styles.stageChip, stage === item && styles.stageChipActive]}
-              onPress={() => setStage(item)}
+              onPress={() => selectStage(item)}
             >
               <Text style={styles.stageText}>{STAGE_LABELS[item] || item}</Text>
+              <Text style={styles.stageCountText}>{stageCounts[item] || 0}</Text>
             </Pressable>
           ))}
         </ScrollView>
 
         <View style={styles.list}>
-          {entries.length ? (
+          {listLoading ? (
+            <View style={styles.listLoading}>
+              <ActivityIndicator color={COLORS.accent} />
+              <Text style={styles.listLoadingText}>Loading leads...</Text>
+            </View>
+          ) : entries.length ? (
             entries.map((entry) => (
               <View key={entry.id} style={styles.card}>
                 <View style={styles.cardHeader}>
@@ -243,10 +267,27 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 8,
     backgroundColor: COLORS.card,
+    minWidth: 108,
   },
   stageChipActive: { borderColor: COLORS.accent },
   stageText: { color: COLORS.text, fontWeight: "700" },
+  stageCountText: {
+    color: COLORS.accent,
+    fontSize: 18,
+    fontWeight: "900",
+    marginTop: 4,
+  },
   list: { padding: 16, paddingTop: 0 },
+  listLoading: {
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 44,
+    gap: 10,
+  },
+  listLoadingText: {
+    color: COLORS.textSecondary,
+    fontWeight: "700",
+  },
   card: {
     backgroundColor: COLORS.card,
     borderWidth: 1,
@@ -293,4 +334,3 @@ const styles = StyleSheet.create({
   secondaryText: { color: COLORS.text, fontWeight: "800" },
   emptyText: { color: COLORS.textSecondary, textAlign: "center", marginTop: 40 },
 });
-
