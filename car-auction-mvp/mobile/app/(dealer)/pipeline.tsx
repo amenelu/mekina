@@ -62,6 +62,7 @@ export default function DealerPipelineScreen() {
   const [loading, setLoading] = useState(true);
   const [listLoading, setListLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const fetchPipeline = useCallback(async (
     selectedStage = stage,
@@ -74,13 +75,20 @@ export default function DealerPipelineScreen() {
       setListLoading(true);
     }
     try {
+      setErrorMessage(null);
       const response = await getDealerPipeline(selectedStage);
       setEntries(response.data.pipeline || []);
       setStages(response.data.stages || []);
       setStageCounts(response.data.stage_counts || {});
     } catch (error) {
       console.error("Failed to load dealer pipeline:", error);
-      Alert.alert("Pipeline Error", "Could not load your follow-up pipeline.");
+      setEntries([]);
+      setErrorMessage(
+        "Could not load your follow-up pipeline. If this is the hosted app, pull the latest backend, run flask db upgrade, and reload the web app."
+      );
+      if (initial) {
+        Alert.alert("Pipeline Error", "Could not load your follow-up pipeline.");
+      }
     } finally {
       setLoading(false);
       setListLoading(false);
@@ -163,7 +171,16 @@ export default function DealerPipelineScreen() {
         </ScrollView>
 
         <View style={styles.list}>
-          {listLoading ? (
+          {errorMessage ? (
+            <View style={styles.errorBox}>
+              <Ionicons
+                name="warning-outline"
+                size={20}
+                color={COLORS.warning}
+              />
+              <Text style={styles.errorText}>{errorMessage}</Text>
+            </View>
+          ) : listLoading ? (
             <View style={styles.listLoading}>
               <ActivityIndicator color={COLORS.accent} />
               <Text style={styles.listLoadingText}>Loading leads...</Text>
@@ -287,6 +304,21 @@ const styles = StyleSheet.create({
   listLoadingText: {
     color: COLORS.textSecondary,
     fontWeight: "700",
+  },
+  errorBox: {
+    backgroundColor: "rgba(255,193,7,0.1)",
+    borderWidth: 1,
+    borderColor: "rgba(255,193,7,0.35)",
+    borderRadius: 8,
+    padding: 14,
+    flexDirection: "row",
+    gap: 10,
+    alignItems: "flex-start",
+  },
+  errorText: {
+    flex: 1,
+    color: COLORS.text,
+    lineHeight: 20,
   },
   card: {
     backgroundColor: COLORS.card,

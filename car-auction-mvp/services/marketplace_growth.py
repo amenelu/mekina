@@ -166,6 +166,8 @@ def ensure_pipeline_for_bid(bid):
         return bid.pipeline_entry
 
     car_request = bid.car_request
+    if not car_request:
+        return None
     stage = "offer_sent"
     if bid.status == "accepted":
         stage = (
@@ -194,8 +196,9 @@ def ensure_dealer_pipeline_entries(dealer):
     bids = DealerBid.query.filter_by(dealer_id=dealer.id).all()
     for bid in bids:
         if not bid.pipeline_entry:
-            ensure_pipeline_for_bid(bid)
-            created += 1
+            pipeline = ensure_pipeline_for_bid(bid)
+            if pipeline:
+                created += 1
     return created
 
 
@@ -204,6 +207,8 @@ def update_pipeline_stage_for_bid(bid, stage, notes=None, next_follow_up_at=None
         raise ValueError("Invalid pipeline stage.")
 
     pipeline = ensure_pipeline_for_bid(bid)
+    if not pipeline:
+        raise ValueError("Could not create a pipeline entry for this offer.")
     pipeline.stage = stage
     pipeline.last_activity_at = datetime.utcnow()
     if notes is not None:
@@ -228,6 +233,8 @@ def mark_buyer_viewed_request(car_request):
 
 def mark_question_received(bid):
     pipeline = ensure_pipeline_for_bid(bid)
+    if not pipeline:
+        return None
     if pipeline.stage in {"offer_sent", "buyer_viewed"}:
         pipeline.stage = "question_received"
     pipeline.last_activity_at = datetime.utcnow()
@@ -236,6 +243,8 @@ def mark_question_received(bid):
 
 def mark_bid_accepted(bid):
     pipeline = ensure_pipeline_for_bid(bid)
+    if not pipeline:
+        return None
     pipeline.stage = "deal_accepted"
     pipeline.last_activity_at = datetime.utcnow()
     return pipeline
@@ -243,6 +252,8 @@ def mark_bid_accepted(bid):
 
 def mark_bid_lost(bid):
     pipeline = ensure_pipeline_for_bid(bid)
+    if not pipeline:
+        return None
     pipeline.stage = "lost"
     pipeline.last_activity_at = datetime.utcnow()
     return pipeline

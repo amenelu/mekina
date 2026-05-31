@@ -722,7 +722,9 @@ const DealerDashboard = () => {
         unanswered_questions_count: (data.unanswered_request_questions || [])
           .length,
         pending_approval_count: data.pending_approval_count ?? 0,
-        pipeline_count: (pipelineResponse.data.pipeline || []).length,
+        pipeline_count:
+          pipelineResponse.data.stage_counts?.all ??
+          (pipelineResponse.data.pipeline || []).length,
       };
 
       setStats(newStats);
