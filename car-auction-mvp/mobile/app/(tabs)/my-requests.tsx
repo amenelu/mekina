@@ -187,6 +187,7 @@ const RequestCard = ({
   const isImageBased = Boolean(firstRequestImage);
   const requestSource = getRequestSource(request);
   const requestDetailLabel = getRequestDetailLabel(request);
+  const isCompleted = request.status.toLowerCase() === "completed";
   const canDeleteRequest =
     request.status.toLowerCase() === "active" && !request.deal_id;
 
@@ -239,12 +240,12 @@ const RequestCard = ({
               {!isTradeIn && requestSource === "general" ? (
                 <Text style={styles.tagText}>Guided</Text>
               ) : null}
-              {request.detail_score !== undefined ? (
+              {!isCompleted && request.detail_score !== undefined ? (
                 <Text style={styles.scoreText}>
                   Strength: {request.detail_score}%
                 </Text>
               ) : null}
-              {!isTradeIn && request.intent_verification ? (
+              {!isCompleted && !isTradeIn && request.intent_verification ? (
                 <Text style={styles.scoreText}>
                   Intent: {request.intent_verification.score}
                 </Text>

@@ -13,6 +13,7 @@ import {
   FlatList,
   RefreshControl,
   TextInput,
+  Platform,
 } from "react-native";
 import { useLocalSearchParams, useRouter, Stack } from "expo-router";
 import { useAuth } from "@/hooks/useAuth";
@@ -47,6 +48,24 @@ const COLORS = {
   destructive: "#dc3545",
 };
 const CARD_WIDTH = SCREEN_WIDTH * 0.8;
+
+const isOfferExpired = (bid: { status?: string; valid_until?: string }) => {
+  if (String(bid.status || "").toLowerCase() === "expired") {
+    return true;
+  }
+
+  const [year, month, day] = String(bid.valid_until || "")
+    .split("-")
+    .map(Number);
+  if (!year || !month || !day) {
+    return false;
+  }
+
+  const validUntilDate = new Date(year, month - 1, day);
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  return validUntilDate < today;
+};
 
 interface CarRequest {
   id: number;
@@ -353,6 +372,9 @@ const RequestDetailScreen = () => {
   };
 
   const openDealerProfileModal = async (dealerId: number) => {
+    if (Platform.OS === "web" && typeof window !== "undefined") {
+      (window as any).__mekinaDealerProfileOpen = true;
+    }
     setDealerProfileVisible(true);
     setDealerProfileLoading(true);
     setDealerProfile(null);
@@ -363,6 +385,9 @@ const RequestDetailScreen = () => {
     } catch (error) {
       console.error("Failed to load dealer profile:", error);
       setDealerProfileVisible(false);
+      if (Platform.OS === "web" && typeof window !== "undefined") {
+        (window as any).__mekinaDealerProfileOpen = false;
+      }
       showNativeFlowAlert("Error", "Could not load this dealer profile.");
     } finally {
       setDealerProfileLoading(false);
@@ -372,7 +397,21 @@ const RequestDetailScreen = () => {
   const closeDealerProfileModal = () => {
     setDealerProfileVisible(false);
     setDealerProfile(null);
+    if (Platform.OS === "web" && typeof window !== "undefined") {
+      (window as any).__mekinaDealerProfileOpen = false;
+    }
   };
+
+  useEffect(() => {
+    if (
+      Platform.OS !== "web" ||
+      typeof window === "undefined" ||
+      isDealerProfileVisible
+    ) {
+      return;
+    }
+    (window as any).__mekinaDealerProfileOpen = false;
+  }, [isDealerProfileVisible]);
 
   const markHighIntent = async () => {
     if (!request || intentSaving) return;
@@ -413,6 +452,14 @@ const RequestDetailScreen = () => {
   };
 
   const handleAcceptOffer = async (bid: DealerBid) => {
+    if (isOfferExpired(bid)) {
+      showNativeFlowAlert(
+        "Offer Expired",
+        "This dealer offer is no longer available."
+      );
+      return;
+    }
+
     // Confirmation Dialog
     showNativeFlowConfirm({
       title: "Accept Offer?",
@@ -550,7 +597,9 @@ const RequestDetailScreen = () => {
       <ScrollView
         style={styles.container}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+          !isDealerProfileVisible ? (
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+          ) : undefined
         }
       >
         {/* Request Details Section */}
@@ -788,6 +837,7 @@ const RequestDetailScreen = () => {
           {bids.length > 0 ? (
             bids.map((bid, index) => {
               const isSelected = selectedBids.includes(bid.id);
+              const bidExpired = isOfferExpired(bid);
               const hasDealerAnswer =
                 bid.questions?.some((qna) => Boolean(qna.answer_text)) ?? false;
               const isNotificationTarget = highlightedBidId === bid.id;
@@ -1044,6 +1094,18 @@ const RequestDetailScreen = () => {
                       Offer valid until:{" "}
                       {new Date(bid.valid_until).toLocaleDateString()}
                     </Text>
+                    {bidExpired ? (
+                      <View style={styles.expiredOfferNotice}>
+                        <Ionicons
+                          name="time-outline"
+                          size={16}
+                          color={COLORS.mutedForeground}
+                        />
+                        <Text style={styles.expiredOfferText}>
+                          This offer has expired
+                        </Text>
+                      </View>
+                    ) : null}
 
                     {bid.questions && bid.questions.length > 0 && (
                       <View style={styles.qnaSection}>
@@ -1112,13 +1174,15 @@ const RequestDetailScreen = () => {
                         request.status !== "active" && { opacity: 0.5 },
                       ]}
                     >
-                      <Pressable
-                        style={styles.acceptButton}
-                        onPress={() => handleAcceptOffer(bid)}
-                        disabled={request.status !== "active"}
-                      >
-                        <Text style={styles.buttonText}>Accept Offer</Text>
-                      </Pressable>
+                      {!bidExpired ? (
+                        <Pressable
+                          style={styles.acceptButton}
+                          onPress={() => handleAcceptOffer(bid)}
+                          disabled={request.status !== "active"}
+                        >
+                          <Text style={styles.buttonText}>Accept Offer</Text>
+                        </Pressable>
+                      ) : null}
                       <Pressable
                         style={styles.chatButton}
                         onPress={() => handleAskQuestion(bid.id)}
@@ -2029,6 +2093,22 @@ const styles = StyleSheet.create({
     color: COLORS.mutedForeground,
     textAlign: "right",
     marginTop: 10,
+  },
+  expiredOfferNotice: {
+    alignSelf: "flex-end",
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    marginTop: 8,
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+    borderRadius: 999,
+    backgroundColor: COLORS.muted,
+  },
+  expiredOfferText: {
+    color: COLORS.mutedForeground,
+    fontSize: 12,
+    fontWeight: "700",
   },
   qnaSection: {
     borderTopWidth: 1,

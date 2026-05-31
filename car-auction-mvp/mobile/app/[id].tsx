@@ -590,14 +590,14 @@ const CarDetailScreen = () => {
       </View>
       <ScrollView
         style={styles.container}
-        scrollEnabled={!isImageViewerVisible}
+        scrollEnabled={!isImageViewerVisible && !dealerProfileVisible}
         refreshControl={
-          !isImageViewerVisible ? (
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={onRefresh}
-            tintColor={COLORS.accent}
-          />
+          !isImageViewerVisible && !dealerProfileVisible ? (
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              tintColor={COLORS.accent}
+            />
           ) : undefined
         }
       >

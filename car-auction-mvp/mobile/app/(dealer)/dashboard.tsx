@@ -312,19 +312,6 @@ const RequestItem = ({ item }: { item: CustomerRequest }) => {
           score: item.dealer_match.score,
         }
       : null,
-    item.response_health
-      ? {
-          icon: "pulse-outline",
-          label: item.response_health.label,
-          helper: `${item.response_health.offer_count} offers`,
-          score:
-            item.response_health.label === "Competitive"
-              ? 85
-              : item.response_health.label === "Responded"
-                ? 65
-                : 30,
-        }
-      : null,
     item.expiry_risk
       ? {
           icon: "timer-outline",

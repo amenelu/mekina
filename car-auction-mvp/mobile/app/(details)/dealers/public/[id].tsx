@@ -10,6 +10,7 @@ import {
   Pressable,
   Animated,
   Easing,
+  Platform,
 } from "react-native";
 import { useAuth } from "@/hooks/useAuth";
 import { Ionicons } from "@expo/vector-icons";
@@ -136,6 +137,16 @@ const DealerPublicProfilePage: React.FC = () => {
       useNativeDriver: true,
     }).start();
   }, [isModal, sheetTranslateY]);
+
+  useEffect(() => {
+    if (Platform.OS !== "web" || typeof window === "undefined" || !isModal) {
+      return;
+    }
+    (window as any).__mekinaDealerProfileOpen = true;
+    return () => {
+      (window as any).__mekinaDealerProfileOpen = false;
+    };
+  }, [isModal]);
 
   const closeModal = React.useCallback(() => {
     Animated.timing(sheetTranslateY, {
