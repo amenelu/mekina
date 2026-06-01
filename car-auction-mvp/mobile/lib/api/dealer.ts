@@ -34,6 +34,10 @@ export function updateDealerPipeline(bidId: string | number, data: unknown) {
   return apiClient.put(`/dealer/api/pipeline/${bidId}`, data);
 }
 
+export function watchDealerRequestCompetition(requestId: string | number) {
+  return apiClient.post(`/dealer/api/requests/${requestId}/watch-competition`);
+}
+
 export function getDealerSla() {
   return apiClient.get("/dealer/api/sla");
 }

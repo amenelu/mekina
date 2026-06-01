@@ -27,6 +27,7 @@ from models.chat_message import ChatMessage
 from models.notification import Notification
 from models.dealer_point_request import DealerPointRequest
 from models.dealer_request_unlock import DealerRequestUnlock
+from models.dealer_request_watch import DealerRequestWatch
 from models.dealer_rating import DealerRating
 from models.dealer_request_view import DealerRequestView
 from models.search_query import SearchQuery
@@ -171,6 +172,7 @@ EXTRA_OFFER_POINT_COST = 1
 HIGH_INTENT_UNLOCK_POINT_COST = 1
 BOOST_OFFER_POINT_COST = 1
 BOOST_OFFER_DURATION_HOURS = 48
+COMPETITION_WATCH_POINT_COST = 1
 
 
 def _bid_free_edit_expires_at(bid):
@@ -207,6 +209,17 @@ def _dealer_existing_offer_count(dealer, car_request):
     ).count()
 
 
+def _dealer_has_competition_watch(dealer, car_request):
+    return (
+        DealerRequestWatch.query.filter_by(
+            dealer_id=dealer.id,
+            request_id=car_request.id,
+            is_active=True,
+        ).first()
+        is not None
+    )
+
+
 def _get_dealer_request_point_rules(dealer, car_request):
     intent = serialize_request_intent(car_request)
     high_intent_required = intent.get("level") == "high_intent"
@@ -227,6 +240,10 @@ def _get_dealer_request_point_rules(dealer, car_request):
         ),
         "boost_offer_cost": BOOST_OFFER_POINT_COST,
         "boost_duration_hours": BOOST_OFFER_DURATION_HOURS,
+        "competition_watch_cost": COMPETITION_WATCH_POINT_COST,
+        "competition_watch_active": _dealer_has_competition_watch(
+            dealer, car_request
+        ),
         "existing_offer_count": existing_offer_count,
         "intent": intent,
     }
@@ -286,6 +303,79 @@ def _apply_offer_point_charges(dealer, car_request):
         f"Bid on request #{car_request.id}",
     )
     return rules, total_cost
+
+
+def _dealer_best_active_offer_price(dealer_id, request_id):
+    return (
+        db.session.query(func.min(DealerBid.price))
+        .filter(
+            DealerBid.dealer_id == dealer_id,
+            DealerBid.request_id == request_id,
+            DealerBid.status.in_(["pending", "accepted"]),
+        )
+        .scalar()
+    )
+
+
+def _create_competition_watch_notifications(new_bid, car_request):
+    now = datetime.utcnow()
+    watchers = DealerRequestWatch.query.filter(
+        DealerRequestWatch.request_id == car_request.id,
+        DealerRequestWatch.is_active.is_(True),
+        DealerRequestWatch.dealer_id != new_bid.dealer_id,
+        or_(
+            DealerRequestWatch.expires_at.is_(None),
+            DealerRequestWatch.expires_at > now,
+        ),
+    ).all()
+
+    notifications = []
+    if car_request.status != "active":
+        return notifications
+
+    request_name = (
+        f"{car_request.make} {car_request.model}".strip()
+        if car_request.make or car_request.model
+        else f"request #{car_request.id}"
+    )
+
+    for watcher in watchers:
+        dealer_best_price = _dealer_best_active_offer_price(
+            watcher.dealer_id, car_request.id
+        )
+        if dealer_best_price is not None and new_bid.price < dealer_best_price:
+            message = (
+                f"A lower competing offer was submitted on {request_name}."
+            )
+        else:
+            message = f"A new competing offer was submitted on {request_name}."
+
+        notification = Notification(
+            user_id=watcher.dealer_id,
+            message=message,
+            link=url_for("dealer.place_bid", request_id=car_request.id),
+        )
+        db.session.add(notification)
+        notifications.append(notification)
+
+    return notifications
+
+
+def _emit_dealer_notifications(notifications):
+    for notification in notifications:
+        unread_count = Notification.query.filter_by(
+            user_id=notification.user_id, is_read=False
+        ).count()
+        notification_data = {
+            "message": notification.message,
+            "link": notification.link,
+            "timestamp": notification.timestamp.isoformat() + "Z",
+            "count": unread_count,
+        }
+        socketio.emit(
+            "new_notification", notification_data, room=str(notification.user_id)
+        )
+        send_push_notification(notification.user_id, notification.message)
 
 
 def _bid_to_api_dict(bid, **kwargs):
@@ -1732,6 +1822,10 @@ def place_bid(request_id):
             request_id=car_request.id,
             notification_id=notification.id,
         )
+        competition_notifications = _create_competition_watch_notifications(
+            new_bid, car_request
+        )
+        db.session.flush()
         db.session.commit()
 
         # --- Real-time Notification (send *after* commit) ---
@@ -1752,6 +1846,7 @@ def place_bid(request_id):
             "new_notification", notification_data, room=str(car_request.user_id)
         )
         send_push_notification(car_request.user_id, notification.message)
+        _emit_dealer_notifications(competition_notifications)
 
         flash(
             f"Your offer of {form.price.data:,.2f} ETB has been sent. "
@@ -1900,6 +1995,10 @@ def api_place_dealer_bid(current_user, request_id):
             request_id=car_request.id,
             notification_id=notification.id,
         )
+        competition_notifications = _create_competition_watch_notifications(
+            new_bid, car_request
+        )
+        db.session.flush()
         db.session.commit()
 
         # Real-time Notification
@@ -1916,6 +2015,7 @@ def api_place_dealer_bid(current_user, request_id):
             "new_notification", notification_data, room=str(car_request.user_id)
         )
         send_push_notification(car_request.user_id, notification.message)
+        _emit_dealer_notifications(competition_notifications)
 
         # --- Real-time Dashboard Update for ALL Dealers ---
         # After a bid is placed, we need to update the stats for this request
@@ -2014,6 +2114,97 @@ def api_unlock_high_intent_request(current_user, request_id):
             "message": "High-intent request unlocked.",
             "dealer_points": current_user.points,
             "point_rules": updated_rules,
+        }
+    )
+
+
+@dealer_bp.route("/api/requests/<int:request_id>/watch-competition", methods=["POST"])
+@token_required
+def api_watch_request_competition(current_user, request_id):
+    if not current_user.is_dealer:
+        return jsonify({"status": "error", "message": "Dealer access required."}), 403
+
+    car_request = CarRequest.query.get_or_404(request_id)
+    if car_request.status != "active":
+        return (
+            jsonify(
+                {
+                    "status": "error",
+                    "message": "Only active requests can be watched.",
+                }
+            ),
+            400,
+        )
+
+    existing_offer_count = _dealer_existing_offer_count(current_user, car_request)
+    if existing_offer_count <= 0:
+        return (
+            jsonify(
+                {
+                    "status": "error",
+                    "message": "Submit an offer before watching competing offers.",
+                }
+            ),
+            400,
+        )
+
+    existing_watch = DealerRequestWatch.query.filter_by(
+        dealer_id=current_user.id,
+        request_id=car_request.id,
+    ).first()
+    if existing_watch and existing_watch.is_active:
+        return jsonify(
+            {
+                "status": "info",
+                "message": "Competition watch is already active.",
+                "dealer_points": current_user.points,
+                "watch": existing_watch.to_dict(),
+                "point_rules": _get_dealer_request_point_rules(
+                    current_user, car_request
+                ),
+            }
+        )
+
+    if (current_user.points or 0) < COMPETITION_WATCH_POINT_COST:
+        return (
+            jsonify(
+                {
+                    "status": "error",
+                    "message": "You do not have enough points to watch this request.",
+                }
+            ),
+            402,
+        )
+
+    if existing_watch:
+        existing_watch.is_active = True
+        existing_watch.points_spent += COMPETITION_WATCH_POINT_COST
+        existing_watch.expires_at = None
+        existing_watch.created_at = datetime.utcnow()
+        watch = existing_watch
+    else:
+        watch = DealerRequestWatch(
+            dealer_id=current_user.id,
+            request_id=car_request.id,
+            points_spent=COMPETITION_WATCH_POINT_COST,
+        )
+        db.session.add(watch)
+
+    _record_point_spend(
+        current_user,
+        COMPETITION_WATCH_POINT_COST,
+        "competition_watch",
+        f"Watched competing offers on request #{car_request.id}",
+    )
+    db.session.commit()
+
+    return jsonify(
+        {
+            "status": "success",
+            "message": "Competition watch activated.",
+            "dealer_points": current_user.points,
+            "watch": watch.to_dict(),
+            "point_rules": _get_dealer_request_point_rules(current_user, car_request),
         }
     )
 

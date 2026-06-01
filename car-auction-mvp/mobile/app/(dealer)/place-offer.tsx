@@ -25,6 +25,7 @@ import {
   getDealerRequestBids,
   placeDealerBid,
   updateDealerBid,
+  watchDealerRequestCompetition,
 } from "@/lib/api/dealer";
 import { DEALER_ROUTES } from "@/lib/roleRoutes";
 import { showNativeFlowAlert } from "@/lib/nativeFlowAlert";
@@ -123,6 +124,11 @@ interface DealerBid {
     buyer_viewed_at?: string | null;
     follow_up_due?: boolean;
   } | null;
+}
+
+interface DealerPointRules {
+  competition_watch_active?: boolean;
+  competition_watch_cost?: number;
 }
 
 const COLORS = {
@@ -249,7 +255,9 @@ const PlaceOfferScreen = () => {
     null
   );
   const [existingBids, setExistingBids] = useState<DealerBid[]>([]);
+  const [pointRules, setPointRules] = useState<DealerPointRules | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isWatchingCompetition, setIsWatchingCompetition] = useState(false);
   const [editingBid, setEditingBid] = useState<DealerBid | null>(null);
   const isWideWeb = Platform.OS === "web" && width >= 1000;
   const scrollRef = useRef<ScrollView>(null);
@@ -276,6 +284,7 @@ const PlaceOfferScreen = () => {
         const response = await getDealerRequestBids(request_id);
         setRequestDetails(response.data.car_request);
         setExistingBids(response.data.existing_bids || []);
+        setPointRules(response.data.car_request?.point_rules || null);
       } catch (error) {
         console.error("Failed to fetch request details:", error);
         Alert.alert("Error", "Could not load request details.");
@@ -441,6 +450,9 @@ const PlaceOfferScreen = () => {
       if (response.data?.bid) {
         setExistingBids((current) => [response.data.bid, ...current]);
       }
+      if (response.data?.point_rules) {
+        setPointRules(response.data.point_rules);
+      }
 
       if (isWebRuntime()) {
         showNativeFlowAlert(
@@ -468,6 +480,35 @@ const PlaceOfferScreen = () => {
       showNativeFlowAlert("Offer Failed", message);
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const handleWatchCompetition = async () => {
+    if (!request_id || isWatchingCompetition) return;
+    setIsWatchingCompetition(true);
+    try {
+      const response = await watchDealerRequestCompetition(request_id);
+      if (response.data?.point_rules) {
+        setPointRules(response.data.point_rules);
+      } else {
+        setPointRules((current) => ({
+          ...(current || {}),
+          competition_watch_active: true,
+        }));
+      }
+      showNativeFlowAlert(
+        "Competition Watch Active",
+        response.data?.message ||
+          "You will be notified when another dealer submits an offer on this request."
+      );
+    } catch (error: any) {
+      const message =
+        error.response?.data?.message ||
+        error.userMessage ||
+        "Could not activate competition watch.";
+      showNativeFlowAlert("Watch Failed", message);
+    } finally {
+      setIsWatchingCompetition(false);
     }
   };
 
@@ -543,6 +584,8 @@ const PlaceOfferScreen = () => {
         new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime() ||
         b.id - a.id
     )[0];
+  const competitionWatchActive = Boolean(pointRules?.competition_watch_active);
+  const competitionWatchCost = pointRules?.competition_watch_cost ?? 1;
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
@@ -1070,6 +1113,48 @@ const PlaceOfferScreen = () => {
               </View>
             )}
 
+            {ownBid ? (
+              <View style={styles.competitionWatchCard}>
+                <View style={styles.competitionWatchCopy}>
+                  <Text style={styles.competitionWatchTitle}>
+                    Competition watch
+                  </Text>
+                  <Text style={styles.competitionWatchText}>
+                    {competitionWatchActive
+                      ? "Active. You will be notified when another dealer bids on this request."
+                      : `Spend ${competitionWatchCost} point to get notified when another dealer bids on this request.`}
+                  </Text>
+                </View>
+                <Pressable
+                  style={[
+                    styles.watchButton,
+                    competitionWatchActive && styles.watchButtonActive,
+                  ]}
+                  onPress={handleWatchCompetition}
+                  disabled={competitionWatchActive || isWatchingCompetition}
+                >
+                  {isWatchingCompetition ? (
+                    <ActivityIndicator size="small" color="white" />
+                  ) : (
+                    <>
+                      <Ionicons
+                        name={
+                          competitionWatchActive
+                            ? "notifications"
+                            : "notifications-outline"
+                        }
+                        size={16}
+                        color="white"
+                      />
+                      <Text style={styles.watchButtonText}>
+                        {competitionWatchActive ? "Watching" : "Watch"}
+                      </Text>
+                    </>
+                  )}
+                </Pressable>
+              </View>
+            ) : null}
+
             {existingBids.length > 0 && (
               <View style={styles.formCard}>
                 <Text style={styles.sectionTitle}>Previous Offers</Text>
@@ -1291,6 +1376,50 @@ const styles = StyleSheet.create({
     padding: 20,
     borderRadius: 12,
     marginBottom: 20,
+  },
+  competitionWatchCard: {
+    backgroundColor: COLORS.card,
+    marginHorizontal: 10,
+    padding: 16,
+    borderRadius: 12,
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: "rgba(163, 112, 247, 0.35)",
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+  },
+  competitionWatchCopy: {
+    flex: 1,
+  },
+  competitionWatchTitle: {
+    color: COLORS.text,
+    fontSize: 16,
+    fontWeight: "800",
+    marginBottom: 4,
+  },
+  competitionWatchText: {
+    color: COLORS.textSecondary,
+    fontSize: 13,
+    lineHeight: 18,
+  },
+  watchButton: {
+    minWidth: 104,
+    minHeight: 42,
+    borderRadius: 10,
+    backgroundColor: COLORS.accent,
+    alignItems: "center",
+    justifyContent: "center",
+    flexDirection: "row",
+    gap: 7,
+    paddingHorizontal: 12,
+  },
+  watchButtonActive: {
+    backgroundColor: "#31D0AA",
+  },
+  watchButtonText: {
+    color: "white",
+    fontWeight: "800",
   },
   sectionTitle: {
     fontSize: 18,

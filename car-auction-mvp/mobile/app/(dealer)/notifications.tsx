@@ -53,6 +53,11 @@ const getMobileRoute = (webLink: string | null) => {
   }
 
   // Handle Requests: /requests/123 -> /request/123
+  if (normalizedLink.includes("/dealer/request/")) {
+    const match = normalizedLink.match(/\/dealer\/request\/(\d+)\/bid/);
+    if (match) return `${DEALER_ROUTES.placeOffer}?request_id=${match[1]}`;
+  }
+
   if (normalizedLink.includes("/requests/") && !normalizedLink.includes("/deal/")) {
     const match = normalizedLink.match(/\/requests\/(\d+)/);
     if (match) return `${DEALER_ROUTES.placeOffer}?request_id=${match[1]}`;
