@@ -21,6 +21,7 @@ from models.conversation import Conversation
 from models.chat_message import ChatMessage
 from models.lead_score import LeadScore
 from models.user_favorite import UserFavorite
+from models.featured_car_impression import FeaturedCarImpression
 from models.user import User
 from extensions import db, socketio
 from flask import current_app
@@ -289,9 +290,59 @@ def api_support_question():
     return jsonify({"message": "Your question has been sent."}), 201
 
 
+FEATURED_FRONT_SLOT_COUNT = 4
+
+
 def _get_featured_cars():
-    """Helper function to fetch active, approved, featured cars."""
-    return Car.query.filter_by(is_featured=True, is_approved=True, is_active=True).all()
+    """
+    Fetch active featured cars with low-exposure cars first.
+
+    The first few positions on the home page get most of the real visibility, so
+    those positions are balanced by impression count and randomized within ties.
+    """
+    exposure_count = func.coalesce(
+        FeaturedCarImpression.impression_count,
+        0,
+    ).label("featured_exposure_count")
+
+    rows = (
+        db.session.query(Car, exposure_count)
+        .outerjoin(FeaturedCarImpression, FeaturedCarImpression.car_id == Car.id)
+        .filter(
+            Car.is_featured.is_(True),
+            Car.is_approved.is_(True),
+            Car.is_active.is_(True),
+        )
+        .order_by(exposure_count.asc(), func.random())
+        .all()
+    )
+    return [car for car, _exposure_count in rows]
+
+
+def _record_featured_front_slot_impressions(cars):
+    """Track only the visible leading slots to avoid over-counting every car."""
+    front_slot_cars = cars[:FEATURED_FRONT_SLOT_COUNT]
+    if not front_slot_cars:
+        return
+
+    now = datetime.utcnow()
+    car_ids = [car.id for car in front_slot_cars]
+    existing = {
+        item.car_id: item
+        for item in FeaturedCarImpression.query.filter(
+            FeaturedCarImpression.car_id.in_(car_ids)
+        ).all()
+    }
+
+    for car in front_slot_cars:
+        impression = existing.get(car.id)
+        if impression is None:
+            impression = FeaturedCarImpression(car_id=car.id)
+            db.session.add(impression)
+        impression.impression_count = (impression.impression_count or 0) + 1
+        impression.last_shown_at = now
+
+    db.session.commit()
 
 
 def _create_trade_in_rating_reminders(user):
@@ -373,7 +424,9 @@ def home():
 @main_bp.route("/api/home")
 def api_home():
     """API endpoint for home screen data."""
-    return jsonify(featured_cars=[car.to_dict() for car in _get_featured_cars()])
+    featured_cars = _get_featured_cars()
+    _record_featured_front_slot_impressions(featured_cars)
+    return jsonify(featured_cars=[car.to_dict() for car in featured_cars])
 
 
 @main_bp.route("/notifications")

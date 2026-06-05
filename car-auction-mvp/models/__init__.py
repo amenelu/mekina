@@ -28,3 +28,4 @@ from .request_intent_verification import RequestIntentVerification
 from .dealer_lead_pipeline import DealerLeadPipeline
 from .dealer_request_unlock import DealerRequestUnlock
 from .dealer_request_watch import DealerRequestWatch
+from .featured_car_impression import FeaturedCarImpression
