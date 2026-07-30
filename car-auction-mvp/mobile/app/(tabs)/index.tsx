@@ -612,12 +612,52 @@ const HomeScreen = () => {
       </View>
 
       {/* --- Featured Cars Section --- */}
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Featured Vehicles</Text>
-        <FlatList
-          horizontal
-          data={featuredVehicles}
-          renderItem={({ item }) => (
+      <View style={[styles.section, isWideWeb && styles.sectionWide]}>
+        <View style={isWideWeb ? styles.sectionHeadingRow : undefined}>
+          <View>
+            <Text style={[styles.sectionEyebrow, !isWideWeb && styles.mobileHidden]}>
+              CURATED FOR YOU
+            </Text>
+            <Text style={[styles.sectionTitle, isWideWeb && styles.sectionTitleWide]}>
+              Featured Vehicles
+            </Text>
+          </View>
+          {isWideWeb && (
+            <Pressable
+              style={styles.sectionLink}
+              onPress={() => router.push("/all_listings")}
+            >
+              <Text style={styles.sectionLinkText}>Browse all</Text>
+              <Ionicons name="arrow-forward" size={17} color={COLORS.accent} />
+            </Pressable>
+          )}
+        </View>
+        {isWideWeb ? (
+          <View style={styles.featuredGridWide}>
+            {featuredVehicles.map((item) => (
+              <Pressable
+                key={item.id}
+                style={[styles.featuredCard, styles.featuredCardWide]}
+                onPress={() => router.push(`/${item.id}`)}
+              >
+                <Image source={{ uri: item.image }} style={styles.featuredImage} />
+                <View style={styles.featuredTagContainer}>
+                  <Text style={styles.featuredTag}>Featured</Text>
+                </View>
+                <View style={styles.featuredCaption}>
+                  <Text style={styles.featuredTitle}>
+                    {`${item.year} ${item.make} ${item.model}`}
+                  </Text>
+                  <Text style={styles.featuredPrice}>{item.price}</Text>
+                </View>
+              </Pressable>
+            ))}
+          </View>
+        ) : (
+          <FlatList
+            horizontal
+            data={featuredVehicles}
+            renderItem={({ item }) => (
             <Pressable
               style={styles.featuredCard}
               onPress={() => router.push(`/${item.id}`)}
@@ -636,19 +676,29 @@ const HomeScreen = () => {
                 <Text style={styles.featuredPrice}>{item.price}</Text>
               </View>
             </Pressable>
-          )}
-          keyExtractor={(item) => item.id}
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.featuredListContent}
-        />
+            )}
+            keyExtractor={(item) => item.id}
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.featuredListContent}
+          />
+        )}
       </View>
 
       {/* --- All Vehicles Section --- */}
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>All Vehicles for Sale</Text>
+      <View style={[styles.section, isWideWeb && styles.sectionWide]}>
+        <Text style={[styles.sectionEyebrow, !isWideWeb && styles.mobileHidden]}>
+          RECENTLY ADDED
+        </Text>
+        <Text style={[styles.sectionTitle, isWideWeb && styles.sectionTitleWide]}>
+          All Vehicles for Sale
+        </Text>
         <View style={styles.vehicleGrid}>
           {recentVehicles.map((item) => (
-            <VehicleCard key={item.id} item={item} />
+            <VehicleCard
+              key={item.id}
+              item={item}
+              style={isWideWeb ? styles.vehicleCardWide : undefined}
+            />
           ))}
         </View>
         <Pressable
@@ -660,15 +710,24 @@ const HomeScreen = () => {
       </View>
 
       {/* --- Trust Section --- */}
-      <View style={[styles.section, styles.trustSection]}>
-        <Text style={styles.sectionTitle}>Built on Trust & Transparency</Text>
-        <View style={styles.trustGrid}>
-          {trustStats.map((stat, index) => (
-            <View key={index} style={styles.trustStat}>
-              <Text style={styles.trustValue}>{stat.value}</Text>
-              <Text style={styles.trustLabel}>{stat.label}</Text>
-            </View>
-          ))}
+      <View style={[styles.section, styles.trustSection, isWideWeb && styles.trustSectionWide]}>
+        <View style={isWideWeb ? styles.trustInnerWide : undefined}>
+          <View style={isWideWeb ? styles.trustHeadingWide : undefined}>
+            <Text style={[styles.sectionEyebrow, !isWideWeb && styles.mobileHidden]}>
+              BUY WITH CONFIDENCE
+            </Text>
+            <Text style={[styles.sectionTitle, isWideWeb && styles.sectionTitleWide]}>
+              Built on Trust & Transparency
+            </Text>
+          </View>
+          <View style={[styles.trustGrid, isWideWeb && styles.trustGridWide]}>
+            {trustStats.map((stat, index) => (
+              <View key={index} style={[styles.trustStat, isWideWeb && styles.trustStatWide]}>
+                <Text style={styles.trustValue}>{stat.value}</Text>
+                <Text style={styles.trustLabel}>{stat.label}</Text>
+              </View>
+            ))}
+          </View>
         </View>
       </View>
       <Footer />
@@ -701,11 +760,10 @@ const styles = StyleSheet.create({
     paddingBottom: Platform.OS === "web" ? 24 : 30,
   },
   searchHeroWide: {
-    minHeight: 610,
-    justifyContent: "center",
-    backgroundColor: "#202733",
-    paddingTop: 88,
-    paddingBottom: 96,
+    backgroundColor: COLORS.background,
+    paddingHorizontal: 32,
+    paddingTop: 52,
+    paddingBottom: 42,
   },
   heroInner: {
     width: "100%",
@@ -713,6 +771,17 @@ const styles = StyleSheet.create({
   },
   heroInnerWide: {
     alignItems: "center",
+    maxWidth: 980,
+    backgroundColor: COLORS.card,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    borderRadius: 20,
+    paddingHorizontal: 64,
+    paddingVertical: 56,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 18 },
+    shadowOpacity: 0.16,
+    shadowRadius: 32,
   },
   heroTitle: {
     fontSize: Platform.OS === "web" ? 24 : 28,
@@ -722,9 +791,10 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   heroTitleWide: {
-    fontSize: 52,
+    fontSize: 46,
     fontWeight: "800",
-    marginBottom: 28,
+    marginBottom: 14,
+    letterSpacing: -1,
   },
   heroSubtitle: {
     fontSize: Platform.OS === "web" ? 15 : 16,
@@ -733,8 +803,9 @@ const styles = StyleSheet.create({
     marginBottom: Platform.OS === "web" ? 16 : 20,
   },
   heroSubtitleWide: {
-    fontSize: 23,
-    marginBottom: 44,
+    fontSize: 18,
+    lineHeight: 27,
+    marginBottom: 34,
   },
   heroSearchCluster: {
     zIndex: 10,
@@ -824,7 +895,7 @@ const styles = StyleSheet.create({
   quickFiltersWideContent: {
     flexGrow: 1,
     justifyContent: "center",
-    paddingTop: 30,
+    paddingTop: 22,
   },
   filterButton: {
     backgroundColor: COLORS.secondary,
@@ -870,7 +941,7 @@ const styles = StyleSheet.create({
     color: COLORS.primary,
   },
   heroDesktopLinks: {
-    marginTop: 38,
+    marginTop: 32,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
@@ -879,13 +950,13 @@ const styles = StyleSheet.create({
   },
   heroDesktopPrompt: {
     color: "#AEB8CA",
-    fontSize: 20,
+    fontSize: 15,
     width: "100%",
     textAlign: "center",
     marginBottom: 2,
   },
   heroDesktopButton: {
-    minWidth: 220,
+    minWidth: 210,
     paddingHorizontal: 22,
     paddingVertical: 14,
   },
@@ -907,12 +978,53 @@ const styles = StyleSheet.create({
   section: {
     marginTop: 30,
   },
+  sectionWide: {
+    width: "100%",
+    maxWidth: 1180,
+    alignSelf: "center",
+    marginTop: 54,
+    paddingHorizontal: 24,
+  },
+  sectionHeadingRow: {
+    flexDirection: "row",
+    alignItems: "flex-end",
+    justifyContent: "space-between",
+  },
+  sectionEyebrow: {
+    color: COLORS.accent,
+    fontSize: 12,
+    fontWeight: "700",
+    letterSpacing: 1.4,
+    marginBottom: 8,
+    paddingHorizontal: 0,
+  },
+  mobileHidden: {
+    display: "none",
+  },
   sectionTitle: {
     fontSize: 22,
     fontWeight: "600",
     color: COLORS.foreground,
     marginBottom: 20,
     paddingHorizontal: 20,
+  },
+  sectionTitleWide: {
+    fontSize: 28,
+    fontWeight: "700",
+    paddingHorizontal: 0,
+    marginBottom: 24,
+    letterSpacing: -0.4,
+  },
+  sectionLink: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 7,
+    paddingBottom: 26,
+  },
+  sectionLinkText: {
+    color: COLORS.accent,
+    fontSize: 14,
+    fontWeight: "600",
   },
   featuredListContent: {
     paddingHorizontal: 20,
@@ -924,6 +1036,17 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.card,
     borderRadius: 12,
     overflow: "hidden",
+  },
+  featuredGridWide: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 20,
+  },
+  featuredCardWide: {
+    width: "31.9%",
+    minWidth: 260,
+    flexGrow: 1,
+    marginRight: 0,
   },
   featuredImage: {
     width: "100%",
@@ -964,6 +1087,11 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     paddingHorizontal: 20,
   },
+  vehicleCardWide: {
+    width: "23.5%",
+    minWidth: 240,
+    height: 270,
+  },
   viewAllButton: {
     marginHorizontal: 20,
     marginTop: 10,
@@ -982,6 +1110,36 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.card,
     paddingVertical: 30,
     marginTop: 30,
+  },
+  trustSectionWide: {
+    maxWidth: 1132,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    borderRadius: 18,
+    paddingHorizontal: 32,
+    paddingVertical: 34,
+    marginBottom: 54,
+    overflow: "hidden",
+  },
+  trustInnerWide: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 48,
+  },
+  trustHeadingWide: {
+    width: "34%",
+  },
+  trustGridWide: {
+    flex: 1,
+    paddingHorizontal: 0,
+    justifyContent: "space-between",
+  },
+  trustStatWide: {
+    minHeight: 86,
+    justifyContent: "center",
+    paddingHorizontal: 14,
+    borderLeftWidth: 1,
+    borderLeftColor: COLORS.border,
   },
   trustGrid: {
     flexDirection: "row",
