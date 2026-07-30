@@ -712,29 +712,31 @@ const HomeScreen = () => {
       </View>
 
       {/* --- Trust Section --- */}
-      <View style={[styles.section, styles.trustSection, isWideWeb && styles.trustSectionWide]}>
-        <View style={isWideWeb ? styles.trustInnerWide : undefined}>
-          <View style={isWideWeb ? styles.trustHeadingWide : undefined}>
-            <Text style={[styles.sectionEyebrow, !isWideWeb && styles.mobileHidden]}>
-              BUY WITH CONFIDENCE
-            </Text>
-            <Text
-              style={[
-                styles.sectionTitle,
-                isWideWeb && styles.sectionTitleWide,
-                isWideWeb && styles.trustTitleWide,
-              ]}
-            >
-              Built on Trust & Transparency
-            </Text>
-          </View>
-          <View style={[styles.trustGrid, isWideWeb && styles.trustGridWide]}>
-            {trustStats.map((stat, index) => (
-              <View key={index} style={[styles.trustStat, isWideWeb && styles.trustStatWide]}>
-                <Text style={styles.trustValue}>{stat.value}</Text>
-                <Text style={styles.trustLabel}>{stat.label}</Text>
-              </View>
-            ))}
+      <View style={[styles.section, isWideWeb && styles.sectionWide]}>
+        <View style={[styles.trustSection, isWideWeb && styles.trustSectionWide]}>
+          <View style={isWideWeb ? styles.trustInnerWide : undefined}>
+            <View style={isWideWeb ? styles.trustHeadingWide : undefined}>
+              <Text style={[styles.sectionEyebrow, !isWideWeb && styles.mobileHidden]}>
+                BUY WITH CONFIDENCE
+              </Text>
+              <Text
+                style={[
+                  styles.sectionTitle,
+                  isWideWeb && styles.sectionTitleWide,
+                  isWideWeb && styles.trustTitleWide,
+                ]}
+              >
+                Built on Trust & Transparency
+              </Text>
+            </View>
+            <View style={[styles.trustGrid, isWideWeb && styles.trustGridWide]}>
+              {trustStats.map((stat, index) => (
+                <View key={index} style={[styles.trustStat, isWideWeb && styles.trustStatWide]}>
+                  <Text style={styles.trustValue}>{stat.value}</Text>
+                  <Text style={styles.trustLabel}>{stat.label}</Text>
+                </View>
+              ))}
+            </View>
           </View>
         </View>
       </View>
@@ -779,15 +781,15 @@ const styles = StyleSheet.create({
   },
   heroInnerWide: {
     alignItems: "center",
-    maxWidth: 1080,
-    minHeight: 540,
+    maxWidth: 1180,
+    minHeight: 620,
     justifyContent: "center",
     backgroundColor: COLORS.card,
     borderWidth: 1,
     borderColor: COLORS.border,
     borderRadius: 20,
-    paddingHorizontal: 76,
-    paddingVertical: 68,
+    paddingHorizontal: 88,
+    paddingVertical: 76,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 18 },
     shadowOpacity: 0.16,
@@ -801,7 +803,7 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   heroTitleWide: {
-    fontSize: 52,
+    fontSize: 56,
     fontWeight: "800",
     marginBottom: 14,
     letterSpacing: -1,
@@ -813,16 +815,16 @@ const styles = StyleSheet.create({
     marginBottom: Platform.OS === "web" ? 16 : 20,
   },
   heroSubtitleWide: {
-    fontSize: 19,
-    lineHeight: 29,
-    marginBottom: 38,
+    fontSize: 20,
+    lineHeight: 30,
+    marginBottom: 42,
   },
   heroSearchCluster: {
     zIndex: 10,
     width: "100%",
   },
   heroSearchClusterWide: {
-    width: 820,
+    width: 900,
     maxWidth: "100%",
   },
   searchBar: {
@@ -1119,16 +1121,14 @@ const styles = StyleSheet.create({
   trustSection: {
     backgroundColor: COLORS.card,
     paddingVertical: 30,
-    marginTop: 30,
   },
   trustSectionWide: {
-    maxWidth: 1132,
+    width: "100%",
     borderWidth: 1,
     borderColor: COLORS.border,
     borderRadius: 18,
     paddingHorizontal: 32,
     paddingVertical: 34,
-    marginBottom: 54,
     overflow: "hidden",
   },
   trustInnerWide: {
