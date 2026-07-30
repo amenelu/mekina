@@ -155,7 +155,7 @@ export default function LoginScreen() {
                 <BouncyCheckbox
                   testID="remember-me-checkbox"
                   size={22}
-                  fillColor="#6118d7ff"
+                  fillColor="#6118D7"
                   unFillColor="#FFFFFF"
                   text="Remember me"
                   iconStyle={{ borderColor: "#ced4da" }}
@@ -288,7 +288,7 @@ const styles = StyleSheet.create({
     fontWeight: "500",
   },
   loginButton: {
-    backgroundColor: "#6118d7ff", // approve / secondary color
+    backgroundColor: "#6118D7", // Primary action purple
     paddingVertical: 12,
     borderRadius: 6, // var(--radius) approximation
     alignItems: "center",

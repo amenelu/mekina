@@ -525,7 +525,7 @@ const HomeScreen = () => {
           {isWideWeb ? (
             <View style={styles.heroDesktopLinks}>
               <Text style={styles.heroDesktopPrompt}>
-                Can't find what you're looking for?
+                {"Can't find what you're looking for?"}
               </Text>
               <Pressable
                 testID="home-find-request-button"
