@@ -19,7 +19,7 @@ const COLORS = {
   card: "#1C212B",
   border: "#313843",
   mutedForeground: "#8A94A3",
-  accent: "#A370F7",
+  accent: "#6118D7",
 };
 
 type PointRequest = {

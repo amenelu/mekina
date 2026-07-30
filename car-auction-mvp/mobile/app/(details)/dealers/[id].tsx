@@ -326,7 +326,7 @@ const styles = StyleSheet.create({
     marginHorizontal: 16,
     marginTop: 16,
   },
-  saveButton: { backgroundColor: "#A370F7" },
+  saveButton: { backgroundColor: "#6118D7" },
   deleteButton: { backgroundColor: "#dc3545" },
   buttonText: { color: "#fff", fontWeight: "bold", fontSize: 16 },
 });

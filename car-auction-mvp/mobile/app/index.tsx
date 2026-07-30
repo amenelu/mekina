@@ -41,7 +41,7 @@ export default function Index() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#A370F7",
+    backgroundColor: "#6118D7",
     justifyContent: "center",
     alignItems: "center",
   },

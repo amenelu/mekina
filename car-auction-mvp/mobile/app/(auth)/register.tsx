@@ -215,7 +215,7 @@ const styles = StyleSheet.create({
   },
   errorText: { color: "#dc3545", fontSize: 14, marginTop: 4 },
   submitButton: {
-    backgroundColor: "#6118d7ff", // 'approve' green color
+    backgroundColor: "#6118D7", // 'approve' green color
     borderRadius: 8,
     paddingVertical: 14,
     alignItems: "center",

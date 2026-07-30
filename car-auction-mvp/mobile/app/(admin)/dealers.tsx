@@ -32,7 +32,7 @@ const COLORS = {
   border: "#313843",
   mutedForeground: "#8A94A3",
   destructive: "#dc3545",
-  accent: "#A370F7",
+  accent: "#6118D7",
   // Add other colors if needed
 };
 
@@ -367,8 +367,8 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   dealerBadge: {
-    borderColor: "rgba(163, 112, 247, 0.45)",
-    backgroundColor: "rgba(163, 112, 247, 0.16)",
+    borderColor: "rgba(97, 24, 215, 0.45)",
+    backgroundColor: "rgba(97, 24, 215, 0.16)",
   },
   rentalBadge: {
     borderColor: "rgba(122, 229, 130, 0.45)",

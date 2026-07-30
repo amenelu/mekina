@@ -16,7 +16,7 @@ const COLORS = {
   border: "#313843",
   text: "#F8F8F8",
   muted: "#8A94A3",
-  accent: "#A370F7",
+  accent: "#6118D7",
   successBg: "#123024",
   successBorder: "#2f7d5f",
   successText: "#8ee3bd",

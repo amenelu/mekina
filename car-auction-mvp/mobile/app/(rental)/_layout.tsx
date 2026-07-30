@@ -6,7 +6,7 @@ import AuthGate from "@/components/_components/AuthGate";
 const COLORS = {
   card: "#1C212B",
   textSecondary: "#8A94A3",
-  accent: "#A370F7",
+  accent: "#6118D7",
 };
 
 export default function RentalTabsLayout() {

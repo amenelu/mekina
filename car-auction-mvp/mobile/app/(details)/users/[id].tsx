@@ -430,7 +430,7 @@ const styles = StyleSheet.create({
     marginHorizontal: 16,
     marginTop: 16,
   },
-  saveButton: { backgroundColor: "#A370F7" },
+  saveButton: { backgroundColor: "#6118D7" },
   resetPasswordButton: { backgroundColor: "#0d6efd" },
   deleteButton: { backgroundColor: "#dc3545", marginBottom: 32 },
   buttonText: { color: "#fff", fontWeight: "bold", fontSize: 16 },

@@ -50,10 +50,10 @@ const COLORS = {
   background: "#14181F",
   foreground: "#F8F8F8",
   card: "#1C212B",
-  accent: "#A370F7",
+  accent: "#6118D7",
   mutedForeground: "#8A94A3",
   border: "#313843",
-  primary: "#A370F7",
+  primary: "#6118D7",
   secondary: "#313843",
 };
 
@@ -525,7 +525,7 @@ const HomeScreen = () => {
           {isWideWeb ? (
             <View style={styles.heroDesktopLinks}>
               <Text style={styles.heroDesktopPrompt}>
-                Can't find what you're looking for?
+                {"Can't find what you're looking for?"}
               </Text>
               <Pressable
                 testID="home-find-request-button"
@@ -892,7 +892,7 @@ const styles = StyleSheet.create({
   infoContainer: {
     marginTop: 20,
     flexDirection: "row",
-    backgroundColor: "rgba(163, 112, 247, 0.1)",
+    backgroundColor: "rgba(97, 24, 215, 0.1)",
     padding: 12,
     borderRadius: 8,
     alignItems: "center",
@@ -1023,13 +1023,13 @@ const styles = StyleSheet.create({
     marginRight: 8,
   },
   trendingChip: {
-    backgroundColor: "rgba(163, 112, 247, 0.15)",
+    backgroundColor: "rgba(97, 24, 215, 0.15)",
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 12,
     marginRight: 8,
     borderWidth: 1,
-    borderColor: "rgba(163, 112, 247, 0.3)",
+    borderColor: "rgba(97, 24, 215, 0.3)",
   },
   trendingChipText: {
     color: COLORS.accent,
