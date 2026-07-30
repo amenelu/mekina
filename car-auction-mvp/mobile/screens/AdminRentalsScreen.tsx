@@ -30,7 +30,7 @@ const COLORS = {
   card: "#1C212B",
   border: "#313843",
   mutedForeground: "#8A94A3",
-  accent: "#6118D7",
+  accent: "#A370F7",
   success: "#28a745",
   destructive: "#dc3545",
   warning: "#ffc107",

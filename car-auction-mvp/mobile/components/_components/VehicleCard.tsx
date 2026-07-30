@@ -16,7 +16,7 @@ import { useRouter } from "expo-router";
 const COLORS = {
   foreground: "#F8F8F8",
   card: "#1C212B",
-  accent: "#6118D7",
+  accent: "#A370F7",
 };
 
 export type Vehicle = {

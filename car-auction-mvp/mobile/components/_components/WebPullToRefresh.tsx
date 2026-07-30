@@ -9,7 +9,7 @@ import {
 } from "react-native";
 
 const COLORS = {
-  accent: "#6118D7",
+  accent: "#A370F7",
   textSecondary: "#8A94A3",
 };
 

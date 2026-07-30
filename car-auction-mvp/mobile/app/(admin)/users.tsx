@@ -24,7 +24,7 @@ const COLORS = {
   card: "#1C212B",
   border: "#313843",
   mutedForeground: "#8A94A3",
-  accent: "#6118D7",
+  accent: "#A370F7",
   destructive: "#dc3545",
   info: "#0dcaf0",
   // Add other colors if needed

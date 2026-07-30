@@ -15,7 +15,7 @@ const COLORS = {
   card: "#1C212B",
   text: "#F8F8F8",
   textSecondary: "#A8B0BD",
-  accent: "#6118D7",
+  accent: "#A370F7",
   border: "#313843",
 };
 
@@ -90,7 +90,7 @@ const styles = StyleSheet.create({
     alignSelf: "center",
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "rgba(97, 24, 215, 0.14)",
+    backgroundColor: "rgba(163, 112, 247, 0.14)",
     marginBottom: 4,
   },
   title: {

@@ -23,7 +23,7 @@ const COLORS = {
   background: "#14181F",
   foreground: "#F8F8F8",
   card: "#1C212B",
-  accent: "#6118D7",
+  accent: "#A370F7",
   border: "#313843",
 };
 
@@ -272,7 +272,7 @@ const styles = StyleSheet.create({
     gap: 20,
   },
   limitCard: {
-    backgroundColor: "rgba(97, 24, 215, 0.12)",
+    backgroundColor: "rgba(163, 112, 247, 0.12)",
     borderRadius: 12,
     borderWidth: 1,
     borderColor: COLORS.accent,

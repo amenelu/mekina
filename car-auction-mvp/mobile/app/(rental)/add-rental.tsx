@@ -26,7 +26,7 @@ const COLORS = {
   card: "#1C212B",
   text: "#F8F8F8",
   textSecondary: "#8A94A3",
-  accent: "#6118D7",
+  accent: "#A370F7",
   input: "#14181F",
   border: "#313843",
 };
@@ -529,7 +529,7 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
   },
   choiceChipSelected: {
-    backgroundColor: "rgba(97, 24, 215, 0.18)",
+    backgroundColor: "rgba(163, 112, 247, 0.18)",
     borderColor: COLORS.accent,
   },
   choiceChipText: {

@@ -18,7 +18,7 @@ const COLORS = {
   background: "#14181F",
   foreground: "#F8F8F8",
   card: "#1C212B",
-  accent: "#6118D7",
+  accent: "#A370F7",
   mutedForeground: "#8A94A3",
   border: "#313843",
 };
@@ -304,7 +304,7 @@ const styles = StyleSheet.create({
     fontWeight: "500",
   },
   bestValueRow: {
-    backgroundColor: "rgba(97, 24, 215, 0.1)", // A light purple highlight
+    backgroundColor: "rgba(163, 112, 247, 0.1)", // A light purple highlight
     marginHorizontal: -15, // Extend highlight to the edges of the card body
     paddingHorizontal: 15,
   },

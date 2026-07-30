@@ -8,7 +8,7 @@ import Animated, {
 const { width } = Dimensions.get("window");
 
 const COLORS = {
-  accent: "#6118D7",
+  accent: "#A370F7",
   background: "#14181F",
   text: "#F8F8F8",
   textSecondary: "#8A94A3",

@@ -28,7 +28,7 @@ const COLORS = {
   card: "#1C212B",
   text: "#F8F8F8",
   textSecondary: "#8A94A3",
-  accent: "#6118D7",
+  accent: "#A370F7",
   border: "#313843",
   destructive: "#dc3545",
 };

@@ -31,7 +31,7 @@ const COLORS = {
   foreground: "#F8F8F8",
   card: "#1C212B",
   mutedForeground: "#8A94A3",
-  accent: "#6118D7",
+  accent: "#A370F7",
   success: "#28a745",
   warning: "#ffc107",
   destructive: "#dc3545",

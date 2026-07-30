@@ -42,7 +42,7 @@ const COLORS = {
   background: "#14181F",
   foreground: "#F8F8F8",
   card: "#1C212B",
-  accent: "#6118D7",
+  accent: "#A370F7",
   mutedForeground: "#8A94A3",
   border: "#313843",
   success: "#28a745",
@@ -1226,7 +1226,7 @@ const styles = StyleSheet.create({
   thumbnailButtonActive: {
     borderColor: COLORS.accent,
     opacity: 1,
-    backgroundColor: "rgba(97, 24, 215, 0.16)",
+    backgroundColor: "rgba(163, 112, 247, 0.16)",
   },
   thumbnail: {
     width: 80,
@@ -1598,7 +1598,7 @@ const styles = StyleSheet.create({
     marginTop: 8,
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "rgba(97, 24, 215, 0.16)",
+    backgroundColor: "rgba(163, 112, 247, 0.16)",
     borderRadius: 12,
     paddingHorizontal: 10,
     paddingVertical: 5,

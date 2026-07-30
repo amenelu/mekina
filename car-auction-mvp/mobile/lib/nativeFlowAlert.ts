@@ -73,14 +73,14 @@ function ensureWebAlertStyles() {
       color: #f8f8f8;
     }
     .mekina-web-alert-close:focus-visible {
-      outline: 3px solid rgba(97, 24, 215, 0.35);
+      outline: 3px solid rgba(163, 112, 247, 0.35);
       outline-offset: 2px;
     }
     .mekina-web-alert-topline {
       width: 42px;
       height: 3px;
       border-radius: 999px;
-      background: #6118D7;
+      background: #a370f7;
       margin-bottom: 16px;
     }
     .mekina-web-alert-title {
@@ -120,17 +120,17 @@ function ensureWebAlertStyles() {
       background: #202633;
     }
     .mekina-web-alert-button:focus-visible {
-      outline: 3px solid rgba(97, 24, 215, 0.35);
+      outline: 3px solid rgba(163, 112, 247, 0.35);
       outline-offset: 2px;
     }
     .mekina-web-alert-button-primary {
-      border-color: #6118D7;
-      background: #6118D7;
+      border-color: #a370f7;
+      background: #a370f7;
       color: #ffffff;
     }
     .mekina-web-alert-button-primary:hover {
-      border-color: #6118D7;
-      background: #6118D7;
+      border-color: #b892ff;
+      background: #b083fb;
     }
     .mekina-web-alert-button-destructive {
       border-color: #e35d6a;

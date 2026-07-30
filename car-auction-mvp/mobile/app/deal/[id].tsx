@@ -32,7 +32,7 @@ const COLORS = {
   background: "#14181F",
   foreground: "#F8F8F8",
   card: "#1C212B",
-  accent: "#6118D7",
+  accent: "#A370F7",
   mutedForeground: "#8A94A3",
   border: "#313843",
   success: "#28a745",
@@ -578,7 +578,7 @@ const styles = StyleSheet.create({
   },
   statusBadge: {
     alignSelf: "center",
-    backgroundColor: "rgba(97, 24, 215, 0.14)",
+    backgroundColor: "rgba(163, 112, 247, 0.14)",
     borderWidth: 1,
     borderColor: COLORS.accent,
     borderRadius: 999,
@@ -591,7 +591,7 @@ const styles = StyleSheet.create({
     borderColor: COLORS.success,
   },
   statusBadgePending: {
-    backgroundColor: "rgba(97, 24, 215, 0.14)",
+    backgroundColor: "rgba(163, 112, 247, 0.14)",
     borderColor: COLORS.accent,
   },
   statusBadgeText: {
@@ -636,8 +636,8 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 8,
     borderWidth: 1,
-    borderColor: "rgba(97, 24, 215, 0.4)",
-    backgroundColor: "rgba(97, 24, 215, 0.1)",
+    borderColor: "rgba(163, 112, 247, 0.4)",
+    backgroundColor: "rgba(163, 112, 247, 0.1)",
     borderRadius: 10,
     padding: 12,
     marginBottom: 12,
@@ -665,7 +665,7 @@ const styles = StyleSheet.create({
     padding: 13,
     borderRadius: 10,
     alignItems: "center",
-    backgroundColor: "rgba(97, 24, 215, 0.12)",
+    backgroundColor: "rgba(163, 112, 247, 0.12)",
   },
   requestCompletionButtonText: {
     color: COLORS.accent,

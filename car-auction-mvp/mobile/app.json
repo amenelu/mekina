@@ -34,9 +34,9 @@
         {
           "image": "./assets/images/splash.webp",
           "resizeMode": "contain",
-          "backgroundColor": "#6118D7",
+          "backgroundColor": "#A370F7",
           "dark": {
-            "backgroundColor": "#6118D7"
+            "backgroundColor": "#A370F7"
           }
         }
       ],

@@ -7,7 +7,7 @@ import { getPostLoginRoute, LOGIN_ROUTE } from "@/lib/roleRoutes";
 
 const COLORS = {
   background: "#14181F",
-  accent: "#6118D7",
+  accent: "#A370F7",
 };
 
 type Role = "admin" | "dealer" | "rental";
