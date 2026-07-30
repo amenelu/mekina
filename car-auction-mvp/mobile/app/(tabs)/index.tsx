@@ -716,7 +716,13 @@ const HomeScreen = () => {
             <Text style={[styles.sectionEyebrow, !isWideWeb && styles.mobileHidden]}>
               BUY WITH CONFIDENCE
             </Text>
-            <Text style={[styles.sectionTitle, isWideWeb && styles.sectionTitleWide]}>
+            <Text
+              style={[
+                styles.sectionTitle,
+                isWideWeb && styles.sectionTitleWide,
+                isWideWeb && styles.trustTitleWide,
+              ]}
+            >
               Built on Trust & Transparency
             </Text>
           </View>
@@ -762,8 +768,8 @@ const styles = StyleSheet.create({
   searchHeroWide: {
     backgroundColor: COLORS.background,
     paddingHorizontal: 32,
-    paddingTop: 52,
-    paddingBottom: 42,
+    paddingTop: 58,
+    paddingBottom: 54,
   },
   heroInner: {
     width: "100%",
@@ -771,13 +777,15 @@ const styles = StyleSheet.create({
   },
   heroInnerWide: {
     alignItems: "center",
-    maxWidth: 980,
+    maxWidth: 1080,
+    minHeight: 540,
+    justifyContent: "center",
     backgroundColor: COLORS.card,
     borderWidth: 1,
     borderColor: COLORS.border,
     borderRadius: 20,
-    paddingHorizontal: 64,
-    paddingVertical: 56,
+    paddingHorizontal: 76,
+    paddingVertical: 68,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 18 },
     shadowOpacity: 0.16,
@@ -791,7 +799,7 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   heroTitleWide: {
-    fontSize: 46,
+    fontSize: 52,
     fontWeight: "800",
     marginBottom: 14,
     letterSpacing: -1,
@@ -803,16 +811,16 @@ const styles = StyleSheet.create({
     marginBottom: Platform.OS === "web" ? 16 : 20,
   },
   heroSubtitleWide: {
-    fontSize: 18,
-    lineHeight: 27,
-    marginBottom: 34,
+    fontSize: 19,
+    lineHeight: 29,
+    marginBottom: 38,
   },
   heroSearchCluster: {
     zIndex: 10,
     width: "100%",
   },
   heroSearchClusterWide: {
-    width: 760,
+    width: 820,
     maxWidth: "100%",
   },
   searchBar: {
@@ -1123,19 +1131,26 @@ const styles = StyleSheet.create({
   },
   trustInnerWide: {
     flexDirection: "row",
-    alignItems: "center",
-    gap: 48,
+    alignItems: "stretch",
+    gap: 36,
   },
   trustHeadingWide: {
-    width: "34%",
+    width: "32%",
+    justifyContent: "center",
+    paddingRight: 20,
+  },
+  trustTitleWide: {
+    marginBottom: 0,
+    lineHeight: 36,
   },
   trustGridWide: {
     flex: 1,
     paddingHorizontal: 0,
     justifyContent: "space-between",
+    alignItems: "stretch",
   },
   trustStatWide: {
-    minHeight: 86,
+    minHeight: 112,
     justifyContent: "center",
     paddingHorizontal: 14,
     borderLeftWidth: 1,
