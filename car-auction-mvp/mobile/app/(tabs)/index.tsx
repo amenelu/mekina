@@ -218,7 +218,9 @@ const HomeScreen = () => {
     }));
   };
 
-  const isWideWeb = Platform.OS === "web" && width >= 1000;
+  // Match the login screen so standard laptop and split-screen browser widths
+  // receive the desktop layout consistently.
+  const isWideWeb = Platform.OS === "web" && width >= 900;
 
   const fetchHomeData = async () => {
     try {
