@@ -694,7 +694,7 @@ const HomeScreen = () => {
         <Text style={[styles.sectionTitle, isWideWeb && styles.sectionTitleWide]}>
           All Vehicles for Sale
         </Text>
-        <View style={styles.vehicleGrid}>
+        <View style={[styles.vehicleGrid, isWideWeb && styles.vehicleGridWide]}>
           {recentVehicles.map((item) => (
             <VehicleCard
               key={item.id}
@@ -704,7 +704,7 @@ const HomeScreen = () => {
           ))}
         </View>
         <Pressable
-          style={styles.viewAllButton}
+          style={[styles.viewAllButton, isWideWeb && styles.viewAllButtonWide]}
           onPress={() => router.push("/all_listings")}
         >
           <Text style={styles.viewAllButtonText}>View All Listings</Text>
@@ -1099,6 +1099,9 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     paddingHorizontal: 20,
   },
+  vehicleGridWide: {
+    paddingHorizontal: 0,
+  },
   vehicleCardWide: {
     width: "23.5%",
     minWidth: 240,
@@ -1111,6 +1114,10 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     borderRadius: 12,
     alignItems: "center",
+  },
+  viewAllButtonWide: {
+    marginHorizontal: 0,
+    marginTop: 14,
   },
   viewAllButtonText: {
     color: COLORS.foreground,
