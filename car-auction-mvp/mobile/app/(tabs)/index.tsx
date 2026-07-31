@@ -712,7 +712,13 @@ const HomeScreen = () => {
       </View>
 
       {/* --- Trust Section --- */}
-      <View style={[styles.section, isWideWeb && styles.sectionWide]}>
+      <View
+        style={[
+          styles.section,
+          isWideWeb && styles.sectionWide,
+          isWideWeb && styles.trustSectionOuterWide,
+        ]}
+      >
         <View style={[styles.trustSection, isWideWeb && styles.trustSectionWide]}>
           <View style={isWideWeb ? styles.trustInnerWide : undefined}>
             <View style={isWideWeb ? styles.trustHeadingWide : undefined}>
@@ -772,7 +778,7 @@ const styles = StyleSheet.create({
   searchHeroWide: {
     backgroundColor: COLORS.background,
     paddingHorizontal: 32,
-    paddingTop: 58,
+    paddingTop: 24,
     paddingBottom: 54,
   },
   heroInner: {
@@ -1137,6 +1143,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 32,
     paddingVertical: 34,
     overflow: "hidden",
+  },
+  trustSectionOuterWide: {
+    marginBottom: 82,
   },
   trustInnerWide: {
     flexDirection: "row",
