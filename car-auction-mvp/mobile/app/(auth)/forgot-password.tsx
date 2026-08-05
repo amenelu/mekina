@@ -31,7 +31,7 @@ export default function ForgotPasswordScreen() {
           <Text style={styles.title}>Password Help</Text>
           <Text style={styles.subtitle}>
             Password recovery is handled by an admin. Email reset links are not
-            enabled for this version of Mekina.
+            enabled for this version of OnlyCars.
           </Text>
 
           <View style={styles.stepCard}>

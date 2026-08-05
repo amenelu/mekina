@@ -1,6 +1,6 @@
 # Production TODO
 
-This checklist tracks the work needed before Mekina is production-ready.
+This checklist tracks the work needed before OnlyCars is production-ready.
 
 ## Release Scope
 

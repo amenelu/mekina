@@ -38,7 +38,7 @@ const HowItWorksScreen = () => {
       <Stack.Screen options={{ title: "How It Works" }} />
       <ScrollView style={styles.container}>
         <View style={styles.content}>
-          <Text style={styles.mainTitle}>How Mekina Works</Text>
+          <Text style={styles.mainTitle}>How OnlyCars Works</Text>
           <Text style={styles.mainParagraph}>
             {"Our platform is designed to be the simplest and most transparent way to buy, sell, or rent cars in Ethiopia. Whether you\'re a buyer looking for your dream car, a seller, or a rental company, here\'s how it works."}
           </Text>

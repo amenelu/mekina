@@ -1,6 +1,6 @@
-# Mekina - Car Auction & Marketplace MVP
+# OnlyCars - Car Auction & Marketplace MVP
 
-**Mekina** is a full-stack platform designed to simplify the process of buying, selling, and renting cars. It features a robust auction system, direct dealer-buyer communication, and a user-friendly mobile interface.
+**OnlyCars** is a full-stack platform designed to simplify the process of buying, selling, and renting cars. It features a robust auction system, direct dealer-buyer communication, and a user-friendly mobile interface.
 
 ## ✨ Key Features
 

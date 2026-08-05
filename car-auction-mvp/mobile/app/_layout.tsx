@@ -452,7 +452,7 @@ export default function RootLayout() {
                     notifications: "Notifications",
                   };
                   return {
-                    headerTitle: titles[routeName] || "Mekina",
+                    headerTitle: titles[routeName] || "OnlyCars",
                     headerShown: false,
                   };
                 }}

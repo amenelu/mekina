@@ -57,7 +57,7 @@ const ContactUsScreen = () => {
       setMessage("");
       showNativeFlowAlert(
         "Message Sent",
-        "Your message has been sent to the mekina team."
+        "Your message has been sent to the OnlyCars team."
       );
     } catch (error: any) {
       showNativeFlowAlert(

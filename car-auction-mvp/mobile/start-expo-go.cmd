@@ -1,5 +1,5 @@
 @echo off
-title Mekina Expo QR
+title OnlyCars Expo QR
 set EXPO_NO_DEPENDENCY_VALIDATION=true
 set EXPO_PUBLIC_API_URL=http://192.168.100.9:8083
 cd /d "%~dp0"

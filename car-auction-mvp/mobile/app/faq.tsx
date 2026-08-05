@@ -37,7 +37,7 @@ const FAQ_ITEMS = [
       "Your request appears in My Requests. Dealers can submit offers, answer your questions, and you can compare offers before accepting one.",
   },
   {
-    question: "Can I rent cars on mekina?",
+    question: "Can I rent cars on OnlyCars?",
     answer:
       "Yes. Rental listings are shown in the Rentals tab. Rental-company listings include direct contact details so you can arrange availability and pickup.",
   },
@@ -100,7 +100,7 @@ const FAQScreen = () => {
       setQuestion("");
       showNativeFlowAlert(
         "Question Sent",
-        "Your question has been sent to the mekina team."
+        "Your question has been sent to the OnlyCars team."
       );
     } catch (error: any) {
       showNativeFlowAlert(
@@ -136,7 +136,7 @@ const FAQScreen = () => {
             <Text style={styles.title}>Frequently Asked Questions</Text>
             <Text style={styles.subtitle}>
               Quick answers for buying, renting, dealer offers, messages, and
-              trade-ins on mekina.
+              trade-ins on OnlyCars.
             </Text>
           </View>
 
@@ -152,7 +152,7 @@ const FAQScreen = () => {
           <View style={styles.askCard}>
             <Text style={styles.askTitle}>Still have a question?</Text>
             <Text style={styles.askSubtitle}>
-              Send it to the mekina team and an admin will review it.
+              Send it to the OnlyCars team and an admin will review it.
             </Text>
 
             {!user && (

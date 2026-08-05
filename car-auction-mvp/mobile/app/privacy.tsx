@@ -15,7 +15,7 @@ const SECTIONS = [
   {
     title: "Information we collect",
     body:
-      "mekina may collect account details, contact information, listing details, uploaded vehicle images, requests, offers, messages, ratings, and usage activity needed to run the marketplace.",
+      "OnlyCars may collect account details, contact information, listing details, uploaded vehicle images, requests, offers, messages, ratings, and usage activity needed to run the marketplace.",
   },
   {
     title: "How information is used",
@@ -68,7 +68,7 @@ const PrivacyScreen = () => {
       <ScrollView style={styles.container} contentContainerStyle={styles.content}>
         <Text style={styles.title}>Privacy Policy</Text>
         <Text style={styles.subtitle}>
-          How mekina handles information across listings, requests, offers,
+          How OnlyCars handles information across listings, requests, offers,
           rentals, messages, and support.
         </Text>
         {SECTIONS.map((section) => (

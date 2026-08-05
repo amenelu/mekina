@@ -15,7 +15,7 @@ const SECTIONS = [
   {
     title: "Use of the platform",
     body:
-      "mekina helps buyers, dealers, and rental companies discover vehicles, submit requests, compare offers, and communicate around listings. Users are responsible for keeping account information accurate and using the platform honestly.",
+      "OnlyCars helps buyers, dealers, and rental companies discover vehicles, submit requests, compare offers, and communicate around listings. Users are responsible for keeping account information accurate and using the platform honestly.",
   },
   {
     title: "Listings and offers",
@@ -30,7 +30,7 @@ const SECTIONS = [
   {
     title: "Transactions",
     body:
-      "mekina helps parties connect, but final inspection, payment, transfer, pickup, and legal paperwork remain the responsibility of the buyer, seller, dealer, or rental company involved.",
+      "OnlyCars helps parties connect, but final inspection, payment, transfer, pickup, and legal paperwork remain the responsibility of the buyer, seller, dealer, or rental company involved.",
   },
   {
     title: "Account actions",
@@ -68,7 +68,7 @@ const TermsScreen = () => {
       <ScrollView style={styles.container} contentContainerStyle={styles.content}>
         <Text style={styles.title}>Terms & Conditions</Text>
         <Text style={styles.subtitle}>
-          The practical rules for using mekina as a buyer, dealer, rental
+          The practical rules for using OnlyCars as a buyer, dealer, rental
           company, or admin-managed seller.
         </Text>
         {SECTIONS.map((section) => (

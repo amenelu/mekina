@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>{% block title %}Mekina Auction{% endblock %}</title>
+    <title>{% block title %}OnlyCars{% endblock %}</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
@@ -90,7 +90,7 @@
         </li>
         {% endmacro %}
 
-        <a href="{{ url_for('main.home') }}" class="nav-brand">Mekina</a>
+        <a href="{{ url_for('main.home') }}" class="nav-brand">OnlyCars</a>
         <div class="nav-menu" id="nav-menu">
           <ul>
             {% if current_user.is_authenticated and current_user.is_admin %} {{
@@ -320,7 +320,7 @@
         <div class="container">
           <div class="footer-content-grid">
             <div class="footer-brand">
-              <h4>Mekina Auction</h4>
+              <h4>OnlyCars</h4>
               <p>
                 The premier automotive marketplace for modern vehicles in
                 Ethiopia.
@@ -362,7 +362,7 @@
             </div>
           </div>
           <div class="footer-bottom">
-            <p>&copy; {{ now.year }} Mekina Auction. All rights reserved.</p>
+            <p>&copy; {{ now.year }} OnlyCars. All rights reserved.</p>
           </div>
         </div>
       </footer>
