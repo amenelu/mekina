@@ -361,7 +361,7 @@ const HomeScreen = () => {
           onPress={() => ref.current?.scrollTo({ y: 0, animated: true })}
           style={styles.headerBrandButton}
         >
-          <Text style={styles.headerTitleText}>mekina</Text>
+          <Text style={styles.headerTitleText}>OnlyCars</Text>
         </Pressable>
       ),
     });
